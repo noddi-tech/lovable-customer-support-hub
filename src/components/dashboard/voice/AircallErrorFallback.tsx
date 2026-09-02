@@ -1,26 +1,26 @@
 /**
  * Aircall Error Fallback Component
- * 
+ *
  * Shown when the Aircall integration crashes.
  * Provides a recovery UI instead of a blank screen.
  */
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, RefreshCw, Phone } from 'lucide-react';
+import { AlertCircle, Phone, RefreshCw } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export const AircallErrorFallback = () => {
   const handleReload = () => {
     // Trigger voice system reset
-    window.dispatchEvent(new CustomEvent('voice-system-reset'));
-    window.location.reload();
-  };
+    window.dispatchEvent(new CustomEvent("voice-system-reset"))
+    window.location.reload()
+  }
 
   const handleSkip = () => {
-    sessionStorage.setItem('aircall_opted_out', 'true');
-    window.location.reload();
-  };
+    sessionStorage.setItem("aircall_opted_out", "true")
+    window.location.reload()
+  }
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -59,5 +59,5 @@ export const AircallErrorFallback = () => {
         </p>
       </Card>
     </div>
-  );
-};
+  )
+}

@@ -1,8 +1,7 @@
-import { forwardRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Check, ChevronDown, X, Tag as TagIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronDown, Tag as TagIcon, X } from "lucide-react"
+import { forwardRef, useState } from "react"
+import { Link } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -10,56 +9,52 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-import { useTags, type RecruitmentTag } from '@/hooks/recruitment/useTags';
+} from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { type RecruitmentTag, useTags } from "@/hooks/recruitment/useTags"
+import { cn } from "@/lib/utils"
 
 interface Props {
-  value: string[];
-  onChange: (next: string[]) => void;
-  triggerLabel?: string;
-  placeholder?: string;
-  showSelected?: boolean;
-  className?: string;
-  size?: 'default' | 'sm';
+  value: string[]
+  onChange: (next: string[]) => void
+  triggerLabel?: string
+  placeholder?: string
+  showSelected?: boolean
+  className?: string
+  size?: "default" | "sm"
 }
 
 export function TagPicker({
   value,
   onChange,
   triggerLabel,
-  placeholder = 'Søk etter etikett...',
+  placeholder = "Søk etter etikett...",
   showSelected = true,
   className,
-  size = 'default',
+  size = "default",
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const { data: tags } = useTags();
-  const list = tags ?? [];
-  const selectedSet = new Set(value);
-  const selected = list.filter((t) => selectedSet.has(t.id));
+  const [open, setOpen] = useState(false)
+  const { data: tags } = useTags()
+  const list = tags ?? []
+  const selectedSet = new Set(value)
+  const selected = list.filter((t) => selectedSet.has(t.id))
 
   const toggle = (id: string) => {
-    if (selectedSet.has(id)) onChange(value.filter((v) => v !== id));
-    else onChange([...value, id]);
-  };
+    if (selectedSet.has(id)) onChange(value.filter((v) => v !== id))
+    else onChange([...value, id])
+  }
 
-  const clearAll = () => onChange([]);
-  const selectAll = () => onChange(list.map((t) => t.id));
+  const clearAll = () => onChange([])
+  const selectAll = () => onChange(list.map((t) => t.id))
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn("space-y-2", className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size={size}
-            className="justify-between gap-2"
-          >
+          <Button type="button" variant="outline" size={size} className="justify-between gap-2">
             <span className="inline-flex items-center gap-2">
               <TagIcon className="h-4 w-4" />
-              {triggerLabel ?? (value.length > 0 ? `Etiketter (${value.length})` : 'Etiketter')}
+              {triggerLabel ?? (value.length > 0 ? `Etiketter (${value.length})` : "Etiketter")}
             </span>
             <ChevronDown className="h-4 w-4 opacity-60" />
           </Button>
@@ -123,24 +118,24 @@ export function TagPicker({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 interface TagChipProps extends React.HTMLAttributes<HTMLSpanElement> {
-  tag: Pick<RecruitmentTag, 'id' | 'name' | 'color'>;
-  onRemove?: () => void;
-  size?: 'default' | 'sm';
+  tag: Pick<RecruitmentTag, "id" | "name" | "color">
+  onRemove?: () => void
+  size?: "default" | "sm"
 }
 
 export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
-  ({ tag, onRemove, size = 'default', className, ...rest }, ref) => {
+  ({ tag, onRemove, size = "default", className, ...rest }, ref) => {
     return (
       <span
         ref={ref}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border font-medium',
-          size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5',
-          className
+          "inline-flex items-center gap-1.5 rounded-full border font-medium",
+          size === "sm" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5",
+          className,
         )}
         style={{
           borderColor: tag.color,
@@ -149,17 +144,14 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
         }}
         {...rest}
       >
-        <span
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ backgroundColor: tag.color }}
-        />
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
         <span className="truncate max-w-[120px]">{tag.name}</span>
         {onRemove && (
           <button
             type="button"
             onClick={(e) => {
-              e.stopPropagation();
-              onRemove();
+              e.stopPropagation()
+              onRemove()
             }}
             className="hover:opacity-70"
             aria-label={`Fjern ${tag.name}`}
@@ -168,7 +160,7 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
           </button>
         )}
       </span>
-    );
-  }
-);
-TagChip.displayName = 'TagChip';
+    )
+  },
+)
+TagChip.displayName = "TagChip"

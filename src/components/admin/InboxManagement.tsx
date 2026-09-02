@@ -1,269 +1,282 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Heading } from '@/components/ui/heading';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useServiceDepartments } from '@/hooks/useServiceDepartments';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { Inbox, Plus, Settings, Trash2, Mail, Users, MessageSquare, RefreshCw } from 'lucide-react';
-import { sortInboxesByName } from '@/lib/sortInboxes';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Mail, MessageSquare, Plus, RefreshCw, Settings, Trash2, Users } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useServiceDepartments } from "@/hooks/useServiceDepartments"
+import { supabase } from "@/integrations/supabase/client"
+import { sortInboxesByName } from "@/lib/sortInboxes"
 
 // Design system color palette for inboxes (HSL converted to hex for display)
 const INBOX_COLOR_PALETTE = [
-  { value: '#6656D9', label: 'Primary Purple' },    // primary: 247 63% 59%
-  { value: '#3B82F6', label: 'Blue' },              // channel-email: 217 91% 60%
-  { value: '#22C55E', label: 'Success Green' },     // success: 142 76% 36%
-  { value: '#F59E0B', label: 'Warning Orange' },    // warning: 32 95% 44%
-  { value: '#EF4444', label: 'Destructive Red' },   // destructive: 0 84% 60%
-  { value: '#8B5CF6', label: 'Violet' },            // accent variant
-  { value: '#EC4899', label: 'Pink' },              // instagram: 329 69% 56%
-  { value: '#06B6D4', label: 'Cyan' },              // additional option
-];
+  { value: "#6656D9", label: "Primary Purple" }, // primary: 247 63% 59%
+  { value: "#3B82F6", label: "Blue" }, // channel-email: 217 91% 60%
+  { value: "#22C55E", label: "Success Green" }, // success: 142 76% 36%
+  { value: "#F59E0B", label: "Warning Orange" }, // warning: 32 95% 44%
+  { value: "#EF4444", label: "Destructive Red" }, // destructive: 0 84% 60%
+  { value: "#8B5CF6", label: "Violet" }, // accent variant
+  { value: "#EC4899", label: "Pink" }, // instagram: 329 69% 56%
+  { value: "#06B6D4", label: "Cyan" }, // additional option
+]
 
 interface InboxData {
-  id: string;
-  name: string;
-  description: string | null;
-  department_id: string | null;
-  navio_department_id: number | null;
-  is_default: boolean;
-  auto_assignment_rules: any;
-  color: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  conversation_count: number;
-  sender_display_name: string | null;
-  purpose: 'support' | 'recruitment';
+  id: string
+  name: string
+  description: string | null
+  department_id: string | null
+  navio_department_id: number | null
+  is_default: boolean
+  auto_assignment_rules: any
+  color: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  conversation_count: number
+  sender_display_name: string | null
+  purpose: "support" | "recruitment"
 }
 
 interface Department {
-  id: string;
-  name: string;
-  description: string | null;
+  id: string
+  name: string
+  description: string | null
 }
 
 interface InboundRoute {
-  id: string;
-  inbox_id: string | null;
-  address: string;
-  group_email: string | null;
+  id: string
+  inbox_id: string | null
+  address: string
+  group_email: string | null
 }
 
-
 interface EmailAccount {
-  id: string;
-  inbox_id: string | null;
-  email_address: string;
-  provider: string;
-  is_active: boolean | null;
+  id: string
+  inbox_id: string | null
+  email_address: string
+  provider: string
+  is_active: boolean | null
 }
 
 // Content-only component for use inside collapsible sections
 export function InboxManagementContent() {
-  const navigate = useNavigate();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const navigate = useNavigate()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [newInboxData, setNewInboxData] = useState({
-    name: '',
-    description: '',
-    navio_department_id: 'no-department',
-    color: '#3B82F6',
+    name: "",
+    description: "",
+    navio_department_id: "no-department",
+    color: "#3B82F6",
     is_default: false,
     auto_assignment_rules: {},
-    sender_display_name: '',
-    purpose: 'support' as 'support' | 'recruitment',
-  });
+    sender_display_name: "",
+    purpose: "support" as "support" | "recruitment",
+  })
 
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
+    setIsRefreshing(true)
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] }),
-      queryClient.invalidateQueries({ queryKey: ['inbound_routes'] }),
-      queryClient.invalidateQueries({ queryKey: ['email_accounts'] }),
-      queryClient.invalidateQueries({ queryKey: ['departments'] }),
-    ]);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+      queryClient.invalidateQueries({ queryKey: ["inboxes"] }),
+      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] }),
+      queryClient.invalidateQueries({ queryKey: ["email_accounts"] }),
+      queryClient.invalidateQueries({ queryKey: ["departments"] }),
+    ])
+    setTimeout(() => setIsRefreshing(false), 500)
+  }
 
   // Fetch inboxes
   const { data: inboxes, isLoading: isLoadingInboxes } = useQuery({
-    queryKey: ['inboxes'],
+    queryKey: ["inboxes"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inboxes');
-      if (error) throw error;
-      return sortInboxesByName(data as InboxData[]);
-    }
-  });
+      const { data, error } = await supabase.rpc("get_inboxes")
+      if (error) throw error
+      return sortInboxesByName(data as InboxData[])
+    },
+  })
 
   // Service departments come from the Navio backend API (cached for hours)
-  const { data: departments } = useServiceDepartments();
+  const { data: departments } = useServiceDepartments()
 
   // Fetch inbound routes (to show connected emails per inbox)
   const { data: inboundRoutes } = useQuery({
-    queryKey: ['inbound_routes'],
+    queryKey: ["inbound_routes"],
     queryFn: async (): Promise<InboundRoute[]> => {
       const { data, error } = await supabase
-        .from('inbound_routes')
-        .select('id,inbox_id,address,group_email');
-      if (error) throw error;
-      return data as unknown as InboundRoute[];
+        .from("inbound_routes")
+        .select("id,inbox_id,address,group_email")
+      if (error) throw error
+      return data as unknown as InboundRoute[]
     },
-  });
+  })
 
-// Fetch connected email accounts (OAuth/IMAP) per inbox
+  // Fetch connected email accounts (OAuth/IMAP) per inbox
   const { data: emailAccounts } = useQuery({
-    queryKey: ['email_accounts'],
+    queryKey: ["email_accounts"],
     queryFn: async (): Promise<EmailAccount[]> => {
-      const { data, error } = await supabase.rpc('get_email_accounts');
-      if (error) throw error;
-      return (data || []) as unknown as EmailAccount[];
+      const { data, error } = await supabase.rpc("get_email_accounts")
+      if (error) throw error
+      return (data || []) as unknown as EmailAccount[]
     },
-  });
+  })
 
   // Create inbox mutation
   const createInboxMutation = useMutation({
     mutationFn: async (inboxData: typeof newInboxData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('Profile not found');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
 
-      const { error } = await supabase
-        .from('inboxes')
-        .insert({
-          ...inboxData,
-          navio_department_id:
-            inboxData.navio_department_id === 'no-department' ? null : Number(inboxData.navio_department_id),
-          sender_display_name: inboxData.sender_display_name || null,
-          organization_id: profile.organization_id
-        });
-      if (error) throw error;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!profile) throw new Error("Profile not found")
+
+      const { error } = await supabase.from("inboxes").insert({
+        ...inboxData,
+        navio_department_id:
+          inboxData.navio_department_id === "no-department"
+            ? null
+            : Number(inboxData.navio_department_id),
+        sender_display_name: inboxData.sender_display_name || null,
+        organization_id: profile.organization_id,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
-      setIsCreateDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      setIsCreateDialogOpen(false)
       setNewInboxData({
-        name: '',
-        description: '',
-        navio_department_id: 'no-department',
-        color: '#3B82F6',
+        name: "",
+        description: "",
+        navio_department_id: "no-department",
+        color: "#3B82F6",
         is_default: false,
         auto_assignment_rules: {},
-        sender_display_name: '',
-        purpose: 'support',
-      });
-      toast.success('Inbox created successfully');
+        sender_display_name: "",
+        purpose: "support",
+      })
+      toast.success("Inbox created successfully")
     },
     onError: (error) => {
-      toast.error('Failed to create inbox: ' + error.message);
-    }
-  });
-
-
-
+      toast.error(`Failed to create inbox: ${error.message}`)
+    },
+  })
 
   // Bulk delete conversations mutation
   const bulkDeleteConversationsMutation = useMutation({
     mutationFn: async (inboxId: string) => {
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('inbox_id', inboxId);
-      if (error) throw error;
+      const { error } = await supabase.from("conversations").delete().eq("inbox_id", inboxId)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success('All conversations deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      toast.success("All conversations deleted successfully")
     },
     onError: (error) => {
-      toast.error('Failed to delete conversations: ' + error.message);
-    }
-  });
+      toast.error(`Failed to delete conversations: ${error.message}`)
+    },
+  })
 
   // Delete inbox mutation with bulk delete option
   const deleteInboxMutation = useMutation({
     mutationFn: async ({ id, forceDelete }: { id: string; forceDelete?: boolean }) => {
       // Check if inbox has conversations
       const { count, error: countError } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .eq('inbox_id', id);
-      
-      if (countError) throw countError;
-      
+        .from("conversations")
+        .select("*", { count: "exact", head: true })
+        .eq("inbox_id", id)
+
+      if (countError) throw countError
+
       if (count && count > 0) {
         if (forceDelete) {
           // Delete all conversations first
-          await bulkDeleteConversationsMutation.mutateAsync(id);
+          await bulkDeleteConversationsMutation.mutateAsync(id)
         } else {
           throw new Error(
-            `Cannot delete inbox with ${count} conversation(s). Please move or delete all conversations first.`
-          );
+            `Cannot delete inbox with ${count} conversation(s). Please move or delete all conversations first.`,
+          )
         }
       }
-      
+
       // Safe to delete - no conversations or they were deleted
-      const { error } = await supabase
-        .from('inboxes')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      const { error } = await supabase.from("inboxes").delete().eq("id", id)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inboxes'] });
-      toast.success('Inbox deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      toast.success("Inbox deleted successfully")
     },
     onError: (error) => {
-      toast.error(error.message);
-    }
-  });
+      toast.error(error.message)
+    },
+  })
 
   const handleCreateInbox = () => {
-    createInboxMutation.mutate(newInboxData);
-  };
-
+    createInboxMutation.mutate(newInboxData)
+  }
 
   const handleDeleteInbox = (id: string, forceDelete?: boolean) => {
-    deleteInboxMutation.mutate({ id, forceDelete });
-  };
+    deleteInboxMutation.mutate({ id, forceDelete })
+  }
 
   const handleBulkDeleteConversations = (inboxId: string) => {
-    bulkDeleteConversationsMutation.mutate(inboxId);
-  };
+    bulkDeleteConversationsMutation.mutate(inboxId)
+  }
 
   const getDepartmentName = (departmentId: number | null) => {
-    if (!departmentId) return 'No service department';
-    const department = departments?.find(d => d.id === departmentId);
-    return department?.name || `Department ${departmentId}`;
-  };
+    if (!departmentId) return "No service department"
+    const department = departments?.find((d) => d.id === departmentId)
+    return department?.name || `Department ${departmentId}`
+  }
 
   return (
     <div className="space-y-6">
       {/* Action buttons */}
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
           Refresh
         </Button>
         <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
@@ -274,115 +287,126 @@ export function InboxManagementContent() {
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Inbox</DialogTitle>
-              <DialogDescription>
-                Set up a new inbox for organizing conversations
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Inbox Name</Label>
-                <Input
-                  id="name"
-                  value={newInboxData.name}
-                  onChange={(e) => setNewInboxData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Sales, Support, Billing"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newInboxData.description}
-                  onChange={(e) => setNewInboxData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Brief description of this inbox"
-                />
-              </div>
-              <div>
-                <Label htmlFor="department">Service department</Label>
-                <Select 
-                  value={newInboxData.navio_department_id} 
-                  onValueChange={(value) => setNewInboxData(prev => ({ ...prev, navio_department_id: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select service department (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-department">No service department</SelectItem>
-                    {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Color</Label>
-                <div className="flex gap-2 mt-1.5 flex-wrap">
-                  {INBOX_COLOR_PALETTE.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => setNewInboxData(prev => ({ ...prev, color: color.value }))}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
-                        newInboxData.color === color.value
-                          ? 'border-foreground scale-110 ring-2 ring-offset-2 ring-primary'
-                          : 'border-transparent hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.label}
-                    />
+          <DialogHeader>
+            <DialogTitle>Create New Inbox</DialogTitle>
+            <DialogDescription>Set up a new inbox for organizing conversations</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Inbox Name</Label>
+              <Input
+                id="name"
+                value={newInboxData.name}
+                onChange={(e) => setNewInboxData((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Sales, Support, Billing"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newInboxData.description}
+                onChange={(e) =>
+                  setNewInboxData((prev) => ({ ...prev, description: e.target.value }))
+                }
+                placeholder="Brief description of this inbox"
+              />
+            </div>
+            <div>
+              <Label htmlFor="department">Service department</Label>
+              <Select
+                value={newInboxData.navio_department_id}
+                onValueChange={(value) =>
+                  setNewInboxData((prev) => ({ ...prev, navio_department_id: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select service department (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no-department">No service department</SelectItem>
+                  {departments?.map((dept) => (
+                    <SelectItem key={dept.id} value={String(dept.id)}>
+                      {dept.name}
+                    </SelectItem>
                   ))}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="sender-name">Sender Display Name (Optional)</Label>
-                <Input
-                  id="sender-name"
-                  value={newInboxData.sender_display_name}
-                  onChange={(e) => setNewInboxData(prev => ({ ...prev, sender_display_name: e.target.value }))}
-                  placeholder="Leave empty to use organization default"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Override the organization-level sender name for this inbox
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="purpose">Purpose</Label>
-                <Select
-                  value={newInboxData.purpose}
-                  onValueChange={(v: 'support' | 'recruitment') => setNewInboxData(prev => ({ ...prev, purpose: v }))}
-                >
-                  <SelectTrigger id="purpose"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="support">Support</SelectItem>
-                    <SelectItem value="recruitment">Recruitment</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recruitment inboxes auto-link inbound emails to applicants by email.
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_default"
-                  checked={newInboxData.is_default}
-                  onCheckedChange={(checked) => setNewInboxData(prev => ({ ...prev, is_default: checked }))}
-                />
-                <Label htmlFor="is_default">Set as default inbox</Label>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Color</Label>
+              <div className="flex gap-2 mt-1.5 flex-wrap">
+                {INBOX_COLOR_PALETTE.map((color) => (
+                  <button
+                    key={color.value}
+                    type="button"
+                    onClick={() => setNewInboxData((prev) => ({ ...prev, color: color.value }))}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      newInboxData.color === color.value
+                        ? "border-foreground scale-110 ring-2 ring-offset-2 ring-primary"
+                        : "border-transparent hover:scale-105"
+                    }`}
+                    style={{ backgroundColor: color.value }}
+                    title={color.label}
+                  />
+                ))}
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateInbox} disabled={createInboxMutation.isPending}>
-                {createInboxMutation.isPending ? 'Creating...' : 'Create Inbox'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+            <div>
+              <Label htmlFor="sender-name">Sender Display Name (Optional)</Label>
+              <Input
+                id="sender-name"
+                value={newInboxData.sender_display_name}
+                onChange={(e) =>
+                  setNewInboxData((prev) => ({ ...prev, sender_display_name: e.target.value }))
+                }
+                placeholder="Leave empty to use organization default"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Override the organization-level sender name for this inbox
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="purpose">Purpose</Label>
+              <Select
+                value={newInboxData.purpose}
+                onValueChange={(v: "support" | "recruitment") =>
+                  setNewInboxData((prev) => ({ ...prev, purpose: v }))
+                }
+              >
+                <SelectTrigger id="purpose">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="support">Support</SelectItem>
+                  <SelectItem value="recruitment">Recruitment</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Recruitment inboxes auto-link inbound emails to applicants by email.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_default"
+                checked={newInboxData.is_default}
+                onCheckedChange={(checked) =>
+                  setNewInboxData((prev) => ({ ...prev, is_default: checked }))
+                }
+              />
+              <Label htmlFor="is_default">Set as default inbox</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateInbox} disabled={createInboxMutation.isPending}>
+              {createInboxMutation.isPending ? "Creating..." : "Create Inbox"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Inbox Grid */}
       {isLoadingInboxes ? (
@@ -402,22 +426,23 @@ export function InboxManagementContent() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {inboxes?.map((inbox) => (
-            <Card key={inbox.id} className="relative bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow">
+            <Card
+              key={inbox.id}
+              className="relative bg-gradient-surface border-border/50 shadow-surface hover:shadow-glow transition-shadow"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <div 
-                      className="w-3 h-3 shrink-0 rounded-full" 
+                    <div
+                      className="w-3 h-3 shrink-0 rounded-full"
                       style={{ backgroundColor: inbox.color }}
                     />
                     <CardTitle className="text-lg break-words min-w-0">{inbox.name}</CardTitle>
-                    {inbox.is_default && (
-                      <Badge variant="secondary">Default</Badge>
-                    )}
+                    {inbox.is_default && <Badge variant="secondary">Default</Badge>}
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       aria-label={`Configure ${inbox.name}`}
                       onClick={() => navigate(`/admin/inboxes/${inbox.id}`)}
@@ -434,10 +459,12 @@ export function InboxManagementContent() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Inbox</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{inbox.name}"? This action cannot be undone.
+                            Are you sure you want to delete "{inbox.name}"? This action cannot be
+                            undone.
                             {(inbox.conversation_count ?? 0) > 0 ? (
                               <span className="block mt-2 text-destructive font-semibold">
-                                ⚠️ This inbox has {inbox.conversation_count} conversation(s). All conversations will be permanently deleted.
+                                ⚠️ This inbox has {inbox.conversation_count} conversation(s). All
+                                conversations will be permanently deleted.
                               </span>
                             ) : (
                               <span className="block mt-2 text-muted-foreground">
@@ -449,14 +476,14 @@ export function InboxManagementContent() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           {(inbox.conversation_count ?? 0) > 0 ? (
-                            <AlertDialogAction 
+                            <AlertDialogAction
                               onClick={() => handleDeleteInbox(inbox.id, true)}
                               className="bg-destructive hover:bg-destructive/90"
                             >
                               Delete Inbox & All Conversations
                             </AlertDialogAction>
                           ) : (
-                            <AlertDialogAction 
+                            <AlertDialogAction
                               onClick={() => handleDeleteInbox(inbox.id, false)}
                               className="bg-destructive hover:bg-destructive/90"
                             >
@@ -468,7 +495,9 @@ export function InboxManagementContent() {
                     </AlertDialog>
                   </div>
                 </div>
-                <CardDescription className="break-words">{inbox.description || 'No description'}</CardDescription>
+                <CardDescription className="break-words">
+                  {inbox.description || "No description"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -491,7 +520,7 @@ export function InboxManagementContent() {
                   <div className="flex items-center justify-between text-sm">
                     <span>Status</span>
                     <Badge variant={inbox.is_active ? "default" : "secondary"}>
-                      {inbox.is_active ? 'Active' : 'Inactive'}
+                      {inbox.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                   <div className="text-sm">
@@ -501,10 +530,12 @@ export function InboxManagementContent() {
                     </span>
                     <div className="text-muted-foreground break-words">
                       {(() => {
-                        const routes = inboundRoutes?.filter(r => r.inbox_id === inbox.id) || [];
-                        const accounts = (emailAccounts || []).filter(a => a.inbox_id === inbox.id);
+                        const routes = inboundRoutes?.filter((r) => r.inbox_id === inbox.id) || []
+                        const accounts = (emailAccounts || []).filter(
+                          (a) => a.inbox_id === inbox.id,
+                        )
                         if (routes.length + accounts.length === 0) {
-                          return <span>No email connected</span>;
+                          return <span>No email connected</span>
                         }
                         return (
                           <ul className="list-disc pl-5 space-y-1">
@@ -516,13 +547,17 @@ export function InboxManagementContent() {
                             ))}
                             {routes.map((r) => (
                               <li key={`route-${r.id}`}>
-                                <span className="font-medium break-all">{r.group_email || 'Public email not set'}</span>
+                                <span className="font-medium break-all">
+                                  {r.group_email || "Public email not set"}
+                                </span>
                                 <span className="ml-2">→ forwards to </span>
-                                <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50 break-all">{r.address}</code>
+                                <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted/50 break-all">
+                                  {r.address}
+                                </code>
                               </li>
                             ))}
                           </ul>
-                        );
+                        )
                       })()}
                     </div>
                   </div>
@@ -532,9 +567,8 @@ export function InboxManagementContent() {
           ))}
         </div>
       )}
-
     </div>
-  );
+  )
 }
 
 // Wrapper component with header for standalone page use
@@ -551,5 +585,5 @@ export function InboxManagement() {
       </div>
       <InboxManagementContent />
     </div>
-  );
+  )
 }

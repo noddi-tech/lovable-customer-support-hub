@@ -1,35 +1,37 @@
-import React, { useState } from 'react';
-import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { LiveChatQueue } from '@/components/conversations/LiveChatQueue';
-import { ChatFilters, type ChatFilterType } from './ChatFilters';
-import { ChatConversationList } from './ChatConversationList';
-import { ChatEmptyState } from './ChatEmptyState';
-
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { MessageCircle, Settings } from 'lucide-react';
-import { LiveChatSlaDialog } from './LiveChatSlaDialog';
-import { ChatMetricsDialog } from '@/components/dashboard/ChatMetricsDialog';
-import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useIsMobile } from '@/hooks/use-responsive';
-
+import { useQuery } from "@tanstack/react-query"
+import { MessageCircle, Settings } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { LiveChatQueue } from "@/components/conversations/LiveChatQueue"
+import { ChatMetricsDialog } from "@/components/dashboard/ChatMetricsDialog"
 // Direct import - lazy loading was causing context provider issues
-import { ConversationView } from '@/components/dashboard/ConversationView';
+import { ConversationView } from "@/components/dashboard/ConversationView"
+import { ChannelPageHeader } from "@/components/dashboard/shared/ChannelPageHeader"
+import { Button } from "@/components/ui/button"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { ChatConversationList } from "./ChatConversationList"
+import { ChatEmptyState } from "./ChatEmptyState"
+import { ChatFilters, type ChatFilterType } from "./ChatFilters"
+import { LiveChatSlaDialog } from "./LiveChatSlaDialog"
 
 export const ChatLayout: React.FC = () => {
-  const navigate = useNavigate();
-  const { filter: urlFilter, conversationId: selectedConversationId } = useParams<{ filter?: string; conversationId?: string }>();
-  const [searchParams] = useSearchParams();
-  const highlightMessageId = searchParams.get('m');
-  const { profile, isAdmin } = useAuth();
-  const isMobile = useIsMobile();
-  const organizationId = profile?.organization_id;
-  const [slaOpen, setSlaOpen] = useState(false);
-  const [metricsOpen, setMetricsOpen] = useState(false);
+  const navigate = useNavigate()
+  const { filter: urlFilter, conversationId: selectedConversationId } = useParams<{
+    filter?: string
+    conversationId?: string
+  }>()
+  const [searchParams] = useSearchParams()
+  const highlightMessageId = searchParams.get("m")
+  const { profile, isAdmin } = useAuth()
+  const isMobile = useIsMobile()
+  const organizationId = profile?.organization_id
+  const [slaOpen, setSlaOpen] = useState(false)
+  const [metricsOpen, setMetricsOpen] = useState(false)
 
   const widgetSettingsButton = (
     <Tooltip>
@@ -46,86 +48,86 @@ export const ChatLayout: React.FC = () => {
       </TooltipTrigger>
       <TooltipContent>Live chat SLA &amp; performance</TooltipContent>
     </Tooltip>
-  );
+  )
 
   // Map URL filter to our filter type
-  const currentFilter: ChatFilterType = 
-    urlFilter === 'waiting' ? 'waiting' :
-    urlFilter === 'ended' ? 'ended' :
-    urlFilter === 'all' ? 'all' :
-    'active';
+  const currentFilter: ChatFilterType =
+    urlFilter === "waiting"
+      ? "waiting"
+      : urlFilter === "ended"
+        ? "ended"
+        : urlFilter === "all"
+          ? "all"
+          : "active"
 
   // Fetch counts for filter badges
   const { data: counts } = useQuery({
-    queryKey: ['chat-counts', organizationId],
+    queryKey: ["chat-counts", organizationId],
     queryFn: async () => {
-      if (!organizationId) return { active: 0, waiting: 0, ended: 0, all: 0 };
+      if (!organizationId) return { active: 0, waiting: 0, ended: 0, all: 0 }
 
       // Count widget conversations by status
       const [activeResult, endedResult, allResult] = await Promise.all([
         supabase
-          .from('conversations')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId)
-          .eq('channel', 'widget')
-          .in('status', ['open', 'pending']) // Include pending in active count
-          .is('deleted_at', null),
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .eq("channel", "widget")
+          .in("status", ["open", "pending"]) // Include pending in active count
+          .is("deleted_at", null),
         supabase
-          .from('conversations')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId)
-          .eq('channel', 'widget')
-          .in('status', ['closed', 'resolved'])
-          .is('deleted_at', null),
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .eq("channel", "widget")
+          .in("status", ["closed", "resolved"])
+          .is("deleted_at", null),
         supabase
-          .from('conversations')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', organizationId)
-          .eq('channel', 'widget')
-          .is('deleted_at', null),
-      ]);
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .eq("channel", "widget")
+          .is("deleted_at", null),
+      ])
 
       // Count waiting sessions
       const { count: waitingCount } = await supabase
-        .from('widget_chat_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'waiting');
+        .from("widget_chat_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "waiting")
 
       return {
         active: activeResult.count || 0,
         waiting: waitingCount || 0,
         ended: endedResult.count || 0,
         all: allResult.count || 0,
-      };
+      }
     },
     enabled: !!organizationId,
     refetchInterval: 10000,
-  });
+  })
 
   const handleFilterChange = (filter: ChatFilterType) => {
     // Navigate to filter list view (no conversation in path)
-    navigate(`/interactions/chat/${filter}`);
-  };
+    navigate(`/interactions/chat/${filter}`)
+  }
 
   const handleSelectChat = (conversationId: string) => {
-    navigate(`/interactions/chat/conversations/${conversationId}`);
-  };
+    navigate(`/interactions/chat/conversations/${conversationId}`)
+  }
 
   const handleBack = () => {
-    navigate(-1);
-  };
+    navigate(-1)
+  }
 
   // ============ MOBILE: single column, list <-> conversation ============
   if (isMobile) {
     if (selectedConversationId) {
       return (
         <div className="flex flex-col h-full bg-card overflow-hidden">
-          <ConversationView
-            conversationId={selectedConversationId}
-            showSidePanel={false}
-          />
+          <ConversationView conversationId={selectedConversationId} showSidePanel={false} />
         </div>
-      );
+      )
     }
 
     return (
@@ -154,9 +156,9 @@ export const ChatLayout: React.FC = () => {
         </div>
 
         <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
-      <ChatMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
+        <ChatMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
       </div>
-    );
+    )
   }
 
   return (
@@ -182,10 +184,7 @@ export const ChatLayout: React.FC = () => {
             />
 
             {/* Live Chat Queue - Prominent position */}
-            <LiveChatQueue 
-              className="border-b"
-              compact={false}
-            />
+            <LiveChatQueue className="border-b" compact={false} />
 
             {/* Chat Conversation List */}
             <ChatConversationList
@@ -201,10 +200,7 @@ export const ChatLayout: React.FC = () => {
         {/* Right panel: Selected Chat View (customer history lives in Customer Details) */}
         <ResizablePanel defaultSize={65}>
           {selectedConversationId ? (
-            <ConversationView
-              conversationId={selectedConversationId}
-              showSidePanel={false}
-            />
+            <ConversationView conversationId={selectedConversationId} showSidePanel={false} />
           ) : (
             <ChatEmptyState />
           )}
@@ -214,5 +210,5 @@ export const ChatLayout: React.FC = () => {
       <LiveChatSlaDialog open={slaOpen} onOpenChange={setSlaOpen} canEdit={isAdmin} />
       <ChatMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
     </div>
-  );
-};
+  )
+}

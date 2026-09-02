@@ -33,19 +33,19 @@ VITE_LOG_LEVEL=SILENT npm run dev
 ## Usage
 
 ```typescript
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 // Debug logs (only in DEBUG mode)
-logger.debug('Detailed diagnostic info', { data }, 'ComponentName');
+logger.debug("Detailed diagnostic info", { data }, "ComponentName");
 
 // Info logs (INFO mode and above)
-logger.info('Operation completed', { result }, 'ComponentName');
+logger.info("Operation completed", { result }, "ComponentName");
 
 // Warnings (WARN mode and above)
-logger.warn('Something unexpected', error, 'ComponentName');
+logger.warn("Something unexpected", error, "ComponentName");
 
 // Errors (always shown unless SILENT)
-logger.error('Operation failed', error, 'ComponentName');
+logger.error("Operation failed", error, "ComponentName");
 ```
 
 ## Smart Deduplication
@@ -70,19 +70,21 @@ Common component names used for categorization:
 ## Migration from console.log
 
 **Before:**
+
 ```typescript
-console.log('[MyComponent] Operation started:', data);
-console.warn('Something went wrong');
-console.error('Failed to fetch', error);
+console.log("[MyComponent] Operation started:", data);
+console.warn("Something went wrong");
+console.error("Failed to fetch", error);
 ```
 
 **After:**
-```typescript
-import { logger } from '@/utils/logger';
 
-logger.debug('Operation started', data, 'MyComponent');
-logger.warn('Something went wrong', undefined, 'MyComponent');
-logger.error('Failed to fetch', error, 'MyComponent');
+```typescript
+import { logger } from "@/utils/logger";
+
+logger.debug("Operation started", data, "MyComponent");
+logger.warn("Something went wrong", undefined, "MyComponent");
+logger.error("Failed to fetch", error, "MyComponent");
 ```
 
 ## Benefits

@@ -1,20 +1,20 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Slot } from "@radix-ui/react-slot";
+import { Slot } from "@radix-ui/react-slot"
+import type * as React from "react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 export interface PaneColumnProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  asChild?: boolean;
+  children: React.ReactNode
+  asChild?: boolean
 }
 
 export interface PaneHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export interface PaneScrollProps extends React.ComponentPropsWithoutRef<typeof ScrollArea> {
-  children: React.ReactNode;
-  className?: string;
+  children: React.ReactNode
+  className?: string
 }
 
 /**
@@ -22,15 +22,12 @@ export interface PaneScrollProps extends React.ComponentPropsWithoutRef<typeof S
  * Ensures proper height constraints for nested scrolling.
  */
 export function PaneColumn({ className, children, asChild = false, ...props }: PaneColumnProps) {
-  const Comp = asChild ? Slot : "div";
+  const Comp = asChild ? Slot : "div"
   return (
-    <Comp
-      className={cn("min-h-0 min-w-0 flex flex-col", className)}
-      {...props}
-    >
+    <Comp className={cn("min-h-0 min-w-0 flex flex-col", className)} {...props}>
       {children}
     </Comp>
-  );
+  )
 }
 
 /**
@@ -39,13 +36,10 @@ export function PaneColumn({ className, children, asChild = false, ...props }: P
  */
 export function PaneHeader({ className, children, ...props }: PaneHeaderProps) {
   return (
-    <div
-      className={cn("shrink-0", className)}
-      {...props}
-    >
+    <div className={cn("shrink-0", className)} {...props}>
       {children}
     </div>
-  );
+  )
 }
 
 /**
@@ -54,11 +48,8 @@ export function PaneHeader({ className, children, ...props }: PaneHeaderProps) {
  */
 export function PaneScroll({ className, children, ...props }: PaneScrollProps) {
   return (
-    <ScrollArea
-      className={cn("h-full w-full", className)}
-      {...props}
-    >
+    <ScrollArea className={cn("h-full w-full", className)} {...props}>
       {children}
     </ScrollArea>
-  );
+  )
 }

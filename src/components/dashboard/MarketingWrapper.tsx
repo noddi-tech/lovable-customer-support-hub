@@ -1,28 +1,24 @@
-import React from 'react';
-import { SMSInterface } from '@/components/dashboard/SMSInterface';
-import NewsletterBuilder from './NewsletterBuilder';
+import type React from "react"
+import { SMSInterface } from "@/components/dashboard/SMSInterface"
+import NewsletterBuilder from "./NewsletterBuilder"
 
 interface MarketingWrapperProps {
-  activeSubSection?: string;
+  activeSubSection?: string
 }
 
-const MarketingWrapper: React.FC<MarketingWrapperProps> = ({ activeSubSection = 'email' }) => {
+const MarketingWrapper: React.FC<MarketingWrapperProps> = ({ activeSubSection = "email" }) => {
   const renderContent = () => {
     switch (activeSubSection) {
-      case 'email':
-        return <NewsletterBuilder />;
-      case 'sms':
-        return <SMSInterface />;
+      case "email":
+        return <NewsletterBuilder />
+      case "sms":
+        return <SMSInterface />
       default:
-        return <NewsletterBuilder />;
+        return <NewsletterBuilder />
     }
-  };
+  }
 
-  return (
-    <div className="h-full min-h-0 overflow-hidden">
-      {renderContent()}
-    </div>
-  );
-};
+  return <div className="h-full min-h-0 overflow-hidden">{renderContent()}</div>
+}
 
-export default MarketingWrapper;
+export default MarketingWrapper

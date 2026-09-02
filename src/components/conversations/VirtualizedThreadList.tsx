@@ -1,15 +1,15 @@
-import { useRef, useEffect } from 'react';
-import { VariableSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
-import { MessageCard } from "./MessageCard";
-import { NormalizedMessage } from "@/lib/normalizeMessage";
+import { useEffect, useRef } from "react"
+import AutoSizer from "react-virtualized-auto-sizer"
+import { VariableSizeList as List } from "react-window"
+import type { NormalizedMessage } from "@/lib/normalizeMessage"
+import { MessageCard } from "./MessageCard"
 
 interface VirtualizedThreadListProps {
-  messages: NormalizedMessage[];
-  conversation: any;
-  collapsedMessageIds: Set<string>;
-  onEditMessage?: (messageId: string, content: string) => void;
-  onDeleteMessage?: (messageId: string) => void;
+  messages: NormalizedMessage[]
+  conversation: any
+  collapsedMessageIds: Set<string>
+  onEditMessage?: (messageId: string, content: string) => void
+  onDeleteMessage?: (messageId: string) => void
 }
 
 export const VirtualizedThreadList = ({
@@ -17,32 +17,32 @@ export const VirtualizedThreadList = ({
   conversation,
   collapsedMessageIds,
   onEditMessage,
-  onDeleteMessage
+  onDeleteMessage,
 }: VirtualizedThreadListProps) => {
-  const listRef = useRef<List>(null);
-  const rowHeights = useRef<{ [key: number]: number }>({});
+  const listRef = useRef<List>(null)
+  const rowHeights = useRef<{ [key: number]: number }>({})
 
   function getRowHeight(index: number) {
-    return rowHeights.current[index] || 200; // Default height
+    return rowHeights.current[index] || 200 // Default height
   }
 
   function setRowHeight(index: number, size: number) {
-    listRef.current?.resetAfterIndex(0);
-    rowHeights.current = { ...rowHeights.current, [index]: size };
+    listRef.current?.resetAfterIndex(0)
+    rowHeights.current = { ...rowHeights.current, [index]: size }
   }
 
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const rowRef = useRef<HTMLDivElement>(null);
-    const message = messages[index];
+    const rowRef = useRef<HTMLDivElement>(null)
+    const message = messages[index]
 
     useEffect(() => {
       if (rowRef.current) {
-        const height = rowRef.current.getBoundingClientRect().height;
+        const height = rowRef.current.getBoundingClientRect().height
         if (height !== rowHeights.current[index]) {
-          setRowHeight(index, height);
+          setRowHeight(index, height)
         }
       }
-    }, [index]);
+    }, [index])
 
     return (
       <div style={style}>
@@ -58,8 +58,8 @@ export const VirtualizedThreadList = ({
           />
         </div>
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <AutoSizer>
@@ -76,5 +76,5 @@ export const VirtualizedThreadList = ({
         </List>
       )}
     </AutoSizer>
-  );
-};
+  )
+}

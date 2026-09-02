@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { useAuditEvents } from '../hooks/useAuditEvents';
-import { Card } from '@/components/ui/card';
-import { AuditTimelineFilters, type TimelineFilters } from './AuditTimelineFilters';
-import { AuditEventRow } from './AuditEventRow';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { UnifiedAuditEvent } from '../types';
+import { useState } from "react"
+import { Card } from "@/components/ui/card"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAuditEvents } from "../hooks/useAuditEvents"
+import type { UnifiedAuditEvent } from "../types"
+import { AuditEventRow } from "./AuditEventRow"
+import { AuditTimelineFilters, type TimelineFilters } from "./AuditTimelineFilters"
 
 interface Props {
-  organizationId: string | null;
-  onRowClick: (event: UnifiedAuditEvent) => void;
+  organizationId: string | null
+  onRowClick: (event: UnifiedAuditEvent) => void
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 50
 
 export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
-  const [filters, setFilters] = useState<TimelineFilters>({});
-  const [page, setPage] = useState(0);
+  const [filters, setFilters] = useState<TimelineFilters>({})
+  const [page, setPage] = useState(0)
 
   const { data, isLoading } = useAuditEvents({
     organizationId,
@@ -24,15 +24,21 @@ export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
     eventTypes: filters.eventTypes,
     sources: filters.sources,
     limit: 1000,
-  });
+  })
 
-  const events = data ?? [];
-  const pageEvents = events.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
+  const events = data ?? []
+  const pageEvents = events.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE))
 
   return (
     <div className="space-y-4">
-      <AuditTimelineFilters value={filters} onChange={(f) => { setFilters(f); setPage(0); }} />
+      <AuditTimelineFilters
+        value={filters}
+        onChange={(f) => {
+          setFilters(f)
+          setPage(0)
+        }}
+      />
 
       <Card className="p-0 overflow-hidden">
         {isLoading ? (
@@ -54,7 +60,11 @@ export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
             </TableHeader>
             <TableBody>
               {pageEvents.map((ev) => (
-                <AuditEventRow key={`${ev.source}-${ev.id}`} event={ev} onClick={() => onRowClick(ev)} />
+                <AuditEventRow
+                  key={`${ev.source}-${ev.id}`}
+                  event={ev}
+                  onClick={() => onRowClick(ev)}
+                />
               ))}
             </TableBody>
           </Table>
@@ -85,5 +95,5 @@ export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
         </div>
       )}
     </div>
-  );
+  )
 }

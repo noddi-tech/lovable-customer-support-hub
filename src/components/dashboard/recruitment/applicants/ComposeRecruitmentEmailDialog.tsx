@@ -1,70 +1,89 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { EmailTemplateTipTap } from '../admin/templates/EmailTemplateTipTap';
-import { Loader2, Paperclip, Calendar as CalendarIcon, Info as InfoIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { useQuery } from "@tanstack/react-query"
+import { Calendar as CalendarIcon, Info as InfoIcon, Loader2, Paperclip } from "lucide-react"
+import type React from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
-  useRecruitmentInboxes,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   useApplicantFiles,
+  useRecruitmentInboxes,
   useSendRecruitmentEmail,
-} from '@/hooks/recruitment/useRecruitmentEmail';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { substituteMergeFields } from '../admin/templates/mergeFields';
-import { useAuth } from '@/hooks/useAuth';
+} from "@/hooks/recruitment/useRecruitmentEmail"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
+import { EmailTemplateTipTap } from "../admin/templates/EmailTemplateTipTap"
+import { substituteMergeFields } from "../admin/templates/mergeFields"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
+  open: boolean
+  onOpenChange: (o: boolean) => void
   applicant: {
-    id: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    email?: string | null;
-  };
-  conversationId?: string;
+    id: string
+    first_name?: string | null
+    last_name?: string | null
+    email?: string | null
+  }
+  conversationId?: string
 }
 
-export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenChange, applicant, conversationId }) => {
-  const { currentOrganizationId } = useOrganizationStore();
-  const { profile } = useAuth();
-  const { data: inboxes, isLoading: inboxesLoading } = useRecruitmentInboxes();
-  const { data: files } = useApplicantFiles(applicant.id);
+export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({
+  open,
+  onOpenChange,
+  applicant,
+  conversationId,
+}) => {
+  const { currentOrganizationId } = useOrganizationStore()
+  const { profile } = useAuth()
+  const { data: inboxes, isLoading: inboxesLoading } = useRecruitmentInboxes()
+  const { data: files } = useApplicantFiles(applicant.id)
 
-  const [inboxId, setInboxId] = useState<string>('');
-  const [templateId, setTemplateId] = useState<string>('');
-  const [subject, setSubject] = useState('');
-  const [bodyHtml, setBodyHtml] = useState('');
-  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
-  const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduleAt, setScheduleAt] = useState('');
+  const [inboxId, setInboxId] = useState<string>("")
+  const [templateId, setTemplateId] = useState<string>("")
+  const [subject, setSubject] = useState("")
+  const [bodyHtml, setBodyHtml] = useState("")
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([])
+  const [scheduleEnabled, setScheduleEnabled] = useState(false)
+  const [scheduleAt, setScheduleAt] = useState("")
 
-  const sendMut = useSendRecruitmentEmail();
+  const sendMut = useSendRecruitmentEmail()
 
   // Reset on close
   useEffect(() => {
     if (!open) {
-      setTemplateId('');
-      setSubject('');
-      setBodyHtml('');
-      setAttachmentIds([]);
-      setScheduleEnabled(false);
-      setScheduleAt('');
+      setTemplateId("")
+      setSubject("")
+      setBodyHtml("")
+      setAttachmentIds([])
+      setScheduleEnabled(false)
+      setScheduleAt("")
     }
-  }, [open]);
+  }, [open])
 
   // Default inbox = first
   useEffect(() => {
     if (open && !inboxId && inboxes && inboxes.length > 0) {
-      setInboxId(inboxes[0].id);
+      setInboxId(inboxes[0].id)
     }
-  }, [open, inboxes, inboxId]);
+  }, [open, inboxes, inboxId])
 
   // Templates that contain {{cta_button:LABEL:form_url}} require a server-issued
   // candidate-form token and can ONLY be sent through generate-candidate-form-token /
@@ -72,56 +91,64 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
   // so client-side substituteMergeFields would render href="#" and the server-side
   // substituteVars in send-recruitment-email would wipe expires_at/organization_name/
   // brand_color to empty strings. Filter them out of the dropdown.
-  const CANDIDATE_FORM_TPL_RE = /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i;
+  const CANDIDATE_FORM_TPL_RE = /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i
 
   const { data: templates, isLoading: templatesLoading } = useQuery({
-    queryKey: ['recruitment-email-templates-active', currentOrganizationId],
+    queryKey: ["recruitment-email-templates-active", currentOrganizationId],
     enabled: !!currentOrganizationId && open,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recruitment_email_templates')
-        .select('id, name, subject, body')
-        .eq('organization_id', currentOrganizationId!)
-        .eq('type', 'email') // exclude SMS templates from the email composer
-        .eq('is_active', true)
-        .is('soft_deleted_at', null)
-        .order('name');
-      if (error) throw error;
+        .from("recruitment_email_templates")
+        .select("id, name, subject, body")
+        .eq("organization_id", currentOrganizationId!)
+        .eq("type", "email") // exclude SMS templates from the email composer
+        .eq("is_active", true)
+        .is("soft_deleted_at", null)
+        .order("name")
+      if (error) throw error
       // Defense in depth: also exclude any email template that uses the
       // candidate-form CTA placeholder — those require server-issued tokens.
-      return (data ?? []).filter((t: any) => !CANDIDATE_FORM_TPL_RE.test(t.body || ''));
+      return (data ?? []).filter((t: any) => !CANDIDATE_FORM_TPL_RE.test(t.body || ""))
     },
-  });
+  })
 
-  const vars = useMemo(() => ({
-    first_name: applicant.first_name || '',
-    last_name: applicant.last_name || '',
-    company_name: '',
-    position_title: '',
-    recruiter_name: profile?.full_name || '',
-    recruiter_email: profile?.email || '',
-    application_link: typeof window !== 'undefined'
-      ? `${window.location.origin}/operations/recruitment/applicants/${applicant.id}`
-      : '',
-  }), [applicant, profile]);
+  const vars = useMemo(
+    () => ({
+      first_name: applicant.first_name || "",
+      last_name: applicant.last_name || "",
+      company_name: "",
+      position_title: "",
+      recruiter_name: profile?.full_name || "",
+      recruiter_email: profile?.email || "",
+      application_link:
+        typeof window !== "undefined"
+          ? `${window.location.origin}/operations/recruitment/applicants/${applicant.id}`
+          : "",
+    }),
+    [applicant, profile],
+  )
 
   const handleTemplateChange = (id: string) => {
-    setTemplateId(id);
-    const tpl = (templates ?? []).find((t: any) => t.id === id);
+    setTemplateId(id)
+    const tpl = (templates ?? []).find((t: any) => t.id === id)
     if (tpl) {
-      setSubject(substituteMergeFields(tpl.subject || '', vars));
-      setBodyHtml(substituteMergeFields(tpl.body || '', vars));
+      setSubject(substituteMergeFields(tpl.subject || "", vars))
+      setBodyHtml(substituteMergeFields(tpl.body || "", vars))
     }
-  };
+  }
 
-  const canSend = !!inboxId && !!subject.trim() && !!bodyHtml.trim() && !!applicant.email
-    && (!scheduleEnabled || !!scheduleAt);
+  const canSend =
+    !!inboxId &&
+    !!subject.trim() &&
+    !!bodyHtml.trim() &&
+    !!applicant.email &&
+    (!scheduleEnabled || !!scheduleAt)
 
   const handleSend = async () => {
     if (!applicant.email) {
-      toast.error('Søkeren mangler e-postadresse');
-      return;
+      toast.error("Søkeren mangler e-postadresse")
+      return
     }
     const attachments = (files ?? [])
       .filter((f: any) => attachmentIds.includes(f.id))
@@ -129,20 +156,20 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
         applicant_file_id: f.id,
         storage_path: f.storage_path,
         filename: f.file_name,
-      }));
+      }))
 
-    let scheduledIso: string | null = null;
+    let scheduledIso: string | null = null
     if (scheduleEnabled && scheduleAt) {
-      const dt = new Date(scheduleAt);
+      const dt = new Date(scheduleAt)
       if (Number.isNaN(dt.getTime())) {
-        toast.error('Ugyldig planlagt tidspunkt');
-        return;
+        toast.error("Ugyldig planlagt tidspunkt")
+        return
       }
       if (dt.getTime() < Date.now() + 60_000) {
-        toast.error('Velg et tidspunkt minst 1 minutt fram i tid');
-        return;
+        toast.error("Velg et tidspunkt minst 1 minutt fram i tid")
+        return
       }
-      scheduledIso = dt.toISOString();
+      scheduledIso = dt.toISOString()
     }
 
     try {
@@ -154,26 +181,31 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
         body_html: bodyHtml,
         attachments,
         scheduled_for: scheduledIso,
-      });
+      })
       if (result.scheduled) {
-        toast.success('E-post planlagt');
+        toast.success("E-post planlagt")
       } else {
-        toast.success('E-post sendt');
+        toast.success("E-post sendt")
       }
-      onOpenChange(false);
+      onOpenChange(false)
     } catch (e: any) {
-      toast.error(e?.message || 'Sending feilet');
+      toast.error(e?.message || "Sending feilet")
     }
-  };
+  }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!sendMut.isPending) onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!sendMut.isPending) onOpenChange(o)
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Send e-post til {applicant.first_name} {applicant.last_name}</DialogTitle>
-          <DialogDescription>
-            {applicant.email || 'Mangler e-postadresse'}
-          </DialogDescription>
+          <DialogTitle>
+            Send e-post til {applicant.first_name} {applicant.last_name}
+          </DialogTitle>
+          <DialogDescription>{applicant.email || "Mangler e-postadresse"}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -181,53 +213,71 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
             <Label className="mb-1.5 block">Innboks</Label>
             <Select value={inboxId} onValueChange={setInboxId}>
               <SelectTrigger>
-                <SelectValue placeholder={inboxesLoading ? 'Laster...' : 'Velg innboks'} />
+                <SelectValue placeholder={inboxesLoading ? "Laster..." : "Velg innboks"} />
               </SelectTrigger>
               <SelectContent>
                 {(inboxes ?? []).map((i: any) => (
-                  <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {(() => {
-              const selectedInbox: any = (inboxes ?? []).find((i: any) => i.id === inboxId);
-              const activeRoutes = (selectedInbox?.inbound_routes ?? []).filter((r: any) => r.is_active);
-              activeRoutes.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
-              const route = activeRoutes[0];
-              const senderEmail = route?.group_email || route?.address;
-              const displayName = profile?.email_display_name || profile?.full_name || route?.sender_display_name || selectedInbox?.name || 'Recruitment';
+              const selectedInbox: any = (inboxes ?? []).find((i: any) => i.id === inboxId)
+              const activeRoutes = (selectedInbox?.inbound_routes ?? []).filter(
+                (r: any) => r.is_active,
+              )
+              activeRoutes.sort((a: any, b: any) =>
+                (b.created_at || "").localeCompare(a.created_at || ""),
+              )
+              const route = activeRoutes[0]
+              const senderEmail = route?.group_email || route?.address
+              const displayName =
+                profile?.email_display_name ||
+                profile?.full_name ||
+                route?.sender_display_name ||
+                selectedInbox?.name ||
+                "Recruitment"
               if (!inboxesLoading && (inboxes?.length ?? 0) === 0) {
                 return (
                   <p className="text-xs text-destructive mt-1">
-                    Ingen rekrutterings-innboks. Opprett én under Admin → Innbokser med formål «recruitment».
+                    Ingen rekrutterings-innboks. Opprett én under Admin → Innbokser med formål
+                    «recruitment».
                   </p>
-                );
+                )
               }
               if (selectedInbox && !senderEmail) {
                 return (
                   <p className="text-xs text-destructive mt-1">
                     Innboksen mangler aktiv sender-adresse.
                   </p>
-                );
+                )
               }
               if (selectedInbox && senderEmail) {
                 return (
                   <p className="text-xs text-muted-foreground mt-1">
                     Sender som: {displayName} &lt;{senderEmail}&gt;
                   </p>
-                );
+                )
               }
-              return null;
+              return null
             })()}
           </div>
 
           <div>
             <Label className="mb-1.5 block">Mal (valgfri)</Label>
             <Select value={templateId} onValueChange={handleTemplateChange}>
-              <SelectTrigger><SelectValue placeholder={templatesLoading ? 'Laster maler…' : 'Velg mal eller skriv fritt'} /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={templatesLoading ? "Laster maler…" : "Velg mal eller skriv fritt"}
+                />
+              </SelectTrigger>
               <SelectContent>
                 {(templates ?? []).map((t: any) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -239,7 +289,11 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
 
           <div>
             <Label className="mb-1.5 block">Emne</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Emne" />
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Emne"
+            />
           </div>
 
           <div>
@@ -250,7 +304,8 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
               placeholder="Skriv meldingen…"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Flettefelt: {'{{first_name}}'}, {'{{last_name}}'}, {'{{recruiter_name}}'}, {'{{application_link}}'}
+              Flettefelt: {"{{first_name}}"}, {"{{last_name}}"}, {"{{recruiter_name}}"},{" "}
+              {"{{application_link}}"}
             </p>
           </div>
 
@@ -265,7 +320,9 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
                     <Checkbox
                       checked={attachmentIds.includes(f.id)}
                       onCheckedChange={(c) => {
-                        setAttachmentIds(prev => c ? [...prev, f.id] : prev.filter(id => id !== f.id));
+                        setAttachmentIds((prev) =>
+                          c ? [...prev, f.id] : prev.filter((id) => id !== f.id),
+                        )
                       }}
                     />
                     <span className="truncate">{f.file_name}</span>
@@ -280,7 +337,10 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
 
           <div className="space-y-2 border-t pt-3">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox checked={scheduleEnabled} onCheckedChange={(c) => setScheduleEnabled(!!c)} />
+              <Checkbox
+                checked={scheduleEnabled}
+                onCheckedChange={(c) => setScheduleEnabled(!!c)}
+              />
               <CalendarIcon className="h-3.5 w-3.5" /> Planlegg sending
             </label>
             {scheduleEnabled && (
@@ -294,17 +354,21 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({ open, onOpenCha
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sendMut.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={sendMut.isPending}
+          >
             Avbryt
           </Button>
           <Button onClick={handleSend} disabled={!canSend || sendMut.isPending}>
             {sendMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {scheduleEnabled ? 'Planlegg' : 'Send nå'}
+            {scheduleEnabled ? "Planlegg" : "Send nå"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default ComposeRecruitmentEmailDialog;
+export default ComposeRecruitmentEmailDialog

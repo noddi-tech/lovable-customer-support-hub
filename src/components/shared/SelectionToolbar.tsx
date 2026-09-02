@@ -1,16 +1,16 @@
-import React from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+import { X } from "lucide-react"
+import type React from "react"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 
 interface SelectionToolbarProps {
-  count: number;
-  allSelected: boolean;
-  onSelectAll: (checked: boolean) => void;
-  onClear: () => void;
-  className?: string;
-  children?: React.ReactNode;
+  count: number
+  allSelected: boolean
+  onSelectAll: (checked: boolean) => void
+  onClear: () => void
+  className?: string
+  children?: React.ReactNode
 }
 
 /** Sticky bar shown above a list while rows are selected. */
@@ -22,12 +22,12 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
   className,
   children,
 }) => {
-  if (count === 0) return null;
+  if (count === 0) return null
 
   return (
     <div
       className={cn(
-        'sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/70 px-3 py-2 backdrop-blur',
+        "sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/70 px-3 py-2 backdrop-blur",
         className,
       )}
     >
@@ -42,10 +42,16 @@ export const SelectionToolbar: React.FC<SelectionToolbarProps> = ({
       </span>
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
         {children}
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onClear} aria-label="Clear selection">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={onClear}
+          aria-label="Clear selection"
+        >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}

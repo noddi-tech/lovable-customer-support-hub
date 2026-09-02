@@ -1,51 +1,52 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
-import { BulkAssignMenu } from '@/components/shared/BulkAssignMenu';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { MessageCircle, Search, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useBulkRangeSelect } from '@/hooks/useBulkRangeSelect';
-import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
-import { ChatListItem } from './ChatListItem';
-import { BrandFilterSelect } from '@/components/dashboard/conversation-list/BrandFilterSelect';
-import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
-import { useEntityTags } from '@/hooks/useEntityTags';
-import { getConversationBrand } from '@/lib/conversationBrand';
-import type { ChatFilterType } from './ChatFilters';
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { MessageCircle, Search, X } from "lucide-react"
+import type React from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+import { BrandFilterSelect } from "@/components/dashboard/conversation-list/BrandFilterSelect"
+import { BulkAssignMenu } from "@/components/shared/BulkAssignMenu"
+import { BulkTagMenu } from "@/components/tags/BulkTagMenu"
+import { matchesTagFilter, TagFilterSelect } from "@/components/tags/TagFilterSelect"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useAuth } from "@/hooks/useAuth"
+import { useBulkRangeSelect } from "@/hooks/useBulkRangeSelect"
+import { useConversationStatusActions } from "@/hooks/useConversationStatusActions"
+import { useEntityTags } from "@/hooks/useEntityTags"
+import { supabase } from "@/integrations/supabase/client"
+import { getConversationBrand } from "@/lib/conversationBrand"
+import type { ChatFilterType } from "./ChatFilters"
+import { ChatListItem } from "./ChatListItem"
 
 interface ChatConversation {
-  id: string;
-  subject: string | null;
-  preview_text: string | null;
-  status: string;
-  updated_at: string;
-  is_read: boolean;
-  metadata?: unknown;
-  sla_breach_at?: string | null;
+  id: string
+  subject: string | null
+  preview_text: string | null
+  status: string
+  updated_at: string
+  is_read: boolean
+  metadata?: unknown
+  sla_breach_at?: string | null
   customer: {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-  } | null;
+    id: string
+    full_name: string | null
+    email: string | null
+  } | null
   session?: {
-    id: string;
-    status: string;
-    visitor_name: string | null;
-    visitor_email: string | null;
-  } | null;
+    id: string
+    status: string
+    visitor_name: string | null
+    visitor_email: string | null
+  } | null
 }
 
 interface ChatConversationListProps {
-  filter: ChatFilterType;
-  selectedId?: string;
-  onSelect: (conversationId: string) => void;
+  filter: ChatFilterType
+  selectedId?: string
+  onSelect: (conversationId: string) => void
 }
 
 export const ChatConversationList: React.FC<ChatConversationListProps> = ({
@@ -53,24 +54,24 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   selectedId,
   onSelect,
 }) => {
-  const { profile } = useAuth();
-  const organizationId = profile?.organization_id;
-  const [searchQuery, setSearchQuery] = useState('');
-  const [brandFilter, setBrandFilter] = useState<string>('all');
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const { getTags: getChatTags } = useEntityTags('conversation');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { setStatus } = useConversationStatusActions();
-  const queryClient = useQueryClient();
+  const { profile } = useAuth()
+  const organizationId = profile?.organization_id
+  const [searchQuery, setSearchQuery] = useState("")
+  const [brandFilter, setBrandFilter] = useState<string>("all")
+  const [tagFilter, setTagFilter] = useState<string[]>([])
+  const { getTags: getChatTags } = useEntityTags("conversation")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { setStatus } = useConversationStatusActions()
+  const queryClient = useQueryClient()
 
   const { data: conversations = [], isLoading } = useQuery({
-    queryKey: ['chat-conversations', organizationId, filter],
+    queryKey: ["chat-conversations", organizationId, filter],
     queryFn: async (): Promise<ChatConversation[]> => {
-      if (!organizationId) return [];
+      if (!organizationId) return []
 
       // Query conversations with channel = 'widget'
       let query = supabase
-        .from('conversations')
+        .from("conversations")
         .select(`
           id,
           subject,
@@ -82,155 +83,157 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           sla_breach_at,
           customer:customers(id, full_name, email)
         `)
-        .eq('organization_id', organizationId)
-        .eq('channel', 'widget')
-        .is('deleted_at', null)
-        .order('updated_at', { ascending: false })
-        .limit(100);
+        .eq("organization_id", organizationId)
+        .eq("channel", "widget")
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: false })
+        .limit(100)
 
       // Apply filter based on conversation status
-      if (filter === 'active') {
-        query = query.in('status', ['open', 'pending']); // Include pending in active
-      } else if (filter === 'ended') {
-        query = query.in('status', ['closed', 'resolved']);
+      if (filter === "active") {
+        query = query.in("status", ["open", "pending"]) // Include pending in active
+      } else if (filter === "ended") {
+        query = query.in("status", ["closed", "resolved"])
       }
       // 'waiting' and 'all' require session status check which we'll filter client-side
 
-      const { data, error } = await query;
+      const { data, error } = await query
 
       if (error) {
-        console.error('[ChatConversationList] Error fetching:', error);
-        throw error;
+        console.error("[ChatConversationList] Error fetching:", error)
+        throw error
       }
 
       // Get session info for each conversation
-      const conversationIds = (data || []).map(c => c.id);
-      
+      const conversationIds = (data || []).map((c) => c.id)
+
       const { data: sessions } = await supabase
-        .from('widget_chat_sessions')
-        .select('id, conversation_id, status, visitor_name, visitor_email')
-        .in('conversation_id', conversationIds);
+        .from("widget_chat_sessions")
+        .select("id, conversation_id, status, visitor_name, visitor_email")
+        .in("conversation_id", conversationIds)
 
-      const sessionMap = new Map(
-        (sessions || []).map(s => [s.conversation_id, s])
-      );
+      const sessionMap = new Map((sessions || []).map((s) => [s.conversation_id, s]))
 
-      let result = (data || []).map(conv => ({
+      let result = (data || []).map((conv) => ({
         ...conv,
         session: sessionMap.get(conv.id) || null,
-      }));
+      }))
 
       // Filter by session status for 'waiting'
-      if (filter === 'waiting') {
-        result = result.filter(c => c.session?.status === 'waiting');
+      if (filter === "waiting") {
+        result = result.filter((c) => c.session?.status === "waiting")
       }
 
-      return result;
+      return result
     },
     enabled: !!organizationId,
     refetchInterval: 5000, // Poll every 5 seconds for real-time updates
-  });
+  })
 
   // Distinct brands present in the loaded chats (for the brand dropdown)
   const brandOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    conversations.forEach(conv => {
-      const brand = getConversationBrand(conv.metadata, 'widget');
-      if (brand) map.set(brand.key, brand.label);
-    });
+    const map = new Map<string, string>()
+    conversations.forEach((conv) => {
+      const brand = getConversationBrand(conv.metadata, "widget")
+      if (brand) map.set(brand.key, brand.label)
+    })
     return Array.from(map, ([key, label]) => ({ key, label })).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
-  }, [conversations]);
+      a.label.localeCompare(b.label),
+    )
+  }, [conversations])
 
   // Filter conversations by brand + search query
   const filteredConversations = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim().toLowerCase()
 
-    return conversations.filter(conv => {
-      if (brandFilter !== 'all') {
-        const brand = getConversationBrand(conv.metadata, 'widget');
-        const brandKey = brand?.key ?? 'unknown';
-        if (brandKey !== brandFilter) return false;
+    return conversations.filter((conv) => {
+      if (brandFilter !== "all") {
+        const brand = getConversationBrand(conv.metadata, "widget")
+        const brandKey = brand?.key ?? "unknown"
+        if (brandKey !== brandFilter) return false
       }
 
-      if (!matchesTagFilter(getChatTags(conv.id).map((t) => t.id), tagFilter)) return false;
+      if (
+        !matchesTagFilter(
+          getChatTags(conv.id).map((t) => t.id),
+          tagFilter,
+        )
+      )
+        return false
 
-      if (!query) return true;
+      if (!query) return true
 
-      const name = conv.session?.visitor_name || conv.customer?.full_name || '';
-      const email = conv.session?.visitor_email || conv.customer?.email || '';
-      const preview = conv.preview_text || '';
+      const name = conv.session?.visitor_name || conv.customer?.full_name || ""
+      const email = conv.session?.visitor_email || conv.customer?.email || ""
+      const preview = conv.preview_text || ""
 
       return (
         name.toLowerCase().includes(query) ||
         email.toLowerCase().includes(query) ||
         preview.toLowerCase().includes(query)
-      );
-    });
-  }, [conversations, searchQuery, brandFilter, tagFilter, getChatTags]);
+      )
+    })
+  }, [conversations, searchQuery, brandFilter, tagFilter, getChatTags])
 
-  const orderedIds = useMemo(
-    () => filteredConversations.map(c => c.id),
-    [filteredConversations],
-  );
+  const orderedIds = useMemo(() => filteredConversations.map((c) => c.id), [filteredConversations])
 
   const setSelection = useCallback((ids: string[], selected: boolean) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      ids.forEach(id => (selected ? next.add(id) : next.delete(id)));
-      return next;
-    });
-  }, []);
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => (selected ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }, [])
 
-  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection);
-  const selectionMode = selectedIds.size > 0;
+  const handleBulkSelect = useBulkRangeSelect(orderedIds, setSelection)
+  const selectionMode = selectedIds.size > 0
 
   // Drop selections for chats that are no longer in the list
   useEffect(() => {
-    setSelectedIds(prev => {
-      if (prev.size === 0) return prev;
-      const visible = new Set(orderedIds);
-      const next = new Set([...prev].filter(id => visible.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [orderedIds]);
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(orderedIds)
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [orderedIds])
 
   const applyBulkStatus = useCallback(
-    async (status: 'open' | 'pending' | 'closed') => {
-      const ids = [...selectedIds];
-      await Promise.all(ids.map(id => setStatus(id, status)));
-      setSelectedIds(new Set());
+    async (status: "open" | "pending" | "closed") => {
+      const ids = [...selectedIds]
+      await Promise.all(ids.map((id) => setStatus(id, status)))
+      setSelectedIds(new Set())
     },
     [selectedIds, setStatus],
-  );
+  )
 
   const applyBulkAssign = useCallback(
     async (memberId: string | null) => {
-      const ids = [...selectedIds];
+      const ids = [...selectedIds]
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ assigned_to_id: memberId })
-        .in('id', ids);
+        .in("id", ids)
       if (error) {
-        toast.error('Failed to assign chats');
-        return;
+        toast.error("Failed to assign chats")
+        return
       }
-      toast.success(memberId ? `Assigned ${ids.length} chat(s)` : `Unassigned ${ids.length} chat(s)`);
-      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
-      setSelectedIds(new Set());
+      toast.success(
+        memberId ? `Assigned ${ids.length} chat(s)` : `Unassigned ${ids.length} chat(s)`,
+      )
+      queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+      setSelectedIds(new Set())
     },
     [queryClient, selectedIds],
-  );
+  )
 
   const allSelected =
-    filteredConversations.length > 0 &&
-    filteredConversations.every(c => selectedIds.has(c.id));
+    filteredConversations.length > 0 && filteredConversations.every((c) => selectedIds.has(c.id))
 
   if (isLoading) {
     return (
       <div className="space-y-2 p-2">
-        {[1, 2, 3, 4].map(i => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
             <Skeleton className="h-10 w-10 rounded-full" />
             <div className="flex-1 space-y-2">
@@ -240,7 +243,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           </div>
         ))}
       </div>
-    );
+    )
   }
 
   return (
@@ -259,7 +262,6 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           </div>
         </div>
 
-
         <BrandFilterSelect
           value={brandFilter}
           onChange={setBrandFilter}
@@ -267,32 +269,59 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           triggerClassName="h-9 w-full text-sm"
         />
 
-        <TagFilterSelect value={tagFilter} onChange={setTagFilter} className="w-full justify-start" />
+        <TagFilterSelect
+          value={tagFilter}
+          onChange={setTagFilter}
+          className="w-full justify-start"
+        />
       </div>
 
       {selectionMode && (
         <div className="flex items-center gap-2 border-b bg-muted/50 px-2 py-2">
           <Checkbox
             checked={allSelected}
-            onCheckedChange={(checked) =>
-              setSelection(orderedIds, checked === true)
-            }
+            onCheckedChange={(checked) => setSelection(orderedIds, checked === true)}
             aria-label="Select all chats"
           />
           <span className="text-xs font-medium">{selectedIds.size} selected</span>
           <div className="ml-auto flex flex-wrap items-center gap-1">
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('open')}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              onClick={() => applyBulkStatus("open")}
+            >
               Open
             </Button>
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('pending')}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              onClick={() => applyBulkStatus("pending")}
+            >
               Pending
             </Button>
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => applyBulkStatus('closed')}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-2 text-xs"
+              onClick={() => applyBulkStatus("closed")}
+            >
               Close
             </Button>
             <BulkAssignMenu onAssign={applyBulkAssign} className="h-7 px-2 text-xs" />
-            <BulkTagMenu entityType="conversation" entityIds={[...selectedIds]} className="h-7 px-2 text-xs" />
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
+            <BulkTagMenu
+              entityType="conversation"
+              entityIds={[...selectedIds]}
+              className="h-7 px-2 text-xs"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setSelectedIds(new Set())}
+              aria-label="Clear selection"
+            >
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -303,16 +332,16 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         <div className="flex flex-col items-center justify-center py-12 text-center px-4">
           <MessageCircle className="h-12 w-12 text-muted-foreground/40 mb-4" />
           <h3 className="text-sm font-medium text-foreground mb-1">
-            {searchQuery ? 'No matching chats' : 'No chats found'}
+            {searchQuery ? "No matching chats" : "No chats found"}
           </h3>
           <p className="text-xs text-muted-foreground max-w-[200px]">
-            {searchQuery 
-              ? 'Try a different search term'
-              : filter === 'waiting' 
-                ? 'No visitors are waiting for a chat' 
-                : filter === 'active'
-                  ? 'No active chat sessions'
-                  : 'Chat conversations will appear here'}
+            {searchQuery
+              ? "Try a different search term"
+              : filter === "waiting"
+                ? "No visitors are waiting for a chat"
+                : filter === "active"
+                  ? "No active chat sessions"
+                  : "Chat conversations will appear here"}
           </p>
         </div>
       ) : (
@@ -333,5 +362,5 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         </ScrollArea>
       )}
     </div>
-  );
-};
+  )
+}

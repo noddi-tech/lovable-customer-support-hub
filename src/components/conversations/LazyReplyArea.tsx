@@ -1,21 +1,21 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Reply, StickyNote } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { useConversationView } from "@/contexts/ConversationViewContext";
-import { useIsMobile } from "@/hooks/use-responsive";
-import { cn } from "@/lib/utils";
+import { Reply, StickyNote } from "lucide-react"
+import { lazy, Suspense, useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { cn } from "@/lib/utils"
 
 // Preload function - starts downloading the chunk without waiting
-const preloadReplyArea = () => import('@/components/dashboard/conversation-view/ReplyArea');
+const preloadReplyArea = () => import("@/components/dashboard/conversation-view/ReplyArea")
 
 // Lazy load the actual reply component
-const ReplyArea = lazy(() => preloadReplyArea().then(module => ({ default: module.ReplyArea })));
+const ReplyArea = lazy(() => preloadReplyArea().then((module) => ({ default: module.ReplyArea })))
 
 interface LazyReplyAreaProps {
-  conversationId: string;
-  onReply?: (content: string, isInternal: boolean) => Promise<void>;
+  conversationId: string
+  onReply?: (content: string, isInternal: boolean) => Promise<void>
 }
 
 const ReplyAreaSkeleton = () => (
@@ -30,64 +30,66 @@ const ReplyAreaSkeleton = () => (
       <Skeleton className="h-8 w-16" />
     </div>
   </div>
-);
+)
 
 export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) => {
-  const { t } = useTranslation();
-  const { dispatch, state } = useConversationView();
-  const [showReplyArea, setShowReplyArea] = useState(false);
-  const isMobile = useIsMobile();
+  const { t } = useTranslation()
+  const { dispatch, state } = useConversationView()
+  const [showReplyArea, setShowReplyArea] = useState(false)
+  const isMobile = useIsMobile()
 
   // Preload the ReplyArea chunk when conversation opens
   useEffect(() => {
-    preloadReplyArea();
-  }, []);
+    preloadReplyArea()
+  }, [])
 
-  // Sync local state with context state (for collapse after send)
+  // Sync local state with context state (collapse after send / minimize)
   useEffect(() => {
     if (!state.showReplyArea && showReplyArea) {
-      setShowReplyArea(false);
+      setShowReplyArea(false)
     }
-  }, [state.showReplyArea, showReplyArea]);
+  }, [state.showReplyArea, showReplyArea])
+
+  // Mode is decided only here — not when collapsing the composer.
+  const handleShowReply = useCallback(() => {
+    setShowReplyArea(true)
+    dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
+    dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
+  }, [dispatch])
+
+  const handleShowNote = useCallback(() => {
+    setShowReplyArea(true)
+    dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
+    dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: true })
+  }, [dispatch])
 
   // Keyboard shortcuts for Reply (R) and Note (N)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      // Don't trigger if reply area is already open
-      if (showReplyArea) return;
-      
-      if (e.key === 'r' || e.key === 'R') {
-        e.preventDefault();
-        handleShowReply();
-      } else if (e.key === 'n' || e.key === 'N') {
-        e.preventDefault();
-        handleShowNote();
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (showReplyArea) return
+
+      if (e.key === "r" || e.key === "R") {
+        e.preventDefault()
+        handleShowReply()
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault()
+        handleShowNote()
       }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showReplyArea]);
+    }
 
-  const handleShowReply = useCallback(() => {
-    // Set both local state (for lazy loading) and context state (for reply functionality)
-    setShowReplyArea(true);
-    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
-    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-  }, [dispatch]);
-
-  const handleShowNote = useCallback(() => {
-    // Set both local state (for lazy loading) and context state (for note functionality)
-    setShowReplyArea(true);
-    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
-    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: true });
-  }, [dispatch]);
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [showReplyArea, handleShowReply, handleShowNote])
 
   if (!showReplyArea) {
     return (
-      <div className={cn("p-3 border-t border-border", isMobile && "sticky bottom-0 bg-background z-10 p-2")}>
+      <div
+        className={cn(
+          "p-3 border-t border-border",
+          isMobile && "sticky bottom-0 bg-background z-10 p-2",
+        )}
+      >
         <div className="flex gap-2">
           <Button
             onClick={handleShowReply}
@@ -97,8 +99,12 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
             size={isMobile ? "sm" : "default"}
           >
             <Reply className="w-4 h-4 mr-2" />
-            {t('conversation.reply')}
-            {!isMobile && <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-primary-foreground/20 rounded hidden sm:inline">R</kbd>}
+            {t("conversation.reply")}
+            {!isMobile && (
+              <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-primary-foreground/20 rounded hidden sm:inline">
+                R
+              </kbd>
+            )}
           </Button>
           <Button
             onClick={handleShowNote}
@@ -108,17 +114,21 @@ export const LazyReplyArea = ({ conversationId, onReply }: LazyReplyAreaProps) =
             size={isMobile ? "sm" : "default"}
           >
             <StickyNote className="w-4 h-4 mr-2" />
-            {t('conversation.internalNote')}
-            {!isMobile && <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">N</kbd>}
+            {t("conversation.internalNote")}
+            {!isMobile && (
+              <kbd className="ml-2 px-1.5 py-0.5 text-[10px] bg-yellow-600/30 rounded hidden sm:inline">
+                N
+              </kbd>
+            )}
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <Suspense fallback={<ReplyAreaSkeleton />}>
       <ReplyArea />
     </Suspense>
-  );
-};
+  )
+}

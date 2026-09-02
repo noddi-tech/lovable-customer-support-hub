@@ -1,17 +1,17 @@
-import React from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import type React from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface EnhancedLoadingSkeletonProps {
-  type: 'sidebar' | 'conversation-list' | 'conversation-view' | 'counts';
-  count?: number;
+  type: "sidebar" | "conversation-list" | "conversation-view" | "counts"
+  count?: number
 }
 
 export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = ({
   type,
-  count = 6
+  count = 6,
 }) => {
   switch (type) {
-    case 'sidebar':
+    case "sidebar":
       return (
         <div className="space-y-1 px-3">
           {Array.from({ length: count }).map((_, i) => (
@@ -24,9 +24,9 @@ export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = (
             </div>
           ))}
         </div>
-      );
+      )
 
-    case 'conversation-list':
+    case "conversation-list":
       return (
         <div className="space-y-0 p-0">
           {Array.from({ length: count }).map((_, i) => (
@@ -46,9 +46,9 @@ export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = (
             </div>
           ))}
         </div>
-      );
+      )
 
-    case 'conversation-view':
+    case "conversation-view":
       return (
         <div className="p-6 space-y-6">
           {/* Header */}
@@ -59,7 +59,7 @@ export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = (
               <Skeleton className="h-4 w-16 rounded-sm" />
             </div>
           </div>
-          
+
           {/* Messages */}
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -74,16 +74,16 @@ export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = (
             ))}
           </div>
         </div>
-      );
+      )
 
-    case 'counts':
+    case "counts":
       return (
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-4 rounded-sm" />
           <Skeleton className="h-4 w-12 rounded-sm" />
           <Skeleton className="h-4 w-6 rounded-full ml-auto" />
         </div>
-      );
+      )
 
     default:
       return (
@@ -92,6 +92,6 @@ export const EnhancedLoadingSkeleton: React.FC<EnhancedLoadingSkeletonProps> = (
             <Skeleton key={i} className="h-8 w-full rounded-sm" />
           ))}
         </div>
-      );
+      )
   }
-};
+}

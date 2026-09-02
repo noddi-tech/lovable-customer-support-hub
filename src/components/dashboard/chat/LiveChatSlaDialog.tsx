@@ -1,49 +1,45 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Loader2, RotateCcw, Timer } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { attainmentTone, MetricTile } from "@/components/dashboard/MetricTile"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, RotateCcw, Timer } from 'lucide-react';
-import { MetricTile, attainmentTone } from '@/components/dashboard/MetricTile';
-import {
-  formatMinutes,
-  formatPct,
-  useInboxSupportMetrics,
-} from '@/hooks/useInboxSupportMetrics';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import {
   SLA_PRIORITIES,
   type SlaPriority,
   useChannelSlaPolicies,
   useSaveChannelSla,
-} from '@/hooks/useChannelSla';
+} from "@/hooks/useChannelSla"
+import { formatMinutes, formatPct, useInboxSupportMetrics } from "@/hooks/useInboxSupportMetrics"
 
-const CHANNEL = 'widget';
-const RANGES = [7, 30, 90] as const;
+const CHANNEL = "widget"
+const RANGES = [7, 30, 90] as const
 
 const PRIORITY_LABELS: Record<SlaPriority, string> = {
-  urgent: 'Urgent',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
-};
+  urgent: "Urgent",
+  high: "High",
+  normal: "Normal",
+  low: "Low",
+}
 
 interface RowState {
-  first: string;
-  resolution: string;
+  first: string
+  resolution: string
 }
 
 interface LiveChatSlaDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  canEdit?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  canEdit?: boolean
 }
 
 /**
@@ -52,34 +48,44 @@ interface LiveChatSlaDialogProps {
  * organization targets when no chat override exists).
  */
 export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveChatSlaDialogProps) {
-  const [days, setDays] = useState<number>(30);
-  const { data: metrics, isLoading: metricsLoading } = useInboxSupportMetrics(null, days, open, CHANNEL);
-  const { data: policies = [], isLoading: policiesLoading } = useChannelSlaPolicies(CHANNEL, open);
-  const { save, reset } = useSaveChannelSla(CHANNEL);
-  const [rows, setRows] = useState<Record<SlaPriority, RowState>>({} as Record<SlaPriority, RowState>);
+  const [days, setDays] = useState<number>(30)
+  const { data: metrics, isLoading: metricsLoading } = useInboxSupportMetrics(
+    null,
+    days,
+    open,
+    CHANNEL,
+  )
+  const { data: policies = [], isLoading: policiesLoading } = useChannelSlaPolicies(CHANNEL, open)
+  const { save, reset } = useSaveChannelSla(CHANNEL)
+  const [rows, setRows] = useState<Record<SlaPriority, RowState>>(
+    {} as Record<SlaPriority, RowState>,
+  )
 
   const byPriority = useMemo(() => {
-    const map: Record<string, { own?: (typeof policies)[number]; general?: (typeof policies)[number] }> = {};
+    const map: Record<
+      string,
+      { own?: (typeof policies)[number]; general?: (typeof policies)[number] }
+    > = {}
     for (const p of policies) {
-      map[p.priority] = map[p.priority] || {};
-      if (p.channel === CHANNEL) map[p.priority].own = p;
-      else if (p.channel === null) map[p.priority].general = p;
+      map[p.priority] = map[p.priority] || {}
+      if (p.channel === CHANNEL) map[p.priority].own = p
+      else if (p.channel === null) map[p.priority].general = p
     }
-    return map;
-  }, [policies]);
+    return map
+  }, [policies])
 
   useEffect(() => {
-    const next = {} as Record<SlaPriority, RowState>;
+    const next = {} as Record<SlaPriority, RowState>
     for (const priority of SLA_PRIORITIES) {
-      const entry = byPriority[priority];
-      const effective = entry?.own || entry?.general;
+      const entry = byPriority[priority]
+      const effective = entry?.own || entry?.general
       next[priority] = {
         first: String(effective?.first_response_minutes ?? 15),
         resolution: String(effective?.resolution_minutes ?? 60),
-      };
+      }
     }
-    setRows(next);
-  }, [byPriority]);
+    setRows(next)
+  }, [byPriority])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -99,7 +105,7 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
             <Button
               key={r}
               size="sm"
-              variant={days === r ? 'secondary' : 'ghost'}
+              variant={days === r ? "secondary" : "ghost"}
               className="h-7 px-2 text-xs"
               onClick={() => setDays(r)}
             >
@@ -128,7 +134,7 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
             <MetricTile
               label="Breaching now"
               value={String(metrics.backlog.breaching_now)}
-              tone={metrics.backlog.breaching_now > 0 ? 'bad' : 'good'}
+              tone={metrics.backlog.breaching_now > 0 ? "bad" : "good"}
               description="Open chats already past their first-reply target."
             />
             <MetricTile
@@ -146,21 +152,21 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
             <p className="text-sm text-muted-foreground">Loading targets…</p>
           ) : (
             SLA_PRIORITIES.map((priority) => {
-              const entry = byPriority[priority];
-              const row = rows[priority] || { first: '', resolution: '' };
-              const isOverride = Boolean(entry?.own);
-              const general = entry?.general;
+              const entry = byPriority[priority]
+              const row = rows[priority] || { first: "", resolution: "" }
+              const isOverride = Boolean(entry?.own)
+              const general = entry?.general
 
               return (
                 <div key={priority} className="rounded-md border p-3 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">{PRIORITY_LABELS[priority]}</span>
-                    <Badge variant={isOverride ? 'default' : 'secondary'} className="text-[10px]">
-                      {isOverride ? 'Live chat target' : 'General target'}
+                    <Badge variant={isOverride ? "default" : "secondary"} className="text-[10px]">
+                      {isOverride ? "Live chat target" : "General target"}
                     </Badge>
                     {general && (
                       <span className="text-[11px] text-muted-foreground">
-                        General: {formatMinutes(general.first_response_minutes)} first reply ·{' '}
+                        General: {formatMinutes(general.first_response_minutes)} first reply ·{" "}
                         {formatMinutes(general.resolution_minutes)} resolution
                       </span>
                     )}
@@ -178,10 +184,15 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
                         disabled={!canEdit}
                         value={row.first}
                         onChange={(e) =>
-                          setRows((prev) => ({ ...prev, [priority]: { ...prev[priority], first: e.target.value } }))
+                          setRows((prev) => ({
+                            ...prev,
+                            [priority]: { ...prev[priority], first: e.target.value },
+                          }))
                         }
                       />
-                      <p className="mt-1 text-[11px] text-muted-foreground">{formatMinutes(Number(row.first))}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {formatMinutes(Number(row.first))}
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor={`chat-sla-res-${priority}`} className="text-xs">
@@ -234,18 +245,18 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
                     </div>
                   )}
                 </div>
-              );
+              )
             })
           )}
         </div>
 
         <p className="text-xs text-muted-foreground">
-          The chat clock starts when the visitor's message arrives and stops on the first agent reply.
-          Chat badges and breach alerts use these targets.
+          The chat clock starts when the visitor's message arrives and stops on the first agent
+          reply. Chat badges and breach alerts use these targets.
         </p>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
-export default LiveChatSlaDialog;
+export default LiveChatSlaDialog

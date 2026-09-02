@@ -9,43 +9,43 @@
 
 export interface BrandTheme {
   /** Canonical brand slug. */
-  id: string;
+  id: string
   /** Human readable brand label. */
-  label: string;
+  label: string
   /** Header background (brand primary). */
-  headerBg: string;
+  headerBg: string
   /** Header foreground (primary-foreground). */
-  headerText: string;
+  headerText: string
   /** Accent used for links / buttons in the body. */
-  accent: string;
+  accent: string
 }
 
 /** Shared dark gray footer used for every outgoing email, regardless of brand. */
 export const FOOTER_THEME = {
-  bg: '#2B2B2B',
-  text: '#C9CBCF',
-  link: '#FFFFFF',
-  border: '#3A3A3A',
-} as const;
+  bg: "#2B2B2B",
+  text: "#C9CBCF",
+  link: "#FFFFFF",
+  border: "#3A3A3A",
+} as const
 
 export const BRAND_THEMES: Record<string, BrandTheme> = {
   noddi: {
-    id: 'noddi',
-    label: 'Noddi',
-    headerBg: '#35155A', // --primary (darkPurple)
-    headerText: '#FFFFFF', // --primary-foreground
-    accent: '#7F5CBA', // --secondary
+    id: "noddi",
+    label: "Noddi",
+    headerBg: "#35155A", // --primary (darkPurple)
+    headerText: "#FFFFFF", // --primary-foreground
+    accent: "#7F5CBA", // --secondary
   },
   dekkfix: {
-    id: 'dekkfix',
-    label: 'Dekkfix',
-    headerBg: '#229799', // --button-primary
-    headerText: '#FFFFFF', // --primary-foreground
-    accent: '#48CFCB', // --secondary
+    id: "dekkfix",
+    label: "Dekkfix",
+    headerBg: "#229799", // --button-primary
+    headerText: "#FFFFFF", // --primary-foreground
+    accent: "#48CFCB", // --secondary
   },
-};
+}
 
-export const DEFAULT_BRAND_THEME = BRAND_THEMES.noddi;
+export const DEFAULT_BRAND_THEME = BRAND_THEMES.noddi
 
 /**
  * Resolves a brand theme from free-form hints (inbox name, brand field,
@@ -54,12 +54,12 @@ export const DEFAULT_BRAND_THEME = BRAND_THEMES.noddi;
 export function resolveBrandTheme(...hints: (string | null | undefined)[]): BrandTheme {
   const haystack = hints
     .filter(Boolean)
-    .join(' ')
+    .join(" ")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ');
+    .replace(/[^a-z0-9]+/g, " ")
 
   for (const theme of Object.values(BRAND_THEMES)) {
-    if (haystack.includes(theme.id)) return theme;
+    if (haystack.includes(theme.id)) return theme
   }
-  return DEFAULT_BRAND_THEME;
+  return DEFAULT_BRAND_THEME
 }

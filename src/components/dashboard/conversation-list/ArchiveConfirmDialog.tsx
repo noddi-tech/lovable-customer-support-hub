@@ -1,22 +1,22 @@
+import { Archive, CheckCircle } from "lucide-react"
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Archive, CheckCircle } from "lucide-react";
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 
 interface ArchiveConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  nonClosedCount: number;
-  totalCount: number;
-  onArchiveOnly: () => void;
-  onArchiveAndClose: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  nonClosedCount: number
+  totalCount: number
+  onArchiveOnly: () => void
+  onArchiveAndClose: () => void
 }
 
 export const ArchiveConfirmDialog = ({
@@ -27,7 +27,7 @@ export const ArchiveConfirmDialog = ({
   onArchiveOnly,
   onArchiveAndClose,
 }: ArchiveConfirmDialogProps) => {
-  const isSingle = totalCount === 1;
+  const isSingle = totalCount === 1
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -47,8 +47,8 @@ export const ArchiveConfirmDialog = ({
           <Button
             variant="outline"
             onClick={() => {
-              onArchiveOnly();
-              onOpenChange(false);
+              onArchiveOnly()
+              onOpenChange(false)
             }}
           >
             <Archive className="h-4 w-4 mr-2" />
@@ -56,8 +56,8 @@ export const ArchiveConfirmDialog = ({
           </Button>
           <Button
             onClick={() => {
-              onArchiveAndClose();
-              onOpenChange(false);
+              onArchiveAndClose()
+              onOpenChange(false)
             }}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
@@ -66,5 +66,5 @@ export const ArchiveConfirmDialog = ({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}

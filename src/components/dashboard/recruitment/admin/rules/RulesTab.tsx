@@ -1,10 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Plus, Zap, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Plus, Zap } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,27 +11,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useRules, useStagesForOrg, usePositionsForOrg, useActiveTemplatesForOrg, useAssignableUsersForOrg } from './hooks/useRules';
-import { useRuleMutations } from './hooks/useRuleMutations';
-import { RulesList } from './RulesList';
-import { RuleEditor, type EditorState } from './RuleEditor';
-import type { AutomationRule, RuleLookups } from './types';
-import { ExecutionLogPanel } from './executions/ExecutionLogPanel';
-import { DryRunPanel } from './dryrun/DryRunPanel';
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DryRunPanel } from "./dryrun/DryRunPanel"
+import { ExecutionLogPanel } from "./executions/ExecutionLogPanel"
+import { useRuleMutations } from "./hooks/useRuleMutations"
+import {
+  useActiveTemplatesForOrg,
+  useAssignableUsersForOrg,
+  usePositionsForOrg,
+  useRules,
+  useStagesForOrg,
+} from "./hooks/useRules"
+import { type EditorState, RuleEditor } from "./RuleEditor"
+import { RulesList } from "./RulesList"
+import type { AutomationRule, RuleLookups } from "./types"
 
 export function RulesTab() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { data: rules, isLoading } = useRules();
-  const { data: stages } = useStagesForOrg();
-  const { data: positions } = usePositionsForOrg();
-  const { data: templates } = useActiveTemplatesForOrg();
-  const { data: users } = useAssignableUsersForOrg();
-  const { deleteRule } = useRuleMutations();
-  const [editorState, setEditorState] = useState<EditorState>(null);
-  const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
-  const rawSubtab = searchParams.get('subtab');
-  const subtab = rawSubtab === 'log' || rawSubtab === 'dry-run' ? rawSubtab : 'rules';
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { data: rules, isLoading } = useRules()
+  const { data: stages } = useStagesForOrg()
+  const { data: positions } = usePositionsForOrg()
+  const { data: templates } = useActiveTemplatesForOrg()
+  const { data: users } = useAssignableUsersForOrg()
+  const { deleteRule } = useRuleMutations()
+  const [editorState, setEditorState] = useState<EditorState>(null)
+  const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null)
+  const rawSubtab = searchParams.get("subtab")
+  const subtab = rawSubtab === "log" || rawSubtab === "dry-run" ? rawSubtab : "rules"
 
   const lookups = useMemo<RuleLookups>(
     () => ({
@@ -44,31 +50,31 @@ export function RulesTab() {
       users: users ?? [],
     }),
     [stages, positions, templates, users],
-  );
+  )
 
-  const hasRules = (rules?.length ?? 0) > 0;
+  const hasRules = (rules?.length ?? 0) > 0
 
   const handleConfirmDelete = () => {
-    if (!ruleToDelete) return;
+    if (!ruleToDelete) return
 
     deleteRule.mutate(ruleToDelete.id, {
       onSuccess: () => {
-        toast.success('Regel slettet');
-        setRuleToDelete(null);
+        toast.success("Regel slettet")
+        setRuleToDelete(null)
       },
       onError: (e: any) => {
-        toast.error(e?.message ?? 'Kunne ikke slette');
-        setRuleToDelete(null);
+        toast.error(e?.message ?? "Kunne ikke slette")
+        setRuleToDelete(null)
       },
-    });
-  };
+    })
+  }
 
   const handleSubtabChange = (value: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', 'automation');
-    next.set('subtab', value);
-    setSearchParams(next, { replace: true });
-  };
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", "automation")
+    next.set("subtab", value)
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div className="space-y-4">
@@ -79,11 +85,7 @@ export function RulesTab() {
             Automatiske regler som kjører når hendelser skjer i søknadsflyten.
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setEditorState({ mode: 'create' })}
-        >
+        <Button type="button" size="sm" onClick={() => setEditorState({ mode: "create" })}>
           <Plus />
           Ny regel
         </Button>
@@ -107,16 +109,11 @@ export function RulesTab() {
               <div className="space-y-1 max-w-md">
                 <h3 className="font-semibold">Ingen automasjonsregler ennå</h3>
                 <p className="text-sm text-muted-foreground">
-                  Opprett regler for å automatisk sende e-post, tildele ansvarlige,
-                  eller varsle eksterne systemer når søkere beveger seg gjennom
-                  rekrutteringsløpet.
+                  Opprett regler for å automatisk sende e-post, tildele ansvarlige, eller varsle
+                  eksterne systemer når søkere beveger seg gjennom rekrutteringsløpet.
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setEditorState({ mode: 'create' })}
-              >
+              <Button type="button" size="sm" onClick={() => setEditorState({ mode: "create" })}>
                 <Plus />
                 Opprett første regel
               </Button>
@@ -125,7 +122,7 @@ export function RulesTab() {
             <RulesList
               rules={rules ?? []}
               lookups={lookups}
-              onEdit={(rule) => setEditorState({ mode: 'edit', rule })}
+              onEdit={(rule) => setEditorState({ mode: "edit", rule })}
               onRequestDelete={(rule) => setRuleToDelete(rule)}
             />
           )}
@@ -145,15 +142,15 @@ export function RulesTab() {
       <AlertDialog
         open={ruleToDelete !== null}
         onOpenChange={(open) => {
-          if (!open) setRuleToDelete(null);
+          if (!open) setRuleToDelete(null)
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Slett automasjonsregel?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dette vil slette '{ruleToDelete?.name}' permanent. Utførelseshistorikk
-              bevares for revisjonsformål.
+              Dette vil slette '{ruleToDelete?.name}' permanent. Utførelseshistorikk bevares for
+              revisjonsformål.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -168,5 +165,5 @@ export function RulesTab() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

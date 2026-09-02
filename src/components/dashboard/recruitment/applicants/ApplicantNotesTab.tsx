@@ -1,69 +1,70 @@
-import React, { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import { Loader2, MessageSquare, MoreVertical } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
+import { Loader2, MessageSquare, MoreVertical } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import { useAddApplicantNote, useApplicantNotes, type ApplicantNote } from './useApplicantProfile';
-import EditNoteDialog from './notes/EditNoteDialog';
-import DeleteNoteConfirmDialog from './notes/DeleteNoteConfirmDialog';
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
+import DeleteNoteConfirmDialog from "./notes/DeleteNoteConfirmDialog"
+import EditNoteDialog from "./notes/EditNoteDialog"
+import { type ApplicantNote, useAddApplicantNote, useApplicantNotes } from "./useApplicantProfile"
 
 interface Props {
-  applicantId: string;
-  applicationId: string | null;
+  applicantId: string
+  applicationId: string | null
 }
 
 const NOTE_TYPES: { value: string; label: string }[] = [
-  { value: 'internal', label: 'Internt notat' },
-  { value: 'interview_feedback', label: 'Intervjufeedback' },
-  { value: 'private', label: 'Privat' },
-];
+  { value: "internal", label: "Internt notat" },
+  { value: "interview_feedback", label: "Intervjufeedback" },
+  { value: "private", label: "Privat" },
+]
 
 const NOTE_TYPE_LABEL: Record<string, string> = NOTE_TYPES.reduce(
   (acc, n) => ({ ...acc, [n.value]: n.label }),
-  {} as Record<string, string>
-);
+  {} as Record<string, string>,
+)
 
 const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
-  const { data: notes, isLoading } = useApplicantNotes(applicantId);
-  const addMut = useAddApplicantNote();
-  const [content, setContent] = useState('');
-  const [type, setType] = useState('internal');
-  const [editNote, setEditNote] = useState<ApplicantNote | null>(null);
-  const [deleteNote, setDeleteNote] = useState<ApplicantNote | null>(null);
+  const { data: notes, isLoading } = useApplicantNotes(applicantId)
+  const addMut = useAddApplicantNote()
+  const [content, setContent] = useState("")
+  const [type, setType] = useState("internal")
+  const [editNote, setEditNote] = useState<ApplicantNote | null>(null)
+  const [deleteNote, setDeleteNote] = useState<ApplicantNote | null>(null)
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content.trim()) return;
+    e.preventDefault()
+    if (!content.trim()) return
     try {
       await addMut.mutateAsync({
         applicantId,
         applicationId,
         content: content.trim(),
         note_type: type,
-      });
-      setContent('');
+      })
+      setContent("")
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -118,14 +119,14 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">
-                      {note.profiles?.full_name ?? 'Ukjent'}
+                      {note.profiles?.full_name ?? "Ukjent"}
                     </span>
                     <Badge
                       className={cn(
-                        'border-transparent',
-                        note.note_type === 'interview_feedback'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
-                          : 'bg-muted text-muted-foreground hover:bg-muted'
+                        "border-transparent",
+                        note.note_type === "interview_feedback"
+                          ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                          : "bg-muted text-muted-foreground hover:bg-muted",
                       )}
                     >
                       {NOTE_TYPE_LABEL[note.note_type] ?? note.note_type}
@@ -173,19 +174,19 @@ const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
       <EditNoteDialog
         open={!!editNote}
         onOpenChange={(o) => {
-          if (!o) setEditNote(null);
+          if (!o) setEditNote(null)
         }}
         note={editNote}
       />
       <DeleteNoteConfirmDialog
         open={!!deleteNote}
         onOpenChange={(o) => {
-          if (!o) setDeleteNote(null);
+          if (!o) setDeleteNote(null)
         }}
         note={deleteNote}
       />
     </div>
-  );
-};
+  )
+}
 
-export default ApplicantNotesTab;
+export default ApplicantNotesTab

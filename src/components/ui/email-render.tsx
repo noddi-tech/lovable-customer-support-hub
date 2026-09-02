@@ -1,55 +1,67 @@
-import React, { useState, useCallback, useMemo, Suspense, lazy, useEffect, useRef, memo } from 'react';
-import { ChevronDown, ChevronUp, Download, Eye, Copy, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { sanitizeEmailHTML, formatPlainTextEmail, type EmailAttachment, fixEncodingIssues } from '@/utils/emailFormatting';
-import { cleanupObjectUrls, rewriteImageSources, getImageErrorStats, logImageError } from '@/utils/imageAssetHandler';
-import { ImageLightbox } from '@/components/ui/image-lightbox';
-import { AttachmentPreviewCard } from '@/components/ui/attachment-preview-card';
+import { ChevronDown, ChevronUp, Download, Image as ImageIcon, Loader2 } from "lucide-react"
+import type React from "react"
+import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { AttachmentPreviewCard } from "@/components/ui/attachment-preview-card"
+import { Button } from "@/components/ui/button"
+import { ImageLightbox } from "@/components/ui/image-lightbox"
+import { OriginalEmailDialog } from "@/components/ui/original-email-dialog"
+import { useToast } from "@/hooks/use-toast"
+import { useCleanedEmailBody } from "@/hooks/useCleanedEmailBody"
+import { supabase } from "@/integrations/supabase/client"
 // NOTE: Removed redundant sanitizeForXSS import - content is already sanitized by sanitizeEmailHTML in emailFormatting.ts
-import { decodeHTMLEntities } from '@/lib/parseQuotedEmail';
-import { debug } from '@/utils/debug';
-import { logger } from '@/utils/logger';
-import { supabase } from '@/integrations/supabase/client';
-import { buildAttachmentUrl } from '@/utils/attachmentUrl';
-import { useCleanedEmailBody } from '@/hooks/useCleanedEmailBody';
-import { OriginalEmailDialog } from '@/components/ui/original-email-dialog';
-
+import { decodeHTMLEntities } from "@/lib/parseQuotedEmail"
+import { buildAttachmentUrl } from "@/utils/attachmentUrl"
+import { debug } from "@/utils/debug"
+import {
+  type EmailAttachment,
+  fixEncodingIssues,
+  formatPlainTextEmail,
+  sanitizeEmailHTML,
+} from "@/utils/emailFormatting"
+import {
+  cleanupObjectUrls,
+  getImageErrorStats,
+  rewriteImageSources,
+} from "@/utils/imageAssetHandler"
+import { logger } from "@/utils/logger"
 
 interface EmailRenderProps {
-  content: string;
-  contentType?: string;
-  attachments?: EmailAttachment[];
-  messageId?: string;
-  className?: string;
-  showLoadImagesControl?: boolean;
+  content: string
+  contentType?: string
+  attachments?: EmailAttachment[]
+  messageId?: string
+  className?: string
+  showLoadImagesControl?: boolean
 }
 
 interface CollapsibleSectionProps {
-  children: React.ReactNode;
-  buttonText: string;
-  defaultCollapsed?: boolean;
-  id: string;
+  children: React.ReactNode
+  buttonText: string
+  defaultCollapsed?: boolean
+  id: string
 }
 
-const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ 
-  children, 
-  buttonText, 
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  children,
+  buttonText,
   defaultCollapsed = true,
-  id 
+  id,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
 
   const toggleCollapse = useCallback(() => {
-    setIsCollapsed(prev => !prev);
-  }, []);
+    setIsCollapsed((prev) => !prev)
+  }, [])
 
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      toggleCollapse();
-    }
-  }, [toggleCollapse]);
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault()
+        toggleCollapse()
+      }
+    },
+    [toggleCollapse],
+  )
 
   return (
     <div className="email-render__collapsible">
@@ -61,7 +73,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         onKeyDown={handleKeyDown}
         aria-expanded={!isCollapsed}
         aria-controls={id}
-        aria-label={`${isCollapsed ? 'Show' : 'Hide'} ${buttonText.toLowerCase()}`}
+        aria-label={`${isCollapsed ? "Show" : "Hide"} ${buttonText.toLowerCase()}`}
         tabIndex={0}
       >
         <span className="text-muted-foreground text-xs">{buttonText}</span>
@@ -72,8 +84,8 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         )}
       </Button>
       {!isCollapsed && (
-        <div 
-          id={id} 
+        <div
+          id={id}
           className="email-render__collapsible-content"
           role="region"
           aria-labelledby={`${id}-toggle`}
@@ -84,99 +96,114 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
 // Component to handle attachment download with auth
-const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageId?: string }> = ({ attachment, messageId }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const { toast } = useToast();
+const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageId?: string }> = ({
+  attachment,
+  messageId,
+}) => {
+  const [isDownloading, setIsDownloading] = useState(false)
+  const { toast } = useToast()
 
   const triggerBlobDownload = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   const handleDownload = async () => {
-    setIsDownloading(true);
+    setIsDownloading(true)
     try {
       // If no storageKey, try on-demand fetch from Gmail
       if (!attachment.storageKey) {
         if (!messageId) {
-          toast({ title: "Download unavailable", description: "Missing message reference", variant: "destructive" });
-          return;
+          toast({
+            title: "Download unavailable",
+            description: "Missing message reference",
+            variant: "destructive",
+          })
+          return
         }
 
-        toast({ title: "Fetching attachment...", description: "Downloading from Gmail. This may take a moment." });
+        toast({
+          title: "Fetching attachment...",
+          description: "Downloading from Gmail. This may take a moment.",
+        })
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!session) throw new Error("Not authenticated")
 
         const response = await fetch(
           `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/fetch-gmail-attachment`,
           {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZmF5Y3dzYW5nc3F6cHZlb3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzIwMDMsImV4cCI6MjA2OTYwODAwM30.Q5dNwdnAxCDwhaEluhFnCO1hbTY4rZ1uhEy284FLhTE',
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+              apikey:
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZmF5Y3dzYW5nc3F6cHZlb3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzIwMDMsImV4cCI6MjA2OTYwODAwM30.Q5dNwdnAxCDwhaEluhFnCO1hbTY4rZ1uhEy284FLhTE",
             },
             body: JSON.stringify({ messageId, filename: attachment.filename }),
-          }
-        );
+          },
+        )
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
+          const errData = await response.json().catch(() => ({}))
           if (errData.recoverable === false) {
-            toast({ 
-              title: "Attachment unavailable", 
-              description: "This file was received via email forwarding and can't be fetched on-demand. Connect a Gmail account with OAuth to enable this.",
+            toast({
+              title: "Attachment unavailable",
+              description:
+                "This file was received via email forwarding and can't be fetched on-demand. Connect a Gmail account with OAuth to enable this.",
               variant: "destructive",
               duration: 8000,
-            });
-            setIsDownloading(false);
-            return;
+            })
+            setIsDownloading(false)
+            return
           }
-          throw new Error(errData.error || `Failed to fetch attachment (${response.status})`);
+          throw new Error(errData.error || `Failed to fetch attachment (${response.status})`)
         }
 
-        const blob = await response.blob();
-        triggerBlobDownload(blob, attachment.filename);
-        toast({ title: "Download complete", description: attachment.filename });
-        return;
+        const blob = await response.blob()
+        triggerBlobDownload(blob, attachment.filename)
+        toast({ title: "Download complete", description: attachment.filename })
+        return
       }
 
       // Normal download via storage key
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-      const response = await fetch(
-        buildAttachmentUrl({ key: attachment.storageKey }),
-        { headers: { 'Authorization': `Bearer ${session.access_token}` } }
-      );
+      const response = await fetch(buildAttachmentUrl({ key: attachment.storageKey }), {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
 
-      if (!response.ok) throw new Error('Download failed');
+      if (!response.ok) throw new Error("Download failed")
 
-      const blob = await response.blob();
-      triggerBlobDownload(blob, attachment.filename);
-      toast({ title: "Download complete", description: attachment.filename });
+      const blob = await response.blob()
+      triggerBlobDownload(blob, attachment.filename)
+      toast({ title: "Download complete", description: attachment.filename })
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error)
       toast({
         title: "Download failed",
         description: error instanceof Error ? error.message : "Could not download file",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsDownloading(false);
+      setIsDownloading(false)
     }
-  };
+  }
 
   return (
     <Button
@@ -192,281 +219,310 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageI
       ) : (
         <Download className="h-3 w-3 mr-1" aria-hidden="true" />
       )}
-      {!attachment.storageKey ? 'Fetch & Download' : 'Download'}
+      {!attachment.storageKey ? "Fetch & Download" : "Download"}
     </Button>
-  );
-};
+  )
+}
 
 const EmailRenderComponent: React.FC<EmailRenderProps> = ({
   content,
-  contentType = 'text/plain',
+  contentType = "text/plain",
   attachments = [],
   messageId,
-  className = '',
-  showLoadImagesControl = true
+  className = "",
+  showLoadImagesControl = true,
 }) => {
-  const { toast } = useToast();
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [imageProcessingComplete, setImageProcessingComplete] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-  const htmlContentRef = useRef<HTMLDivElement>(null);
-  
+  const { toast } = useToast()
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false)
+  const [imageProcessingComplete, setImageProcessingComplete] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const htmlContentRef = useRef<HTMLDivElement>(null)
+
   // Track renders
-  const renderCount = useRef(0);
-  const prevAttachmentsRef = useRef(attachments);
-  
+  const renderCount = useRef(0)
+  const prevAttachmentsRef = useRef(attachments)
+
   useEffect(() => {
-    renderCount.current++;
-    const attachmentsChanged = prevAttachmentsRef.current !== attachments;
-    
-    logger.debug(`EmailRender render #${renderCount.current}`, {
-      messageId: messageId?.slice(-8),
-      contentLength: content.length,
-      attachmentsCount: attachments.length,
-      attachmentsChanged,
-      attachmentsReference: attachments.length > 0 ? 'array ref' : 'empty'
-    }, 'EmailRender');
-    
-    prevAttachmentsRef.current = attachments;
-  });
+    renderCount.current++
+    const attachmentsChanged = prevAttachmentsRef.current !== attachments
+
+    logger.debug(
+      `EmailRender render #${renderCount.current}`,
+      {
+        messageId: messageId?.slice(-8),
+        contentLength: content.length,
+        attachmentsCount: attachments.length,
+        attachmentsChanged,
+        attachmentsReference: attachments.length > 0 ? "array ref" : "empty",
+      },
+      "EmailRender",
+    )
+
+    prevAttachmentsRef.current = attachments
+  })
   const isHTML = useMemo(() => {
     // Check content type first
-    if (contentType.toLowerCase().includes('html')) return true;
-    
+    if (contentType.toLowerCase().includes("html")) return true
+
     // Only treat as HTML if it has COMPLETE HTML tags (not just < or >)
-    const htmlTagPattern = /<\/?[a-z][\s\S]*>/i;
-    const hasHTMLTags = htmlTagPattern.test(content);
-    
+    const htmlTagPattern = /<\/?[a-z][\s\S]*>/i
+    const hasHTMLTags = htmlTagPattern.test(content)
+
     // If only wrapped in a single <p> or <pre> tag, treat as plain text
     if (hasHTMLTags) {
-      const pTagCount = (content.match(/<p[\s>]/gi) || []).length;
-      const preTagCount = (content.match(/<pre[\s>]/gi) || []).length;
-      const totalSimpleTags = pTagCount + preTagCount;
-      
+      const pTagCount = (content.match(/<p[\s>]/gi) || []).length
+      const preTagCount = (content.match(/<pre[\s>]/gi) || []).length
+      const totalSimpleTags = pTagCount + preTagCount
+
       // Single wrapper tag with no other HTML = plain text
       if (totalSimpleTags === 1 && pTagCount <= 1 && preTagCount <= 1) {
         // Make sure there are no other significant HTML tags
-        const otherTags = content.match(/<(?!\/?(p|pre|br)\b)[a-z][^>]*>/gi) || [];
+        const otherTags = content.match(/<(?!\/?(p|pre|br)\b)[a-z][^>]*>/gi) || []
         if (otherTags.length === 0) {
-          return false;
+          return false
         }
       }
     }
-    
-    return hasHTMLTags;
-  }, [content, contentType]);
+
+    return hasHTMLTags
+  }, [content, contentType])
 
   // Clean v2: quotes / signatures / legal footers stripped by
   // @u22n/mailtools + email-reply-parser. Off unless the flag or ?cleanv2=1
   // is set; the original body is always kept for the "show original" toggle.
-  const cleanedBody = useCleanedEmailBody(content, isHTML);
-  const effectiveContent = cleanedBody.visible || content;
+  const cleanedBody = useCleanedEmailBody(content, isHTML)
+  const effectiveContent = cleanedBody.visible || content
 
   const processedContent = useMemo(() => {
-    logger.time('processedContent', 'EmailRender');
-    logger.debug('Processing email content - MEMO RUNNING', { 
-      messageId: messageId?.slice(-8), 
-      contentType, 
-      isHTML, 
-      attachmentsCount: attachments.length,
-      attachmentsRef: attachments.length > 0 ? 'has attachments' : 'no attachments'
-    }, 'EmailRender');
-    
-    let normalized = fixEncodingIssues(effectiveContent);
-    
+    logger.time("processedContent", "EmailRender")
+    logger.debug(
+      "Processing email content - MEMO RUNNING",
+      {
+        messageId: messageId?.slice(-8),
+        contentType,
+        isHTML,
+        attachmentsCount: attachments.length,
+        attachmentsRef: attachments.length > 0 ? "has attachments" : "no attachments",
+      },
+      "EmailRender",
+    )
+
+    let normalized = fixEncodingIssues(effectiveContent)
+
     // CRITICAL: Decode HTML entities for BOTH HTML and plain text content
     // This handles Gmail/Outlook sending &lt;br/&gt; in plain text emails
-    logger.debug('Content entity decoding', { 
-      before: normalized.substring(0, 100),
-      messageId: messageId?.slice(-8)
-    }, 'EmailRender');
-    normalized = decodeHTMLEntities(normalized);
-    logger.debug('Content decoded', { 
-      after: normalized.substring(0, 100),
-      messageId: messageId?.slice(-8)
-    }, 'EmailRender');
-    
-    let result;
+    logger.debug(
+      "Content entity decoding",
+      {
+        before: normalized.substring(0, 100),
+        messageId: messageId?.slice(-8),
+      },
+      "EmailRender",
+    )
+    normalized = decodeHTMLEntities(normalized)
+    logger.debug(
+      "Content decoded",
+      {
+        after: normalized.substring(0, 100),
+        messageId: messageId?.slice(-8),
+      },
+      "EmailRender",
+    )
+
+    let result
     if (isHTML) {
-      const alreadyWrapped = /class=\"email-render\"/.test(normalized);
-      result = alreadyWrapped ? normalized : sanitizeEmailHTML(normalized, attachments, true, messageId);
+      const alreadyWrapped = /class="email-render"/.test(normalized)
+      result = alreadyWrapped
+        ? normalized
+        : sanitizeEmailHTML(normalized, attachments, true, messageId)
     } else {
       // Strip single wrapper tags (p, pre) that shouldn't be there for plain text
-      let cleanContent = normalized;
-      const singlePMatch = cleanContent.match(/^<p[^>]*>([\s\S]*)<\/p>$/i);
-      const singlePreMatch = cleanContent.match(/^<pre[^>]*>([\s\S]*)<\/pre>$/i);
-      if (singlePMatch) cleanContent = singlePMatch[1];
-      else if (singlePreMatch) cleanContent = singlePreMatch[1];
-      
+      let cleanContent = normalized
+      const singlePMatch = cleanContent.match(/^<p[^>]*>([\s\S]*)<\/p>$/i)
+      const singlePreMatch = cleanContent.match(/^<pre[^>]*>([\s\S]*)<\/pre>$/i)
+      if (singlePMatch) cleanContent = singlePMatch[1]
+      else if (singlePreMatch) cleanContent = singlePreMatch[1]
+
       // For plain text, format the decoded content (converts <br/> to newlines)
-      result = formatPlainTextEmail(cleanContent);
+      result = formatPlainTextEmail(cleanContent)
     }
-    
-    logger.timeEnd('processedContent', 'EmailRender');
-    return result;
-  }, [effectiveContent, isHTML, attachments, messageId, contentType]);
+
+    logger.timeEnd("processedContent", "EmailRender")
+    return result
+  }, [effectiveContent, isHTML, attachments, messageId, contentType])
 
   const contentWithCollapsibleSections = useMemo(() => {
     if (!isHTML) {
-      return processedContent;
+      return processedContent
     }
 
     // Parse HTML and identify sections to collapse
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = processedContent;
-    
+    const tempDiv = document.createElement("div")
+    tempDiv.innerHTML = processedContent
+
     // Find and wrap quoted sections
-    const quotedElements = tempDiv.querySelectorAll('blockquote');
+    const quotedElements = tempDiv.querySelectorAll("blockquote")
     quotedElements.forEach((blockquote, index) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'collapsible-quote';
-      wrapper.setAttribute('data-quote-id', `quote-${index}`);
-      blockquote.parentNode?.insertBefore(wrapper, blockquote);
-      wrapper.appendChild(blockquote);
-    });
-    
+      const wrapper = document.createElement("div")
+      wrapper.className = "collapsible-quote"
+      wrapper.setAttribute("data-quote-id", `quote-${index}`)
+      blockquote.parentNode?.insertBefore(wrapper, blockquote)
+      wrapper.appendChild(blockquote)
+    })
+
     // Find signature sections (content after "-- " delimiter)
-    const textContent = tempDiv.textContent || '';
-    const signatureMatch = textContent.match(/\n-- \n/);
+    const textContent = tempDiv.textContent || ""
+    const signatureMatch = textContent.match(/\n-- \n/)
     if (signatureMatch) {
       // This is a simplified approach - in production, you'd want more sophisticated signature detection
-      const walker = document.createTreeWalker(
-        tempDiv,
-        NodeFilter.SHOW_TEXT,
-        null
-      );
-      
-      let foundSignature = false;
-      const nodesToCollapse: Node[] = [];
-      
+      const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null)
+
+      let foundSignature = false
+      const nodesToCollapse: Node[] = []
+
       while (walker.nextNode()) {
-        const node = walker.currentNode;
-        if (node.textContent?.includes('-- ') && !foundSignature) {
-          foundSignature = true;
+        const node = walker.currentNode
+        if (node.textContent?.includes("-- ") && !foundSignature) {
+          foundSignature = true
           // Start collecting nodes after signature delimiter
-          let nextNode = node.nextSibling;
+          let nextNode = node.nextSibling
           while (nextNode) {
-            nodesToCollapse.push(nextNode);
-            nextNode = nextNode.nextSibling;
+            nodesToCollapse.push(nextNode)
+            nextNode = nextNode.nextSibling
           }
         }
       }
-      
+
       if (nodesToCollapse.length > 0) {
-        const signatureWrapper = document.createElement('div');
-        signatureWrapper.className = 'collapsible-signature';
-        signatureWrapper.setAttribute('data-signature-id', 'signature-0');
-        
+        const signatureWrapper = document.createElement("div")
+        signatureWrapper.className = "collapsible-signature"
+        signatureWrapper.setAttribute("data-signature-id", "signature-0")
+
         // Move signature nodes into wrapper
-        nodesToCollapse.forEach(node => {
+        nodesToCollapse.forEach((node) => {
           if (node.parentNode) {
-            signatureWrapper.appendChild(node.cloneNode(true));
-            node.parentNode.removeChild(node);
+            signatureWrapper.appendChild(node.cloneNode(true))
+            node.parentNode.removeChild(node)
           }
-        });
-        
-        tempDiv.appendChild(signatureWrapper);
+        })
+
+        tempDiv.appendChild(signatureWrapper)
       }
     }
-    
-    return tempDiv.innerHTML;
-  }, [processedContent, isHTML]);
+
+    return tempDiv.innerHTML
+  }, [processedContent, isHTML])
 
   const loadImages = useCallback(() => {
-    const emailContainer = document.querySelector('.email-render__html-content');
+    const emailContainer = document.querySelector(".email-render__html-content")
     if (emailContainer) {
-      const blockedImages = emailContainer.querySelectorAll('img[data-blocked="true"]');
+      const blockedImages = emailContainer.querySelectorAll('img[data-blocked="true"]')
       blockedImages.forEach((img) => {
-        const originalSrc = img.getAttribute('data-original-src');
+        const originalSrc = img.getAttribute("data-original-src")
         if (originalSrc) {
-          img.setAttribute('src', originalSrc);
-          img.removeAttribute('data-blocked');
-          img.removeAttribute('data-original-src');
+          img.setAttribute("src", originalSrc)
+          img.removeAttribute("data-blocked")
+          img.removeAttribute("data-original-src")
         }
-      });
-      setImagesLoaded(true);
+      })
+      setImagesLoaded(true)
       toast({
         title: "Images loaded",
         description: "External images are now visible",
-      });
+      })
     }
-  }, [toast]);
+  }, [toast])
 
   const copyToClipboard = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(content);
-      setCopiedToClipboard(true);
+      await navigator.clipboard.writeText(content)
+      setCopiedToClipboard(true)
       toast({
         title: "Copied to clipboard",
         description: "Email content has been copied",
-      });
-      setTimeout(() => setCopiedToClipboard(false), 2000);
+      })
+      setTimeout(() => setCopiedToClipboard(false), 2000)
     } catch (error) {
       toast({
         title: "Copy failed",
         description: "Could not copy email content to clipboard",
         variant: "destructive",
-      });
+      })
     }
-  }, [content, toast]);
+  }, [content, toast])
 
   const renderContent = () => {
-    logger.debug('Rendering email', {
-      processedLength: processedContent.length,
-      originalLength: content.length,
-      isHTML,
-      messageId
-    }, 'EmailRender');
+    logger.debug(
+      "Rendering email",
+      {
+        processedLength: processedContent.length,
+        originalLength: content.length,
+        isHTML,
+        messageId,
+      },
+      "EmailRender",
+    )
 
     // Always use processed (sanitized) content — parseQuotedEmail now has a safety check
     // to restore original content if quote stripping would leave it empty
-    const contentToRender = processedContent;
-    
+    const contentToRender = processedContent
+
     if (isHTML) {
       // Parse the HTML and render with React components for collapsible sections
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = contentWithCollapsibleSections || contentToRender;
-      
-      const collapsibleQuotes = tempDiv.querySelectorAll('.collapsible-quote');
-      const collapsibleSignatures = tempDiv.querySelectorAll('.collapsible-signature');
-      
+      const tempDiv = document.createElement("div")
+      tempDiv.innerHTML = contentWithCollapsibleSections || contentToRender
+
+      const collapsibleQuotes = tempDiv.querySelectorAll(".collapsible-quote")
+      const collapsibleSignatures = tempDiv.querySelectorAll(".collapsible-signature")
+
       // NOTE: Content is already sanitized by sanitizeEmailHTML in processedContent memo (uses DOMPurify)
       // Do NOT double-sanitize here - the second pass strips our get-attachment URLs for inline images
-      const sanitizedContent = contentWithCollapsibleSections || contentToRender;
-      
+      const sanitizedContent = contentWithCollapsibleSections || contentToRender
+
       // Additional check: if sanitized content has no actual text, show original as plain text
-      const tempDiv2 = document.createElement('div');
-      tempDiv2.innerHTML = sanitizedContent;
-      const visibleText = tempDiv2.textContent || tempDiv2.innerText || '';
-      
+      const tempDiv2 = document.createElement("div")
+      tempDiv2.innerHTML = sanitizedContent
+      const visibleText = tempDiv2.textContent || tempDiv2.innerText || ""
+
       if (!sanitizedContent) {
-        console.warn('[EmailRender] HTML sanitization produced empty content, falling back to plain text');
-        const strippedText = (tempDiv2.textContent || tempDiv2.innerText || content).trim();
+        console.warn(
+          "[EmailRender] HTML sanitization produced empty content, falling back to plain text",
+        )
+        const strippedText = (tempDiv2.textContent || tempDiv2.innerText || content).trim()
         return (
           <div className="email-render__plain-content">
-            <pre className="email-render__text-line" style={{
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
-              fontFamily: 'inherit',
-              fontSize: 'inherit',
-              margin: 0,
-              padding: 0,
-              lineHeight: '1.6'
-            }}>{strippedText || content}</pre>
+            <pre
+              className="email-render__text-line"
+              style={{
+                whiteSpace: "pre-wrap",
+                wordWrap: "break-word",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                margin: 0,
+                padding: 0,
+                lineHeight: "1.6",
+              }}
+            >
+              {strippedText || content}
+            </pre>
           </div>
-        );
+        )
       }
-      
+
       // Debug logging
-      debug.group('[EmailRender] HTML Content', {
-        messageId: messageId?.slice(-8),
-        contentType,
-        hasQuotedBlocks: tempDiv.querySelectorAll('.collapsible-quote').length > 0,
-      }, true);
-      debug.groupEnd();
-      
+      debug.group(
+        "[EmailRender] HTML Content",
+        {
+          messageId: messageId?.slice(-8),
+          contentType,
+          hasQuotedBlocks: tempDiv.querySelectorAll(".collapsible-quote").length > 0,
+        },
+        true,
+      )
+      debug.groupEnd()
+
       // Designed/branded emails (styled table layouts, coloured cells, embedded
       // CSS) must keep their own spacing, widths and colours — the aggressive
       // flattening rules in index.css only apply to legacy/plain HTML.
@@ -474,168 +530,200 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
         /<style[\s>]/i.test(sanitizedContent) ||
         /role=["']presentation["']/i.test(sanitizedContent) ||
         /<td[^>]+bgcolor=/i.test(sanitizedContent) ||
-        (sanitizedContent.match(/style="/gi)?.length ?? 0) >= 10;
+        (sanitizedContent.match(/style="/gi)?.length ?? 0) >= 10
 
       return (
-        <div 
+        <div
           ref={htmlContentRef}
-          className={`email-render__html-content${isRichDesign ? ' email-render--rich' : ''} prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t`}
+          className={`email-render__html-content${isRichDesign ? " email-render--rich" : ""} prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t`}
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
-      );
-
+      )
     } else {
       // Plain text - format as structured HTML for consistency
       // contentToRender is already formatted HTML from processedContent memo
-      const formattedHtml = contentToRender;
-      
+      const formattedHtml = contentToRender
+
       // Debug logging
-      debug.group('[EmailRender] Plain Text', {
-        messageId: messageId?.slice(-8),
-        contentType,
-      }, true);
-      debug.groupEnd();
-      
+      debug.group(
+        "[EmailRender] Plain Text",
+        {
+          messageId: messageId?.slice(-8),
+          contentType,
+        },
+        true,
+      )
+      debug.groupEnd()
+
       return (
-        <div 
+        <div
           className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
-      );
+      )
     }
-  };
+  }
 
   const hasBlockedImages = useMemo(() => {
-    return isHTML && content.includes('Image blocked for privacy');
-  }, [isHTML, content]);
+    return isHTML && content.includes("Image blocked for privacy")
+  }, [isHTML, content])
 
   // Get inline image attachments (used to map in-body image clicks)
-  const inlineImages = useMemo(() => 
-    attachments.filter(a => a.isInline && a.mimeType?.startsWith('image/')),
-    [attachments]
-  );
+  const inlineImages = useMemo(
+    () => attachments.filter((a) => a.isInline && a.mimeType?.startsWith("image/")),
+    [attachments],
+  )
 
   // Every image attachment can be opened in the lightbox — inline or not.
   const lightboxImages = useMemo(
-    () => attachments.filter(a => a.mimeType?.startsWith('image/')),
-    [attachments]
-  );
-
+    () => attachments.filter((a) => a.mimeType?.startsWith("image/")),
+    [attachments],
+  )
 
   // Enhanced image processing effect
   useEffect(() => {
-    logger.debug('Image processing triggered', {
-      isHTML,
-      attachmentsLength: attachments.length,
-      messageId,
-      inlineCount: attachments.filter(a => a.isInline).length
-    }, 'EmailRender');
+    logger.debug(
+      "Image processing triggered",
+      {
+        isHTML,
+        attachmentsLength: attachments.length,
+        messageId,
+        inlineCount: attachments.filter((a) => a.isInline).length,
+      },
+      "EmailRender",
+    )
 
     if (!isHTML || !attachments.length) {
-      logger.debug('Skipping image processing - not HTML or no attachments', { messageId }, 'EmailRender');
-      setImageProcessingComplete(true);
-      return;
+      logger.debug(
+        "Skipping image processing - not HTML or no attachments",
+        { messageId },
+        "EmailRender",
+      )
+      setImageProcessingComplete(true)
+      return
     }
 
     const processImages = async () => {
       try {
-        const container = htmlContentRef.current;
+        const container = htmlContentRef.current
         if (!container) {
-          logger.debug('No container found for image processing', { messageId }, 'EmailRender');
-          return;
+          logger.debug("No container found for image processing", { messageId }, "EmailRender")
+          return
         }
 
-        logger.debug('Processing inline images', { messageId, attachmentsCount: attachments.length }, 'EmailRender');
+        logger.debug(
+          "Processing inline images",
+          { messageId, attachmentsCount: attachments.length },
+          "EmailRender",
+        )
 
         // Build asset indexes
-        const byContentId = new Map();
-        const byContentLocation = new Map();
-        
+        const byContentId = new Map()
+        const byContentLocation = new Map()
+
         attachments.forEach((attachment, index) => {
-          logger.debug('Processing attachment', { 
-            index, 
-            filename: attachment.filename,
-            hasContentId: !!attachment.contentId,
-            hasContentLocation: !!attachment.contentLocation,
-            messageId 
-          }, 'EmailRender');
-          
+          logger.debug(
+            "Processing attachment",
+            {
+              index,
+              filename: attachment.filename,
+              hasContentId: !!attachment.contentId,
+              hasContentLocation: !!attachment.contentLocation,
+              messageId,
+            },
+            "EmailRender",
+          )
+
           if (attachment.contentId) {
-            const normalizedCid = attachment.contentId.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
-            logger.debug('Mapped content ID', { normalizedCid, messageId }, 'EmailRender');
-            byContentId.set(normalizedCid, { attachment });
+            const normalizedCid = attachment.contentId
+              .replace(/^cid:/i, "")
+              .replace(/[<>]/g, "")
+              .toLowerCase()
+            logger.debug("Mapped content ID", { normalizedCid, messageId }, "EmailRender")
+            byContentId.set(normalizedCid, { attachment })
           }
-          
+
           if (attachment.contentLocation) {
-            const normalizedLocation = attachment.contentLocation.includes('/') 
-              ? attachment.contentLocation.split('/').pop()?.toLowerCase() 
-              : attachment.contentLocation.toLowerCase();
+            const normalizedLocation = attachment.contentLocation.includes("/")
+              ? attachment.contentLocation.split("/").pop()?.toLowerCase()
+              : attachment.contentLocation.toLowerCase()
             if (normalizedLocation) {
-              logger.debug('Mapped content location', { normalizedLocation, messageId }, 'EmailRender');
-              byContentLocation.set(normalizedLocation, { attachment });
+              logger.debug(
+                "Mapped content location",
+                { normalizedLocation, messageId },
+                "EmailRender",
+              )
+              byContentLocation.set(normalizedLocation, { attachment })
             }
           }
-        });
+        })
 
-        logger.debug('Asset indexes built', {
-          contentIdCount: byContentId.size,
-          contentLocationCount: byContentLocation.size,
-          messageId
-        }, 'EmailRender');
+        logger.debug(
+          "Asset indexes built",
+          {
+            contentIdCount: byContentId.size,
+            contentLocationCount: byContentLocation.size,
+            messageId,
+          },
+          "EmailRender",
+        )
 
         // Process images with enhanced error handling
-        await rewriteImageSources(container, byContentId, byContentLocation, messageId);
-        
+        await rewriteImageSources(container, byContentId, byContentLocation, messageId)
+
         // Add click handlers to attachment images for lightbox
-        const attachmentImgs = container.querySelectorAll('img[data-attachment="true"]');
+        const attachmentImgs = container.querySelectorAll('img[data-attachment="true"]')
         attachmentImgs.forEach((img, idx) => {
-          (img as HTMLElement).addEventListener('click', () => {
+          ;(img as HTMLElement).addEventListener("click", () => {
             // Map the in-body image to its position in the full image list.
-            const inline = inlineImages[idx];
+            const inline = inlineImages[idx]
             const target = inline
-              ? lightboxImages.findIndex(i => i.filename === inline.filename)
-              : idx;
-            setLightboxIndex(target >= 0 ? target : 0);
-            setLightboxOpen(true);
-          });
-        });
+              ? lightboxImages.findIndex((i) => i.filename === inline.filename)
+              : idx
+            setLightboxIndex(target >= 0 ? target : 0)
+            setLightboxOpen(true)
+          })
+        })
 
-        
-        setImageProcessingComplete(true);
-        
+        setImageProcessingComplete(true)
+
         // Log processing stats for debugging
-        const errorStats = getImageErrorStats();
-        logger.debug('Image processing complete', { errorStats, messageId }, 'EmailRender');
+        const errorStats = getImageErrorStats()
+        logger.debug("Image processing complete", { errorStats, messageId }, "EmailRender")
       } catch (error) {
-        console.error('[EmailRender] Image processing failed:', error);
-        setImageProcessingComplete(true);
+        console.error("[EmailRender] Image processing failed:", error)
+        setImageProcessingComplete(true)
       }
-    };
+    }
 
-    const timer = setTimeout(processImages, 100); // Small delay to ensure DOM is ready
-    return () => clearTimeout(timer);
-  }, [isHTML, attachments, messageId, inlineImages, lightboxImages]);
+    const timer = setTimeout(processImages, 100) // Small delay to ensure DOM is ready
+    return () => clearTimeout(timer)
+  }, [isHTML, attachments, messageId, inlineImages, lightboxImages])
 
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      cleanupObjectUrls();
-    };
-  }, []);
+      cleanupObjectUrls()
+    }
+  }, [])
 
   return (
-    <article 
-      className={`email-render ${isHTML ? 'email-render--html' : 'email-render--text'} ${className}`}
+    <article
+      className={`email-render ${isHTML ? "email-render--html" : "email-render--text"} ${className}`}
       aria-label="Email message content"
       role="article"
       style={{
-        lineHeight: '1.5',
-        padding: '0',
+        lineHeight: "1.5",
+        padding: "0",
       }}
     >
-      {/* Email Controls */}
-      <div className="email-render__controls mb-2 flex items-center gap-1" role="toolbar" aria-label="Email actions">
-        {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
+      {/* Email Controls — only when there is something actionable */}
+      {showLoadImagesControl && hasBlockedImages && !imagesLoaded && (
+        <div
+          className="email-render__controls mb-2 flex items-center gap-1"
+          role="toolbar"
+          aria-label="Email actions"
+        >
           <Button
             variant="ghost"
             size="sm"
@@ -646,69 +734,75 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
             <ImageIcon className="h-3 w-3 mr-1" aria-hidden="true" />
             Load images
           </Button>
-        )}
-        <OriginalEmailDialog content={content} isHTML={isHTML} />
-      </div>
-
+        </div>
+      )}
 
       {/* Email Content */}
       <div className="email-render__content overflow-x-auto max-w-full" role="main">
         {renderContent()}
       </div>
 
-      {/* Clean v2 stripped a quote/signature — the original is never discarded */}
+      {/* Cleaned quote/signature — original stays available, not in the main flow */}
       {cleanedBody.cleaned && (
-        <CollapsibleSection
-          id={`original-${messageId || 'msg'}`}
-          buttonText="Show original message"
-        >
-          <pre className="whitespace-pre-wrap break-words text-xs text-muted-foreground border-l-2 border-muted-foreground/30 pl-3">
-            {content}
-          </pre>
-        </CollapsibleSection>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <CollapsibleSection
+            id={`original-${messageId || "msg"}`}
+            buttonText="Show trimmed content"
+          >
+            <pre className="whitespace-pre-wrap break-words text-xs text-muted-foreground border-l-2 border-muted-foreground/30 pl-3">
+              {content}
+            </pre>
+          </CollapsibleSection>
+          <OriginalEmailDialog content={content} isHTML={isHTML} />
+        </div>
       )}
-      
+
       {/* Attachments */}
       {(() => {
         // Include inline attachments whose contentId is NOT actually referenced in the HTML body
-        const downloadableAttachments = attachments.filter(a => {
-          if (!a.isInline) return true;
-          if (!a.contentId) return true;
+        const downloadableAttachments = attachments.filter((a) => {
+          if (!a.isInline) return true
+          if (!a.contentId) return true
           if (isHTML) {
-            const cidNormalized = a.contentId.replace(/[<>]/g, '');
-            return !content.includes(`cid:${cidNormalized}`);
+            const cidNormalized = a.contentId.replace(/[<>]/g, "")
+            return !content.includes(`cid:${cidNormalized}`)
           }
-          return true;
-        });
+          return true
+        })
         return downloadableAttachments.length > 0 ? (
-        <div className="email-render__attachments" role="region" aria-label="Email attachments">
-          <h4 className="email-render__attachments-title" id="attachments-heading">
-            Attachments ({downloadableAttachments.length})
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-            {downloadableAttachments.map((attachment, index) => {
-              const isImage = attachment.mimeType?.startsWith('image/');
-              return (
-                <AttachmentPreviewCard
-                  key={index}
-                  attachment={attachment}
-                  messageId={messageId}
-                  onImageClick={isImage ? () => {
-                    const imgIndex = lightboxImages.findIndex(
-                      img => img.filename === attachment.filename && img.isInline === attachment.isInline
-                    );
-                    setLightboxIndex(imgIndex >= 0 ? imgIndex : 0);
-                    setLightboxOpen(true);
-                  } : undefined}
-                />
-              );
-            })}
+          <div className="email-render__attachments" role="region" aria-label="Email attachments">
+            <h4 className="email-render__attachments-title" id="attachments-heading">
+              Attachments ({downloadableAttachments.length})
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {downloadableAttachments.map((attachment, index) => {
+                const isImage = attachment.mimeType?.startsWith("image/")
+                return (
+                  <AttachmentPreviewCard
+                    key={index}
+                    attachment={attachment}
+                    messageId={messageId}
+                    onImageClick={
+                      isImage
+                        ? () => {
+                            const imgIndex = lightboxImages.findIndex(
+                              (img) =>
+                                img.filename === attachment.filename &&
+                                img.isInline === attachment.isInline,
+                            )
+                            setLightboxIndex(imgIndex >= 0 ? imgIndex : 0)
+                            setLightboxOpen(true)
+                          }
+                        : undefined
+                    }
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div>
-        ) : null;
+        ) : null
       })()}
-      
-      
+
       {/* Image Lightbox for all image attachments (inline + regular) */}
       {lightboxImages.length > 0 && (
         <ImageLightbox
@@ -717,34 +811,52 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
           isOpen={lightboxOpen}
           messageId={messageId}
           onClose={() => setLightboxOpen(false)}
-          onNext={() => setLightboxIndex(i => (i + 1) % lightboxImages.length)}
-          onPrevious={() => setLightboxIndex(i => (i - 1 + lightboxImages.length) % lightboxImages.length)}
+          onNext={() => setLightboxIndex((i) => (i + 1) % lightboxImages.length)}
+          onPrevious={() =>
+            setLightboxIndex((i) => (i - 1 + lightboxImages.length) % lightboxImages.length)
+          }
           onIndexChange={setLightboxIndex}
         />
-
       )}
     </article>
-  );
-};
+  )
+}
 
 // Memoized wrapper with custom comparison
 export const EmailRender = memo(EmailRenderComponent, (prevProps, nextProps) => {
   // Compare only essential props
-  const contentMatch = prevProps.content === nextProps.content;
-  const typeMatch = prevProps.contentType === nextProps.contentType;
-  const messageIdMatch = prevProps.messageId === nextProps.messageId;
-  const classMatch = prevProps.className === nextProps.className;
-  
-  // Compare attachment IDs only, not array reference
-  const prevAttachIds = prevProps.attachments?.map(a => a.attachmentId).sort().join(',') || '';
-  const nextAttachIds = nextProps.attachments?.map(a => a.attachmentId).sort().join(',') || '';
-  const attachmentsMatch = prevAttachIds === nextAttachIds;
+  const contentMatch = prevProps.content === nextProps.content
+  const typeMatch = prevProps.contentType === nextProps.contentType
+  const messageIdMatch = prevProps.messageId === nextProps.messageId
+  const classMatch = prevProps.className === nextProps.className
 
-  const shouldUpdate = !(contentMatch && typeMatch && messageIdMatch && classMatch && attachmentsMatch);
+  // Compare attachment IDs only, not array reference
+  const prevAttachIds =
+    prevProps.attachments
+      ?.map((a) => a.attachmentId)
+      .sort()
+      .join(",") || ""
+  const nextAttachIds =
+    nextProps.attachments
+      ?.map((a) => a.attachmentId)
+      .sort()
+      .join(",") || ""
+  const attachmentsMatch = prevAttachIds === nextAttachIds
+
+  const shouldUpdate = !(
+    contentMatch &&
+    typeMatch &&
+    messageIdMatch &&
+    classMatch &&
+    attachmentsMatch
+  )
 
   if (shouldUpdate) {
-    logger.trackMemoBreak('EmailRender', `content:${!contentMatch} type:${!typeMatch} msgId:${!messageIdMatch} class:${!classMatch} attach:${!attachmentsMatch}`);
+    logger.trackMemoBreak(
+      "EmailRender",
+      `content:${!contentMatch} type:${!typeMatch} msgId:${!messageIdMatch} class:${!classMatch} attach:${!attachmentsMatch}`,
+    )
   }
 
-  return !shouldUpdate;
-});
+  return !shouldUpdate
+})

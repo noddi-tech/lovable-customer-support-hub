@@ -1,70 +1,83 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, Database } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { AlertTriangle, CheckCircle2, Database, RefreshCw, XCircle } from "lucide-react"
+import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 interface VerificationStats {
-  conversationsImported: number;
-  messagesImported: number;
-  customersCreated: number;
-  inboxesCreated: number;
-  orphanedMessages: number;
-  orphanedConversations: number;
-  duplicateExternalIds: number;
+  conversationsImported: number
+  messagesImported: number
+  customersCreated: number
+  inboxesCreated: number
+  orphanedMessages: number
+  orphanedConversations: number
+  duplicateExternalIds: number
 }
 
 interface ImportVerificationReportProps {
-  jobId: string;
-  organizationId: string;
-  expectedConversations?: number;
+  jobId: string
+  organizationId: string
+  expectedConversations?: number
 }
 
-export const ImportVerificationReport = ({ jobId, organizationId, expectedConversations }: ImportVerificationReportProps) => {
-  const { toast } = useToast();
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [stats, setStats] = useState<VerificationStats | null>(null);
+export const ImportVerificationReport = ({
+  jobId,
+  organizationId,
+  expectedConversations,
+}: ImportVerificationReportProps) => {
+  const { toast } = useToast()
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [stats, setStats] = useState<VerificationStats | null>(null)
 
   const runVerification = async () => {
-    setIsVerifying(true);
+    setIsVerifying(true)
     try {
       // Get import job details
-      const { data: job } = await supabase
-        .from('import_jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
+      const { data: job } = await supabase.from("import_jobs").select("*").eq("id", jobId).single()
 
       if (!job) {
-        throw new Error('Import job not found');
+        throw new Error("Import job not found")
       }
 
       // Get conversation IDs for this org
       const { data: convs } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('organization_id', organizationId);
-      
-      const conversationIds = convs?.map(c => c.id) || [];
+        .from("conversations")
+        .select("id")
+        .eq("organization_id", organizationId)
+
+      const conversationIds = convs?.map((c) => c.id) || []
 
       // Run verification queries
       const [orphanedMessages, orphanedConvs, customers, inboxes] = await Promise.all([
         // Check for messages without valid conversations
-        conversationIds.length > 0 
-          ? supabase.from('messages').select('id', { count: 'exact', head: true }).not('conversation_id', 'in', `(${conversationIds.join(',')})`)
+        conversationIds.length > 0
+          ? supabase
+              .from("messages")
+              .select("id", { count: "exact", head: true })
+              .not("conversation_id", "in", `(${conversationIds.join(",")})`)
           : { count: 0 },
-        
+
         // Check for conversations without inbox
-        supabase.from('conversations').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).is('inbox_id', null),
-        
+        supabase
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .is("inbox_id", null),
+
         // Count customers
-        supabase.from('customers').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
-        
+        supabase
+          .from("customers")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId),
+
         // Count inboxes
-        supabase.from('inboxes').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
-      ]);
+        supabase
+          .from("inboxes")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId),
+      ])
 
       setStats({
         conversationsImported: job.conversations_imported || 0,
@@ -74,27 +87,32 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
         orphanedMessages: orphanedMessages.count || 0,
         orphanedConversations: orphanedConvs.count || 0,
         duplicateExternalIds: 0, // With unique constraint, this should always be 0
-      });
+      })
 
       toast({
         title: "Verification Complete",
         description: "Data integrity check finished successfully.",
-      });
-
+      })
     } catch (error: any) {
-      console.error('[Verification] Error:', error);
+      console.error("[Verification] Error:", error)
       toast({
         title: "Verification Failed",
         description: error.message || "Could not complete verification",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsVerifying(false);
+      setIsVerifying(false)
     }
-  };
+  }
 
-  const hasIssues = stats && (stats.orphanedMessages > 0 || stats.orphanedConversations > 0 || stats.duplicateExternalIds > 0);
-  const convMatchesExpected = expectedConversations ? Math.abs(stats?.conversationsImported || 0 - expectedConversations) < 10 : true;
+  const hasIssues =
+    stats &&
+    (stats.orphanedMessages > 0 ||
+      stats.orphanedConversations > 0 ||
+      stats.duplicateExternalIds > 0)
+  const convMatchesExpected = expectedConversations
+    ? Math.abs(stats?.conversationsImported || 0 - expectedConversations) < 10
+    : true
 
   return (
     <Card className="bg-gradient-surface border-border/50">
@@ -105,16 +123,9 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
               <Database className="w-5 h-5" />
               Import Verification Report
             </CardTitle>
-            <CardDescription>
-              Verify data integrity and completeness after import
-            </CardDescription>
+            <CardDescription>Verify data integrity and completeness after import</CardDescription>
           </div>
-          <Button
-            onClick={runVerification}
-            disabled={isVerifying}
-            variant="outline"
-            size="sm"
-          >
+          <Button onClick={runVerification} disabled={isVerifying} variant="outline" size="sm">
             {isVerifying ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -143,7 +154,9 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
               <div className="p-4 bg-muted/50 rounded-lg space-y-1">
                 <p className="text-xs text-muted-foreground">Conversations</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold text-primary">{stats.conversationsImported.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {stats.conversationsImported.toLocaleString()}
+                  </p>
                   {!convMatchesExpected && expectedConversations && (
                     <AlertTriangle className="w-4 h-4 text-yellow-600" />
                   )}
@@ -155,15 +168,23 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
 
               <div className="p-4 bg-muted/50 rounded-lg space-y-1">
                 <p className="text-xs text-muted-foreground">Messages</p>
-                <p className="text-2xl font-bold text-primary">{stats.messagesImported.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-primary">
+                  {stats.messagesImported.toLocaleString()}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Avg: {stats.conversationsImported > 0 ? (stats.messagesImported / stats.conversationsImported).toFixed(1) : 0} per conv
+                  Avg:{" "}
+                  {stats.conversationsImported > 0
+                    ? (stats.messagesImported / stats.conversationsImported).toFixed(1)
+                    : 0}{" "}
+                  per conv
                 </p>
               </div>
 
               <div className="p-4 bg-muted/50 rounded-lg space-y-1">
                 <p className="text-xs text-muted-foreground">Customers</p>
-                <p className="text-2xl font-bold text-primary">{stats.customersCreated.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-primary">
+                  {stats.customersCreated.toLocaleString()}
+                </p>
               </div>
 
               <div className="p-4 bg-muted/50 rounded-lg space-y-1">
@@ -183,7 +204,9 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
                 <p className="text-xs text-muted-foreground">Orphaned Conversations</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-primary">{stats.orphanedConversations}</p>
-                  {stats.orphanedConversations > 0 && <XCircle className="w-4 h-4 text-destructive" />}
+                  {stats.orphanedConversations > 0 && (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  )}
                 </div>
               </div>
             </div>
@@ -220,8 +243,8 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Imported conversation count ({stats.conversationsImported}) differs from expected ({expectedConversations}). 
-                  This may be due to date filters or mailbox selection.
+                  Imported conversation count ({stats.conversationsImported}) differs from expected
+                  ({expectedConversations}). This may be due to date filters or mailbox selection.
                 </AlertDescription>
               </Alert>
             )}
@@ -229,5 +252,5 @@ export const ImportVerificationReport = ({ jobId, organizationId, expectedConver
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

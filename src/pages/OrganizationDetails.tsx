@@ -1,132 +1,146 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Crown, ArrowLeft, Users, Settings, Activity, Pencil, UserPlus, Trash2 } from 'lucide-react';
-import { Heading } from '@/components/ui/heading';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EditOrganizationModal } from '@/components/organization/EditOrganizationModal';
-import { AddMemberDialog } from '@/components/organization/AddMemberDialog';
-import { MemberActionMenu } from '@/components/organization/MemberActionMenu';
-import { ConfirmDeleteDialog } from '@/components/admin/ConfirmDeleteDialog';
-import { Organization, useOrganizations } from '@/hooks/useOrganizations';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
+import { useQuery } from "@tanstack/react-query"
+import {
+  Activity,
+  ArrowLeft,
+  Building2,
+  Crown,
+  Pencil,
+  Settings,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react"
+import { useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog"
+import { AddMemberDialog } from "@/components/organization/AddMemberDialog"
+import { EditOrganizationModal } from "@/components/organization/EditOrganizationModal"
+import { MemberActionMenu } from "@/components/organization/MemberActionMenu"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { type Organization, useOrganizations } from "@/hooks/useOrganizations"
+import { supabase } from "@/integrations/supabase/client"
 
 export default function OrganizationDetails() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { deleteOrganization } = useOrganizations();
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { deleteOrganization } = useOrganizations()
 
   // Fetch organization details
   const { data: organization, isLoading } = useQuery({
-    queryKey: ['organization', id],
+    queryKey: ["organization", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data, error } = await supabase.from("organizations").select("*").eq("id", id).single()
 
-      if (error) throw error;
-      return data as Organization;
+      if (error) throw error
+      return data as Organization
     },
     enabled: !!id,
-  });
+  })
 
   // Fetch organization stats
   const { data: stats } = useQuery({
-    queryKey: ['organization-stats', id],
+    queryKey: ["organization-stats", id],
     queryFn: async () => {
       const [usersResult, conversationsResult] = await Promise.all([
         supabase
-          .from('organization_memberships')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', id),
+          .from("organization_memberships")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", id),
         supabase
-          .from('conversations')
-          .select('id', { count: 'exact', head: true })
-          .eq('organization_id', id),
-      ]);
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", id),
+      ])
 
       return {
         totalUsers: usersResult.count || 0,
         totalConversations: conversationsResult.count || 0,
-      };
+      }
     },
     enabled: !!id,
-  });
+  })
 
   // Fetch organization members with profiles (two-query approach)
-  const { data: members = [], isLoading: membersLoading, error: membersError } = useQuery({
-    queryKey: ['organization-members', id],
+  const {
+    data: members = [],
+    isLoading: membersLoading,
+    error: membersError,
+  } = useQuery({
+    queryKey: ["organization-members", id],
     queryFn: async () => {
-      console.log('🔍 [OrganizationDetails] Starting member fetch for org:', id);
-      
+      console.log("🔍 [OrganizationDetails] Starting member fetch for org:", id)
+
       // Query 1: Get all memberships
       const { data: memberships, error: membershipsError } = await supabase
-        .from('organization_memberships')
-        .select('id, role, status, created_at, user_id')
-        .eq('organization_id', id)
-        .order('created_at', { ascending: false });
+        .from("organization_memberships")
+        .select("id, role, status, created_at, user_id")
+        .eq("organization_id", id)
+        .order("created_at", { ascending: false })
 
       if (membershipsError) {
-        console.error('❌ [OrganizationDetails] Error fetching memberships:', membershipsError);
-        throw membershipsError;
+        console.error("❌ [OrganizationDetails] Error fetching memberships:", membershipsError)
+        throw membershipsError
       }
 
-      console.log('✅ [OrganizationDetails] Memberships fetched:', memberships?.length || 0, memberships);
+      console.log(
+        "✅ [OrganizationDetails] Memberships fetched:",
+        memberships?.length || 0,
+        memberships,
+      )
 
       if (!memberships || memberships.length === 0) {
-        console.log('⚠️ [OrganizationDetails] No memberships found');
-        return [];
+        console.log("⚠️ [OrganizationDetails] No memberships found")
+        return []
       }
 
       // Query 2: Get all profiles for the user_ids
-      const userIds = memberships.map(m => m.user_id).filter(Boolean);
-      console.log('🔍 [OrganizationDetails] Fetching profiles for user_ids:', userIds);
+      const userIds = memberships.map((m) => m.user_id).filter(Boolean)
+      console.log("🔍 [OrganizationDetails] Fetching profiles for user_ids:", userIds)
 
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name, avatar_url')
-        .in('user_id', userIds);
+        .from("profiles")
+        .select("id, user_id, email, full_name, avatar_url")
+        .in("user_id", userIds)
 
       if (profilesError) {
-        console.error('❌ [OrganizationDetails] Error fetching profiles:', profilesError);
-        throw profilesError;
+        console.error("❌ [OrganizationDetails] Error fetching profiles:", profilesError)
+        throw profilesError
       }
 
-      console.log('✅ [OrganizationDetails] Profiles fetched:', profiles?.length || 0, profiles);
+      console.log("✅ [OrganizationDetails] Profiles fetched:", profiles?.length || 0, profiles)
 
       // Merge memberships with profiles
-      const merged = memberships.map(membership => {
-        const profile = profiles?.find(p => p.user_id === membership.user_id);
+      const merged = memberships.map((membership) => {
+        const profile = profiles?.find((p) => p.user_id === membership.user_id)
         console.log(`🔗 [OrganizationDetails] Merging membership ${membership.id}:`, {
           user_id: membership.user_id,
           found_profile: !!profile,
           profile_email: profile?.email,
-          profile_name: profile?.full_name
-        });
+          profile_name: profile?.full_name,
+        })
         return {
           ...membership,
-          user: profile || null
-        };
-      });
+          user: profile || null,
+        }
+      })
 
-      console.log('✅ [OrganizationDetails] Final merged members:', merged);
-      return merged;
+      console.log("✅ [OrganizationDetails] Final merged members:", merged)
+      return merged
     },
     enabled: !!id,
-    refetchOnMount: 'always', // 🔥 Force refetch, bypass cache
+    refetchOnMount: "always", // 🔥 Force refetch, bypass cache
     staleTime: 0, // 🔥 Data is immediately stale
     gcTime: 0, // 🔥 Don't cache this query
-  });
+  })
 
   if (isLoading) {
     return (
@@ -136,7 +150,7 @@ export default function OrganizationDetails() {
           <Skeleton className="h-64 w-full" />
         </div>
       </AdminPortalLayout>
-    );
+    )
   }
 
   if (!organization) {
@@ -147,27 +161,27 @@ export default function OrganizationDetails() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Organization not found</p>
-              <Button onClick={() => navigate('/super-admin/organizations')} className="mt-4">
+              <Button onClick={() => navigate("/super-admin/organizations")} className="mt-4">
                 Back to Service Organizations
               </Button>
             </CardContent>
           </Card>
         </div>
       </AdminPortalLayout>
-    );
+    )
   }
 
   // Debug: Log render state
   if (membersError) {
-    console.error('❌ [OrganizationDetails] Members query error:', membersError);
+    console.error("❌ [OrganizationDetails] Members query error:", membersError)
   }
-  
-  console.log('📊 [OrganizationDetails] Render state:', {
+
+  console.log("📊 [OrganizationDetails] Render state:", {
     membersCount: members.length,
     isLoading: membersLoading,
     hasError: !!membersError,
-    members: members
-  });
+    members: members,
+  })
 
   return (
     <AdminPortalLayout>
@@ -176,7 +190,7 @@ export default function OrganizationDetails() {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => navigate('/super-admin/organizations')}
+            onClick={() => navigate("/super-admin/organizations")}
             className="h-auto p-2"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -194,7 +208,10 @@ export default function OrganizationDetails() {
                   <Heading level={1} className="text-3xl font-bold">
                     {organization.name}
                   </Heading>
-                  <Badge variant="outline" className="border-yellow-500 text-yellow-700 dark:text-yellow-400">
+                  <Badge
+                    variant="outline"
+                    className="border-yellow-500 text-yellow-700 dark:text-yellow-400"
+                  >
                     <Crown className="h-3 w-3 mr-1" />
                     Super Admin View
                   </Badge>
@@ -204,7 +221,11 @@ export default function OrganizationDetails() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setShowEditModal(true)} variant="outline" className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30">
+            <Button
+              onClick={() => setShowEditModal(true)}
+              variant="outline"
+              className="border-yellow-300 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-950/30"
+            >
               <Pencil className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -283,14 +304,14 @@ export default function OrganizationDetails() {
               <CardContent>
                 <div className="space-y-3">
                   {members.map((member: any) => {
-                    console.log('🎨 [OrganizationDetails] Rendering member:', {
+                    console.log("🎨 [OrganizationDetails] Rendering member:", {
                       id: member.id,
                       user_id: member.user_id,
                       has_user: !!member.user,
                       user_email: member.user?.email,
-                      user_name: member.user?.full_name
-                    });
-                    
+                      user_name: member.user?.full_name,
+                    })
+
                     return (
                       <div
                         key={member.id}
@@ -301,19 +322,21 @@ export default function OrganizationDetails() {
                             <Users className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <p className="font-medium">{member.user?.full_name || member.user?.email}</p>
+                            <p className="font-medium">
+                              {member.user?.full_name || member.user?.email}
+                            </p>
                             <p className="text-sm text-muted-foreground">{member.user?.email}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant="secondary">{member.role}</Badge>
-                          <Badge variant={member.status === 'active' ? 'default' : 'outline'}>
+                          <Badge variant={member.status === "active" ? "default" : "outline"}>
                             {member.status}
                           </Badge>
                           <MemberActionMenu member={member} organizationId={id!} />
                         </div>
                       </div>
-                    );
+                    )
                   })}
                   {members.length === 0 && (
                     <p className="text-center text-muted-foreground py-8">No members yet</p>
@@ -337,13 +360,17 @@ export default function OrganizationDetails() {
                       className="h-10 w-10 rounded border"
                       style={{ backgroundColor: organization.primary_color }}
                     />
-                    <code className="text-sm bg-muted px-2 py-1 rounded">{organization.primary_color}</code>
+                    <code className="text-sm bg-muted px-2 py-1 rounded">
+                      {organization.primary_color}
+                    </code>
                   </div>
                 </div>
                 {organization.sender_display_name && (
                   <div>
                     <label className="text-sm font-medium">Sender Display Name</label>
-                    <p className="text-sm text-muted-foreground mt-1">{organization.sender_display_name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {organization.sender_display_name}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -371,7 +398,7 @@ export default function OrganizationDetails() {
             onOpenChange={setShowEditModal}
             organization={organization}
           />
-          
+
           <AddMemberDialog
             open={showAddMemberDialog}
             onOpenChange={setShowAddMemberDialog}
@@ -385,9 +412,9 @@ export default function OrganizationDetails() {
             onConfirm={() => {
               deleteOrganization(id!, {
                 onSuccess: () => {
-                  navigate('/super-admin/organizations');
+                  navigate("/super-admin/organizations")
                 },
-              });
+              })
             }}
             title="Delete Organization"
             description={`Are you sure you want to delete "${organization.name}"? This will permanently remove all data associated with this organization. This action cannot be undone.`}
@@ -396,5 +423,5 @@ export default function OrganizationDetails() {
         </>
       )}
     </AdminPortalLayout>
-  );
+  )
 }

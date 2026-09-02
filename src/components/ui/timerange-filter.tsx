@@ -1,96 +1,100 @@
-import React, { useState } from 'react';
-import { Clock, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { subHours, subDays, subWeeks, format } from 'date-fns';
+import { subDays, subHours, subWeeks } from "date-fns"
+import { ChevronDown, Clock } from "lucide-react"
+import React, { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface TimeRangeFilterProps {
-  onTimeRangeChange: (startDate: Date | null) => void;
+  onTimeRangeChange: (startDate: Date | null) => void
   presets: Array<{
-    id: string;
-    label: string;
-    hours?: number;
-    days?: number;
-    weeks?: number;
-  }>;
-  showCustomInput?: boolean;
-  defaultPreset?: string;
+    id: string
+    label: string
+    hours?: number
+    days?: number
+    weeks?: number
+  }>
+  showCustomInput?: boolean
+  defaultPreset?: string
 }
 
 export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
   onTimeRangeChange,
   presets,
   showCustomInput = true,
-  defaultPreset = 'all'
+  defaultPreset = "all",
 }) => {
-  const [selectedPreset, setSelectedPreset] = useState<string>(defaultPreset);
-  const [customValue, setCustomValue] = useState<string>('');
-  const [customUnit, setCustomUnit] = useState<'hours' | 'days'>('hours');
-  const [isOpen, setIsOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string>(defaultPreset)
+  const [customValue, setCustomValue] = useState<string>("")
+  const [customUnit, setCustomUnit] = useState<"hours" | "days">("hours")
+  const [isOpen, setIsOpen] = useState(false)
 
   // Initialize with default preset on mount
   React.useEffect(() => {
-    if (defaultPreset !== 'all') {
-      handlePresetChange(defaultPreset);
+    if (defaultPreset !== "all") {
+      handlePresetChange(defaultPreset)
     }
-  }, []);
+  }, [handlePresetChange, defaultPreset])
 
   const handlePresetChange = (presetId: string) => {
-    setSelectedPreset(presetId);
-    
-    if (presetId === 'all') {
-      onTimeRangeChange(null);
-      return;
+    setSelectedPreset(presetId)
+
+    if (presetId === "all") {
+      onTimeRangeChange(null)
+      return
     }
 
-    if (presetId === 'custom') {
-      return; // Handle custom in separate function
+    if (presetId === "custom") {
+      return // Handle custom in separate function
     }
 
-    const preset = presets.find(p => p.id === presetId);
-    if (!preset) return;
+    const preset = presets.find((p) => p.id === presetId)
+    if (!preset) return
 
-    const now = new Date();
-    let startDate: Date;
+    const now = new Date()
+    let startDate: Date
 
     if (preset.hours) {
-      startDate = subHours(now, preset.hours);
+      startDate = subHours(now, preset.hours)
     } else if (preset.days) {
-      startDate = subDays(now, preset.days);
+      startDate = subDays(now, preset.days)
     } else if (preset.weeks) {
-      startDate = subWeeks(now, preset.weeks);
+      startDate = subWeeks(now, preset.weeks)
     } else {
-      return;
+      return
     }
 
-    onTimeRangeChange(startDate);
-  };
+    onTimeRangeChange(startDate)
+  }
 
   const handleCustomApply = () => {
-    const value = parseInt(customValue);
-    if (isNaN(value) || value <= 0) return;
+    const value = parseInt(customValue, 10)
+    if (Number.isNaN(value) || value <= 0) return
 
-    const now = new Date();
-    const startDate = customUnit === 'hours' 
-      ? subHours(now, value)
-      : subDays(now, value);
+    const now = new Date()
+    const startDate = customUnit === "hours" ? subHours(now, value) : subDays(now, value)
 
-    onTimeRangeChange(startDate);
-    setIsOpen(false);
-  };
+    onTimeRangeChange(startDate)
+    setIsOpen(false)
+  }
 
   const getSelectedLabel = () => {
-    if (selectedPreset === 'all') return 'All Time';
-    if (selectedPreset === 'custom' && customValue) {
-      return `Last ${customValue} ${customUnit}`;
+    if (selectedPreset === "all") return "All Time"
+    if (selectedPreset === "custom" && customValue) {
+      return `Last ${customValue} ${customUnit}`
     }
-    
-    const preset = presets.find(p => p.id === selectedPreset);
-    return preset?.label || 'All Time';
-  };
+
+    const preset = presets.find((p) => p.id === selectedPreset)
+    return preset?.label || "All Time"
+  }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -106,21 +110,21 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
           <div>
             <Label className="text-sm font-medium">Time Range</Label>
           </div>
-          
+
           {/* Preset Options */}
           <div className="space-y-2">
             <Button
-              variant={selectedPreset === 'all' ? 'default' : 'ghost'}
+              variant={selectedPreset === "all" ? "default" : "ghost"}
               className="w-full justify-start"
-              onClick={() => handlePresetChange('all')}
+              onClick={() => handlePresetChange("all")}
             >
               All Time
             </Button>
-            
+
             {presets.map((preset) => (
               <Button
                 key={preset.id}
-                variant={selectedPreset === preset.id ? 'default' : 'ghost'}
+                variant={selectedPreset === preset.id ? "default" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => handlePresetChange(preset.id)}
               >
@@ -143,7 +147,10 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
                     min="1"
                   />
                 </div>
-                <Select value={customUnit} onValueChange={(value: 'hours' | 'days') => setCustomUnit(value)}>
+                <Select
+                  value={customUnit}
+                  onValueChange={(value: "hours" | "days") => setCustomUnit(value)}
+                >
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
@@ -155,7 +162,7 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
               </div>
               <Button
                 onClick={handleCustomApply}
-                disabled={!customValue || parseInt(customValue) <= 0}
+                disabled={!customValue || parseInt(customValue, 10) <= 0}
                 className="w-full"
               >
                 Apply Custom Range
@@ -165,5 +172,5 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

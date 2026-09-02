@@ -1,39 +1,43 @@
-import { render, screen } from '@testing-library/react';
-import { TabsBar, Toolbar } from '../controls';
-import { Button } from '../button';
+import { render, screen } from "@testing-library/react"
+import { Button } from "../button"
+import { TabsBar, Toolbar } from "../controls"
 
-describe('Controls Wrap Components', () => {
-  it('renders TabsBar with proper classes for wrapping', () => {
+describe("Controls Wrap Components", () => {
+  it("renders TabsBar with proper classes for wrapping", () => {
     const tabs = [
-      { value: 'tab1', label: 'Tab 1' },
-      { value: 'tab2', label: 'Tab 2' },
-      { value: 'tab3', label: 'Tab 3' },
-      { value: 'tab4', label: 'Tab 4' },
-      { value: 'tab5', label: 'Tab 5' },
-      { value: 'tab6', label: 'Tab 6' }
-    ];
+      { value: "tab1", label: "Tab 1" },
+      { value: "tab2", label: "Tab 2" },
+      { value: "tab3", label: "Tab 3" },
+      { value: "tab4", label: "Tab 4" },
+      { value: "tab5", label: "Tab 5" },
+      { value: "tab6", label: "Tab 6" },
+    ]
 
     render(
-      <div className="w-64"> {/* Narrow container to force wrap */}
+      <div className="w-64">
+        {" "}
+        {/* Narrow container to force wrap */}
         <TabsBar tabs={tabs} value="tab1" />
-      </div>
-    );
+      </div>,
+    )
 
     // Assert TabsList has control classes for flex-wrap behavior
-    const tabsList = document.querySelector('[role="tablist"]');
-    expect(tabsList).toHaveClass('control-tabslist');
-    expect(tabsList).toHaveClass('control-safe-spacing');
+    const tabsList = document.querySelector('[role="tablist"]')
+    expect(tabsList).toHaveClass("control-tabslist")
+    expect(tabsList).toHaveClass("control-safe-spacing")
 
     // Assert TabsTriggers have control-tab class
-    const tabTriggers = document.querySelectorAll('[role="tab"]');
-    tabTriggers.forEach(trigger => {
-      expect(trigger).toHaveClass('control-tab');
-    });
-  });
+    const tabTriggers = document.querySelectorAll('[role="tab"]')
+    tabTriggers.forEach((trigger) => {
+      expect(trigger).toHaveClass("control-tab")
+    })
+  })
 
-  it('renders Toolbar with proper classes for wrapping', () => {
+  it("renders Toolbar with proper classes for wrapping", () => {
     render(
-      <div className="w-64"> {/* Narrow container to force wrap */}
+      <div className="w-64">
+        {" "}
+        {/* Narrow container to force wrap */}
         <Toolbar>
           <Button>Button 1</Button>
           <Button>Button 2</Button>
@@ -44,16 +48,16 @@ describe('Controls Wrap Components', () => {
           <Button>Button 7</Button>
           <Button>Button 8</Button>
         </Toolbar>
-      </div>
-    );
+      </div>,
+    )
 
     // Assert toolbar has control-toolbar class for flex-wrap behavior
-    const toolbar = screen.getByRole('toolbar');
-    expect(toolbar).toHaveClass('control-toolbar');
-    expect(toolbar).toHaveClass('flex-wrap');
-  });
+    const toolbar = screen.getByRole("toolbar")
+    expect(toolbar).toHaveClass("control-toolbar")
+    expect(toolbar).toHaveClass("flex-wrap")
+  })
 
-  it('applies spacing variants correctly', () => {
+  it("applies spacing variants correctly", () => {
     render(
       <>
         <Toolbar spacing="tight" data-testid="tight">
@@ -65,39 +69,37 @@ describe('Controls Wrap Components', () => {
         <Toolbar spacing="loose" data-testid="loose">
           <Button>Button</Button>
         </Toolbar>
-      </>
-    );
+      </>,
+    )
 
-    expect(screen.getByTestId('tight')).toHaveClass('gap-1');
-    expect(screen.getByTestId('normal')).toHaveClass('gap-2');
-    expect(screen.getByTestId('loose')).toHaveClass('gap-4');
-  });
+    expect(screen.getByTestId("tight")).toHaveClass("gap-1")
+    expect(screen.getByTestId("normal")).toHaveClass("gap-2")
+    expect(screen.getByTestId("loose")).toHaveClass("gap-4")
+  })
 
-  it('handles equalWidth prop for TabsBar', () => {
+  it("handles equalWidth prop for TabsBar", () => {
     const tabs = [
-      { value: 'tab1', label: 'Tab 1' },
-      { value: 'tab2', label: 'Tab 2' },
-      { value: 'tab3', label: 'Tab 3' }
-    ];
+      { value: "tab1", label: "Tab 1" },
+      { value: "tab2", label: "Tab 2" },
+      { value: "tab3", label: "Tab 3" },
+    ]
 
-    render(
-      <TabsBar tabs={tabs} value="tab1" equalWidth />
-    );
+    render(<TabsBar tabs={tabs} value="tab1" equalWidth />)
 
-    const tabsList = document.querySelector('[role="tablist"]');
-    expect(tabsList).toHaveClass('grid');
-    expect(tabsList).toHaveClass('grid-cols-3');
-  });
+    const tabsList = document.querySelector('[role="tablist"]')
+    expect(tabsList).toHaveClass("grid")
+    expect(tabsList).toHaveClass("grid-cols-3")
+  })
 
-  it('prevents wrapping when wrap=false on Toolbar', () => {
+  it("prevents wrapping when wrap=false on Toolbar", () => {
     render(
       <Toolbar wrap={false} data-testid="no-wrap">
         <Button>Button</Button>
-      </Toolbar>
-    );
+      </Toolbar>,
+    )
 
-    const toolbar = screen.getByTestId('no-wrap');
-    expect(toolbar).toHaveClass('control-toolbar');
-    expect(toolbar).not.toHaveClass('flex-wrap');
-  });
-});
+    const toolbar = screen.getByTestId("no-wrap")
+    expect(toolbar).toHaveClass("control-toolbar")
+    expect(toolbar).not.toHaveClass("flex-wrap")
+  })
+})

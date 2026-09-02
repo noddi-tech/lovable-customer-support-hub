@@ -7,26 +7,23 @@
  * build commit) when a request context is available.
  */
 
-export const NAVIO_SOURCE = 'support-hub';
+export const NAVIO_SOURCE = "support-hub"
 
 const ENV_VERSION =
-  Deno.env.get('APP_VERSION') ||
-  Deno.env.get('GIT_COMMIT') ||
-  Deno.env.get('VITE_GIT_COMMIT') ||
-  '';
+  Deno.env.get("APP_VERSION") || Deno.env.get("GIT_COMMIT") || Deno.env.get("VITE_GIT_COMMIT") || ""
 
-let currentVersion = ENV_VERSION || 'unknown';
+let currentVersion = ENV_VERSION || "unknown"
 
 /** Picks up the caller's app version (`x-app-version`) when present. */
 export function captureNavioSourceVersion(req: Request): void {
-  const fromClient = req.headers.get('x-app-version')?.trim();
-  if (fromClient) currentVersion = fromClient.slice(0, 64);
+  const fromClient = req.headers.get("x-app-version")?.trim()
+  if (fromClient) currentVersion = fromClient.slice(0, 64)
 }
 
 /** `X-Navio-Source` / `X-Navio-Source-Version` headers for Noddi API calls. */
 export function navioSourceHeaders(): Record<string, string> {
   return {
-    'X-Navio-Source': NAVIO_SOURCE,
-    'X-Navio-Source-Version': currentVersion,
-  };
+    "X-Navio-Source": NAVIO_SOURCE,
+    "X-Navio-Source-Version": currentVersion,
+  }
 }

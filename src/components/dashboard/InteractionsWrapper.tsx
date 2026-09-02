@@ -1,27 +1,24 @@
-import React from 'react';
-import { Dashboard } from '@/components/dashboard/Dashboard';
-import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
+import type React from "react"
+import { Dashboard } from "@/components/dashboard/Dashboard"
+import { VoiceInterface } from "@/components/dashboard/VoiceInterface"
 
 interface InteractionsWrapperProps {
-  activeSubSection?: string;
+  activeSubSection?: string
 }
 
-const InteractionsWrapper: React.FC<InteractionsWrapperProps> = ({ activeSubSection = 'text' }) => {
+const InteractionsWrapper: React.FC<InteractionsWrapperProps> = ({ activeSubSection = "text" }) => {
   const renderContent = () => {
-    switch (activeSubSection) {      case 'text':
-        return <Dashboard />;
-      case 'voice':
-        return <VoiceInterface />;
+    switch (activeSubSection) {
+      case "text":
+        return <Dashboard />
+      case "voice":
+        return <VoiceInterface />
       default:
-        return <Dashboard />;
+        return <Dashboard />
     }
-  };
+  }
 
-  return (
-    <div className="h-full">
-      {renderContent()}
-    </div>
-  );
-};
+  return <div className="h-full">{renderContent()}</div>
+}
 
-export default InteractionsWrapper;
+export default InteractionsWrapper

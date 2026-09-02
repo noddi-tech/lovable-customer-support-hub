@@ -77,6 +77,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 This project includes debugging utilities for UI development:
 
 ### UI Probes
+
 Enable UI debugging probes during development to detect overlapping tabs and buttons:
 
 ```bash
@@ -84,6 +85,7 @@ VITE_UI_PROBE=1 npm run dev
 ```
 
 ### Linting
+
 Run automated linting to detect unsafe tab/button patterns:
 
 ```bash
@@ -91,6 +93,7 @@ npx tsx scripts/lint-tabs-overflow.ts
 ```
 
 ### Testing
+
 Run UI guardrail tests to ensure tabs handle long labels properly:
 
 ```bash

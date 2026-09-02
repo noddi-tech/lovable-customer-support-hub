@@ -1,10 +1,14 @@
-import { render } from '@testing-library/react';
-import { TabsTrigger, Tabs, TabsList } from '../tabs';
-import { ResponsiveTabsTrigger, ResponsiveTabs, ResponsiveTabsList } from '@/components/admin/design/components/layouts';
+import { render } from "@testing-library/react"
+import {
+  ResponsiveTabs,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/admin/design/components/layouts"
+import { Tabs, TabsList, TabsTrigger } from "../tabs"
 
-describe('Tabs Layout Enforcement', () => {
-  describe('Base TabsTrigger', () => {
-    it('should enforce horizontal layout and strip vertical classes', () => {
+describe("Tabs Layout Enforcement", () => {
+  describe("Base TabsTrigger", () => {
+    it("should enforce horizontal layout and strip vertical classes", () => {
       const { container } = render(
         <Tabs defaultValue="test">
           <TabsList>
@@ -12,26 +16,26 @@ describe('Tabs Layout Enforcement', () => {
               Test Tab
             </TabsTrigger>
           </TabsList>
-        </Tabs>
-      );
+        </Tabs>,
+      )
 
-      const trigger = container.querySelector('[role="tab"]');
-      expect(trigger).toBeTruthy();
-      
-      const classList = trigger?.classList.value || '';
-      
+      const trigger = container.querySelector('[role="tab"]')
+      expect(trigger).toBeTruthy()
+
+      const classList = trigger?.classList.value || ""
+
       // Should have horizontal layout enforced
-      expect(classList).toContain('flex-row');
-      expect(classList).toContain('whitespace-nowrap');
-      expect(classList).toContain('items-center');
-      expect(classList).toContain('shrink-0');
-      expect(classList).toContain('min-w-fit');
-      
-      // Should not have vertical layout
-      expect(classList).not.toContain('flex-col');
-    });
+      expect(classList).toContain("flex-row")
+      expect(classList).toContain("whitespace-nowrap")
+      expect(classList).toContain("items-center")
+      expect(classList).toContain("shrink-0")
+      expect(classList).toContain("min-w-fit")
 
-    it('should sanitize grid classes to inline-flex', () => {
+      // Should not have vertical layout
+      expect(classList).not.toContain("flex-col")
+    })
+
+    it("should sanitize grid classes to inline-flex", () => {
       const { container } = render(
         <Tabs defaultValue="test">
           <TabsList>
@@ -39,20 +43,20 @@ describe('Tabs Layout Enforcement', () => {
               Grid Tab
             </TabsTrigger>
           </TabsList>
-        </Tabs>
-      );
+        </Tabs>,
+      )
 
-      const trigger = container.querySelector('[role="tab"]');
-      const classList = trigger?.classList.value || '';
-      
+      const trigger = container.querySelector('[role="tab"]')
+      const classList = trigger?.classList.value || ""
+
       // Should convert grid to inline-flex and remove grid
-      expect(classList).toContain('inline-flex');
-      expect(classList).not.toContain('grid');
-    });
-  });
+      expect(classList).toContain("inline-flex")
+      expect(classList).not.toContain("grid")
+    })
+  })
 
-  describe('ResponsiveTabsTrigger', () => {
-    it('should enforce horizontal layout and sanitize vertical overrides', () => {
+  describe("ResponsiveTabsTrigger", () => {
+    it("should enforce horizontal layout and sanitize vertical overrides", () => {
       const { container } = render(
         <ResponsiveTabs defaultValue="test">
           <ResponsiveTabsList>
@@ -61,27 +65,27 @@ describe('Tabs Layout Enforcement', () => {
               <span>Label</span>
             </ResponsiveTabsTrigger>
           </ResponsiveTabsList>
-        </ResponsiveTabs>
-      );
+        </ResponsiveTabs>,
+      )
 
-      const trigger = container.querySelector('[role="tab"]');
-      expect(trigger).toBeTruthy();
-      
-      const classList = trigger?.classList.value || '';
-      
+      const trigger = container.querySelector('[role="tab"]')
+      expect(trigger).toBeTruthy()
+
+      const classList = trigger?.classList.value || ""
+
       // Should have horizontal layout enforced
-      expect(classList).toContain('inline-flex');
-      expect(classList).toContain('flex-row');
-      expect(classList).toContain('items-center');
-      expect(classList).toContain('whitespace-nowrap');
-      expect(classList).toContain('shrink-0');
-      expect(classList).toContain('min-w-fit');
-      expect(classList).toContain('leading-none');
-      
+      expect(classList).toContain("inline-flex")
+      expect(classList).toContain("flex-row")
+      expect(classList).toContain("items-center")
+      expect(classList).toContain("whitespace-nowrap")
+      expect(classList).toContain("shrink-0")
+      expect(classList).toContain("min-w-fit")
+      expect(classList).toContain("leading-none")
+
       // Should not have vertical layout
-      expect(classList).not.toContain('flex-col');
-      expect(classList).not.toContain('grid');
-      expect(classList).not.toContain('items-start');
-    });
-  });
-});
+      expect(classList).not.toContain("flex-col")
+      expect(classList).not.toContain("grid")
+      expect(classList).not.toContain("items-start")
+    })
+  })
+})

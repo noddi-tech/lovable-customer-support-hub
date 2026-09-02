@@ -69,6 +69,7 @@ This document describes the complete Aircall Everywhere integration for a unifie
 ## Features
 
 ### Phase 1: Foundation & SDK Setup
+
 ✅ Aircall Everywhere SDK integration
 ✅ Phone manager wrapper with event handling
 ✅ Admin UI for configuration
@@ -76,12 +77,14 @@ This document describes the complete Aircall Everywhere integration for a unifie
 ✅ Event bridge for webhook↔SDK synchronization
 
 ### Phase 2: Embedded Phone UI
+
 ✅ Fixed bottom phone bar
 ✅ Inline call control buttons
 ✅ Responsive design
 ✅ Layout adjustments for phone bar
 
 ### Phase 3: Enhanced Customer Context
+
 ✅ Pre-fetch Noddi data on call start
 ✅ Customer context persistence
 ✅ Live note-taking during calls
@@ -89,6 +92,7 @@ This document describes the complete Aircall Everywhere integration for a unifie
 ✅ Unpaid bookings warnings
 
 ### Phase 4: Workflow Optimization
+
 ✅ Post-call actions dialog
 ✅ Keyboard shortcuts (Ctrl+Shift+A/H/M/P/T/N)
 ✅ Call transfer with agent selector
@@ -96,6 +100,7 @@ This document describes the complete Aircall Everywhere integration for a unifie
 ✅ Quick actions integration
 
 ### Phase 5: Polish & Testing
+
 ✅ Error handling with fallbacks
 ✅ Reconnection logic with exponential backoff
 ✅ Performance optimization (memoization)
@@ -111,9 +116,9 @@ Navigate to Admin Portal > Aircall Settings to configure:
 ```typescript
 interface AircallEverywhereConfig {
   enabled: boolean;
-  apiId: string;        // From Aircall Everywhere dashboard
-  apiToken: string;     // From Aircall Everywhere dashboard
-  domainName?: string;  // Optional custom domain
+  apiId: string; // From Aircall Everywhere dashboard
+  apiToken: string; // From Aircall Everywhere dashboard
+  domainName?: string; // Optional custom domain
 }
 ```
 
@@ -123,21 +128,22 @@ No additional secrets required beyond voice integration configuration.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
+| Shortcut       | Action               |
+| -------------- | -------------------- |
 | `Ctrl+Shift+A` | Answer incoming call |
-| `Ctrl+Shift+H` | Hang up / End call |
-| `Ctrl+Shift+M` | Toggle mute |
-| `Ctrl+Shift+P` | Toggle hold (pause) |
-| `Ctrl+Shift+T` | Initiate transfer |
-| `Ctrl+Shift+N` | Add quick note |
-| `Ctrl+Shift+?` | Show shortcuts help |
+| `Ctrl+Shift+H` | Hang up / End call   |
+| `Ctrl+Shift+M` | Toggle mute          |
+| `Ctrl+Shift+P` | Toggle hold (pause)  |
+| `Ctrl+Shift+T` | Initiate transfer    |
+| `Ctrl+Shift+N` | Add quick note       |
+| `Ctrl+Shift+?` | Show shortcuts help  |
 
 ## Error Handling
 
 ### Connection Issues
 
 The system implements automatic reconnection with exponential backoff:
+
 - Max 5 reconnection attempts
 - Base delay: 1 second
 - Exponential backoff: 2^attempt * base delay
@@ -161,6 +167,7 @@ The system implements automatic reconnection with exponential backoff:
 ## Testing Scenarios
 
 ### Happy Path
+
 1. Initialize SDK successfully
 2. Receive incoming call
 3. Answer call with customer context
@@ -170,6 +177,7 @@ The system implements automatic reconnection with exponential backoff:
 7. Complete post-call actions
 
 ### Error Scenarios
+
 1. SDK initialization failure
 2. Network disconnection during call
 3. Reconnection with exponential backoff
@@ -178,6 +186,7 @@ The system implements automatic reconnection with exponential backoff:
 6. Component error recovery
 
 ### Edge Cases
+
 1. Rapid successive calls
 2. Call transfer interruptions
 3. Browser refresh during active call
@@ -189,10 +198,12 @@ The system implements automatic reconnection with exponential backoff:
 ### Supported Browsers
 
 **Fully Supported:**
+
 - Google Chrome (latest version) - **Recommended**
 - Microsoft Edge (Chromium-based)
 
 **Not Supported:**
+
 - Safari (all versions) - blocks third-party cookies by default
 - Firefox - Enhanced Tracking Protection blocks required features
 - Brave - Requires shields to be disabled
@@ -201,6 +212,7 @@ The system implements automatic reconnection with exponential backoff:
 ### Third-Party Cookies Requirement
 
 Aircall Everywhere **requires third-party cookies** to function. This is because:
+
 - The SDK runs in an embedded iframe from `phone.aircall.io`
 - Authentication tokens must be shared across domains
 - Real-time event synchronization needs cross-origin storage
@@ -208,27 +220,32 @@ Aircall Everywhere **requires third-party cookies** to function. This is because
 #### How to Enable Third-Party Cookies
 
 **Chrome:**
+
 1. Go to Settings → Privacy and Security → Cookies
 2. Select "Allow all cookies" OR
 3. Add `phone.aircall.io` to "Sites that can always use cookies"
 4. Restart Chrome
 
 **Edge:**
+
 1. Go to Settings → Cookies and site permissions
 2. Disable "Block third-party cookies"
 3. Restart Edge
 
 **Safari (Not Recommended):**
+
 - Safari blocks third-party cookies by default for privacy (ITP)
 - This cannot be disabled for individual sites
 - **Use Chrome instead for Aircall integration**
 
 **Firefox:**
+
 1. Go to Settings → Privacy & Security
 2. Set Enhanced Tracking Protection to "Standard"
 3. Restart Firefox
 
 **Brave:**
+
 1. Click Brave Shields icon in address bar
 2. Set to "Shields Down" for this site
 3. Alternatively, go to Settings and allow all cookies
@@ -238,17 +255,20 @@ Aircall Everywhere **requires third-party cookies** to function. This is because
 If your organization has strict firewall rules, ensure these domains are whitelisted:
 
 **Required Domains:**
+
 - `phone.aircall.io` - Aircall Everywhere SDK
 - `api.aircall.io` - Aircall REST API
 - `*.supabase.co` - Edge function for credential testing
 
 **Ports:**
+
 - HTTPS (443) - All Aircall communication
 - WSS (443) - WebSocket for real-time events
 
 ## Troubleshooting
 
 ### SDK Not Initializing
+
 - **Check API credentials** in Admin Settings → Aircall Everywhere
 - **Test credentials** using the "Test Credentials" button
 - Verify browser is Chrome or Edge (latest version)
@@ -280,24 +300,28 @@ If your organization has strict firewall rules, ensure these domains are whiteli
    - **Solution:** Whitelist required domains, check with IT
 
 ### Connection Lost
+
 - System automatically attempts reconnection
 - Check network connectivity
 - Ensure `phone.aircall.io` is accessible
 - Refresh page if reconnection fails after 5 attempts
 
 ### Customer Data Not Loading
+
 - Verify Noddi API key is configured
 - Check customer email/phone exists in database
 - Review edge function logs for errors
 - Ensure customer record is linked to call
 
 ### Call Controls Not Working
+
 - Ensure SDK is initialized (green indicator in phone bar)
 - Verify browser permissions for microphone/audio
 - Check Aircall account has active phone lines
 - Test credentials in Admin Settings
 
 ### Cookie Detection Issues
+
 - Run the built-in cookie detection before SDK initialization
 - If detection fails, manually verify browser settings
 - Use Chrome for most reliable experience
@@ -328,6 +352,7 @@ If your organization has strict firewall rules, ensure these domains are whiteli
 ## Support
 
 For issues or questions:
+
 - Check browser console for errors
 - Review edge function logs
 - Verify Aircall Everywhere dashboard settings

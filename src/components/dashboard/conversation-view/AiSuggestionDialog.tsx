@@ -1,21 +1,28 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2, CheckCircle2, Star } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { CheckCircle2, Loader2, Sparkles, Star } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
 
 interface AiSuggestionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  suggestion: string;
-  qualityScore?: number;
-  fromKnowledgeBase?: boolean;
-  onUseAsIs: () => void;
-  onRefine: (refinementInstructions: string, originalText: string) => Promise<void>;
-  isRefining?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  suggestion: string
+  qualityScore?: number
+  fromKnowledgeBase?: boolean
+  onUseAsIs: () => void
+  onRefine: (refinementInstructions: string, originalText: string) => Promise<void>
+  isRefining?: boolean
 }
 
 export function AiSuggestionDialog({
@@ -28,26 +35,26 @@ export function AiSuggestionDialog({
   onRefine,
   isRefining = false,
 }: AiSuggestionDialogProps) {
-  const [refinementInstructions, setRefinementInstructions] = useState('');
-  const [showRefinementInput, setShowRefinementInput] = useState(false);
+  const [refinementInstructions, setRefinementInstructions] = useState("")
+  const [showRefinementInput, setShowRefinementInput] = useState(false)
 
   const handleRefine = async () => {
-    if (!refinementInstructions.trim()) return;
-    await onRefine(refinementInstructions, suggestion);
-    setRefinementInstructions('');
-    setShowRefinementInput(false);
-  };
+    if (!refinementInstructions.trim()) return
+    await onRefine(refinementInstructions, suggestion)
+    setRefinementInstructions("")
+    setShowRefinementInput(false)
+  }
 
   const handleUseAsIs = () => {
-    onUseAsIs();
-    onOpenChange(false);
-  };
+    onUseAsIs()
+    onOpenChange(false)
+  }
 
   const handleClose = () => {
-    setRefinementInstructions('');
-    setShowRefinementInput(false);
-    onOpenChange(false);
-  };
+    setRefinementInstructions("")
+    setShowRefinementInput(false)
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -85,9 +92,7 @@ export function AiSuggestionDialog({
             <ScrollArea className="h-[200px] w-full rounded-md border border-border bg-muted/30 p-4">
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{suggestion}</p>
             </ScrollArea>
-            <p className="text-xs text-muted-foreground">
-              ~{suggestion.length} characters
-            </p>
+            <p className="text-xs text-muted-foreground">~{suggestion.length} characters</p>
           </div>
 
           {/* Refinement section */}
@@ -126,14 +131,10 @@ export function AiSuggestionDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button
-            variant="ghost"
-            onClick={handleClose}
-            disabled={isRefining}
-          >
+          <Button variant="ghost" onClick={handleClose} disabled={isRefining}>
             Cancel
           </Button>
-          
+
           {showRefinementInput && (
             <Button
               variant="secondary"
@@ -154,17 +155,13 @@ export function AiSuggestionDialog({
               )}
             </Button>
           )}
-          
-          <Button
-            onClick={handleUseAsIs}
-            disabled={isRefining}
-            className="gap-2"
-          >
+
+          <Button onClick={handleUseAsIs} disabled={isRefining} className="gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Use as-is
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

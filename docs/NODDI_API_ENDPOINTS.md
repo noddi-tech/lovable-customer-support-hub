@@ -26,23 +26,23 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Send SMS Code
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/users/send-phone-number-verification/` |
-| **Edge Function** | `widget-send-verification` |
-| **Query Params** | `domain` (string, default `"noddi"`), `phone_number` (URL-encoded, e.g. `%2B4712345678`) |
+|                   |                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Method**        | `GET`                                                                                    |
+| **URL**           | `/v1/users/send-phone-number-verification/`                                              |
+| **Edge Function** | `widget-send-verification`                                                               |
+| **Query Params**  | `domain` (string, default `"noddi"`), `phone_number` (URL-encoded, e.g. `%2B4712345678`) |
 
 > ⚠️ **Gotcha:** This is a GET request, not POST. Parameters go in query string, not body. The `+` in phone numbers must be URL-encoded as `%2B`.
 
 ### Verify PIN Code
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/users/verify-phone-number/` |
-| **Edge Function** | `widget-verify-phone` |
-| **Body** | `{ "phone_number": "+4712345678", "code": "1234" }` |
+|                      |                                                        |
+| -------------------- | ------------------------------------------------------ |
+| **Method**           | `POST`                                                 |
+| **URL**              | `/v1/users/verify-phone-number/`                       |
+| **Edge Function**    | `widget-verify-phone`                                  |
+| **Body**             | `{ "phone_number": "+4712345678", "code": "1234" }`    |
 | **Success Response** | `{ "token": "..." }` (token may be null for new users) |
 
 ---
@@ -51,29 +51,30 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Find Customer by Phone/Email
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/users/customer-lookup-support/` |
-| **Edge Functions** | `widget-ai-chat`, `noddi-customer-lookup`, `noddi-booking-proxy` |
-| **Query Params** | `phone` and/or `email` |
-| **Response** | `{ "user": {...}, "user_groups": [{id, is_default_user_group, is_personal, name}] }` |
+|                    |                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| **Method**         | `GET`                                                                                |
+| **URL**            | `/v1/users/customer-lookup-support/`                                                 |
+| **Edge Functions** | `widget-ai-chat`, `noddi-customer-lookup`, `noddi-booking-proxy`                     |
+| **Query Params**   | `phone` and/or `email`                                                               |
+| **Response**       | `{ "user": {...}, "user_groups": [{id, is_default_user_group, is_personal, name}] }` |
 
 > ⚠️ **Gotcha:** Must use `/customer-lookup-support/` specifically. Other lookup endpoints return `403 Forbidden`.
 
 **Key fields to extract:**
+
 - `user.id` → `user_id` for bookings
 - `user_groups[].id` → `user_group_id` (prefer `is_default_user_group`, then `is_personal`, then first)
 
 ### Fetch Bookings for Customer
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/user-groups/{user_group_id}/bookings-for-customer/` |
-| **Edge Functions** | `widget-ai-chat`, `noddi-customer-lookup` |
-| **Query Params** | `page_size` (optional, default varies) |
-| **Response** | `{ "results": [...] }` or direct array |
+|                    |                                                          |
+| ------------------ | -------------------------------------------------------- |
+| **Method**         | `GET`                                                    |
+| **URL**            | `/v1/user-groups/{user_group_id}/bookings-for-customer/` |
+| **Edge Functions** | `widget-ai-chat`, `noddi-customer-lookup`                |
+| **Query Params**   | `page_size` (optional, default varies)                   |
+| **Response**       | `{ "results": [...] }` or direct array                   |
 
 ---
 
@@ -81,23 +82,23 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Autocomplete Address Search
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/addresses/suggestions/` |
-| **Edge Function** | `noddi-address-lookup` (action: `"suggestions"`) |
-| **Query Params** | `query_input` (min 2 chars), `country_codes` (e.g. `"NO,SE"`) |
-| **Response** | Array of suggestion objects (with `place_id` for Google Places) |
+|                   |                                                                 |
+| ----------------- | --------------------------------------------------------------- |
+| **Method**        | `GET`                                                           |
+| **URL**           | `/v1/addresses/suggestions/`                                    |
+| **Edge Function** | `noddi-address-lookup` (action: `"suggestions"`)                |
+| **Query Params**  | `query_input` (min 2 chars), `country_codes` (e.g. `"NO,SE"`)   |
+| **Response**      | Array of suggestion objects (with `place_id` for Google Places) |
 
 ### Resolve Address from Google Place ID
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/addresses/create-from-google-place-id/` |
-| **Edge Function** | `noddi-address-lookup` (action: `"resolve"`) |
-| **Body** | `{ "place_id": "ChIJ..." }` |
-| **Response** | Address object with `id` (this is the `address_id` used everywhere) |
+|                   |                                                                     |
+| ----------------- | ------------------------------------------------------------------- |
+| **Method**        | `POST`                                                              |
+| **URL**           | `/v1/addresses/create-from-google-place-id/`                        |
+| **Edge Function** | `noddi-address-lookup` (action: `"resolve"`)                        |
+| **Body**          | `{ "place_id": "ChIJ..." }`                                         |
+| **Response**      | Address object with `id` (this is the `address_id` used everywhere) |
 
 ---
 
@@ -105,13 +106,13 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Lookup Car by License Plate
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/cars/from-license-plate-number/` |
-| **Edge Function** | `noddi-booking-proxy` (action: `"lookup_car"`) |
-| **Query Params** | `brand_domains=noddi`, `country_code` (default `"NO"`), `number` (license plate) |
-| **Response** | Car object with `id`, `make`, `model`, `license_plate_number` |
+|                   |                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------- |
+| **Method**        | `GET`                                                                            |
+| **URL**           | `/v1/cars/from-license-plate-number/`                                            |
+| **Edge Function** | `noddi-booking-proxy` (action: `"lookup_car"`)                                   |
+| **Query Params**  | `brand_domains=noddi`, `country_code` (default `"NO"`), `number` (license plate) |
+| **Response**      | Car object with `id`, `make`, `model`, `license_plate_number`                    |
 
 ---
 
@@ -119,24 +120,24 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### List Service Categories
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/sales-item-booking-categories/for-new-booking/` |
-| **Edge Function** | `noddi-booking-proxy` (action: `"list_services"`) |
-| **Query Params** | `address_id` (required) |
-| **Response** | Array of category objects with `type`, `name`, `description` |
-| **Fallback** | Returns hardcoded services (Dekkskift, Bilvask, Dekkhotell) if endpoint fails or `address_id` missing |
+|                   |                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| **Method**        | `GET`                                                                                                 |
+| **URL**           | `/v1/sales-item-booking-categories/for-new-booking/`                                                  |
+| **Edge Function** | `noddi-booking-proxy` (action: `"list_services"`)                                                     |
+| **Query Params**  | `address_id` (required)                                                                               |
+| **Response**      | Array of category objects with `type`, `name`, `description`                                          |
+| **Fallback**      | Returns hardcoded services (Dekkskift, Bilvask, Dekkhotell) if endpoint fails or `address_id` missing |
 
 ### Get Available Items for Booking
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/sales-items/initial-available-for-booking/` |
-| **Edge Function** | `noddi-booking-proxy` (action: `"available_items"`) |
-| **Body** | `{ "address_id": 123, "license_plates": [{"number": "AB12345", "country_code": "NO"}] }` |
-| **Optional Body** | `sales_item_category_id`, `car_ids` (alternative to `license_plates`) |
+|                   |                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Method**        | `POST`                                                                                   |
+| **URL**           | `/v1/sales-items/initial-available-for-booking/`                                         |
+| **Edge Function** | `noddi-booking-proxy` (action: `"available_items"`)                                      |
+| **Body**          | `{ "address_id": 123, "license_plates": [{"number": "AB12345", "country_code": "NO"}] }` |
+| **Optional Body** | `sales_item_category_id`, `car_ids` (alternative to `license_plates`)                    |
 
 > ⚠️ **Gotcha:** `license_plates` must be objects `{number, country_code}`, NOT plain strings. `car_ids` are plain integers.
 
@@ -146,33 +147,33 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Earliest Available Date
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/delivery-windows/earliest-date/` |
+|                   |                                                   |
+| ----------------- | ------------------------------------------------- |
+| **Method**        | `POST`                                            |
+| **URL**           | `/v1/delivery-windows/earliest-date/`             |
 | **Edge Function** | `noddi-booking-proxy` (action: `"earliest_date"`) |
-| **Body** | `{ "address_id": 123, "cars": [{"id": 456}] }` |
+| **Body**          | `{ "address_id": 123, "cars": [{"id": 456}] }`    |
 
 > ⚠️ **Gotcha:** Cars must be passed as `[{id: N}]` objects, NOT plain integers `[N]`.
 
 ### Latest Available Date
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/delivery-windows/latest-date/` |
+|                   |                                                 |
+| ----------------- | ----------------------------------------------- |
+| **Method**        | `GET`                                           |
+| **URL**           | `/v1/delivery-windows/latest-date/`             |
 | **Edge Function** | `noddi-booking-proxy` (action: `"latest_date"`) |
-| **Query Params** | `address_id` (optional) |
+| **Query Params**  | `address_id` (optional)                         |
 
 ### Fetch Delivery Windows
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/delivery-windows/for-new-booking/` |
-| **Edge Function** | `noddi-booking-proxy` (action: `"delivery_windows"`) |
-| **Query Params** | `address_id` (required), `from_date`, `to_date`, `selected_sales_item_ids` (repeatable) |
-| **Response** | Array/object of delivery window objects |
+|                   |                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| **Method**        | `GET`                                                                                   |
+| **URL**           | `/v1/delivery-windows/for-new-booking/`                                                 |
+| **Edge Function** | `noddi-booking-proxy` (action: `"delivery_windows"`)                                    |
+| **Query Params**  | `address_id` (required), `from_date`, `to_date`, `selected_sales_item_ids` (repeatable) |
+| **Response**      | Array/object of delivery window objects                                                 |
 
 > ⚠️ **CRITICAL Gotcha:** Delivery window objects use `pk` (NOT `id`) as their primary identifier. The frontend uses a fallback chain: `window.id || window.pk || window.delivery_window_id || window.delivery_window?.id`. See [NODDI_TIMESLOT_FIX.md](./NODDI_TIMESLOT_FIX.md) for full details.
 
@@ -182,13 +183,14 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Create Booking
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/bookings/` |
+|                   |                                                    |
+| ----------------- | -------------------------------------------------- |
+| **Method**        | `POST`                                             |
+| **URL**           | `/v1/bookings/`                                    |
 | **Edge Function** | `noddi-booking-proxy` (action: `"create_booking"`) |
 
 **Required payload:**
+
 ```json
 {
   "address_id": 123,
@@ -212,6 +214,7 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 ```
 
 > ⚠️ **Gotchas:**
+>
 > - `delivery_window` is an object with `id`, `starts_at`, `ends_at` — not a flat `delivery_window_id`
 > - `license_plate` is an object `{number, country_code}` — not a string
 > - `selected_sales_item_ids` is an array of integers
@@ -219,45 +222,47 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Get Booking Details
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/bookings/{booking_id}/` |
-| **Edge Function** | `widget-ai-chat` |
+|                   |                              |
+| ----------------- | ---------------------------- |
+| **Method**        | `GET`                        |
+| **URL**           | `/v1/bookings/{booking_id}/` |
+| **Edge Function** | `widget-ai-chat`             |
 
 ### Reschedule Booking
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/bookings/{booking_id}/reschedule/` |
-| **Edge Function** | `widget-ai-chat` |
-| **Body** | `{ "new_start_time": "2026-02-20T10:00:00Z" }` |
+|                   |                                                |
+| ----------------- | ---------------------------------------------- |
+| **Method**        | `POST`                                         |
+| **URL**           | `/v1/bookings/{booking_id}/reschedule/`        |
+| **Edge Function** | `widget-ai-chat`                               |
+| **Body**          | `{ "new_start_time": "2026-02-20T10:00:00Z" }` |
 
 ### Cancel Booking
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **URL** | `/v1/bookings/{booking_id}/cancel/` |
-| **Edge Function** | `widget-ai-chat` |
-| **Body** | `{ "cancellation_reason": "..." }` (optional) |
+|                   |                                               |
+| ----------------- | --------------------------------------------- |
+| **Method**        | `POST`                                        |
+| **URL**           | `/v1/bookings/{booking_id}/cancel/`           |
+| **Edge Function** | `widget-ai-chat`                              |
+| **Body**          | `{ "cancellation_reason": "..." }` (optional) |
 
 ### Update Booking (PATCH)
 
-| | |
-|---|---|
-| **Method** | `PATCH` |
-| **URL** | `/v1/bookings/{booking_id}/` |
+|                    |                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| **Method**         | `PATCH`                                                                                       |
+| **URL**            | `/v1/bookings/{booking_id}/`                                                                  |
 | **Edge Functions** | `widget-ai-chat` (tool: `update_booking`), `noddi-booking-proxy` (action: `"update_booking"`) |
-| **Body** | Only include fields being changed |
+| **Body**           | Only include fields being changed                                                             |
 
 **Supported fields:**
+
 - `address_id` (int) — new address
 - `delivery_window` (`{id, starts_at, ends_at}`) — new time slot
 - `cars` (`[{license_plate: {number, country_code}, selected_sales_item_ids: [int]}]`)
 
 > ⚠️ **Gotchas:**
+>
 > - This is PATCH (partial update), not PUT — only send changed fields
 > - `delivery_window` is an object with `id`, `starts_at`, `ends_at` — not a flat ID
 > - The `cars` array **replaces** the entire cars list (not a merge)
@@ -268,38 +273,38 @@ Complete reference for every Noddi API endpoint used in the chatbot booking flow
 
 ### Service Departments
 
-| | |
-|---|---|
-| **Method** | `GET` |
-| **URL** | `/v1/service-departments/from-booking-params/` |
+|                   |                                                         |
+| ----------------- | ------------------------------------------------------- |
+| **Method**        | `GET`                                                   |
+| **URL**           | `/v1/service-departments/from-booking-params/`          |
 | **Edge Function** | `noddi-booking-proxy` (action: `"service_departments"`) |
-| **Query Params** | `address_id` (required), `sales_items_ids` (repeatable) |
+| **Query Params**  | `address_id` (required), `sales_items_ids` (repeatable) |
 
 ---
 
 ## Edge Function → Endpoint Mapping
 
-| Edge Function | Noddi Endpoints |
-|---|---|
-| `widget-send-verification` | `GET /v1/users/send-phone-number-verification/` |
-| `widget-verify-phone` | `POST /v1/users/verify-phone-number/` |
-| `widget-ai-chat` | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/`, `GET /v1/bookings/{id}/`, `POST /v1/bookings/{id}/reschedule/`, `POST /v1/bookings/{id}/cancel/`, `PATCH /v1/bookings/{id}/` |
-| `noddi-address-lookup` | `GET /v1/addresses/suggestions/`, `POST /v1/addresses/create-from-google-place-id/` |
-| `noddi-booking-proxy` | `GET /v1/cars/from-license-plate-number/`, `GET /v1/sales-item-booking-categories/for-new-booking/`, `POST /v1/sales-items/initial-available-for-booking/`, `POST /v1/delivery-windows/earliest-date/`, `GET /v1/delivery-windows/latest-date/`, `GET /v1/delivery-windows/for-new-booking/`, `GET /v1/service-departments/from-booking-params/`, `POST /v1/bookings/`, `PATCH /v1/bookings/{id}/`, `GET /v1/users/customer-lookup-support/` |
-| `noddi-customer-lookup` | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/` |
+| Edge Function              | Noddi Endpoints                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `widget-send-verification` | `GET /v1/users/send-phone-number-verification/`                                                                                                                                                                                                                                                                                                                                                                                              |
+| `widget-verify-phone`      | `POST /v1/users/verify-phone-number/`                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `widget-ai-chat`           | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/`, `GET /v1/bookings/{id}/`, `POST /v1/bookings/{id}/reschedule/`, `POST /v1/bookings/{id}/cancel/`, `PATCH /v1/bookings/{id}/`                                                                                                                                                                                                                    |
+| `noddi-address-lookup`     | `GET /v1/addresses/suggestions/`, `POST /v1/addresses/create-from-google-place-id/`                                                                                                                                                                                                                                                                                                                                                          |
+| `noddi-booking-proxy`      | `GET /v1/cars/from-license-plate-number/`, `GET /v1/sales-item-booking-categories/for-new-booking/`, `POST /v1/sales-items/initial-available-for-booking/`, `POST /v1/delivery-windows/earliest-date/`, `GET /v1/delivery-windows/latest-date/`, `GET /v1/delivery-windows/for-new-booking/`, `GET /v1/service-departments/from-booking-params/`, `POST /v1/bookings/`, `PATCH /v1/bookings/{id}/`, `GET /v1/users/customer-lookup-support/` |
+| `noddi-customer-lookup`    | `GET /v1/users/customer-lookup-support/`, `GET /v1/user-groups/{id}/bookings-for-customer/`                                                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
 ## Known Gotchas & Pitfalls
 
-| Issue | Details |
-|---|---|
+| Issue                             | Details                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Delivery window ID field name** | API returns `pk`, not `id`. Use fallback chain: `id \|\| pk \|\| delivery_window_id \|\| delivery_window?.id` |
-| **Cars in earliest-date** | Must be `[{id: N}]` objects, not `[N]` plain integers |
-| **License plates** | Must be `{number, country_code}` objects, not strings |
-| **Phone verification is GET** | `send-phone-number-verification` is GET with query params, not POST |
-| **Phone encoding** | `+` must be URL-encoded as `%2B` in query strings |
-| **Customer lookup endpoint** | Must use `/customer-lookup-support/` — other endpoints return 403 |
-| **`0` is never valid** | No Noddi entity ID is ever `0` — treat as missing |
-| **`undefined` in JSON** | `JSON.stringify` silently drops `undefined` values — always validate before serializing |
-| **Paginated responses** | Some endpoints return `{results: [...]}`, others return direct arrays — handle both |
+| **Cars in earliest-date**         | Must be `[{id: N}]` objects, not `[N]` plain integers                                                         |
+| **License plates**                | Must be `{number, country_code}` objects, not strings                                                         |
+| **Phone verification is GET**     | `send-phone-number-verification` is GET with query params, not POST                                           |
+| **Phone encoding**                | `+` must be URL-encoded as `%2B` in query strings                                                             |
+| **Customer lookup endpoint**      | Must use `/customer-lookup-support/` — other endpoints return 403                                             |
+| **`0` is never valid**            | No Noddi entity ID is ever `0` — treat as missing                                                             |
+| **`undefined` in JSON**           | `JSON.stringify` silently drops `undefined` values — always validate before serializing                       |
+| **Paginated responses**           | Some endpoints return `{results: [...]}`, others return direct arrays — handle both                           |

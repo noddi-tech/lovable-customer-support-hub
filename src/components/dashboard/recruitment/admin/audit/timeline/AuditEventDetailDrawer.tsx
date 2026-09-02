@@ -1,67 +1,68 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
+import { useQuery } from "@tanstack/react-query"
+import { useMemo } from "react"
+import { Badge } from "@/components/ui/badge"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
-import type { UnifiedAuditEvent } from '../types';
-import { eventLabel, SOURCE_LABELS, SOURCE_BADGE_VARIANT } from '../utils';
-import { DiffRenderer } from '../utils/diffRenderer';
-import { fieldLabel } from '../utils/fieldLabels';
-import { formatValue } from '../utils/valueFormatters';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { supabase } from "@/integrations/supabase/client"
+import type { UnifiedAuditEvent } from "../types"
+import { eventLabel, SOURCE_BADGE_VARIANT, SOURCE_LABELS } from "../utils"
+import { DiffRenderer } from "../utils/diffRenderer"
+import { fieldLabel } from "../utils/fieldLabels"
+import { formatValue } from "../utils/valueFormatters"
 
 interface Props {
-  event: UnifiedAuditEvent | null;
-  onOpenChange: (open: boolean) => void;
+  event: UnifiedAuditEvent | null
+  onOpenChange: (open: boolean) => void
 }
 
-const UUID_FIELDS = ['assigned_to', 'uploaded_by', 'performed_by', 'author_id'] as const;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_FIELDS = ["assigned_to", "uploaded_by", "performed_by", "author_id"] as const
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function collectUuids(event: UnifiedAuditEvent | null): string[] {
-  if (!event) return [];
-  const ids = new Set<string>();
+  if (!event) return []
+  const ids = new Set<string>()
   if (event.actor_profile_id && UUID_RE.test(event.actor_profile_id)) {
-    ids.add(event.actor_profile_id);
+    ids.add(event.actor_profile_id)
   }
   for (const bucket of [event.old_values, event.new_values]) {
-    if (!bucket || typeof bucket !== 'object') continue;
+    if (!bucket || typeof bucket !== "object") continue
     for (const f of UUID_FIELDS) {
-      const v = (bucket as Record<string, unknown>)[f];
-      if (typeof v === 'string' && UUID_RE.test(v)) ids.add(v);
+      const v = (bucket as Record<string, unknown>)[f]
+      if (typeof v === "string" && UUID_RE.test(v)) ids.add(v)
     }
   }
-  return Array.from(ids);
+  return Array.from(ids)
 }
 
 export function AuditEventDetailDrawer({ event, onOpenChange }: Props) {
-  const uuids = useMemo(() => collectUuids(event), [event]);
+  const uuids = useMemo(() => collectUuids(event), [event])
 
   const { data: userMap } = useQuery({
-    queryKey: ['audit-actor-names', uuids.slice().sort().join(',')],
+    queryKey: ["audit-actor-names", uuids.slice().sort().join(",")],
     enabled: uuids.length > 0,
     queryFn: async () => {
-      const map = new Map<string, string>();
+      const map = new Map<string, string>()
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', uuids);
-      if (error) return map;
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", uuids)
+      if (error) return map
       for (const row of (data ?? []) as Array<{ id: string; full_name: string | null }>) {
-        if (row.full_name) map.set(row.id, row.full_name);
+        if (row.full_name) map.set(row.id, row.full_name)
       }
-      return map;
+      return map
     },
     staleTime: 60_000,
-  });
+  })
 
-  const ctx = useMemo(() => ({ userMap: userMap ?? new Map<string, string>() }), [userMap]);
-  const isExport = event?.event_category === 'export';
+  const ctx = useMemo(() => ({ userMap: userMap ?? new Map<string, string>() }), [userMap])
+  const isExport = event?.event_category === "export"
 
   return (
     <Sheet open={!!event} onOpenChange={onOpenChange}>
@@ -76,7 +77,7 @@ export function AuditEventDetailDrawer({ event, onOpenChange }: Props) {
                 </Badge>
               </SheetTitle>
               <SheetDescription>
-                {new Date(event.occurred_at).toLocaleString('nb-NO', { timeZone: 'Europe/Oslo' })}
+                {new Date(event.occurred_at).toLocaleString("nb-NO", { timeZone: "Europe/Oslo" })}
               </SheetDescription>
             </SheetHeader>
 
@@ -121,21 +122,21 @@ export function AuditEventDetailDrawer({ event, onOpenChange }: Props) {
         )}
       </SheetContent>
     </Sheet>
-  );
+  )
 }
 
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex gap-3">
       <span className="text-xs uppercase text-muted-foreground w-32 shrink-0 pt-0.5">{label}</span>
-      <span className={mono ? 'font-mono text-xs break-all' : 'text-sm'}>{value}</span>
+      <span className={mono ? "font-mono text-xs break-all" : "text-sm"}>{value}</span>
     </div>
-  );
+  )
 }
 
 function ActorRow({ uuid, name }: { uuid: string; name?: string }) {
   if (!name) {
-    return <DetailRow label="Aktør" value={uuid} mono />;
+    return <DetailRow label="Aktør" value={uuid} mono />
   }
   return (
     <div className="flex gap-3">
@@ -151,22 +152,31 @@ function ActorRow({ uuid, name }: { uuid: string; name?: string }) {
         </Tooltip>
       </TooltipProvider>
     </div>
-  );
+  )
 }
 
 function ExportContextView({ context }: { context: Record<string, unknown> | null | undefined }) {
-  if (!context || typeof context !== 'object') {
-    return <p className="text-sm text-muted-foreground">Ingen kontekst.</p>;
+  if (!context || typeof context !== "object") {
+    return <p className="text-sm text-muted-foreground">Ingen kontekst.</p>
   }
-  const c = context as Record<string, unknown>;
-  const format = typeof c.format === 'string' ? c.format.toUpperCase() : null;
-  const count = typeof c.count === 'number' ? c.count : null;
-  const fromDate = typeof c.from === 'string' ? c.from : typeof c.from_date === 'string' ? c.from_date : null;
-  const toDate = typeof c.to === 'string' ? c.to : typeof c.to_date === 'string' ? c.to_date : null;
-  const applicantId = typeof c.applicant_id === 'string' ? c.applicant_id : null;
+  const c = context as Record<string, unknown>
+  const format = typeof c.format === "string" ? c.format.toUpperCase() : null
+  const count = typeof c.count === "number" ? c.count : null
+  const fromDate =
+    typeof c.from === "string" ? c.from : typeof c.from_date === "string" ? c.from_date : null
+  const toDate = typeof c.to === "string" ? c.to : typeof c.to_date === "string" ? c.to_date : null
+  const applicantId = typeof c.applicant_id === "string" ? c.applicant_id : null
 
-  const knownKeys = new Set(['format', 'count', 'from', 'to', 'from_date', 'to_date', 'applicant_id']);
-  const extra = Object.entries(c).filter(([k]) => !knownKeys.has(k));
+  const knownKeys = new Set([
+    "format",
+    "count",
+    "from",
+    "to",
+    "from_date",
+    "to_date",
+    "applicant_id",
+  ])
+  const extra = Object.entries(c).filter(([k]) => !knownKeys.has(k))
 
   return (
     <div className="space-y-2">
@@ -176,10 +186,10 @@ function ExportContextView({ context }: { context: Record<string, unknown> | nul
       {(fromDate || toDate) && (
         <DetailRow
           label="Datointervall"
-          value={`${fromDate ? formatValue('created_at', fromDate) : '—'} → ${toDate ? formatValue('created_at', toDate) : '—'}`}
+          value={`${fromDate ? formatValue("created_at", fromDate) : "—"} → ${toDate ? formatValue("created_at", toDate) : "—"}`}
         />
       )}
-      {applicantId && <DetailRow label={fieldLabel('applicant_id')} value={applicantId} mono />}
+      {applicantId && <DetailRow label={fieldLabel("applicant_id")} value={applicantId} mono />}
       {extra.length > 0 && (
         <details className="text-xs">
           <summary className="cursor-pointer text-muted-foreground">Vis rådata</summary>
@@ -189,5 +199,5 @@ function ExportContextView({ context }: { context: Record<string, unknown> | nul
         </details>
       )}
     </div>
-  );
+  )
 }

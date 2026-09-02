@@ -1,78 +1,85 @@
-import React, { useState, useCallback, KeyboardEvent } from 'react';
-import { Send, Paperclip, MoreVertical, Tag, UserPlus, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Clock, Paperclip, Send, Tag, UserPlus } from "lucide-react"
+import type React from "react"
+import { type KeyboardEvent, useCallback, useState } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 interface ReplySidebarProps {
   // Content state
-  conversationId?: string;
-  replyText?: string;
-  onReplyChange?: (text: string) => void;
-  onSendReply?: (text: string) => Promise<void>;
-  
+  conversationId?: string
+  replyText?: string
+  onReplyChange?: (text: string) => void
+  onSendReply?: (text: string) => Promise<void>
+
   // Simple interface for tests/stories
-  onSend?: (message: string) => void;  // Add this for compatibility
-  title?: string;                      // Add this for compatibility
-  recipientLabel?: string;             // Add this for compatibility
-  actions?: React.ReactNode;           // Add this for compatibility
-  
+  onSend?: (message: string) => void // Add this for compatibility
+  title?: string // Add this for compatibility
+  recipientLabel?: string // Add this for compatibility
+  actions?: React.ReactNode // Add this for compatibility
+
   // Customer information
   customer?: {
-    id?: string;
-    full_name?: string;
-    email?: string;
-    avatar_url?: string;
-    phone?: string;
-    company?: string;
-  };
-  
+    id?: string
+    full_name?: string
+    email?: string
+    avatar_url?: string
+    phone?: string
+    company?: string
+  }
+
   // Conversation metadata
-  status?: 'open' | 'pending' | 'resolved' | 'closed';
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  status?: "open" | "pending" | "resolved" | "closed"
+  priority?: "low" | "normal" | "high" | "urgent"
   assignedTo?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  tags?: string[];
-  
+    id: string
+    name: string
+    avatar?: string
+  }
+  tags?: string[]
+
   // Actions
-  onStatusChange?: (status: string) => void;
-  onPriorityChange?: (priority: string) => void;
-  onAssigneeChange?: (assigneeId: string) => void;
-  onAddTag?: (tag: string) => void;
-  onRemoveTag?: (tag: string) => void;
-  
+  onStatusChange?: (status: string) => void
+  onPriorityChange?: (priority: string) => void
+  onAssigneeChange?: (assigneeId: string) => void
+  onAddTag?: (tag: string) => void
+  onRemoveTag?: (tag: string) => void
+
   // UI state
-  isLoading?: boolean;
-  className?: string;
-  
+  isLoading?: boolean
+  className?: string
+
   // Customization
-  showActions?: boolean;
-  showMetadata?: boolean;
-  showCustomer?: boolean;
-  placeholder?: string;
+  showActions?: boolean
+  showMetadata?: boolean
+  showCustomer?: boolean
+  placeholder?: string
 }
 
 export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   conversationId,
-  replyText = '',
+  replyText = "",
   onReplyChange,
   onSendReply,
-  onSend,  // Add this for compatibility
-  title,   // Add this for compatibility
+  onSend, // Add this for compatibility
+  title, // Add this for compatibility
   recipientLabel, // Add this for compatibility
   actions, // Add this for compatibility
   customer,
-  status = 'open',
-  priority = 'normal',
+  status = "open",
+  priority = "normal",
   assignedTo,
   tags = [],
   onStatusChange,
@@ -85,60 +92,63 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   showActions = true,
   showMetadata = true,
   showCustomer = true,
-  placeholder = "Type your reply..."
+  placeholder = "Type your reply...",
 }) => {
-  const [internalReplyText, setInternalReplyText] = useState(replyText);
-  const [isSending, setIsSending] = useState(false);
+  const [internalReplyText, setInternalReplyText] = useState(replyText)
+  const [isSending, setIsSending] = useState(false)
 
-  const currentReplyText = onReplyChange ? replyText : internalReplyText;
-  const setCurrentReplyText = onReplyChange || setInternalReplyText;
+  const currentReplyText = onReplyChange ? replyText : internalReplyText
+  const setCurrentReplyText = onReplyChange || setInternalReplyText
 
   const handleSendReply = useCallback(async () => {
-    if (!currentReplyText.trim() || isSending) return;
-    
-    setIsSending(true);
+    if (!currentReplyText.trim() || isSending) return
+
+    setIsSending(true)
     try {
       // Use onSend if provided (for compatibility), otherwise onSendReply
       if (onSend) {
-        onSend(currentReplyText.trim());
+        onSend(currentReplyText.trim())
       } else {
-        await onSendReply?.(currentReplyText.trim());
+        await onSendReply?.(currentReplyText.trim())
       }
-      setCurrentReplyText('');
+      setCurrentReplyText("")
     } catch (error) {
-      console.error('Failed to send reply:', error);
+      console.error("Failed to send reply:", error)
     } finally {
-      setIsSending(false);
+      setIsSending(false)
     }
-  }, [currentReplyText, onSend, onSendReply, isSending, setCurrentReplyText]);
+  }, [currentReplyText, onSend, onSendReply, isSending, setCurrentReplyText])
 
-  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send on Cmd+Enter or Ctrl+Enter
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-      event.preventDefault();
-      handleSendReply();
-    }
-  }, [handleSendReply]);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      // Send on Cmd+Enter or Ctrl+Enter
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault()
+        handleSendReply()
+      }
+    },
+    [handleSendReply],
+  )
 
   const getStatusColor = (status: string) => {
     const colors = {
-      open: 'bg-blue-100 text-blue-800 border-blue-200',
-      pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      resolved: 'bg-green-100 text-green-800 border-green-200',
-      closed: 'bg-gray-100 text-gray-800 border-gray-200'
-    };
-    return colors[status as keyof typeof colors] || colors.open;
-  };
+      open: "bg-blue-100 text-blue-800 border-blue-200",
+      pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      resolved: "bg-green-100 text-green-800 border-green-200",
+      closed: "bg-gray-100 text-gray-800 border-gray-200",
+    }
+    return colors[status as keyof typeof colors] || colors.open
+  }
 
   const getPriorityColor = (priority: string) => {
     const colors = {
-      low: 'bg-gray-100 text-gray-800 border-gray-200',
-      normal: 'bg-blue-100 text-blue-800 border-blue-200',
-      high: 'bg-orange-100 text-orange-800 border-orange-200',
-      urgent: 'bg-red-100 text-red-800 border-red-200'
-    };
-    return colors[priority as keyof typeof colors] || colors.normal;
-  };
+      low: "bg-gray-100 text-gray-800 border-gray-200",
+      normal: "bg-blue-100 text-blue-800 border-blue-200",
+      high: "bg-orange-100 text-orange-800 border-orange-200",
+      urgent: "bg-red-100 text-red-800 border-red-200",
+    }
+    return colors[priority as keyof typeof colors] || colors.normal
+  }
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -153,30 +163,32 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
               <Avatar className="h-10 w-10">
                 <AvatarImage src={customer.avatar_url} />
                 <AvatarFallback className="text-sm font-medium">
-                  {customer.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
+                  {customer.full_name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "?"}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-foreground truncate">
-                  {customer.full_name || 'Unknown Customer'}
+                  {customer.full_name || "Unknown Customer"}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {customer.email}
-                </div>
+                <div className="text-xs text-muted-foreground truncate">{customer.email}</div>
               </div>
             </div>
-            
+
             {(customer.phone || customer.company) && (
               <div className="space-y-1 pt-2 border-t border-border">
                 {customer.phone && (
                   <div className="text-xs">
-                    <span className="text-muted-foreground">Phone:</span>{' '}
+                    <span className="text-muted-foreground">Phone:</span>{" "}
                     <span className="text-foreground">{customer.phone}</span>
                   </div>
                 )}
                 {customer.company && (
                   <div className="text-xs">
-                    <span className="text-muted-foreground">Company:</span>{' '}
+                    <span className="text-muted-foreground">Company:</span>{" "}
                     <span className="text-foreground">{customer.company}</span>
                   </div>
                 )}
@@ -190,14 +202,12 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
       {actions && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">{title || 'Actions'}</CardTitle>
+            <CardTitle className="text-sm font-semibold">{title || "Actions"}</CardTitle>
           </CardHeader>
-          <CardContent>
-            {actions}
-          </CardContent>
+          <CardContent>{actions}</CardContent>
         </Card>
       )}
-      
+
       {/* Conversation Metadata */}
       {showMetadata && !actions && (
         <Card>
@@ -244,18 +254,16 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
                 <div className="flex items-center gap-2 p-2 rounded-md border border-border">
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={assignedTo.avatar} />
-                    <AvatarFallback className="text-xs">
-                      {assignedTo.name.charAt(0)}
-                    </AvatarFallback>
+                    <AvatarFallback className="text-xs">{assignedTo.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm">{assignedTo.name}</span>
                 </div>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full justify-start"
-                  onClick={() => onAssigneeChange?.('current-user')}
+                  onClick={() => onAssigneeChange?.("current-user")}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign to me
@@ -316,11 +324,9 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
       {/* Reply Area */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">{title || 'Reply'}</CardTitle>
+          <CardTitle className="text-sm font-semibold">{title || "Reply"}</CardTitle>
           {recipientLabel && (
-            <div className="text-sm text-muted-foreground">
-              To: {recipientLabel}
-            </div>
+            <div className="text-sm text-muted-foreground">To: {recipientLabel}</div>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
@@ -334,9 +340,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
               disabled={isLoading || isSending}
               aria-label="Reply message"
             />
-            <div className="text-xs text-muted-foreground">
-              Press ⌘+Enter to send
-            </div>
+            <div className="text-xs text-muted-foreground">Press ⌘+Enter to send</div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -376,5 +380,5 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

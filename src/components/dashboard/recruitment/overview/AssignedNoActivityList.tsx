@@ -1,15 +1,15 @@
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock } from 'lucide-react';
-import type { OversiktMetrics } from '@/hooks/recruitment/useOversiktMetrics';
+import { Clock } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { OversiktMetrics } from "@/hooks/recruitment/useOversiktMetrics"
 
 interface Props {
-  items: OversiktMetrics['needs_attention']['assigned_no_activity'];
+  items: OversiktMetrics["needs_attention"]["assigned_no_activity"]
 }
 
 export default function AssignedNoActivityList({ items }: Props) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <Card>
@@ -17,7 +17,9 @@ export default function AssignedNoActivityList({ items }: Props) {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Clock className="h-4 w-4 text-blue-500" />
           Tildelt uten aktivitet
-          <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
+          <Badge variant="secondary" className="ml-auto">
+            {items.length}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -35,7 +37,10 @@ export default function AssignedNoActivityList({ items }: Props) {
                 <div className="text-xs text-muted-foreground flex items-center gap-2">
                   <span>{it.stage_name}</span>
                   <span>·</span>
-                  <span>Sist hendelse: {it.days_since_last_event} {it.days_since_last_event === 1 ? 'dag' : 'dager'} siden</span>
+                  <span>
+                    Sist hendelse: {it.days_since_last_event}{" "}
+                    {it.days_since_last_event === 1 ? "dag" : "dager"} siden
+                  </span>
                 </div>
               </li>
             ))}
@@ -43,5 +48,5 @@ export default function AssignedNoActivityList({ items }: Props) {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -3,49 +3,49 @@
  * Handles CID, Content-Location, and data URI images with proper fallback and telemetry
  */
 
-import type { EmailAttachment } from './emailFormatting';
-import { buildAttachmentUrl } from '@/utils/attachmentUrl';
+import { buildAttachmentUrl } from "@/utils/attachmentUrl"
+import type { EmailAttachment } from "./emailFormatting"
 
 interface ImageErrorBucket {
-  'cid-miss': number;
-  'cl-miss': number;
-  'mixed-content': number;
-  'csp-block': number;
-  'auth-required': number;
-  'data-rejected': number;
-  'data-missing': number;
+  "cid-miss": number
+  "cl-miss": number
+  "mixed-content": number
+  "csp-block": number
+  "auth-required": number
+  "data-rejected": number
+  "data-missing": number
 }
 
 // Global error tracking for telemetry
 const imageErrors: ImageErrorBucket = {
-  'cid-miss': 0,
-  'cl-miss': 0,
-  'mixed-content': 0,
-  'csp-block': 0,
-  'auth-required': 0,
-  'data-rejected': 0,
-  'data-missing': 0
-};
+  "cid-miss": 0,
+  "cl-miss": 0,
+  "mixed-content": 0,
+  "csp-block": 0,
+  "auth-required": 0,
+  "data-rejected": 0,
+  "data-missing": 0,
+}
 
 // Track object URLs for cleanup
-const createdObjectUrls = new Set<string>();
+const createdObjectUrls = new Set<string>()
 
 /**
  * Create a placeholder image for failed image loads
  */
 export const createPlaceholder = (reason: keyof ImageErrorBucket): string => {
   const messages = {
-    'cid-miss': 'CID not found',
-    'cl-miss': 'Location not found',
-    'mixed-content': 'Mixed content blocked',
-    'csp-block': 'CSP blocked',
-    'auth-required': 'Authentication required',
-    'data-rejected': 'Data image rejected',
-    'data-missing': 'Image not available'
-  };
-  
-  const message = messages[reason] || 'Image unavailable';
-  
+    "cid-miss": "CID not found",
+    "cl-miss": "Location not found",
+    "mixed-content": "Mixed content blocked",
+    "csp-block": "CSP blocked",
+    "auth-required": "Authentication required",
+    "data-rejected": "Data image rejected",
+    "data-missing": "Image not available",
+  }
+
+  const message = messages[reason] || "Image unavailable"
+
   return `data:image/svg+xml;base64,${btoa(`
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
       <rect width="400" height="200" fill="#f3f4f6" stroke="#e5e7eb" stroke-width="2" rx="8"/>
@@ -56,79 +56,89 @@ export const createPlaceholder = (reason: keyof ImageErrorBucket): string => {
         ${reason}
       </text>
     </svg>
-  `)}`;
-};
+  `)}`
+}
 
 /**
  * Log image error for telemetry
  */
 export const logImageError = (reason: keyof ImageErrorBucket, src: string) => {
-  imageErrors[reason]++;
-  console.warn(`[EmailRender] Image error (${reason}):`, src, 'Total:', imageErrors[reason]);
-};
+  imageErrors[reason]++
+  console.warn(`[EmailRender] Image error (${reason}):`, src, "Total:", imageErrors[reason])
+}
 
 /**
  * Get error statistics for debugging
  */
 export const getImageErrorStats = (): ImageErrorBucket => {
-  return { ...imageErrors };
-};
+  return { ...imageErrors }
+}
 
 /**
  * Create blob URL from attachment data and track for cleanup
  */
-export const createBlobUrl = async (attachment: EmailAttachment, messageId?: string): Promise<string | null> => {
+export const createBlobUrl = async (
+  attachment: EmailAttachment,
+  messageId?: string,
+): Promise<string | null> => {
   try {
-    let fetchUrl: string;
-    
+    let fetchUrl: string
+
     // Use storageKey for Supabase Storage attachments (new method)
     if (attachment.storageKey) {
-      fetchUrl = buildAttachmentUrl({ key: attachment.storageKey });
-      console.log('[EmailRender] Fetching from storage:', attachment.storageKey);
+      fetchUrl = buildAttachmentUrl({ key: attachment.storageKey })
+      console.log("[EmailRender] Fetching from storage:", attachment.storageKey)
     } else {
       // No storageKey means binary data was never uploaded - return placeholder
-      console.warn('[EmailRender] Attachment has no storageKey (binary data not stored):', attachment.filename);
-      return createPlaceholder('data-missing');
+      console.warn(
+        "[EmailRender] Attachment has no storageKey (binary data not stored):",
+        attachment.filename,
+      )
+      return createPlaceholder("data-missing")
     }
-    
-    const response = await fetch(fetchUrl);
-    
+
+    const response = await fetch(fetchUrl)
+
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        logImageError('auth-required', attachment.filename);
+        logImageError("auth-required", attachment.filename)
       }
-      console.warn('[EmailRender] Failed to fetch attachment:', response.status, attachment.filename);
-      return null;
+      console.warn(
+        "[EmailRender] Failed to fetch attachment:",
+        response.status,
+        attachment.filename,
+      )
+      return null
     }
-    
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    createdObjectUrls.add(blobUrl);
-    
-    console.log('[EmailRender] Created blob URL for:', attachment.filename);
-    return blobUrl;
+
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    createdObjectUrls.add(blobUrl)
+
+    console.log("[EmailRender] Created blob URL for:", attachment.filename)
+    return blobUrl
   } catch (error) {
-    console.error('[EmailRender] Failed to create blob URL:', error);
-    return null;
+    console.error("[EmailRender] Failed to create blob URL:", error)
+    return null
   }
-};
+}
 
 /**
  * Clean up all created object URLs
  */
 export const cleanupObjectUrls = () => {
-  createdObjectUrls.forEach(url => {
-    URL.revokeObjectURL(url);
-  });
-  createdObjectUrls.clear();
-};
+  createdObjectUrls.forEach((url) => {
+    URL.revokeObjectURL(url)
+  })
+  createdObjectUrls.clear()
+}
 
 /**
  * Check if URL is relative
  */
 export const isRelativeUrl = (url: string): boolean => {
-  return !url.match(/^(?:[a-z]+:)?\/\//i) && !url.startsWith('data:') && !url.startsWith('blob:');
-};
+  return !url.match(/^(?:[a-z]+:)?\/\//i) && !url.startsWith("data:") && !url.startsWith("blob:")
+}
 
 /**
  * Rewrite image sources in HTML container
@@ -138,84 +148,85 @@ export const rewriteImageSources = async (
   byContentId: Map<string, { attachment: EmailAttachment }>,
   byContentLocation: Map<string, { attachment: EmailAttachment }>,
   messageId?: string,
-  baseUrl?: string
+  baseUrl?: string,
 ): Promise<void> => {
-  const images = container.querySelectorAll('img');
-  
+  const images = container.querySelectorAll("img")
+
   for (const img of images) {
-    const originalSrc = img.getAttribute('src') || '';
-    
+    const originalSrc = img.getAttribute("src") || ""
+
     // Handle CID references
     if (/^cid:/i.test(originalSrc)) {
-      const key = originalSrc.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
-      const assetInfo = byContentId.get(key);
-      
+      const key = originalSrc.replace(/^cid:/i, "").replace(/[<>]/g, "").toLowerCase()
+      const assetInfo = byContentId.get(key)
+
       if (assetInfo) {
-        const blobUrl = await createBlobUrl(assetInfo.attachment, messageId);
+        const blobUrl = await createBlobUrl(assetInfo.attachment, messageId)
         if (blobUrl) {
-          img.src = blobUrl;
+          img.src = blobUrl
           // Mark as attachment image for CSS styling and lightbox
-          img.setAttribute('data-attachment', 'true');
-          img.setAttribute('data-attachment-index', byContentId.size.toString());
+          img.setAttribute("data-attachment", "true")
+          img.setAttribute("data-attachment-index", byContentId.size.toString())
         } else {
-          img.src = createPlaceholder('auth-required');
-          logImageError('auth-required', originalSrc);
+          img.src = createPlaceholder("auth-required")
+          logImageError("auth-required", originalSrc)
         }
       } else {
-        img.src = createPlaceholder('cid-miss');
-        logImageError('cid-miss', originalSrc);
+        img.src = createPlaceholder("cid-miss")
+        logImageError("cid-miss", originalSrc)
       }
     }
     // Handle relative URLs and Content-Location references
     else if (isRelativeUrl(originalSrc)) {
-      const normalizedSrc = originalSrc.split('/').pop()?.toLowerCase() || originalSrc.toLowerCase();
-      const assetInfo = byContentLocation.get(normalizedSrc);
-      
+      const normalizedSrc = originalSrc.split("/").pop()?.toLowerCase() || originalSrc.toLowerCase()
+      const assetInfo = byContentLocation.get(normalizedSrc)
+
       if (assetInfo) {
-        const blobUrl = await createBlobUrl(assetInfo.attachment, messageId);
+        const blobUrl = await createBlobUrl(assetInfo.attachment, messageId)
         if (blobUrl) {
-          img.src = blobUrl;
+          img.src = blobUrl
           // Mark as attachment image for CSS styling and lightbox
-          img.setAttribute('data-attachment', 'true');
-          img.setAttribute('data-attachment-index', byContentLocation.size.toString());
+          img.setAttribute("data-attachment", "true")
+          img.setAttribute("data-attachment-index", byContentLocation.size.toString())
         } else {
-          img.src = createPlaceholder('auth-required');
-          logImageError('auth-required', originalSrc);
+          img.src = createPlaceholder("auth-required")
+          logImageError("auth-required", originalSrc)
         }
       } else if (baseUrl) {
         try {
-          img.src = new URL(originalSrc, baseUrl).toString();
+          img.src = new URL(originalSrc, baseUrl).toString()
         } catch {
-          img.src = createPlaceholder('cl-miss');
-          logImageError('cl-miss', originalSrc);
+          img.src = createPlaceholder("cl-miss")
+          logImageError("cl-miss", originalSrc)
         }
       } else {
-        img.src = createPlaceholder('cl-miss');
-        logImageError('cl-miss', originalSrc);
+        img.src = createPlaceholder("cl-miss")
+        logImageError("cl-miss", originalSrc)
       }
     }
     // Handle data URIs with validation
     else if (/^data:/i.test(originalSrc)) {
       if (!/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(originalSrc)) {
-        img.src = createPlaceholder('data-rejected');
-        logImageError('data-rejected', originalSrc);
+        img.src = createPlaceholder("data-rejected")
+        logImageError("data-rejected", originalSrc)
       }
       // Valid data URI, keep as-is
     }
-    
+
     // Add error handler for runtime errors
     img.onerror = () => {
-      const currentSrc = img.getAttribute('src') || '';
-      let errorReason: keyof ImageErrorBucket = 'mixed-content';
-      
-      if (currentSrc.includes('cid-miss')) errorReason = 'cid-miss';
-      else if (currentSrc.includes('cl-miss')) errorReason = 'cl-miss';
-      else if (currentSrc.includes('auth-required')) errorReason = 'auth-required';
-      else if (currentSrc.includes('data-rejected')) errorReason = 'data-rejected';
-      else if (currentSrc.startsWith('https:') && window.location.protocol === 'https:') errorReason = 'csp-block';
-      
-      img.src = createPlaceholder(errorReason);
-      logImageError(errorReason, originalSrc);
-    };
+      const currentSrc = img.getAttribute("src") || ""
+      let errorReason: keyof ImageErrorBucket = "mixed-content"
+
+      if (currentSrc.includes("cid-miss")) errorReason = "cid-miss"
+      else if (currentSrc.includes("cl-miss")) errorReason = "cl-miss"
+      else if (currentSrc.includes("auth-required")) errorReason = "auth-required"
+      else if (currentSrc.includes("data-rejected")) errorReason = "data-rejected"
+      else if (currentSrc.startsWith("https:") && window.location.protocol === "https:")
+        errorReason = "csp-block"
+
+      img.src = createPlaceholder(errorReason)
+      logImageError(errorReason, originalSrc)
+    }
   }
-};
+}

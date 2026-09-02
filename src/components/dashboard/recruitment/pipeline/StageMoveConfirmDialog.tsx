@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, Mail, Webhook, MessageSquare, UserCheck, ListTodo, FileText } from 'lucide-react';
-import { ACTION_LABELS } from '@/components/dashboard/recruitment/admin/rules/types';
+import { FileText, ListTodo, Loader2, Mail, MessageSquare, UserCheck, Webhook } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { ACTION_LABELS } from "@/components/dashboard/recruitment/admin/rules/types"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -8,78 +10,75 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import type { MatchedRule, PendingMove } from './useStageMoveAutomation';
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import type { MatchedRule, PendingMove } from "./useStageMoveAutomation"
 
 interface Props {
-  pendingMove: PendingMove | null;
-  isSending: boolean;
-  isSkipping: boolean;
-  onConfirmSend: () => void;
-  onConfirmSkip: (skipReason?: string) => void;
-  onCancel: () => void;
+  pendingMove: PendingMove | null
+  isSending: boolean
+  isSkipping: boolean
+  onConfirmSend: () => void
+  onConfirmSkip: (skipReason?: string) => void
+  onCancel: () => void
 }
 
 function actionIcon(actionType: string) {
   switch (actionType) {
-    case 'send_email':
-      return <Mail className="h-4 w-4 text-muted-foreground" aria-hidden />;
-    case 'webhook':
-      return <Webhook className="h-4 w-4 text-muted-foreground" aria-hidden />;
-    case 'send_sms':
-      return <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden />;
-    case 'assign_to':
-      return <UserCheck className="h-4 w-4 text-muted-foreground" aria-hidden />;
-    case 'create_task':
-      return <ListTodo className="h-4 w-4 text-muted-foreground" aria-hidden />;
-    case 'send_candidate_form':
-      return <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />;
+    case "send_email":
+      return <Mail className="h-4 w-4 text-muted-foreground" aria-hidden />
+    case "webhook":
+      return <Webhook className="h-4 w-4 text-muted-foreground" aria-hidden />
+    case "send_sms":
+      return <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden />
+    case "assign_to":
+      return <UserCheck className="h-4 w-4 text-muted-foreground" aria-hidden />
+    case "create_task":
+      return <ListTodo className="h-4 w-4 text-muted-foreground" aria-hidden />
+    case "send_candidate_form":
+      return <FileText className="h-4 w-4 text-muted-foreground" aria-hidden />
     default:
-      return null;
+      return null
   }
 }
 
 function describeAction(rule: MatchedRule): string {
-  const cfg = (rule.action_config ?? {}) as Record<string, unknown>;
+  const cfg = (rule.action_config ?? {}) as Record<string, unknown>
   switch (rule.action_type) {
-    case 'send_email':
-      return rule.template_name
-        ? `Send e-post: '${rule.template_name}'`
-        : 'Send e-post';
-    case 'webhook': {
-      const url = cfg.url as string | undefined;
+    case "send_email":
+      return rule.template_name ? `Send e-post: '${rule.template_name}'` : "Send e-post"
+    case "webhook": {
+      const url = cfg.url as string | undefined
       try {
-        return url ? `Webhook → ${new URL(url).hostname}` : 'Webhook';
+        return url ? `Webhook → ${new URL(url).hostname}` : "Webhook"
       } catch {
-        return 'Webhook';
+        return "Webhook"
       }
     }
-    case 'send_sms': {
-      const tpl = cfg.template_name as string | undefined;
-      if (tpl) return `SMS: '${tpl}'`;
-      const body = cfg.body as string | undefined;
-      if (body && body.trim()) {
-        const snippet = body.trim().slice(0, 30);
-        return `SMS: "${snippet}${body.trim().length > 30 ? '…' : ''}"`;
+    case "send_sms": {
+      const tpl = cfg.template_name as string | undefined
+      if (tpl) return `SMS: '${tpl}'`
+      const body = cfg.body as string | undefined
+      if (body?.trim()) {
+        const snippet = body.trim().slice(0, 30)
+        return `SMS: "${snippet}${body.trim().length > 30 ? "…" : ""}"`
       }
-      return 'Send SMS';
+      return "Send SMS"
     }
-    case 'assign_to':
-      return rule.user_name ? `Tildel til ${rule.user_name}` : 'Tildel ansvarlig';
-    case 'create_task':
-      return 'Opprett oppgave';
-    case 'send_candidate_form': {
-      const days = (cfg.expiry_days as number | undefined) ?? 7;
-      const channel = (cfg.channel as string | undefined) ?? 'email';
-      const channelLabel = channel === 'sms' ? 'SMS' : 'E-post';
-      return `${channelLabel} • ${days} dager`;
+    case "assign_to":
+      return rule.user_name ? `Tildel til ${rule.user_name}` : "Tildel ansvarlig"
+    case "create_task":
+      return "Opprett oppgave"
+    case "send_candidate_form": {
+      const days = (cfg.expiry_days as number | undefined) ?? 7
+      const channel = (cfg.channel as string | undefined) ?? "email"
+      const channelLabel = channel === "sms" ? "SMS" : "E-post"
+      return `${channelLabel} • ${days} dager`
     }
     default:
-      return ACTION_LABELS[rule.action_type] ?? rule.action_type;
+      return ACTION_LABELS[rule.action_type] ?? rule.action_type
   }
 }
 
@@ -91,7 +90,7 @@ const RuleRow: React.FC<{ rule: MatchedRule }> = ({ rule }) => (
       <span className="text-muted-foreground"> — {describeAction(rule)}</span>
     </span>
   </li>
-);
+)
 
 const StageMoveConfirmDialog: React.FC<Props> = ({
   pendingMove,
@@ -101,28 +100,28 @@ const StageMoveConfirmDialog: React.FC<Props> = ({
   onConfirmSkip,
   onCancel,
 }) => {
-  const [skipReason, setSkipReason] = useState('');
+  const [skipReason, setSkipReason] = useState("")
 
   // Reset textarea whenever a new pending move opens.
   useEffect(() => {
-    if (pendingMove) setSkipReason('');
-  }, [pendingMove?.applicationId, pendingMove?.toStageId]);
+    if (pendingMove) setSkipReason("")
+  }, [pendingMove?.applicationId, pendingMove?.toStageId, pendingMove])
 
-  const open = pendingMove !== null;
-  const busy = isSending || isSkipping;
+  const open = pendingMove !== null
+  const busy = isSending || isSkipping
 
   const handleOpenChange = (next: boolean) => {
-    if (!next && !busy) onCancel();
-  };
+    if (!next && !busy) onCancel()
+  }
 
-  if (!pendingMove) return null;
+  if (!pendingMove) return null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Flytt {pendingMove.applicantName || 'søker'} til {pendingMove.stageName}?
+            Flytt {pendingMove.applicantName || "søker"} til {pendingMove.stageName}?
           </DialogTitle>
           <DialogDescription>
             Følgende ekstern kommunikasjon vil sendes til søkeren hvis du bekrefter.
@@ -176,11 +175,7 @@ const StageMoveConfirmDialog: React.FC<Props> = ({
           <Button variant="outline" onClick={onCancel} disabled={busy}>
             Avbryt
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onConfirmSkip(skipReason)}
-            disabled={busy}
-          >
+          <Button variant="outline" onClick={() => onConfirmSkip(skipReason)} disabled={busy}>
             {isSkipping && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
             Flytt uten å sende
           </Button>
@@ -191,7 +186,7 @@ const StageMoveConfirmDialog: React.FC<Props> = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default StageMoveConfirmDialog;
+export default StageMoveConfirmDialog

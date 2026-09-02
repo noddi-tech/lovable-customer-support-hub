@@ -1,42 +1,54 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { KnowledgeAnalytics } from "@/components/dashboard/KnowledgeAnalytics";
-import { SystemHealthMonitor } from "@/components/dashboard/SystemHealthMonitor";
-import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerformance";
-import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager";
-import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings";
-import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory";
-import { Brain, Activity, TrendingUp, Database, Settings, Upload, GraduationCap, Shield, Users } from "lucide-react";
-import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard";
-import { AutonomyDashboard } from "@/components/dashboard/knowledge/AutonomyDashboard";
-import { CustomerMemoryDashboard } from "@/components/dashboard/knowledge/CustomerMemoryDashboard";
+import { useQuery } from "@tanstack/react-query"
+import {
+  Activity,
+  Brain,
+  Database,
+  GraduationCap,
+  Settings,
+  Shield,
+  TrendingUp,
+  Upload,
+  Users,
+} from "lucide-react"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { KnowledgeAnalytics } from "@/components/dashboard/KnowledgeAnalytics"
+import { AutonomyDashboard } from "@/components/dashboard/knowledge/AutonomyDashboard"
+import { CustomerMemoryDashboard } from "@/components/dashboard/knowledge/CustomerMemoryDashboard"
+import { KnowledgeEntriesManager } from "@/components/dashboard/knowledge/KnowledgeEntriesManager"
+import { KnowledgeImportFromHistory } from "@/components/dashboard/knowledge/KnowledgeImportFromHistory"
+import { KnowledgeSettings } from "@/components/dashboard/knowledge/KnowledgeSettings"
+import { LearningDashboard } from "@/components/dashboard/knowledge/LearningDashboard"
+import { SuggestionPerformance } from "@/components/dashboard/SuggestionPerformance"
+import { SystemHealthMonitor } from "@/components/dashboard/SystemHealthMonitor"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { supabase } from "@/integrations/supabase/client"
 
 export default function KnowledgeManagement() {
   const { data: profile } = useQuery({
-    queryKey: ['profile'],
+    queryKey: ["profile"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
 
       const { data, error } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
-  });
+  })
 
   if (!profile?.organization_id) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-muted-foreground">Loading...</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -133,5 +145,5 @@ export default function KnowledgeManagement() {
         </Tabs>
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

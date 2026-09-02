@@ -1,115 +1,118 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
-import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
-import { Bell, Calendar, Loader2, Mail, MonitorSmartphone } from 'lucide-react';
-import { DesktopEmailNotificationSettings } from './DesktopEmailNotificationSettings';
+import { Bell, Calendar, Loader2, Mail, MonitorSmartphone } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications"
+import {
+  type NotificationPreferences,
+  useNotificationPreferences,
+} from "@/hooks/useNotificationPreferences"
+import { DesktopEmailNotificationSettings } from "./DesktopEmailNotificationSettings"
 
-type PrefKey = keyof NotificationPreferences;
+type PrefKey = keyof NotificationPreferences
 
 interface EventRow {
-  label: string;
-  description: string;
-  app?: PrefKey;
-  email?: PrefKey;
-  desktop?: PrefKey;
+  label: string
+  description: string
+  app?: PrefKey
+  email?: PrefKey
+  desktop?: PrefKey
 }
 
 interface EventGroup {
-  title: string;
-  rows: EventRow[];
+  title: string
+  rows: EventRow[]
 }
 
 const GROUPS: EventGroup[] = [
   {
-    title: 'Conversations',
+    title: "Conversations",
     rows: [
       {
-        label: 'New customer email',
-        description: 'An email arrives in an inbox you can access',
-        app: 'app_on_new_email',
-        email: 'email_on_new_email',
-        desktop: 'desktop_on_new_email',
+        label: "New customer email",
+        description: "An email arrives in an inbox you can access",
+        app: "app_on_new_email",
+        email: "email_on_new_email",
+        desktop: "desktop_on_new_email",
       },
       {
-        label: 'New chat message',
-        description: 'A live-chat visitor sends a message',
-        desktop: 'desktop_on_chat_message',
+        label: "New chat message",
+        description: "A live-chat visitor sends a message",
+        desktop: "desktop_on_chat_message",
       },
       {
-        label: 'Customer reply',
-        description: 'A customer replies in a conversation you are involved with',
-        app: 'app_on_customer_reply',
-        email: 'email_on_customer_reply',
+        label: "Customer reply",
+        description: "A customer replies in a conversation you are involved with",
+        app: "app_on_customer_reply",
+        email: "email_on_customer_reply",
       },
       {
-        label: 'Conversation assigned to me',
-        description: 'Someone assigns a conversation to you',
-        app: 'app_on_conversation_assigned',
-        email: 'email_on_conversation_assigned',
+        label: "Conversation assigned to me",
+        description: "Someone assigns a conversation to you",
+        app: "app_on_conversation_assigned",
+        email: "email_on_conversation_assigned",
       },
       {
-        label: 'Mentions',
-        description: 'Someone @mentions you in a note or comment',
-        app: 'app_on_mention',
-        email: 'email_on_mention',
+        label: "Mentions",
+        description: "Someone @mentions you in a note or comment",
+        app: "app_on_mention",
+        email: "email_on_mention",
       },
     ],
   },
   {
-    title: 'Calls',
+    title: "Calls",
     rows: [
       {
-        label: 'Incoming call',
-        description: 'A call is ringing for your team',
-        app: 'app_on_incoming_call',
+        label: "Incoming call",
+        description: "A call is ringing for your team",
+        app: "app_on_incoming_call",
       },
       {
-        label: 'Missed call',
-        description: 'A call was not answered',
-        app: 'app_on_missed_call',
-        email: 'email_on_missed_call',
+        label: "Missed call",
+        description: "A call was not answered",
+        app: "app_on_missed_call",
+        email: "email_on_missed_call",
       },
       {
-        label: 'Voicemail',
-        description: 'A caller left a voicemail',
-        app: 'app_on_voicemail',
-        email: 'email_on_voicemail',
+        label: "Voicemail",
+        description: "A caller left a voicemail",
+        app: "app_on_voicemail",
+        email: "email_on_voicemail",
       },
     ],
   },
   {
-    title: 'Tickets & SLA',
+    title: "Tickets & SLA",
     rows: [
       {
-        label: 'Ticket assigned to me',
-        description: 'A ticket is assigned to you',
-        app: 'app_on_ticket_assigned',
-        email: 'email_on_ticket_assigned',
+        label: "Ticket assigned to me",
+        description: "A ticket is assigned to you",
+        app: "app_on_ticket_assigned",
+        email: "email_on_ticket_assigned",
       },
       {
-        label: 'New comment',
-        description: 'Someone comments on your ticket',
-        app: 'app_on_ticket_commented',
-        email: 'email_on_ticket_commented',
+        label: "New comment",
+        description: "Someone comments on your ticket",
+        app: "app_on_ticket_commented",
+        email: "email_on_ticket_commented",
       },
       {
-        label: 'Ticket updates',
+        label: "Ticket updates",
         description: "A ticket you're involved with is updated",
-        app: 'app_on_ticket_updated',
-        email: 'email_on_ticket_updated',
+        app: "app_on_ticket_updated",
+        email: "email_on_ticket_updated",
       },
       {
-        label: 'SLA breach warning',
-        description: 'An SLA is about to breach',
-        app: 'app_on_sla_breach',
-        email: 'email_on_sla_breach',
+        label: "SLA breach warning",
+        description: "An SLA is about to breach",
+        app: "app_on_sla_breach",
+        email: "email_on_sla_breach",
       },
     ],
   },
-];
+]
 
 function ChannelCell({
   id,
@@ -119,15 +122,19 @@ function ChannelCell({
   onToggle,
   disabled,
 }: {
-  id: string;
-  ariaLabel: string;
-  prefKey?: PrefKey;
-  preferences: NotificationPreferences;
-  onToggle: (key: PrefKey) => (checked: boolean) => void;
-  disabled?: boolean;
+  id: string
+  ariaLabel: string
+  prefKey?: PrefKey
+  preferences: NotificationPreferences
+  onToggle: (key: PrefKey) => (checked: boolean) => void
+  disabled?: boolean
 }) {
   if (!prefKey) {
-    return <span className="text-xs text-muted-foreground/50" aria-hidden>—</span>;
+    return (
+      <span className="text-xs text-muted-foreground/50" aria-hidden>
+        —
+      </span>
+    )
   }
   return (
     <Switch
@@ -137,23 +144,23 @@ function ChannelCell({
       onCheckedChange={onToggle(prefKey)}
       disabled={disabled}
     />
-  );
+  )
 }
 
 export function UserNotificationSettings() {
-  const { preferences, isLoading, updatePreferences, isUpdating } = useNotificationPreferences();
-  const { permission, isSupported } = useBrowserNotifications();
+  const { preferences, isLoading, updatePreferences, isUpdating } = useNotificationPreferences()
+  const { permission, isSupported } = useBrowserNotifications()
 
   const handleToggle = (key: PrefKey) => (checked: boolean) => {
-    updatePreferences({ [key]: checked } as Partial<NotificationPreferences>);
-  };
+    updatePreferences({ [key]: checked } as Partial<NotificationPreferences>)
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
-    );
+    )
   }
 
   if (!preferences) {
@@ -163,10 +170,10 @@ export function UserNotificationSettings() {
           Unable to load notification preferences.
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const desktopDisabled = !isSupported || permission !== 'granted' || !preferences.desktop_enabled;
+  const desktopDisabled = !isSupported || permission !== "granted" || !preferences.desktop_enabled
 
   return (
     <div className="space-y-6">
@@ -174,10 +181,11 @@ export function UserNotificationSettings() {
         <CardHeader>
           <CardTitle className="text-lg">Notifications</CardTitle>
           <CardDescription>
-            Pick how you want to hear about each event. <span className="font-medium">In-app</span> shows a toast and
-            adds to the bell while you have Support Hub open, <span className="font-medium">Email</span> sends a
-            message to your inbox, and <span className="font-medium">Desktop</span> pops up from your operating system
-            even when the app is in a background tab.
+            Pick how you want to hear about each event. <span className="font-medium">In-app</span>{" "}
+            shows a toast and adds to the bell while you have Support Hub open,{" "}
+            <span className="font-medium">Email</span> sends a message to your inbox, and{" "}
+            <span className="font-medium">Desktop</span> pops up from your operating system even
+            when the app is in a background tab.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -185,7 +193,9 @@ export function UserNotificationSettings() {
 
           {/* Column headings */}
           <div className="grid grid-cols-[1fr_repeat(3,4.5rem)] items-end gap-2 border-b pb-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Event</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Event
+            </span>
             <span className="flex flex-col items-center gap-1 text-[11px] font-medium text-muted-foreground">
               <Bell className="h-4 w-4" />
               In-app
@@ -274,7 +284,7 @@ export function UserNotificationSettings() {
             <Switch
               id="daily_digest_enabled"
               checked={preferences.daily_digest_enabled ?? false}
-              onCheckedChange={handleToggle('daily_digest_enabled')}
+              onCheckedChange={handleToggle("daily_digest_enabled")}
               disabled={isUpdating}
             />
           </div>
@@ -291,12 +301,12 @@ export function UserNotificationSettings() {
             <Switch
               id="weekly_digest_enabled"
               checked={preferences.weekly_digest_enabled ?? true}
-              onCheckedChange={handleToggle('weekly_digest_enabled')}
+              onCheckedChange={handleToggle("weekly_digest_enabled")}
               disabled={isUpdating}
             />
           </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

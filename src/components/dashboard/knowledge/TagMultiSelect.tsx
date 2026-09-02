@@ -1,18 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { X, ChevronDown, Globe } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import type { KnowledgeTag } from "./TagManager";
+import { useQuery } from "@tanstack/react-query"
+import { ChevronDown, Globe, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { supabase } from "@/integrations/supabase/client"
+import { cn } from "@/lib/utils"
+import type { KnowledgeTag } from "./TagManager"
 
 interface TagMultiSelectProps {
-  organizationId: string;
-  selectedTags: string[];
-  onChange: (tags: string[]) => void;
-  placeholder?: string;
-  selectedCategoryId?: string | null;
+  organizationId: string
+  selectedTags: string[]
+  onChange: (tags: string[]) => void
+  placeholder?: string
+  selectedCategoryId?: string | null
 }
 
 export function TagMultiSelect({
@@ -22,78 +22,79 @@ export function TagMultiSelect({
   placeholder = "Select tags...",
   selectedCategoryId,
 }: TagMultiSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: tags } = useQuery({
-    queryKey: ['knowledge-tags', organizationId],
+    queryKey: ["knowledge-tags", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_tags')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeTag[];
+        .from("knowledge_tags")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeTag[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        setIsOpen(false)
       }
-    };
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const toggleTag = (tagName: string) => {
     if (selectedTags.includes(tagName)) {
-      onChange(selectedTags.filter(t => t !== tagName));
+      onChange(selectedTags.filter((t) => t !== tagName))
     } else {
-      onChange([...selectedTags, tagName]);
+      onChange([...selectedTags, tagName])
     }
-  };
+  }
 
   const removeTag = (tagName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(selectedTags.filter(t => t !== tagName));
-  };
+    e.stopPropagation()
+    onChange(selectedTags.filter((t) => t !== tagName))
+  }
 
   const getTagColor = (tagName: string) => {
-    const tag = tags?.find(t => t.name === tagName);
-    return tag?.color || '#6B7280';
-  };
+    const tag = tags?.find((t) => t.name === tagName)
+    return tag?.color || "#6B7280"
+  }
 
   // Filter tags based on selected category
   // Show: global tags (category_id is null) + tags matching the selected category
-  const filteredTags = tags?.filter(tag => {
-    // Always show global tags
-    if (!tag.category_id) return true;
-    // If a category is selected, also show tags for that category
-    if (selectedCategoryId && tag.category_id === selectedCategoryId) return true;
-    // If no category is selected, only show global tags
-    return false;
-  }) || [];
+  const filteredTags =
+    tags?.filter((tag) => {
+      // Always show global tags
+      if (!tag.category_id) return true
+      // If a category is selected, also show tags for that category
+      if (selectedCategoryId && tag.category_id === selectedCategoryId) return true
+      // If no category is selected, only show global tags
+      return false
+    }) || []
 
-  const availableTags = filteredTags.filter(tag => !selectedTags.includes(tag.name));
+  const availableTags = filteredTags.filter((tag) => !selectedTags.includes(tag.name))
 
   // Separate global tags from category tags in the dropdown
-  const globalTags = availableTags.filter(t => !t.category_id);
-  const categoryTags = availableTags.filter(t => t.category_id);
+  const globalTags = availableTags.filter((t) => !t.category_id)
+  const categoryTags = availableTags.filter((t) => t.category_id)
 
-  const hasNoCategory = !selectedCategoryId;
+  const hasNoCategory = !selectedCategoryId
 
   return (
     <div ref={containerRef} className="relative">
       <div
         className={cn(
           "min-h-10 w-full border rounded-md bg-background px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center",
-          isOpen && "ring-2 ring-ring ring-offset-2"
+          isOpen && "ring-2 ring-ring ring-offset-2",
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -123,10 +124,12 @@ export function TagMultiSelect({
             </Badge>
           ))
         )}
-        <ChevronDown className={cn(
-          "ml-auto h-4 w-4 text-muted-foreground transition-transform",
-          isOpen && "rotate-180"
-        )} />
+        <ChevronDown
+          className={cn(
+            "ml-auto h-4 w-4 text-muted-foreground transition-transform",
+            isOpen && "rotate-180",
+          )}
+        />
       </div>
 
       {isOpen && (
@@ -161,14 +164,14 @@ export function TagMultiSelect({
                     >
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: tag.color || '#6B7280' }}
+                        style={{ backgroundColor: tag.color || "#6B7280" }}
                       />
                       <span className="text-sm">{tag.name}</span>
                     </div>
                   ))}
                 </>
               )}
-              
+
               {/* Category-specific Tags Section */}
               {categoryTags.length > 0 && (
                 <>
@@ -184,7 +187,7 @@ export function TagMultiSelect({
                     >
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: tag.color || '#6B7280' }}
+                        style={{ backgroundColor: tag.color || "#6B7280" }}
                       />
                       <span className="text-sm">{tag.name}</span>
                     </div>
@@ -196,5 +199,5 @@ export function TagMultiSelect({
         </div>
       )}
     </div>
-  );
+  )
 }

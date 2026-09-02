@@ -1,13 +1,13 @@
-import { useMemo } from 'react';
-import { ApiReferenceReact } from '@scalar/api-reference-react';
-import '@scalar/api-reference-react/style.css';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
-import { BookOpen, Plug } from 'lucide-react';
-import spec from '@/data/openapi.generated.json';
+import { ApiReferenceReact } from "@scalar/api-reference-react"
+import { useMemo } from "react"
+import "@scalar/api-reference-react/style.css"
+import { BookOpen, Plug } from "lucide-react"
+import { Link } from "react-router-dom"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import spec from "@/data/openapi.generated.json"
 
 /**
  * Renders the generated OpenAPI document for every edge function this service
@@ -15,15 +15,15 @@ import spec from '@/data/openapi.generated.json';
  */
 export default function ApiDocsPage() {
   const content = useMemo(() => {
-    const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    const doc = structuredClone(spec) as Record<string, any>;
+    const base = import.meta.env.VITE_SUPABASE_URL as string | undefined
+    const doc = structuredClone(spec) as Record<string, any>
     if (base) {
-      doc.servers = [{ url: base, description: 'This project' }];
+      doc.servers = [{ url: base, description: "This project" }]
     }
-    return doc;
-  }, []);
+    return doc
+  }, [])
 
-  const endpointCount = Object.keys((spec as { paths: Record<string, unknown> }).paths).length;
+  const endpointCount = Object.keys((spec as { paths: Record<string, unknown> }).paths).length
 
   return (
     <UnifiedAppLayout>
@@ -57,13 +57,13 @@ export default function ApiDocsPage() {
             configuration={{
               content,
               hideDownloadButton: false,
-              darkMode: document.documentElement.classList.contains('dark'),
-              layout: 'modern',
+              darkMode: document.documentElement.classList.contains("dark"),
+              layout: "modern",
               withDefaultFonts: false,
             }}
           />
         </div>
       </div>
     </UnifiedAppLayout>
-  );
+  )
 }

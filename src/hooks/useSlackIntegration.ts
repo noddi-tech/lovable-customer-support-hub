@@ -1,82 +1,87 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface SlackIntegrationConfig {
-  enabled_events: string[];
-  mention_assigned_user: boolean;
-  include_message_preview: boolean;
-  digest_enabled: boolean;
-  digest_time: string;
-  digest_frequency?: 'daily' | 'weekly' | 'both';
-  critical_alerts_enabled: boolean;
+  enabled_events: string[]
+  mention_assigned_user: boolean
+  include_message_preview: boolean
+  digest_enabled: boolean
+  digest_time: string
+  digest_frequency?: "daily" | "weekly" | "both"
+  critical_alerts_enabled: boolean
 }
 
-export type SlackMentionMode = 'channel' | 'subteam' | 'user' | 'none';
+export type SlackMentionMode = "channel" | "subteam" | "user" | "none"
 
 export interface SlackIntegration {
-  id: string;
-  organization_id: string;
-  is_active: boolean;
-  team_id: string | null;
-  team_name: string | null;
-  bot_user_id: string | null;
-  default_channel_id: string | null;
-  default_channel_name: string | null;
-  digest_channel_id: string | null;
-  digest_channel_name: string | null;
-  critical_channel_id: string | null;
-  critical_channel_name: string | null;
-  secondary_access_token: string | null;
-  secondary_team_name: string | null;
-  secondary_team_id: string | null;
-  configuration: SlackIntegrationConfig;
-  setup_completed: boolean;
+  id: string
+  organization_id: string
+  is_active: boolean
+  team_id: string | null
+  team_name: string | null
+  bot_user_id: string | null
+  default_channel_id: string | null
+  default_channel_name: string | null
+  digest_channel_id: string | null
+  digest_channel_name: string | null
+  critical_channel_id: string | null
+  critical_channel_name: string | null
+  secondary_access_token: string | null
+  secondary_team_name: string | null
+  secondary_team_id: string | null
+  configuration: SlackIntegrationConfig
+  setup_completed: boolean
   // Critical alert routing — Tech bucket
-  critical_tech_subteam_id: string | null;
-  critical_tech_subteam_handle: string | null;
-  critical_tech_user_id: string | null;
-  critical_tech_mention_mode: SlackMentionMode;
+  critical_tech_subteam_id: string | null
+  critical_tech_subteam_handle: string | null
+  critical_tech_user_id: string | null
+  critical_tech_mention_mode: SlackMentionMode
   // Critical alert routing — Ops bucket
-  critical_ops_subteam_id: string | null;
-  critical_ops_subteam_handle: string | null;
-  critical_ops_user_id: string | null;
-  critical_ops_mention_mode: SlackMentionMode;
+  critical_ops_subteam_id: string | null
+  critical_ops_subteam_handle: string | null
+  critical_ops_user_id: string | null
+  critical_ops_mention_mode: SlackMentionMode
   // Category → bucket override (e.g. { billing_issue: 'tech' })
-  critical_category_routing: Record<string, 'tech' | 'ops'>;
-  created_at: string;
-  updated_at: string;
+  critical_category_routing: Record<string, "tech" | "ops">
+  created_at: string
+  updated_at: string
 }
 
 export interface SlackChannel {
-  id: string;
-  name: string;
-  is_private: boolean;
-  is_member: boolean;
+  id: string
+  name: string
+  is_private: boolean
+  is_member: boolean
 }
 
 export const useSlackIntegration = () => {
-  const queryClient = useQueryClient();
-  const { currentOrganizationId } = useOrganizationStore();
+  const queryClient = useQueryClient()
+  const { currentOrganizationId } = useOrganizationStore()
 
   // Fetch Slack integration status
-  const { data: integration, isLoading, error, refetch } = useQuery({
-    queryKey: ['slack-integration', currentOrganizationId],
+  const {
+    data: integration,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["slack-integration", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return null;
+      if (!currentOrganizationId) return null
 
       const { data, error } = await supabase
-        .from('slack_integrations')
-        .select('*')
-        .eq('organization_id', currentOrganizationId)
-        .maybeSingle();
+        .from("slack_integrations")
+        .select("*")
+        .eq("organization_id", currentOrganizationId)
+        .maybeSingle()
 
-      if (error) throw error;
-      if (!data) return null;
-      
+      if (error) throw error
+      if (!data) return null
+
       // Parse configuration with defaults
-      const config = (data.configuration as Record<string, unknown>) || {};
+      const config = (data.configuration as Record<string, unknown>) || {}
       return {
         ...data,
         configuration: {
@@ -84,285 +89,316 @@ export const useSlackIntegration = () => {
           mention_assigned_user: config.mention_assigned_user !== false,
           include_message_preview: config.include_message_preview !== false,
           digest_enabled: !!config.digest_enabled,
-          digest_time: (config.digest_time as string) || '08:00',
-          digest_frequency: (config.digest_frequency as 'daily' | 'weekly' | 'both') || 'daily',
+          digest_time: (config.digest_time as string) || "08:00",
+          digest_frequency: (config.digest_frequency as "daily" | "weekly" | "both") || "daily",
           critical_alerts_enabled: !!config.critical_alerts_enabled,
         },
         setup_completed: data.setup_completed || false,
-        critical_tech_mention_mode: (data.critical_tech_mention_mode as SlackMentionMode) || 'channel',
-        critical_ops_mention_mode: (data.critical_ops_mention_mode as SlackMentionMode) || 'channel',
-        critical_category_routing: (data.critical_category_routing as Record<string, 'tech' | 'ops'>) || {},
-      } as SlackIntegration;
+        critical_tech_mention_mode:
+          (data.critical_tech_mention_mode as SlackMentionMode) || "channel",
+        critical_ops_mention_mode:
+          (data.critical_ops_mention_mode as SlackMentionMode) || "channel",
+        critical_category_routing:
+          (data.critical_category_routing as Record<string, "tech" | "ops">) || {},
+      } as SlackIntegration
     },
     enabled: !!currentOrganizationId,
-  });
+  })
 
   // Fetch available Slack channels
-  const { data: channels = [], isLoading: isLoadingChannels, refetch: refetchChannels } = useQuery({
-    queryKey: ['slack-channels', currentOrganizationId],
+  const {
+    data: channels = [],
+    isLoading: isLoadingChannels,
+    refetch: refetchChannels,
+  } = useQuery({
+    queryKey: ["slack-channels", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId || !integration?.is_active) return [];
+      if (!currentOrganizationId || !integration?.is_active) return []
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) return []
 
-      const response = await supabase.functions.invoke('slack-list-channels', {
+      const response = await supabase.functions.invoke("slack-list-channels", {
         body: { organization_id: currentOrganizationId },
-      });
+      })
 
-      if (response.error) throw response.error;
-      return (response.data?.channels || []) as SlackChannel[];
+      if (response.error) throw response.error
+      return (response.data?.channels || []) as SlackChannel[]
     },
     enabled: !!currentOrganizationId && !!integration?.is_active,
-  });
+  })
 
   // Fetch channels from the secondary workspace (if connected)
-  const { data: secondaryChannels = [], isLoading: isLoadingSecondaryChannels, refetch: refetchSecondaryChannels } = useQuery({
-    queryKey: ['slack-secondary-channels', currentOrganizationId],
+  const {
+    data: secondaryChannels = [],
+    isLoading: isLoadingSecondaryChannels,
+    refetch: refetchSecondaryChannels,
+  } = useQuery({
+    queryKey: ["slack-secondary-channels", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId || !integration?.secondary_team_id) return [];
+      if (!currentOrganizationId || !integration?.secondary_team_id) return []
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) return []
 
-      const response = await supabase.functions.invoke('slack-list-channels', {
+      const response = await supabase.functions.invoke("slack-list-channels", {
         body: { organization_id: currentOrganizationId, use_secondary: true },
-      });
+      })
 
-      if (response.error) throw response.error;
-      return (response.data?.channels || []) as SlackChannel[];
+      if (response.error) throw response.error
+      return (response.data?.channels || []) as SlackChannel[]
     },
     enabled: !!currentOrganizationId && !!integration?.secondary_team_id,
-  });
+  })
 
   // Save bot token (main connection method)
   const saveDirectToken = useMutation({
     mutationFn: async ({ bot_token }: { bot_token: string }) => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
+      if (!currentOrganizationId) throw new Error("No organization selected")
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-token`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-token`
       const response = await fetch(functionUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          bot_token, 
-          organization_id: currentOrganizationId 
+        body: JSON.stringify({
+          bot_token,
+          organization_id: currentOrganizationId,
         }),
-      });
+      })
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      return data as { success: boolean; team_name: string; team_id: string };
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+      return data as { success: boolean; team_name: string; team_id: string }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-      toast.success(`Connected to ${data.team_name}!`);
+      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      toast.success(`Connected to ${data.team_name}!`)
     },
     onError: (error: Error) => {
-      toast.error(`Failed to connect: ${error.message}`);
+      toast.error(`Failed to connect: ${error.message}`)
     },
-  });
+  })
 
   // Disconnect Slack
   const disconnectSlack = useMutation({
     mutationFn: async () => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
+      if (!currentOrganizationId) throw new Error("No organization selected")
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect`
       const response = await fetch(functionUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ organization_id: currentOrganizationId }),
-      });
+      })
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      
-      return data;
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-      queryClient.invalidateQueries({ queryKey: ['slack-channels'] });
-      toast.success('Slack disconnected successfully');
+      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      queryClient.invalidateQueries({ queryKey: ["slack-channels"] })
+      toast.success("Slack disconnected successfully")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to disconnect: ${error.message}`);
+      toast.error(`Failed to disconnect: ${error.message}`)
     },
-  });
+  })
 
   // Update Slack configuration
   const updateConfiguration = useMutation({
     mutationFn: async (updates: {
-      default_channel_id?: string;
-      default_channel_name?: string;
-      digest_channel_id?: string;
-      digest_channel_name?: string;
-      critical_channel_id?: string;
-      critical_channel_name?: string;
-      is_active?: boolean;
-      configuration?: Partial<SlackIntegrationConfig>;
+      default_channel_id?: string
+      default_channel_name?: string
+      digest_channel_id?: string
+      digest_channel_name?: string
+      critical_channel_id?: string
+      critical_channel_name?: string
+      is_active?: boolean
+      configuration?: Partial<SlackIntegrationConfig>
       // Critical alert routing buckets
-      critical_tech_subteam_id?: string | null;
-      critical_tech_subteam_handle?: string | null;
-      critical_tech_user_id?: string | null;
-      critical_tech_mention_mode?: SlackMentionMode;
-      critical_ops_subteam_id?: string | null;
-      critical_ops_subteam_handle?: string | null;
-      critical_ops_user_id?: string | null;
-      critical_ops_mention_mode?: SlackMentionMode;
-      critical_category_routing?: Record<string, 'tech' | 'ops'>;
+      critical_tech_subteam_id?: string | null
+      critical_tech_subteam_handle?: string | null
+      critical_tech_user_id?: string | null
+      critical_tech_mention_mode?: SlackMentionMode
+      critical_ops_subteam_id?: string | null
+      critical_ops_subteam_handle?: string | null
+      critical_ops_user_id?: string | null
+      critical_ops_mention_mode?: SlackMentionMode
+      critical_category_routing?: Record<string, "tech" | "ops">
     }) => {
       if (!currentOrganizationId || !integration) {
-        throw new Error('No integration found');
+        throw new Error("No integration found")
       }
 
-      const updateData: Record<string, unknown> = {};
+      const updateData: Record<string, unknown> = {}
       const passthrough = [
-        'default_channel_id', 'default_channel_name',
-        'digest_channel_id', 'digest_channel_name',
-        'critical_channel_id', 'critical_channel_name',
-        'is_active',
-        'critical_tech_subteam_id', 'critical_tech_subteam_handle',
-        'critical_tech_user_id', 'critical_tech_mention_mode',
-        'critical_ops_subteam_id', 'critical_ops_subteam_handle',
-        'critical_ops_user_id', 'critical_ops_mention_mode',
-        'critical_category_routing',
-      ] as const;
+        "default_channel_id",
+        "default_channel_name",
+        "digest_channel_id",
+        "digest_channel_name",
+        "critical_channel_id",
+        "critical_channel_name",
+        "is_active",
+        "critical_tech_subteam_id",
+        "critical_tech_subteam_handle",
+        "critical_tech_user_id",
+        "critical_tech_mention_mode",
+        "critical_ops_subteam_id",
+        "critical_ops_subteam_handle",
+        "critical_ops_user_id",
+        "critical_ops_mention_mode",
+        "critical_category_routing",
+      ] as const
       for (const key of passthrough) {
         if ((updates as Record<string, unknown>)[key] !== undefined) {
-          updateData[key] = (updates as Record<string, unknown>)[key];
+          updateData[key] = (updates as Record<string, unknown>)[key]
         }
       }
       if (updates.configuration) {
         updateData.configuration = {
           ...integration.configuration,
           ...updates.configuration,
-        };
+        }
       }
 
       const { error } = await supabase
-        .from('slack_integrations')
+        .from("slack_integrations")
         .update(updateData)
-        .eq('id', integration.id);
+        .eq("id", integration.id)
 
-      if (error) throw error;
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-      toast.success('Slack settings saved');
+      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      toast.success("Slack settings saved")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to save: ${error.message}`);
+      toast.error(`Failed to save: ${error.message}`)
     },
-  });
+  })
 
   // Test Slack connection by sending a test message
   const testConnection = useMutation({
     mutationFn: async () => {
       if (!currentOrganizationId || !integration?.default_channel_id) {
-        throw new Error('No channel configured');
+        throw new Error("No channel configured")
       }
 
-      const response = await supabase.functions.invoke('send-slack-notification', {
+      const response = await supabase.functions.invoke("send-slack-notification", {
         body: {
           organization_id: currentOrganizationId,
-          event_type: 'new_conversation',
-          customer_name: 'Test User',
-          customer_email: 'test@example.com',
-          subject: 'Test Notification',
-          preview_text: 'This is a test notification from your support system. If you can see this, Slack is configured correctly!',
-          inbox_name: 'Test',
+          event_type: "new_conversation",
+          customer_name: "Test User",
+          customer_email: "test@example.com",
+          subject: "Test Notification",
+          preview_text:
+            "This is a test notification from your support system. If you can see this, Slack is configured correctly!",
+          inbox_name: "Test",
         },
-      });
+      })
 
-      if (response.error) throw response.error;
-      if (response.data?.error) throw new Error(response.data.error);
-      
-      return response.data;
+      if (response.error) throw response.error
+      if (response.data?.error) throw new Error(response.data.error)
+
+      return response.data
     },
     onSuccess: () => {
-      toast.success('Test notification sent to Slack!');
+      toast.success("Test notification sent to Slack!")
     },
     onError: (error: Error) => {
-      toast.error(`Test failed: ${error.message}`);
+      toast.error(`Test failed: ${error.message}`)
     },
-  });
+  })
 
   // Save secondary workspace token
   const saveSecondaryToken = useMutation({
     mutationFn: async ({ bot_token }: { bot_token: string }) => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
+      if (!currentOrganizationId) throw new Error("No organization selected")
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-secondary-token`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=save-secondary-token`
       const response = await fetch(functionUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ bot_token, organization_id: currentOrganizationId }),
-      });
+      })
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      return data as { success: boolean; team_name: string; team_id: string };
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+      return data as { success: boolean; team_name: string; team_id: string }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-      queryClient.invalidateQueries({ queryKey: ['slack-secondary-channels'] });
-      toast.success(`Secondary workspace connected: ${data.team_name}`);
+      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
+      toast.success(`Secondary workspace connected: ${data.team_name}`)
     },
     onError: (error: Error) => {
-      toast.error(`Failed to connect secondary workspace: ${error.message}`);
+      toast.error(`Failed to connect secondary workspace: ${error.message}`)
     },
-  });
+  })
 
   // Disconnect secondary workspace
   const disconnectSecondary = useMutation({
     mutationFn: async () => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
+      if (!currentOrganizationId) throw new Error("No organization selected")
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect-secondary`;
+      const functionUrl = `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/slack-integration?action=disconnect-secondary`
       const response = await fetch(functionUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ organization_id: currentOrganizationId }),
-      });
+      })
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      return data;
+      const data = await response.json()
+      if (data.error) throw new Error(data.error)
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['slack-integration'] });
-      queryClient.invalidateQueries({ queryKey: ['slack-secondary-channels'] });
-      toast.success('Secondary workspace disconnected');
+      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
+      toast.success("Secondary workspace disconnected")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to disconnect: ${error.message}`);
+      toast.error(`Failed to disconnect: ${error.message}`)
     },
-  });
+  })
 
   return {
     integration,
@@ -385,5 +421,5 @@ export const useSlackIntegration = () => {
     saveDirectToken,
     saveSecondaryToken,
     disconnectSecondary,
-  };
-};
+  }
+}

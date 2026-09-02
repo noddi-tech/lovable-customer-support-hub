@@ -1,315 +1,333 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { TagMultiSelect } from "./TagMultiSelect";
-import { StarRatingInput } from "@/components/ui/star-rating-input";
-import { 
-  Play, 
-  Loader2, 
-  Check, 
-  X, 
-  Edit3, 
-  Star, 
-  MessageSquare, 
-  User,
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  Check,
+  CheckCheck,
+  Edit3,
+  Loader2,
+  MessageSquare,
+  Play,
   RefreshCw,
-  CheckCheck
-} from "lucide-react";
+  User,
+  X,
+} from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { StarRatingInput } from "@/components/ui/star-rating-input"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { TagMultiSelect } from "./TagMultiSelect"
 
 interface KnowledgeImportFromHistoryProps {
-  organizationId: string;
+  organizationId: string
 }
 
 interface PendingEntry {
-  id: string;
-  customer_context: string;
-  agent_response: string;
-  suggested_category_id: string | null;
-  suggested_tags: string[] | null;
-  ai_quality_score: number | null;
-  review_status: string;
-  source_conversation_id: string | null;
-  source_message_id: string | null;
-  created_at: string;
+  id: string
+  customer_context: string
+  agent_response: string
+  suggested_category_id: string | null
+  suggested_tags: string[] | null
+  ai_quality_score: number | null
+  review_status: string
+  source_conversation_id: string | null
+  source_message_id: string | null
+  created_at: string
 }
 
 interface ExtractionJob {
-  id: string;
-  status: string;
-  total_conversations: number;
-  total_processed: number;
-  entries_created: number;
-  entries_skipped: number;
-  started_at: string | null;
-  completed_at: string | null;
+  id: string
+  status: string
+  total_conversations: number
+  total_processed: number
+  entries_created: number
+  entries_skipped: number
+  started_at: string | null
+  completed_at: string | null
 }
 
 export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFromHistoryProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<string | null>(null);
-  const [editedContent, setEditedContent] = useState<{ customer: string; agent: string }>({ customer: '', agent: '' });
-  const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
-  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({});
-  const [adminScores, setAdminScores] = useState<Record<string, number>>({});
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<string | null>(null)
+  const [editedContent, setEditedContent] = useState<{ customer: string; agent: string }>({
+    customer: "",
+    agent: "",
+  })
+  const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({})
+  const [selectedTags, setSelectedTags] = useState<Record<string, string[]>>({})
+  const [adminScores, setAdminScores] = useState<Record<string, number>>({})
 
   // Fetch latest extraction job
   const { data: latestJob, isLoading: jobLoading } = useQuery({
-    queryKey: ['knowledge-extraction-job', organizationId],
+    queryKey: ["knowledge-extraction-job", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_extraction_jobs')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
+        .from("knowledge_extraction_jobs")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()
 
-      if (error) throw error;
-      return data as ExtractionJob | null;
+      if (error) throw error
+      return data as ExtractionJob | null
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   // Fetch pending entries
   const { data: pendingEntries, isLoading: entriesLoading } = useQuery({
-    queryKey: ['knowledge-pending-entries', organizationId],
+    queryKey: ["knowledge-pending-entries", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_pending_entries')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('review_status', 'pending')
-        .order('ai_quality_score', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .from("knowledge_pending_entries")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("review_status", "pending")
+        .order("ai_quality_score", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(100)
 
-      if (error) throw error;
-      return data as PendingEntry[];
+      if (error) throw error
+      return data as PendingEntry[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   // Fetch categories for assignment
   const { data: categories } = useQuery({
-    queryKey: ['knowledge-categories', organizationId],
+    queryKey: ["knowledge-categories", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_categories')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('is_active', true)
-        .order('name');
+        .from("knowledge_categories")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true)
+        .order("name")
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     staleTime: 0,
-  });
+  })
 
   // Start extraction mutation
   const startExtractionMutation = useMutation({
     mutationFn: async () => {
-      setIsExtracting(true);
-      let offset = 0;
-      let jobId: string | null = null;
-      
+      setIsExtracting(true)
+      let offset = 0
+      let jobId: string | null = null
+
       while (true) {
-        const { data, error } = await supabase.functions.invoke('extract-knowledge-from-history', {
-          body: { 
-            organizationId, 
+        const { data, error } = await supabase.functions.invoke("extract-knowledge-from-history", {
+          body: {
+            organizationId,
             jobId,
             batchSize: 50,
-            offset 
-          }
-        });
+            offset,
+          },
+        })
 
-        if (error) throw error;
+        if (error) throw error
 
-        jobId = data.jobId;
-        
+        jobId = data.jobId
+
         // Refetch job status to update progress
-        await queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
+        await queryClient.invalidateQueries({
+          queryKey: ["knowledge-extraction-job", organizationId],
+        })
 
-        if (data.status === 'completed' || data.nextOffset === null) {
-          break;
+        if (data.status === "completed" || data.nextOffset === null) {
+          break
         }
 
-        offset = data.nextOffset;
+        offset = data.nextOffset
       }
 
-      return { success: true };
+      return { success: true }
     },
     onSuccess: () => {
-      setIsExtracting(false);
+      setIsExtracting(false)
       toast({
         title: "Extraction Complete",
         description: "Q&A pairs have been extracted and are ready for review.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
+      })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-extraction-job", organizationId] })
     },
     onError: (error) => {
-      setIsExtracting(false);
+      setIsExtracting(false)
       toast({
         title: "Extraction Failed",
         description: error instanceof Error ? error.message : "Failed to extract knowledge",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   // Approve entry mutation
   const approveEntryMutation = useMutation({
-    mutationFn: async ({ entryId, categoryId, tags, customerContext, agentResponse }: { 
-      entryId: string; 
-      categoryId?: string;
-      tags?: string[];
-      customerContext?: string;
-      agentResponse?: string;
+    mutationFn: async ({
+      entryId,
+      categoryId,
+      tags,
+      customerContext,
+      agentResponse,
+    }: {
+      entryId: string
+      categoryId?: string
+      tags?: string[]
+      customerContext?: string
+      agentResponse?: string
     }) => {
-      const entry = pendingEntries?.find(e => e.id === entryId);
-      if (!entry) throw new Error('Entry not found');
+      const entry = pendingEntries?.find((e) => e.id === entryId)
+      if (!entry) throw new Error("Entry not found")
 
-      const finalCustomerContext = customerContext || entry.customer_context;
-      const finalAgentResponse = agentResponse || entry.agent_response;
+      const finalCustomerContext = customerContext || entry.customer_context
+      const finalAgentResponse = agentResponse || entry.agent_response
 
       // Create embedding for the entry
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('create-embedding', {
-        body: { text: `${finalCustomerContext}\n\n${finalAgentResponse}` }
-      });
+      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
+        "create-embedding",
+        {
+          body: { text: `${finalCustomerContext}\n\n${finalAgentResponse}` },
+        },
+      )
 
       if (embeddingError) {
-        console.warn('Failed to create embedding:', embeddingError);
+        console.warn("Failed to create embedding:", embeddingError)
       }
 
       // Insert into knowledge_entries
-      const { error: insertError } = await supabase
-        .from('knowledge_entries')
-        .insert({
-          organization_id: organizationId,
-          customer_context: finalCustomerContext,
-          agent_response: finalAgentResponse,
-          category: categoryId || null,
-          tags: tags && tags.length > 0 ? tags : null,
-          embedding: embeddingData?.embedding ? JSON.stringify(embeddingData.embedding) : null,
-          quality_score: adminScores[entry.id] ?? entry.ai_quality_score ?? 3.0,
-          is_manually_curated: true,
-          created_from_message_id: entry.source_message_id,
-        });
+      const { error: insertError } = await supabase.from("knowledge_entries").insert({
+        organization_id: organizationId,
+        customer_context: finalCustomerContext,
+        agent_response: finalAgentResponse,
+        category: categoryId || null,
+        tags: tags && tags.length > 0 ? tags : null,
+        embedding: embeddingData?.embedding ? JSON.stringify(embeddingData.embedding) : null,
+        quality_score: adminScores[entry.id] ?? entry.ai_quality_score ?? 3.0,
+        is_manually_curated: true,
+        created_from_message_id: entry.source_message_id,
+      })
 
-      if (insertError) throw insertError;
+      if (insertError) throw insertError
 
       // Mark pending entry as approved
       const { error: updateError } = await supabase
-        .from('knowledge_pending_entries')
-        .update({ 
-          review_status: customerContext || agentResponse ? 'edited' : 'approved',
+        .from("knowledge_pending_entries")
+        .update({
+          review_status: customerContext || agentResponse ? "edited" : "approved",
           reviewed_at: new Date().toISOString(),
         })
-        .eq('id', entryId);
+        .eq("id", entryId)
 
-      if (updateError) throw updateError;
+      if (updateError) throw updateError
 
-      return { success: true };
+      return { success: true }
     },
     onSuccess: () => {
       toast({
         title: "Entry Approved",
         description: "Entry has been added to the knowledge base.",
-      });
-      setEditingEntry(null);
-      queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-entries', organizationId] });
+      })
+      setEditingEntry(null)
+      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-entries", organizationId] })
     },
     onError: (error) => {
       toast({
         title: "Approval Failed",
         description: error instanceof Error ? error.message : "Failed to approve entry",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   // Reject entry mutation
   const rejectEntryMutation = useMutation({
     mutationFn: async (entryId: string) => {
       const { error } = await supabase
-        .from('knowledge_pending_entries')
-        .update({ 
-          review_status: 'rejected',
+        .from("knowledge_pending_entries")
+        .update({
+          review_status: "rejected",
           reviewed_at: new Date().toISOString(),
         })
-        .eq('id', entryId);
+        .eq("id", entryId)
 
-      if (error) throw error;
-      return { success: true };
+      if (error) throw error
+      return { success: true }
     },
     onSuccess: () => {
       toast({
         title: "Entry Skipped",
         description: "Entry has been removed from the review queue.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
+      })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
     },
-  });
+  })
 
   // Bulk approve high-quality entries
   const bulkApproveMutation = useMutation({
     mutationFn: async (minScore: number) => {
-      const highQualityEntries = pendingEntries?.filter(
-        e => e.ai_quality_score !== null && e.ai_quality_score >= minScore
-      ) || [];
+      const highQualityEntries =
+        pendingEntries?.filter(
+          (e) => e.ai_quality_score !== null && e.ai_quality_score >= minScore,
+        ) || []
 
       for (const entry of highQualityEntries) {
-        await approveEntryMutation.mutateAsync({ 
+        await approveEntryMutation.mutateAsync({
           entryId: entry.id,
-        });
+        })
       }
 
-      return { approved: highQualityEntries.length };
+      return { approved: highQualityEntries.length }
     },
     onSuccess: (data) => {
       toast({
         title: "Bulk Approval Complete",
         description: `${data.approved} entries have been added to the knowledge base.`,
-      });
+      })
     },
-  });
+  })
 
-  const progressPercentage = latestJob 
+  const progressPercentage = latestJob
     ? Math.round((latestJob.total_processed / Math.max(latestJob.total_conversations, 1)) * 100)
-    : 0;
+    : 0
 
   const startEditing = (entry: PendingEntry) => {
-    setEditingEntry(entry.id);
+    setEditingEntry(entry.id)
     setEditedContent({
       customer: entry.customer_context,
       agent: entry.agent_response,
-    });
-  };
+    })
+  }
 
   const renderQualityStars = (entryId: string, score: number | null) => {
-    const currentScore = adminScores[entryId] ?? (score ? Math.round(score) : 3);
+    const currentScore = adminScores[entryId] ?? (score ? Math.round(score) : 3)
     return (
       <StarRatingInput
         value={currentScore}
-        onChange={(value) => setAdminScores(prev => ({ ...prev, [entryId]: value }))}
+        onChange={(value) => setAdminScores((prev) => ({ ...prev, [entryId]: value }))}
         size="sm"
       />
-    );
-  };
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -328,9 +346,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
           <div className="flex items-center gap-4">
             <Button
               onClick={() => startExtractionMutation.mutate()}
-              disabled={isExtracting || latestJob?.status === 'running'}
+              disabled={isExtracting || latestJob?.status === "running"}
             >
-              {isExtracting || latestJob?.status === 'running' ? (
+              {isExtracting || latestJob?.status === "running" ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Extracting...
@@ -342,14 +360,20 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                 </>
               )}
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ['knowledge-extraction-job', organizationId] });
-                queryClient.invalidateQueries({ queryKey: ['knowledge-pending-entries', organizationId] });
-                queryClient.invalidateQueries({ queryKey: ['knowledge-tags', organizationId] });
-                queryClient.invalidateQueries({ queryKey: ['knowledge-categories', organizationId] });
+                queryClient.invalidateQueries({
+                  queryKey: ["knowledge-extraction-job", organizationId],
+                })
+                queryClient.invalidateQueries({
+                  queryKey: ["knowledge-pending-entries", organizationId],
+                })
+                queryClient.invalidateQueries({ queryKey: ["knowledge-tags", organizationId] })
+                queryClient.invalidateQueries({
+                  queryKey: ["knowledge-categories", organizationId],
+                })
               }}
             >
               <RefreshCw className="w-4 h-4" />
@@ -361,9 +385,10 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span>
-                  Progress: {latestJob.total_processed} / {latestJob.total_conversations} conversations
+                  Progress: {latestJob.total_processed} / {latestJob.total_conversations}{" "}
+                  conversations
                 </span>
-                <Badge variant={latestJob.status === 'completed' ? 'default' : 'secondary'}>
+                <Badge variant={latestJob.status === "completed" ? "default" : "secondary"}>
                   {latestJob.status}
                 </Badge>
               </div>
@@ -408,7 +433,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No pending entries to review.</p>
-              <p className="text-sm">Start an extraction to import Q&A pairs from your conversations.</p>
+              <p className="text-sm">
+                Start an extraction to import Q&A pairs from your conversations.
+              </p>
             </div>
           ) : (
             <ScrollArea className="h-[600px] pr-4">
@@ -425,7 +452,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                         {editingEntry === entry.id ? (
                           <Textarea
                             value={editedContent.customer}
-                            onChange={(e) => setEditedContent(prev => ({ ...prev, customer: e.target.value }))}
+                            onChange={(e) =>
+                              setEditedContent((prev) => ({ ...prev, customer: e.target.value }))
+                            }
                             className="min-h-[80px]"
                           />
                         ) : (
@@ -444,7 +473,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                         {editingEntry === entry.id ? (
                           <Textarea
                             value={editedContent.agent}
-                            onChange={(e) => setEditedContent(prev => ({ ...prev, agent: e.target.value }))}
+                            onChange={(e) =>
+                              setEditedContent((prev) => ({ ...prev, agent: e.target.value }))
+                            }
                             className="min-h-[120px]"
                           />
                         ) : (
@@ -458,14 +489,16 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center flex-wrap gap-4">
                           {renderQualityStars(entry.id, entry.ai_quality_score)}
-                          
+
                           <Select
-                            value={selectedCategories[entry.id] ?? entry.suggested_category_id ?? 'none'}
+                            value={
+                              selectedCategories[entry.id] ?? entry.suggested_category_id ?? "none"
+                            }
                             onValueChange={(value) => {
-                              setSelectedCategories(prev => ({
+                              setSelectedCategories((prev) => ({
                                 ...prev,
-                                [entry.id]: value
-                              }));
+                                [entry.id]: value,
+                              }))
                             }}
                           >
                             <SelectTrigger className="w-full sm:w-[200px]">
@@ -480,21 +513,21 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                               ))}
                             </SelectContent>
                           </Select>
-                          
+
                           <div className="w-[280px]">
                             <TagMultiSelect
                               organizationId={organizationId}
                               selectedTags={selectedTags[entry.id] ?? entry.suggested_tags ?? []}
                               onChange={(tags) => {
-                                setSelectedTags(prev => ({
+                                setSelectedTags((prev) => ({
                                   ...prev,
-                                  [entry.id]: tags
-                                }));
+                                  [entry.id]: tags,
+                                }))
                               }}
                               placeholder="Select tags..."
                               selectedCategoryId={
-                                selectedCategories[entry.id] !== 'none' 
-                                  ? selectedCategories[entry.id] 
+                                selectedCategories[entry.id] !== "none"
+                                  ? selectedCategories[entry.id]
                                   : entry.suggested_category_id
                               }
                             />
@@ -507,13 +540,18 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => approveEntryMutation.mutate({
-                                  entryId: entry.id,
-                                  categoryId: selectedCategories[entry.id] !== 'none' ? selectedCategories[entry.id] : undefined,
-                                  tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
-                                  customerContext: editedContent.customer,
-                                  agentResponse: editedContent.agent,
-                                })}
+                                onClick={() =>
+                                  approveEntryMutation.mutate({
+                                    entryId: entry.id,
+                                    categoryId:
+                                      selectedCategories[entry.id] !== "none"
+                                        ? selectedCategories[entry.id]
+                                        : undefined,
+                                    tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
+                                    customerContext: editedContent.customer,
+                                    agentResponse: editedContent.agent,
+                                  })
+                                }
                                 disabled={approveEntryMutation.isPending}
                               >
                                 <Check className="w-4 h-4" />
@@ -531,11 +569,16 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
                             <>
                               <Button
                                 size="sm"
-                                onClick={() => approveEntryMutation.mutate({ 
-                                  entryId: entry.id,
-                                  categoryId: selectedCategories[entry.id] !== 'none' ? selectedCategories[entry.id] : undefined,
-                                  tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
-                                })}
+                                onClick={() =>
+                                  approveEntryMutation.mutate({
+                                    entryId: entry.id,
+                                    categoryId:
+                                      selectedCategories[entry.id] !== "none"
+                                        ? selectedCategories[entry.id]
+                                        : undefined,
+                                    tags: selectedTags[entry.id] ?? entry.suggested_tags ?? [],
+                                  })
+                                }
                                 disabled={approveEntryMutation.isPending}
                               >
                                 <Check className="w-4 h-4" />
@@ -571,5 +614,5 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

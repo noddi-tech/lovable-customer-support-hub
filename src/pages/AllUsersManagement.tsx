@@ -1,317 +1,336 @@
 // Force rebuild: 2025-12-16T14:30:00Z
-import React, { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Heading } from '@/components/ui/heading';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Crown, Search, Building2, RefreshCw, UserPlus, X, UserCog, Mail } from 'lucide-react';
-import { DataTable } from '@/components/admin/DataTable';
-import { allUserColumns, AllUserRow } from '@/components/admin/users/AllUserColumns';
-import { UserActivityTimeline } from '@/components/admin/UserActivityTimeline';
-import { OrphanedUsersCleanup } from '@/components/admin/OrphanedUsersCleanup';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { useAuditLog } from '@/hooks/useAuditLog';
-import { useInviteEmailLogs } from '@/hooks/useInviteEmailLogs';
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Building2, Crown, Mail, RefreshCw, Search, UserCog, UserPlus, X } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { DataTable } from "@/components/admin/DataTable"
+import { OrphanedUsersCleanup } from "@/components/admin/OrphanedUsersCleanup"
+import { UserActivityTimeline } from "@/components/admin/UserActivityTimeline"
+import { type AllUserRow, allUserColumns } from "@/components/admin/users/AllUserColumns"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
-import { useOrganizationStore } from '@/stores/organizationStore';
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
+import { useAuditLog } from "@/hooks/useAuditLog"
+import { useInviteEmailLogs } from "@/hooks/useInviteEmailLogs"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface OrgMembership {
-  org_id: string;
-  org_name: string;
-  role: 'admin' | 'agent' | 'user' | 'super_admin';
+  org_id: string
+  org_name: string
+  role: "admin" | "agent" | "user" | "super_admin"
 }
 
 export default function AllUsersManagement() {
-  const { currentOrganizationId } = useOrganizationStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [orgFilter, setOrgFilter] = useState<string>(currentOrganizationId || 'all');
-  
+  const { currentOrganizationId } = useOrganizationStore()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [orgFilter, setOrgFilter] = useState<string>(currentOrganizationId || "all")
+
   // Sync orgFilter with global organization store
   useEffect(() => {
     if (currentOrganizationId) {
-      setOrgFilter(currentOrganizationId);
+      setOrgFilter(currentOrganizationId)
     }
-  }, [currentOrganizationId]);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
-  const [showActivityTimeline, setShowActivityTimeline] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  }, [currentOrganizationId])
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string>("")
+  const [showActivityTimeline, setShowActivityTimeline] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createUserData, setCreateUserData] = useState({
-    email: '',
-    full_name: '',
-    organizations: [] as OrgMembership[]
-  });
-  const [letUserSetPassword, setLetUserSetPassword] = useState(true);
-  const [adminSetPassword, setAdminSetPassword] = useState('');
-  const [selectedOrg, setSelectedOrg] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'agent' | 'user' | 'super_admin'>('user');
-  const [showAddExistingDialog, setShowAddExistingDialog] = useState(false);
-  const [selectedExistingUserId, setSelectedExistingUserId] = useState('');
+    email: "",
+    full_name: "",
+    organizations: [] as OrgMembership[],
+  })
+  const [letUserSetPassword, setLetUserSetPassword] = useState(true)
+  const [adminSetPassword, setAdminSetPassword] = useState("")
+  const [selectedOrg, setSelectedOrg] = useState("")
+  const [selectedRole, setSelectedRole] = useState<"admin" | "agent" | "user" | "super_admin">(
+    "user",
+  )
+  const [showAddExistingDialog, setShowAddExistingDialog] = useState(false)
+  const [selectedExistingUserId, setSelectedExistingUserId] = useState("")
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { logAction } = useAuditLog();
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { logAction } = useAuditLog()
 
   // Fetch all organizations for filter
   const { data: organizations = [] } = useQuery({
-    queryKey: ['all-organizations'],
+    queryKey: ["all-organizations"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('id, name')
-        .order('name');
+      const { data, error } = await supabase.from("organizations").select("id, name").order("name")
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data || []
     },
-  });
+  })
 
   // Fetch all users with their organization memberships and system roles via edge function
-  const { data: users = [], isLoading, refetch } = useQuery({
-    queryKey: ['all-users', orgFilter],
+  const {
+    data: users = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["all-users", orgFilter],
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache (formerly cacheTime)
-    refetchOnMount: 'always', // Force fresh fetch, override persisted cache
+    refetchOnMount: "always", // Force fresh fetch, override persisted cache
     queryFn: async () => {
       // Use edge function to bypass RLS and fetch all user data
-      const { data, error } = await supabase.functions.invoke('admin-get-all-users', {
-        body: { orgFilter }
-      });
+      const { data, error } = await supabase.functions.invoke("admin-get-all-users", {
+        body: { orgFilter },
+      })
 
       if (error) {
-        console.error('Error fetching users:', error);
-        throw new Error(error.message || 'Failed to fetch users');
+        console.error("Error fetching users:", error)
+        throw new Error(error.message || "Failed to fetch users")
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Failed to fetch users');
+        throw new Error(data?.error || "Failed to fetch users")
       }
 
       // Debug: Log sample user data to check system_roles
-      console.log('[AllUsersManagement] Sample user data:', data.users?.slice(0, 3)?.map((u: any) => ({
-        email: u.email,
-        system_roles: u.system_roles,
-      })));
+      console.log(
+        "[AllUsersManagement] Sample user data:",
+        data.users?.slice(0, 3)?.map((u: any) => ({
+          email: u.email,
+          system_roles: u.system_roles,
+        })),
+      )
 
-      return data.users || [];
+      return data.users || []
     },
-  });
+  })
 
   // Fetch invite email logs for status display
-  const { data: inviteLogs = [] } = useInviteEmailLogs();
+  const { data: inviteLogs = [] } = useInviteEmailLogs()
 
   // Helper to get latest invite status for a user email
   const getInviteStatus = (email: string) => {
-    const userLogs = inviteLogs.filter(log => log.email === email);
-    if (userLogs.length === 0) return null;
-    return userLogs[0]; // Most recent
-  };
+    const userLogs = inviteLogs.filter((log) => log.email === email)
+    if (userLogs.length === 0) return null
+    return userLogs[0] // Most recent
+  }
 
   const filteredUsers: AllUserRow[] = users
-    .filter((user: any) =>
-      (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(
+      (user: any) =>
+        user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()),
     )
     .map((user: any) => ({
       ...user,
       _inviteStatus: getInviteStatus(user.email),
       _onActivity: (userId: string, email: string) => {
-        setSelectedUserId(userId);
-        setSelectedUserEmail(email);
-        setShowActivityTimeline(true);
+        setSelectedUserId(userId)
+        setSelectedUserEmail(email)
+        setShowActivityTimeline(true)
       },
-    }));
+    }))
 
   // Create user mutation for super-admin
   const createUserMutation = useMutation({
     mutationFn: async (userData: typeof createUserData) => {
       if (userData.organizations.length === 0) {
-        throw new Error("At least one organization is required");
+        throw new Error("At least one organization is required")
       }
 
       // Call the secure edge function to create user
-      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
         body: {
           email: userData.email,
           full_name: userData.full_name,
-          organizations: userData.organizations.map(o => ({ 
-            org_id: o.org_id, 
-            role: o.role 
+          organizations: userData.organizations.map((o) => ({
+            org_id: o.org_id,
+            role: o.role,
           })),
           send_invite: letUserSetPassword,
           password: letUserSetPassword ? undefined : adminSetPassword,
-        }
-      });
+        },
+      })
 
       // Handle function invocation errors - extract message from response body if available
       if (error) {
-        const errorMessage = error.context?.body?.error || error.message || 'Failed to create user';
-        throw new Error(errorMessage);
-      }
-      
-      // Handle application-level errors from the edge function
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to create user');
+        const errorMessage = error.context?.body?.error || error.message || "Failed to create user"
+        throw new Error(errorMessage)
       }
 
-      return { user: data.user, userData };
+      // Handle application-level errors from the edge function
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to create user")
+      }
+
+      return { user: data.user, userData }
     },
     onSuccess: async (data, variables) => {
       try {
-        await logAction(
-          'user.create',
-          'user',
-          data.user.id,
-          variables.email,
-          { 
-            email: variables.email,
-            full_name: variables.full_name,
-            organizations: variables.organizations.map(o => ({ 
-              org_name: o.org_name, 
-              role: o.role 
-            }))
-          }
-        );
+        await logAction("user.create", "user", data.user.id, variables.email, {
+          email: variables.email,
+          full_name: variables.full_name,
+          organizations: variables.organizations.map((o) => ({
+            org_name: o.org_name,
+            role: o.role,
+          })),
+        })
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast({
         title: letUserSetPassword ? "Invite sent successfully" : "User created successfully",
-        description: letUserSetPassword 
+        description: letUserSetPassword
           ? `${variables.full_name} will receive an email to set up their password.`
           : `${variables.full_name} has been created. Share the password securely.`,
-      });
-      setShowCreateDialog(false);
+      })
+      setShowCreateDialog(false)
       setCreateUserData({
-        email: '',
-        full_name: '',
-        organizations: []
-      });
-      setLetUserSetPassword(true);
-      setAdminSetPassword('');
+        email: "",
+        full_name: "",
+        organizations: [],
+      })
+      setLetUserSetPassword(true)
+      setAdminSetPassword("")
     },
     onError: (error: any) => {
-      const message = error.message || "Please try again.";
-      const isDuplicateEmail = message.includes('already been registered') || message.includes('already exists');
-      
+      const message = error.message || "Please try again."
+      const isDuplicateEmail =
+        message.includes("already been registered") || message.includes("already exists")
+
       toast({
         title: isDuplicateEmail ? "User already exists" : "Failed to create user",
-        description: isDuplicateEmail 
+        description: isDuplicateEmail
           ? "This email is already registered. Use 'Manage Organizations' from the user's menu (⋮) to add them to another organization."
           : message,
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   // Add existing user to organization mutation
   const addExistingUserMutation = useMutation({
-    mutationFn: async ({ userId, orgId, role }: { userId: string; orgId: string; role: string }) => {
+    mutationFn: async ({
+      userId,
+      orgId,
+      role,
+    }: {
+      userId: string
+      orgId: string
+      role: string
+    }) => {
       // Check if membership already exists
       const { data: existing } = await supabase
-        .from('organization_memberships')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('organization_id', orgId)
-        .maybeSingle();
+        .from("organization_memberships")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("organization_id", orgId)
+        .maybeSingle()
 
-      if (existing) throw new Error('User is already a member of this organization.');
+      if (existing) throw new Error("User is already a member of this organization.")
 
       // Create membership
-      const { error: membershipError } = await supabase
-        .from('organization_memberships')
-        .insert({
-          user_id: userId,
-          organization_id: orgId,
-          role: role as 'admin' | 'agent' | 'user' | 'super_admin',
-          status: 'active',
-          joined_at: new Date().toISOString(),
-        });
+      const { error: membershipError } = await supabase.from("organization_memberships").insert({
+        user_id: userId,
+        organization_id: orgId,
+        role: role as "admin" | "agent" | "user" | "super_admin",
+        status: "active",
+        joined_at: new Date().toISOString(),
+      })
 
-      if (membershipError) throw new Error(membershipError.message);
-      return { userId, orgId };
+      if (membershipError) throw new Error(membershipError.message)
+      return { userId, orgId }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast({ title: "User added to organization" });
-      setShowAddExistingDialog(false);
-      setSelectedExistingUserId('');
-      setSelectedOrg('');
-      setSelectedRole('user');
+      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      toast({ title: "User added to organization" })
+      setShowAddExistingDialog(false)
+      setSelectedExistingUserId("")
+      setSelectedOrg("")
+      setSelectedRole("user")
     },
     onError: (error: any) => {
-      toast({ title: "Failed to add user", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to add user", description: error.message, variant: "destructive" })
     },
-  });
+  })
 
   const handleAddOrganization = () => {
     if (!selectedOrg) {
       toast({
         title: "Please select an organization",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    const org = organizations.find(o => o.id === selectedOrg);
-    if (!org) return;
+    const org = organizations.find((o) => o.id === selectedOrg)
+    if (!org) return
 
     // Check if org already added
-    if (createUserData.organizations.some(o => o.org_id === selectedOrg)) {
+    if (createUserData.organizations.some((o) => o.org_id === selectedOrg)) {
       toast({
         title: "Organization already added",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    setCreateUserData(prev => ({
+    setCreateUserData((prev) => ({
       ...prev,
-      organizations: [...prev.organizations, {
-        org_id: selectedOrg,
-        org_name: org.name,
-        role: selectedRole
-      }]
-    }));
+      organizations: [
+        ...prev.organizations,
+        {
+          org_id: selectedOrg,
+          org_name: org.name,
+          role: selectedRole,
+        },
+      ],
+    }))
 
-    setSelectedOrg('');
-    setSelectedRole('user');
-  };
+    setSelectedOrg("")
+    setSelectedRole("user")
+  }
 
   const handleRemoveOrganization = (orgId: string) => {
-    setCreateUserData(prev => ({
+    setCreateUserData((prev) => ({
       ...prev,
-      organizations: prev.organizations.filter(o => o.org_id !== orgId)
-    }));
-  };
+      organizations: prev.organizations.filter((o) => o.org_id !== orgId),
+    }))
+  }
 
   const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!createUserData.email.trim() || !createUserData.full_name.trim()) {
       toast({
         title: "Validation Error",
         description: "Email and full name are required.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     if (!letUserSetPassword && adminSetPassword.length < 6) {
@@ -319,8 +338,8 @@ export default function AllUsersManagement() {
         title: "Validation Error",
         description: "Password must be at least 6 characters.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     if (createUserData.organizations.length === 0) {
@@ -328,12 +347,12 @@ export default function AllUsersManagement() {
         title: "Validation Error",
         description: "At least one organization is required.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    createUserMutation.mutate(createUserData);
-  };
+    createUserMutation.mutate(createUserData)
+  }
 
   return (
     <AdminPortalLayout>
@@ -342,7 +361,10 @@ export default function AllUsersManagement() {
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Crown className="h-8 w-8 text-yellow-600 dark:text-yellow-500" />
-            <Heading level={1} className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-500 dark:to-amber-500 bg-clip-text text-transparent">
+            <Heading
+              level={1}
+              className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-500 dark:to-amber-500 bg-clip-text text-transparent"
+            >
               User Management
             </Heading>
           </div>
@@ -375,7 +397,12 @@ export default function AllUsersManagement() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={() => refetch()} variant="outline" size="default" className="w-full md:w-auto">
+              <Button
+                onClick={() => refetch()}
+                variant="outline"
+                size="default"
+                className="w-full md:w-auto"
+              >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Data
               </Button>
@@ -401,7 +428,9 @@ export default function AllUsersManagement() {
                           id="email"
                           type="email"
                           value={createUserData.email}
-                          onChange={(e) => setCreateUserData(prev => ({ ...prev, email: e.target.value }))}
+                          onChange={(e) =>
+                            setCreateUserData((prev) => ({ ...prev, email: e.target.value }))
+                          }
                           placeholder="user@company.com"
                           required
                         />
@@ -411,20 +440,25 @@ export default function AllUsersManagement() {
                         <Input
                           id="full_name"
                           value={createUserData.full_name}
-                          onChange={(e) => setCreateUserData(prev => ({ ...prev, full_name: e.target.value }))}
+                          onChange={(e) =>
+                            setCreateUserData((prev) => ({ ...prev, full_name: e.target.value }))
+                          }
                           placeholder="John Doe"
                           required
                         />
                       </div>
-                      
+
                       {/* Password toggle */}
                       <div className="flex items-center space-x-2 py-2">
-                        <Checkbox 
-                          id="letUserSetPassword" 
+                        <Checkbox
+                          id="letUserSetPassword"
                           checked={letUserSetPassword}
                           onCheckedChange={(checked) => setLetUserSetPassword(!!checked)}
                         />
-                        <Label htmlFor="letUserSetPassword" className="text-sm font-normal cursor-pointer">
+                        <Label
+                          htmlFor="letUserSetPassword"
+                          className="text-sm font-normal cursor-pointer"
+                        >
                           Let user set their own password via email
                         </Label>
                       </div>
@@ -470,7 +504,12 @@ export default function AllUsersManagement() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Select value={selectedRole} onValueChange={(v: 'admin' | 'agent' | 'user' | 'super_admin') => setSelectedRole(v)}>
+                        <Select
+                          value={selectedRole}
+                          onValueChange={(v: "admin" | "agent" | "user" | "super_admin") =>
+                            setSelectedRole(v)
+                          }
+                        >
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
@@ -489,11 +528,16 @@ export default function AllUsersManagement() {
                       {createUserData.organizations.length > 0 && (
                         <div className="space-y-2 mt-3">
                           {createUserData.organizations.map((org) => (
-                            <div key={org.org_id} className="flex items-center justify-between p-2 rounded-lg border bg-muted/50">
+                            <div
+                              key={org.org_id}
+                              className="flex items-center justify-between p-2 rounded-lg border bg-muted/50"
+                            >
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-medium">{org.org_name}</span>
-                                <Badge variant="secondary" className="text-xs">{org.role}</Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  {org.role}
+                                </Badge>
                               </div>
                               <Button
                                 type="button"
@@ -522,17 +566,14 @@ export default function AllUsersManagement() {
                       >
                         Cancel
                       </Button>
-                      <Button
-                        type="submit"
-                        disabled={createUserMutation.isPending}
-                      >
-                        {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+                      <Button type="submit" disabled={createUserMutation.isPending}>
+                        {createUserMutation.isPending ? "Creating..." : "Create User"}
                       </Button>
                     </div>
                   </form>
                 </DialogContent>
               </Dialog>
-              
+
               {/* Add Existing User to Organization */}
               <Dialog open={showAddExistingDialog} onOpenChange={setShowAddExistingDialog}>
                 <DialogTrigger asChild>
@@ -551,7 +592,10 @@ export default function AllUsersManagement() {
                   <div className="space-y-4 py-4">
                     <div>
                       <Label>User</Label>
-                      <Select value={selectedExistingUserId} onValueChange={setSelectedExistingUserId}>
+                      <Select
+                        value={selectedExistingUserId}
+                        onValueChange={setSelectedExistingUserId}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a user" />
                         </SelectTrigger>
@@ -601,18 +645,18 @@ export default function AllUsersManagement() {
                     <Button
                       onClick={() => {
                         if (!selectedExistingUserId || !selectedOrg) {
-                          toast({ title: "Please fill all fields", variant: "destructive" });
-                          return;
+                          toast({ title: "Please fill all fields", variant: "destructive" })
+                          return
                         }
                         addExistingUserMutation.mutate({
                           userId: selectedExistingUserId,
                           orgId: selectedOrg,
                           role: selectedRole,
-                        });
+                        })
                       }}
                       disabled={addExistingUserMutation.isPending}
                     >
-                      {addExistingUserMutation.isPending ? 'Adding...' : 'Add to Organization'}
+                      {addExistingUserMutation.isPending ? "Adding..." : "Add to Organization"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -661,5 +705,5 @@ export default function AllUsersManagement() {
         )}
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

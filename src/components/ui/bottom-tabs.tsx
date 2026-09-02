@@ -1,7 +1,7 @@
 import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface BottomTabItem {
   id: string
@@ -21,16 +21,11 @@ interface BottomTabsProps {
 const BottomTabs = React.forwardRef<HTMLDivElement, BottomTabsProps>(
   ({ items, activeTab, onTabChange, className, ...props }, ref) => {
     return (
-      <div
-        ref={ref}
-        className={cn("bottom-tabs", className)}
-        role="tablist"
-        {...props}
-      >
+      <div ref={ref} className={cn("bottom-tabs", className)} role="tablist" {...props}>
         {items.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
-          
+
           return (
             <Button
               key={item.id}
@@ -39,9 +34,9 @@ const BottomTabs = React.forwardRef<HTMLDivElement, BottomTabsProps>(
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-1 h-auto py-2 px-1",
                 "text-xs font-medium transition-colors",
-                isActive 
-                  ? "text-primary-foreground bg-primary" 
-                  : "text-muted-foreground hover:text-foreground"
+                isActive
+                  ? "text-primary-foreground bg-primary"
+                  : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => !item.disabled && onTabChange(item.id)}
               disabled={item.disabled}
@@ -52,8 +47,8 @@ const BottomTabs = React.forwardRef<HTMLDivElement, BottomTabsProps>(
               <div className="relative">
                 <Icon className="h-5 w-5" />
                 {item.badge && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-2 -right-2 h-4 min-w-4 p-0 text-xs flex items-center justify-center"
                   >
                     {item.badge}
@@ -66,9 +61,9 @@ const BottomTabs = React.forwardRef<HTMLDivElement, BottomTabsProps>(
         })}
       </div>
     )
-  }
+  },
 )
 
 BottomTabs.displayName = "BottomTabs"
 
-export { BottomTabs, type BottomTabItem }
+export { type BottomTabItem, BottomTabs }

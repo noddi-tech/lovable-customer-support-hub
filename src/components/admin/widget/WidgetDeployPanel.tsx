@@ -1,85 +1,86 @@
-import React, { useEffect, useState } from 'react';
-import { Rocket, Loader2, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { Loader2, RefreshCw, Rocket } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 
-const SUPABASE_URL = 'https://qgfaycwsangsqzpveoup.supabase.co';
-const WIDGET_SCRIPT_URL = `${SUPABASE_URL}/storage/v1/object/public/widget/widget.js`;
+const SUPABASE_URL = "https://qgfaycwsangsqzpveoup.supabase.co"
+const WIDGET_SCRIPT_URL = `${SUPABASE_URL}/storage/v1/object/public/widget/widget.js`
 
 interface LiveBuild {
-  publishedAt: string;
-  commit: string;
-  size?: number;
+  publishedAt: string
+  commit: string
+  size?: number
 }
 
 interface WidgetDeployPanelProps {
   /** 'banner' = compact always-visible call to action, 'full' = includes detailed guidance */
-  variant?: 'banner' | 'full';
+  variant?: "banner" | "full"
 }
 
-export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 'banner' }) => {
-  const [deploying, setDeploying] = useState(false);
-  const [liveBuild, setLiveBuild] = useState<LiveBuild | null>(null);
-  const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null);
+export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = "banner" }) => {
+  const [deploying, setDeploying] = useState(false)
+  const [liveBuild, setLiveBuild] = useState<LiveBuild | null>(null)
+  const [lastDeploy, setLastDeploy] = useState<{ size: number | null; at: string } | null>(null)
 
-  const appCommit = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'unknown';
+  const appCommit = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown"
 
   const fetchLiveBuild = async () => {
     try {
       const res = await fetch(
         `${SUPABASE_URL}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
-      );
-      if (!res.ok) return;
-      setLiveBuild(await res.json());
+      )
+      if (!res.ok) return
+      setLiveBuild(await res.json())
     } catch {
       // manifest not published yet
     }
-  };
+  }
 
   useEffect(() => {
-    fetchLiveBuild();
-  }, []);
+    fetchLiveBuild()
+  }, [fetchLiveBuild])
 
   const handleDeploy = async () => {
-    setDeploying(true);
+    setDeploying(true)
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/deploy-widget?action=deploy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ commit: appCommit }),
-      });
+      })
 
-      if (!response.ok) throw new Error('Deploy failed');
+      if (!response.ok) throw new Error("Deploy failed")
 
-      const result = await response.json();
-      setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() });
+      const result = await response.json()
+      setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() })
       if (result.publishedAt) {
-        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size });
+        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size })
       } else {
-        fetchLiveBuild();
+        fetchLiveBuild()
       }
-      toast.success('Widget deployed to production!', {
-        description: `Size: ${result.size || 'unknown'} — hard-refresh host apps to pick it up`,
-      });
+      toast.success("Widget deployed to production!", {
+        description: `Size: ${result.size || "unknown"} — hard-refresh host apps to pick it up`,
+      })
     } catch (err) {
-      toast.error('Failed to deploy widget', {
-        description: 'Check edge function logs for details',
-      });
+      toast.error("Failed to deploy widget", {
+        description: "Check edge function logs for details",
+      })
     } finally {
-      setDeploying(false);
+      setDeploying(false)
     }
-  };
+  }
 
-  const isStale = !!liveBuild && appCommit !== 'unknown' && liveBuild.commit !== appCommit;
+  const isStale = !!liveBuild && appCommit !== "unknown" && liveBuild.commit !== appCommit
 
   const status = !liveBuild
-    ? { label: 'Never deployed', dot: 'bg-muted-foreground', text: 'text-muted-foreground' }
+    ? { label: "Never deployed", dot: "bg-muted-foreground", text: "text-muted-foreground" }
     : isStale
-      ? { label: 'Changes not deployed', dot: 'bg-destructive', text: 'text-destructive' }
-      : { label: 'Live bundle up to date', dot: 'bg-emerald-500', text: 'text-muted-foreground' };
+      ? { label: "Changes not deployed", dot: "bg-destructive", text: "text-destructive" }
+      : { label: "Live bundle up to date", dot: "bg-emerald-500", text: "text-muted-foreground" }
 
-  const shortCommit = (c?: string) => (c && c !== 'unknown' ? c.slice(0, 7) : '—');
+  const shortCommit = (c?: string) => (c && c !== "unknown" ? c.slice(0, 7) : "—")
 
   return (
     <Card className="overflow-hidden border-border/70">
@@ -92,8 +93,9 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
               <span className={`text-xs ${status.text}`}>· {status.label}</span>
             </div>
             <p className="text-sm text-muted-foreground max-w-xl">
-              Settings save instantly. Widget <span className="font-medium text-foreground">code</span>{' '}
-              changes only reach host sites after you publish the bundle.
+              Settings save instantly. Widget{" "}
+              <span className="font-medium text-foreground">code</span> changes only reach host
+              sites after you publish the bundle.
             </p>
           </div>
 
@@ -127,7 +129,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
           <div className="px-5 py-3 space-y-0.5">
             <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Published</p>
             <p className="font-medium">
-              {liveBuild ? new Date(liveBuild.publishedAt).toLocaleString() : 'Not published yet'}
+              {liveBuild ? new Date(liveBuild.publishedAt).toLocaleString() : "Not published yet"}
             </p>
           </div>
           <div className="px-5 py-3 space-y-0.5">
@@ -136,14 +138,16 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
               {shortCommit(liveBuild?.commit)}
               {liveBuild?.size ? (
                 <span className="font-sans text-muted-foreground">
-                  {' '}
+                  {" "}
                   · {(liveBuild.size / 1024).toFixed(1)} KB
                 </span>
               ) : null}
             </p>
           </div>
           <div className="px-5 py-3 space-y-0.5">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">This app build</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              This app build
+            </p>
             <p className="font-medium font-mono">{shortCommit(appCommit)}</p>
           </div>
         </div>
@@ -151,11 +155,11 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
         {lastDeploy && (
           <p className="border-t px-5 py-2 text-xs text-muted-foreground">
             Last deploy from this browser: {lastDeploy.at}
-            {lastDeploy.size ? ` · ${(lastDeploy.size / 1024).toFixed(1)} KB` : ''}
+            {lastDeploy.size ? ` · ${(lastDeploy.size / 1024).toFixed(1)} KB` : ""}
           </p>
         )}
 
-        {variant === 'full' && (
+        {variant === "full" && (
           <div className="border-t p-5 text-sm space-y-2 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_code]:break-all">
             <p className="font-medium">What happens when you deploy</p>
             <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
@@ -188,5 +192,5 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

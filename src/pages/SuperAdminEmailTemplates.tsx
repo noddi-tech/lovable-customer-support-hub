@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout";
-import { Mail, AlertCircle, CheckCircle, ExternalLink, Loader2, RotateCcw, Save, ChevronDown, ChevronUp } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Loader2,
+  Mail,
+  RotateCcw,
+  Save,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,24 +22,33 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { sanitizeTemplateHTML } from "@/utils/htmlSanitizer";
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { sanitizeTemplateHTML } from "@/utils/htmlSanitizer"
 
 interface SystemEmailTemplate {
-  id?: string;
-  template_type: string;
-  subject: string;
-  html_content: string;
-  text_content?: string;
-  is_active: boolean;
+  id?: string
+  template_type: string
+  subject: string
+  html_content: string
+  text_content?: string
+  is_active: boolean
 }
 
 const TEMPLATE_TYPES = [
   {
-    type: 'password_reset',
-    label: 'Password Reset',
-    description: 'Sent when users request to reset their password',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    type: "password_reset",
+    label: "Password Reset",
+    description: "Sent when users request to reset their password",
+    variables: ["{{ .ConfirmationURL }}", "{{ .Token }}", "{{ .TokenHash }}", "{{ .Email }}"],
     defaultHtml: `<!DOCTYPE html>
 <html>
 <head>
@@ -77,13 +87,13 @@ const TEMPLATE_TYPES = [
   </table>
 </body>
 </html>`,
-    defaultSubject: 'Reset Your Password'
+    defaultSubject: "Reset Your Password",
   },
   {
-    type: 'magic_link',
-    label: 'Magic Link Sign-In',
-    description: 'Sent when users sign in with a magic link',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    type: "magic_link",
+    label: "Magic Link Sign-In",
+    description: "Sent when users sign in with a magic link",
+    variables: ["{{ .ConfirmationURL }}", "{{ .Token }}", "{{ .TokenHash }}", "{{ .Email }}"],
     defaultHtml: `<!DOCTYPE html>
 <html>
 <head>
@@ -122,13 +132,13 @@ const TEMPLATE_TYPES = [
   </table>
 </body>
 </html>`,
-    defaultSubject: 'Sign In to Your Account'
+    defaultSubject: "Sign In to Your Account",
   },
   {
-    type: 'email_confirmation',
-    label: 'Email Confirmation',
-    description: 'Sent when new users sign up to confirm their email',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}'],
+    type: "email_confirmation",
+    label: "Email Confirmation",
+    description: "Sent when new users sign up to confirm their email",
+    variables: ["{{ .ConfirmationURL }}", "{{ .Token }}", "{{ .TokenHash }}", "{{ .Email }}"],
     defaultHtml: `<!DOCTYPE html>
 <html>
 <head>
@@ -167,13 +177,19 @@ const TEMPLATE_TYPES = [
   </table>
 </body>
 </html>`,
-    defaultSubject: 'Confirm Your Email Address'
+    defaultSubject: "Confirm Your Email Address",
   },
   {
-    type: 'email_change',
-    label: 'Email Change Confirmation',
-    description: 'Sent when users change their email address',
-    variables: ['{{ .ConfirmationURL }}', '{{ .Token }}', '{{ .TokenHash }}', '{{ .Email }}', '{{ .NewEmail }}'],
+    type: "email_change",
+    label: "Email Change Confirmation",
+    description: "Sent when users change their email address",
+    variables: [
+      "{{ .ConfirmationURL }}",
+      "{{ .Token }}",
+      "{{ .TokenHash }}",
+      "{{ .Email }}",
+      "{{ .NewEmail }}",
+    ],
     defaultHtml: `<!DOCTYPE html>
 <html>
 <head>
@@ -212,59 +228,61 @@ const TEMPLATE_TYPES = [
   </table>
 </body>
 </html>`,
-    defaultSubject: 'Confirm Your Email Change'
-  }
-];
+    defaultSubject: "Confirm Your Email Change",
+  },
+]
 
 export default function SuperAdminEmailTemplates() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('password_reset');
-  const [templates, setTemplates] = useState<Record<string, SystemEmailTemplate>>({});
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
-  const [templateToReset, setTemplateToReset] = useState<string | null>(null);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState("password_reset")
+  const [templates, setTemplates] = useState<Record<string, SystemEmailTemplate>>({})
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false)
+  const [templateToReset, setTemplateToReset] = useState<string | null>(null)
   const [setupComplete, setSetupComplete] = useState(() => {
-    return localStorage.getItem('email-templates-setup-complete') === 'true';
-  });
+    return localStorage.getItem("email-templates-setup-complete") === "true"
+  })
   const [isSetupCollapsed, setIsSetupCollapsed] = useState(() => {
-    return localStorage.getItem('email-templates-setup-collapsed') === 'true' || setupComplete;
-  });
+    return localStorage.getItem("email-templates-setup-collapsed") === "true" || setupComplete
+  })
 
   // Fetch system email templates
   const { data: systemTemplates, isLoading } = useQuery({
-    queryKey: ['system-email-templates'],
+    queryKey: ["system-email-templates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('system_email_templates')
-        .select('*')
-        .eq('is_active', true);
-      
-      if (error) throw error;
-      return data as SystemEmailTemplate[];
-    }
-  });
+        .from("system_email_templates")
+        .select("*")
+        .eq("is_active", true)
+
+      if (error) throw error
+      return data as SystemEmailTemplate[]
+    },
+  })
 
   // Initialize templates state
   useEffect(() => {
     if (systemTemplates) {
-      const templatesMap: Record<string, SystemEmailTemplate> = {};
-      systemTemplates.forEach(template => {
-        templatesMap[template.template_type] = template;
-      });
-      setTemplates(templatesMap);
+      const templatesMap: Record<string, SystemEmailTemplate> = {}
+      systemTemplates.forEach((template) => {
+        templatesMap[template.template_type] = template
+      })
+      setTemplates(templatesMap)
     }
-  }, [systemTemplates]);
+  }, [systemTemplates])
 
   // Save template mutation
   const saveTemplateMutation = useMutation({
     mutationFn: async (template: SystemEmailTemplate) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
 
       // Ensure template_type is never NULL
       if (!template.template_type) {
-        throw new Error('Template type is required and cannot be null');
+        throw new Error("Template type is required and cannot be null")
       }
 
       const templatePayload = {
@@ -273,111 +291,113 @@ export default function SuperAdminEmailTemplates() {
         html_content: template.html_content,
         created_by_id: user.id,
         is_active: true,
-        ...(template.id && { id: template.id })
-      };
+        ...(template.id && { id: template.id }),
+      }
 
       if (template.id) {
         const { data, error } = await supabase
-          .from('system_email_templates')
+          .from("system_email_templates")
           .update(templatePayload)
-          .eq('id', template.id)
+          .eq("id", template.id)
           .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
+          .single()
+
+        if (error) throw error
+        return data
       } else {
         const { data, error } = await supabase
-          .from('system_email_templates')
+          .from("system_email_templates")
           .insert(templatePayload)
           .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
+          .single()
+
+        if (error) throw error
+        return data
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-email-templates'] });
+      queryClient.invalidateQueries({ queryKey: ["system-email-templates"] })
       toast({
         title: "Template saved",
         description: "System email template has been saved successfully.",
-      });
+      })
     },
     onError: (error) => {
       toast({
         title: "Error saving template",
         description: error.message,
         variant: "destructive",
-      });
-    }
-  });
+      })
+    },
+  })
 
   // Sync to Supabase Auth
   const handleSyncToSupabase = async () => {
-    setShowSyncConfirm(false);
-    setIsSyncing(true);
+    setShowSyncConfirm(false)
+    setIsSyncing(true)
     try {
-      const { data, error } = await supabase.functions.invoke('sync-auth-templates', {
-        body: {}
-      });
+      const { data, error } = await supabase.functions.invoke("sync-auth-templates", {
+        body: {},
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       // Mark setup as complete and collapse
-      setSetupComplete(true);
-      setIsSetupCollapsed(true);
-      localStorage.setItem('email-templates-setup-complete', 'true');
-      localStorage.setItem('email-templates-setup-collapsed', 'true');
+      setSetupComplete(true)
+      setIsSetupCollapsed(true)
+      localStorage.setItem("email-templates-setup-complete", "true")
+      localStorage.setItem("email-templates-setup-collapsed", "true")
 
       toast({
         title: "Templates synced successfully",
-        description: data.message || `Successfully synced ${data.synced} templates to Supabase Auth.`,
+        description:
+          data.message || `Successfully synced ${data.synced} templates to Supabase Auth.`,
         duration: 5000,
-      });
+      })
     } catch (error: any) {
-      console.error('Sync error:', error);
+      console.error("Sync error:", error)
       toast({
         title: "Sync failed",
-        description: error.message || "Failed to sync templates. Please check your secrets configuration.",
+        description:
+          error.message || "Failed to sync templates. Please check your secrets configuration.",
         variant: "destructive",
         duration: 7000,
-      });
+      })
     } finally {
-      setIsSyncing(false);
+      setIsSyncing(false)
     }
-  };
+  }
 
   // Reset template to default
   const handleResetTemplate = async (templateType: string) => {
-    setTemplateToReset(null);
-    
+    setTemplateToReset(null)
+
     // Find the default template from database
-    const defaultTemplate = systemTemplates?.find(t => t.template_type === templateType);
+    const defaultTemplate = systemTemplates?.find((t) => t.template_type === templateType)
     if (defaultTemplate) {
-      setTemplates(prev => ({
+      setTemplates((prev) => ({
         ...prev,
-        [templateType]: defaultTemplate
-      }));
-      
+        [templateType]: defaultTemplate,
+      }))
+
       toast({
         title: "Template reset",
         description: "Template has been reset to default values.",
-      });
+      })
     }
-  };
+  }
 
   const handleSaveTemplate = (templateType: string) => {
-    const template = templates[templateType];
-    
+    const template = templates[templateType]
+
     // Validation
-    if (!template || !template.subject || !template.html_content) {
+    if (!template?.subject || !template.html_content) {
       toast({
         title: "Validation error",
         description: "Subject and HTML content are required.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     // Ensure template_type is always set
@@ -386,61 +406,68 @@ export default function SuperAdminEmailTemplates() {
         title: "Validation error",
         description: "Template type is missing. Please refresh the page and try again.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-    
+
     if (template.subject.length < 3) {
       toast({
         title: "Validation error",
         description: "Subject must be at least 3 characters long.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-    
-    saveTemplateMutation.mutate(template);
-  };
 
-  const updateTemplate = (templateType: string, field: keyof SystemEmailTemplate, value: string | boolean) => {
-    setTemplates(prev => {
+    saveTemplateMutation.mutate(template)
+  }
+
+  const updateTemplate = (
+    templateType: string,
+    field: keyof SystemEmailTemplate,
+    value: string | boolean,
+  ) => {
+    setTemplates((prev) => {
       // If template doesn't exist in state yet, initialize it with defaults
       if (!prev[templateType]) {
-        const templateConfig = TEMPLATE_TYPES.find(t => t.type === templateType);
+        const templateConfig = TEMPLATE_TYPES.find((t) => t.type === templateType)
         return {
           ...prev,
           [templateType]: {
             template_type: templateType,
-            subject: templateConfig?.defaultSubject || '',
-            html_content: templateConfig?.defaultHtml || '',
+            subject: templateConfig?.defaultSubject || "",
+            html_content: templateConfig?.defaultHtml || "",
             is_active: true,
-            [field]: value
-          }
-        };
+            [field]: value,
+          },
+        }
       }
-      
+
       // Template exists, just update the field
       return {
         ...prev,
         [templateType]: {
           ...prev[templateType],
-          [field]: value
-        }
-      };
-    });
-  };
+          [field]: value,
+        },
+      }
+    })
+  }
 
-  const renderTemplateEditor = (templateConfig: typeof TEMPLATE_TYPES[0]) => {
+  const renderTemplateEditor = (templateConfig: (typeof TEMPLATE_TYPES)[0]) => {
     const template = templates[templateConfig.type] || {
       template_type: templateConfig.type,
-      subject: templateConfig.defaultSubject || '',
-      html_content: templateConfig.defaultHtml || '',
-      is_active: true
-    };
+      subject: templateConfig.defaultSubject || "",
+      html_content: templateConfig.defaultHtml || "",
+      is_active: true,
+    }
 
     // Check for improperly formatted links
-    const hasUnlinkedConfirmationURL = template.html_content.includes('{{ .ConfirmationURL }}') && 
-      !/<a[^>]+href\s*=\s*['"]\{\{\s*\.ConfirmationURL\s*\}\}['"][^>]*>/i.test(template.html_content);
+    const hasUnlinkedConfirmationURL =
+      template.html_content.includes("{{ .ConfirmationURL }}") &&
+      !/<a[^>]+href\s*=\s*['"]\{\{\s*\.ConfirmationURL\s*\}\}['"][^>]*>/i.test(
+        template.html_content,
+      )
 
     return (
       <div className="space-y-6">
@@ -451,7 +478,7 @@ export default function SuperAdminEmailTemplates() {
             <div className="space-y-2">
               <p className="font-medium">Available template variables:</p>
               <div className="flex flex-wrap gap-2">
-                {templateConfig.variables.map(variable => (
+                {templateConfig.variables.map((variable) => (
                   <code key={variable} className="px-2 py-1 bg-muted rounded text-sm">
                     {variable}
                   </code>
@@ -468,11 +495,36 @@ export default function SuperAdminEmailTemplates() {
             <div className="space-y-2">
               <p className="font-medium">HTML Email Tips:</p>
               <ul className="text-sm space-y-1 ml-4 list-disc">
-                <li>Wrap <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> in an anchor tag: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Click here</a>'}</code></li>
-                <li>Supabase uses <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> for all confirmation links (password reset, magic link, email verification)</li>
+                <li>
+                  Wrap{" "}
+                  <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                    {"{{ .ConfirmationURL }}"}
+                  </code>{" "}
+                  in an anchor tag:{" "}
+                  <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                    {'<a href="{{ .ConfirmationURL }}">Click here</a>'}
+                  </code>
+                </li>
+                <li>
+                  Supabase uses{" "}
+                  <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                    {"{{ .ConfirmationURL }}"}
+                  </code>{" "}
+                  for all confirmation links (password reset, magic link, email verification)
+                </li>
                 <li>Use inline styles for formatting (email clients don't support external CSS)</li>
-                <li>Use <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<br>'}</code> or <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<p>'}</code> tags for line breaks</li>
-                <li>Logo loads from <code className="px-1 py-0.5 bg-muted rounded text-xs">/images/logo-support-hub.png</code> - relative path works in all environments</li>
+                <li>
+                  Use <code className="px-1 py-0.5 bg-muted rounded text-xs">{"<br>"}</code> or{" "}
+                  <code className="px-1 py-0.5 bg-muted rounded text-xs">{"<p>"}</code> tags for
+                  line breaks
+                </li>
+                <li>
+                  Logo loads from{" "}
+                  <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                    /images/logo-support-hub.png
+                  </code>{" "}
+                  - relative path works in all environments
+                </li>
                 <li>Test on multiple email clients before deploying</li>
               </ul>
             </div>
@@ -486,10 +538,17 @@ export default function SuperAdminEmailTemplates() {
             <AlertDescription>
               <p className="font-medium">⚠️ Link Not Properly Formatted</p>
               <p className="text-sm mt-1">
-                The <code className="px-1 py-0.5 bg-muted rounded text-xs">{'{{ .ConfirmationURL }}'}</code> variable must be wrapped in an anchor tag to be clickable.
+                The{" "}
+                <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                  {"{{ .ConfirmationURL }}"}
+                </code>{" "}
+                variable must be wrapped in an anchor tag to be clickable.
               </p>
               <p className="text-sm mt-2">
-                Example: <code className="px-1 py-0.5 bg-muted rounded text-xs">{'<a href="{{ .ConfirmationURL }}">Reset Password</a>'}</code>
+                Example:{" "}
+                <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                  {'<a href="{{ .ConfirmationURL }}">Reset Password</a>'}
+                </code>
               </p>
             </AlertDescription>
           </Alert>
@@ -501,7 +560,7 @@ export default function SuperAdminEmailTemplates() {
           <Input
             id={`subject-${templateConfig.type}`}
             value={template.subject}
-            onChange={(e) => updateTemplate(templateConfig.type, 'subject', e.target.value)}
+            onChange={(e) => updateTemplate(templateConfig.type, "subject", e.target.value)}
             placeholder="Enter email subject..."
           />
         </div>
@@ -512,7 +571,7 @@ export default function SuperAdminEmailTemplates() {
           <Textarea
             id={`html-${templateConfig.type}`}
             value={template.html_content}
-            onChange={(e) => updateTemplate(templateConfig.type, 'html_content', e.target.value)}
+            onChange={(e) => updateTemplate(templateConfig.type, "html_content", e.target.value)}
             placeholder="Enter HTML email template..."
             className="min-h-[300px] font-mono text-sm"
           />
@@ -522,25 +581,31 @@ export default function SuperAdminEmailTemplates() {
         <div className="border rounded-lg p-4 bg-muted/50">
           <h4 className="font-medium mb-3">Preview</h4>
           <div className="border rounded bg-background p-4">
-            <div 
-              dangerouslySetInnerHTML={{ 
-__html: sanitizeTemplateHTML(
-                  (template.html_content || '')
-                    .replace(/\{\{\s*\.ConfirmationURL\s*\}\}/g, 'https://example.com/confirm?token=sample')
-                    .replace(/\{\{\s*\.MagicLinkURL\s*\}\}/g, 'https://example.com/signin?token=magic-sample')
-                    .replace(/\{\{\s*\.Email\s*\}\}/g, 'user@example.com')
-                    .replace(/\{\{\s*\.NewEmail\s*\}\}/g, 'newemail@example.com')
-                    .replace(/\{\{\s*\.Token\s*\}\}/g, 'sample-token')
-                    .replace(/\{\{\s*\.TokenHash\s*\}\}/g, 'sample-hash')
-                )
-              }} 
+            <div
+              dangerouslySetInnerHTML={{
+                __html: sanitizeTemplateHTML(
+                  (template.html_content || "")
+                    .replace(
+                      /\{\{\s*\.ConfirmationURL\s*\}\}/g,
+                      "https://example.com/confirm?token=sample",
+                    )
+                    .replace(
+                      /\{\{\s*\.MagicLinkURL\s*\}\}/g,
+                      "https://example.com/signin?token=magic-sample",
+                    )
+                    .replace(/\{\{\s*\.Email\s*\}\}/g, "user@example.com")
+                    .replace(/\{\{\s*\.NewEmail\s*\}\}/g, "newemail@example.com")
+                    .replace(/\{\{\s*\.Token\s*\}\}/g, "sample-token")
+                    .replace(/\{\{\s*\.TokenHash\s*\}\}/g, "sample-hash"),
+                ),
+              }}
             />
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
-          <Button 
+          <Button
             onClick={() => handleSaveTemplate(templateConfig.type)}
             disabled={saveTemplateMutation.isPending || !template.subject || !template.html_content}
             className="flex-1"
@@ -557,14 +622,14 @@ __html: sanitizeTemplateHTML(
               </>
             )}
           </Button>
-          <Button 
+          <Button
             onClick={() => {
-              updateTemplate(templateConfig.type, 'subject', templateConfig.defaultSubject || '');
-              updateTemplate(templateConfig.type, 'html_content', templateConfig.defaultHtml || '');
+              updateTemplate(templateConfig.type, "subject", templateConfig.defaultSubject || "")
+              updateTemplate(templateConfig.type, "html_content", templateConfig.defaultHtml || "")
               toast({
                 title: "Template reset to default",
                 description: "The template has been reset. Don't forget to save!",
-              });
+              })
             }}
             variant="outline"
             disabled={saveTemplateMutation.isPending}
@@ -574,8 +639,8 @@ __html: sanitizeTemplateHTML(
           </Button>
         </div>
       </div>
-    );
-  };
+    )
+  }
 
   if (isLoading) {
     return (
@@ -584,7 +649,7 @@ __html: sanitizeTemplateHTML(
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </AdminPortalLayout>
-    );
+    )
   }
 
   return (
@@ -602,10 +667,13 @@ __html: sanitizeTemplateHTML(
         </div>
 
         {/* Setup Instructions */}
-        <Collapsible open={!isSetupCollapsed} onOpenChange={(open) => {
-          setIsSetupCollapsed(!open);
-          localStorage.setItem('email-templates-setup-collapsed', (!open).toString());
-        }}>
+        <Collapsible
+          open={!isSetupCollapsed}
+          onOpenChange={(open) => {
+            setIsSetupCollapsed(!open)
+            localStorage.setItem("email-templates-setup-collapsed", (!open).toString())
+          }}
+        >
           <Alert variant={setupComplete ? "default" : "destructive"}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-2 flex-1">
@@ -617,33 +685,61 @@ __html: sanitizeTemplateHTML(
                 <AlertDescription className="flex-1">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">
-                      {setupComplete ? '✓ Setup Complete' : '⚠️ First Time Setup Required'}
+                      {setupComplete ? "✓ Setup Complete" : "⚠️ First Time Setup Required"}
                     </p>
                   </div>
                   <CollapsibleContent className="mt-3">
                     <ol className="list-decimal list-inside space-y-2 text-sm">
                       <li className="flex items-start gap-2">
-                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        {setupComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        )}
                         <span>
-                          Go to: <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                          Go to:{" "}
+                          <a
+                            href="https://supabase.com/dashboard/account/tokens"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
                             Supabase Account Tokens <ExternalLink className="h-3 w-3" />
                           </a>
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
-                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        {setupComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        )}
                         <span>Create a new access token with "Full Access" permissions</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
-                        <span>Add <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEACCESS_TOKEN</code> secret to your project</span>
+                        {setupComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        )}
+                        <span>
+                          Add{" "}
+                          <code className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                            SUPABASEACCESS_TOKEN
+                          </code>{" "}
+                          secret to your project
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
-                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
-                        <span>Add <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEPROJECT_REF</code> secret (project reference ID)</span>
+                        {setupComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        )}
+                        <span>
+                          Add{" "}
+                          <code className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                            SUPABASEPROJECT_REF
+                          </code>{" "}
+                          secret (project reference ID)
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
-                        {setupComplete && <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />}
+                        {setupComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        )}
                         <span>Click "Sync to Supabase Auth" after saving templates</span>
                       </li>
                     </ol>
@@ -668,11 +764,12 @@ __html: sanitizeTemplateHTML(
           <CardHeader>
             <CardTitle>Sync Templates to Supabase Auth</CardTitle>
             <CardDescription>
-              After editing templates, click this button to sync them to Supabase Auth configuration.
+              After editing templates, click this button to sync them to Supabase Auth
+              configuration.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
+            <Button
               onClick={() => setShowSyncConfirm(true)}
               disabled={isSyncing}
               className="w-full"
@@ -704,13 +801,13 @@ __html: sanitizeTemplateHTML(
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full">
-                {TEMPLATE_TYPES.map(config => (
+                {TEMPLATE_TYPES.map((config) => (
                   <TabsTrigger key={config.type} value={config.type}>
                     {config.label}
                   </TabsTrigger>
                 ))}
               </TabsList>
-              {TEMPLATE_TYPES.map(config => (
+              {TEMPLATE_TYPES.map((config) => (
                 <TabsContent key={config.type} value={config.type}>
                   <div className="space-y-4">
                     <div>
@@ -731,23 +828,29 @@ __html: sanitizeTemplateHTML(
             <AlertDialogHeader>
               <AlertDialogTitle>Sync Templates to Supabase Auth?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will update the authentication email templates in your Supabase project.
-                Make sure you have saved all your changes before syncing.
-                <br /><br />
-                <strong>Note:</strong> This action requires proper <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEACCESS_TOKEN</code> and <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEPROJECT_REF</code> secrets to be configured.
+                This will update the authentication email templates in your Supabase project. Make
+                sure you have saved all your changes before syncing.
+                <br />
+                <br />
+                <strong>Note:</strong> This action requires proper{" "}
+                <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEACCESS_TOKEN</code>{" "}
+                and{" "}
+                <code className="px-1.5 py-0.5 bg-muted rounded text-xs">SUPABASEPROJECT_REF</code>{" "}
+                secrets to be configured.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleSyncToSupabase}>
-                Continue
-              </AlertDialogAction>
+              <AlertDialogAction onClick={handleSyncToSupabase}>Continue</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
         {/* Reset Confirmation Dialog */}
-        <AlertDialog open={!!templateToReset} onOpenChange={(open) => !open && setTemplateToReset(null)}>
+        <AlertDialog
+          open={!!templateToReset}
+          onOpenChange={(open) => !open && setTemplateToReset(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Reset Template to Default?</AlertDialogTitle>
@@ -758,7 +861,9 @@ __html: sanitizeTemplateHTML(
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => templateToReset && handleResetTemplate(templateToReset)}>
+              <AlertDialogAction
+                onClick={() => templateToReset && handleResetTemplate(templateToReset)}
+              >
                 Reset Template
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -766,5 +871,5 @@ __html: sanitizeTemplateHTML(
         </AlertDialog>
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

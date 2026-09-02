@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { AlertTriangle, Loader2 } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,32 +9,39 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useOrganizations } from '@/hooks/useOrganizations';
-import { useServiceOrganizations } from '@/hooks/useServiceOrganizations';
-import { Loader2, AlertTriangle } from 'lucide-react';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useOrganizations } from "@/hooks/useOrganizations"
+import { useServiceOrganizations } from "@/hooks/useServiceOrganizations"
 
 interface CreateOrganizationModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-const MANUAL = 'manual';
+const MANUAL = "manual"
 
 const slugify = (name: string) =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
 
 const EMPTY_FORM = {
-  name: '',
-  slug: '',
-  primary_color: '#3B82F6',
-  sender_display_name: '',
+  name: "",
+  slug: "",
+  primary_color: "#3B82F6",
+  sender_display_name: "",
   navio_organization_id: null as number | null,
-};
+}
 
 /**
  * Service organizations are mastered in the Navio backend API, so creating a
@@ -39,46 +49,49 @@ const EMPTY_FORM = {
  * the local row is linked through `navio_organization_id`.
  */
 export function CreateOrganizationModal({ open, onOpenChange }: CreateOrganizationModalProps) {
-  const { createOrganization, isCreating, organizations } = useOrganizations();
-  const { data: serviceOrgs, isLoading: loadingServiceOrgs, error: serviceOrgsError } =
-    useServiceOrganizations();
-  const [selected, setSelected] = useState<string>(MANUAL);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const { createOrganization, isCreating, organizations } = useOrganizations()
+  const {
+    data: serviceOrgs,
+    isLoading: loadingServiceOrgs,
+    error: serviceOrgsError,
+  } = useServiceOrganizations()
+  const [selected, setSelected] = useState<string>(MANUAL)
+  const [formData, setFormData] = useState(EMPTY_FORM)
 
   useEffect(() => {
     if (!open) {
-      setSelected(MANUAL);
-      setFormData(EMPTY_FORM);
+      setSelected(MANUAL)
+      setFormData(EMPTY_FORM)
     }
-  }, [open]);
+  }, [open])
 
   const linkedIds = new Set(
     organizations.map((o) => o.navio_organization_id).filter((id): id is number => id != null),
-  );
+  )
 
   const handleServiceOrgChange = (value: string) => {
-    setSelected(value);
+    setSelected(value)
     if (value === MANUAL) {
-      setFormData({ ...formData, navio_organization_id: null });
-      return;
+      setFormData({ ...formData, navio_organization_id: null })
+      return
     }
-    const org = serviceOrgs?.find((o) => String(o.id) === value);
-    if (!org) return;
+    const org = serviceOrgs?.find((o) => String(o.id) === value)
+    if (!org) return
     setFormData({
       ...formData,
       name: org.name,
       slug: slugify(org.name),
       navio_organization_id: org.id,
-    });
-  };
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    createOrganization(formData);
-    onOpenChange(false);
-    setSelected(MANUAL);
-    setFormData(EMPTY_FORM);
-  };
+    e.preventDefault()
+    createOrganization(formData)
+    onOpenChange(false)
+    setSelected(MANUAL)
+    setFormData(EMPTY_FORM)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,13 +107,15 @@ export function CreateOrganizationModal({ open, onOpenChange }: CreateOrganizati
             <Label htmlFor="service-org">Service organization (Navio)</Label>
             <Select value={selected} onValueChange={handleServiceOrgChange}>
               <SelectTrigger id="service-org">
-                <SelectValue placeholder={loadingServiceOrgs ? 'Loading…' : 'Select a service organization'} />
+                <SelectValue
+                  placeholder={loadingServiceOrgs ? "Loading…" : "Select a service organization"}
+                />
               </SelectTrigger>
               <SelectContent>
                 {serviceOrgs?.map((org) => (
                   <SelectItem key={org.id} value={String(org.id)} disabled={linkedIds.has(org.id)}>
                     {org.name}
-                    {linkedIds.has(org.id) ? ' (already added)' : ''}
+                    {linkedIds.has(org.id) ? " (already added)" : ""}
                   </SelectItem>
                 ))}
                 <SelectItem value={MANUAL}>Other / not in Navio</SelectItem>
@@ -193,5 +208,5 @@ export function CreateOrganizationModal({ open, onOpenChange }: CreateOrganizati
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

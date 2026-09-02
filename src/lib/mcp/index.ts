@@ -1,14 +1,14 @@
-import { auth, defineMcp } from "@lovable.dev/mcp-js";
-import searchConversationsTool from "./tools/search-conversations";
-import getConversationTool from "./tools/get-conversation";
-import listMyConversationsTool from "./tools/list-my-conversations";
-import addInternalNoteTool from "./tools/add-internal-note";
+import { auth, defineMcp } from "@lovable.dev/mcp-js"
+import addInternalNoteTool from "./tools/add-internal-note"
+import getConversationTool from "./tools/get-conversation"
+import listMyConversationsTool from "./tools/list-my-conversations"
+import searchConversationsTool from "./tools/search-conversations"
 
 // The OAuth issuer MUST be the direct Supabase host, built from the project ref.
 // Vite inlines VITE_SUPABASE_PROJECT_ID as a literal at build time, so this stays
 // import-safe (no runtime env read at module scope). The fallback only keeps the
 // issuer well-formed during the throwaway manifest-extract eval.
-const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
+const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset"
 
 export default defineMcp({
   name: "lovable-customer-support-hub",
@@ -30,4 +30,4 @@ export default defineMcp({
     listMyConversationsTool,
     addInternalNoteTool,
   ],
-});
+})

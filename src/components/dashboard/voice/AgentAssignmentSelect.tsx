@@ -1,22 +1,28 @@
-import React from 'react';
-import { Users, UserCheck } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAgents } from '@/hooks/useAgents';
+import { UserCheck, Users } from "lucide-react"
+import type React from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useAgents } from "@/hooks/useAgents"
 
 interface AgentAssignmentSelectProps {
   /** ProfileId of the current assignee - use profiles.id, NOT user_id */
-  currentAssigneeId?: string;
+  currentAssigneeId?: string
   /** Callback with ProfileId when agent is assigned */
-  onAssign: (agentId: string) => void;
-  isAssigning?: boolean;
-  placeholder?: string;
+  onAssign: (agentId: string) => void
+  isAssigning?: boolean
+  placeholder?: string
 }
 
 /**
  * Agent assignment select component
- * 
+ *
  * IMPORTANT: This component uses profiles.id (ProfileId) for assignments,
  * which is the correct foreign key reference for assigned_to_id columns.
  * Do NOT use user_id here - that's for auth comparisons only.
@@ -25,13 +31,13 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
   currentAssigneeId,
   onAssign,
   isAssigning = false,
-  placeholder = "Assign to agent"
+  placeholder = "Assign to agent",
 }) => {
   // Uses shared hook that fetches profiles.id correctly
-  const { data: agents = [], isLoading: loadingAgents } = useAgents();
+  const { data: agents = [], isLoading: loadingAgents } = useAgents()
 
   // Match by ProfileId (profiles.id), not user_id
-  const currentAssignee = agents.find(agent => agent.id === currentAssigneeId);
+  const currentAssignee = agents.find((agent) => agent.id === currentAssigneeId)
 
   return (
     <div className="flex items-center gap-2">
@@ -40,7 +46,10 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
           <Avatar className="h-6 w-6">
             <AvatarImage src={currentAssignee.avatar_url} />
             <AvatarFallback className="text-xs">
-              {currentAssignee.full_name.split(' ').map(n => n[0]).join('')}
+              {currentAssignee.full_name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
             </AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium">{currentAssignee.full_name}</span>
@@ -48,7 +57,7 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
         </div>
       ) : (
         <Select
-          value={currentAssigneeId || ''}
+          value={currentAssigneeId || ""}
           onValueChange={onAssign}
           disabled={isAssigning || loadingAgents}
         >
@@ -75,7 +84,10 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={agent.avatar_url} />
                     <AvatarFallback className="text-xs">
-                      {agent.full_name.split(' ').map(n => n[0]).join('')}
+                      {agent.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <span>{agent.full_name}</span>
@@ -85,17 +97,12 @@ export const AgentAssignmentSelect: React.FC<AgentAssignmentSelectProps> = ({
           </SelectContent>
         </Select>
       )}
-      
+
       {currentAssignee && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onAssign('')}
-          disabled={isAssigning}
-        >
+        <Button variant="outline" size="sm" onClick={() => onAssign("")} disabled={isAssigning}>
           Unassign
         </Button>
       )}
     </div>
-  );
-};
+  )
+}

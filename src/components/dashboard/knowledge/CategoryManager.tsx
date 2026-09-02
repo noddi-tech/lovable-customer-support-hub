@@ -1,12 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Edit, FolderOpen, Plus, Save, Trash2, X } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -14,24 +10,28 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 export interface KnowledgeCategory {
-  id: string;
-  organization_id: string;
-  name: string;
-  color: string;
-  description: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  id: string
+  organization_id: string
+  name: string
+  color: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 const COLOR_OPTIONS = [
@@ -43,136 +43,131 @@ const COLOR_OPTIONS = [
   { value: "#EF4444", label: "Red" },
   { value: "#EC4899", label: "Pink" },
   { value: "#6B7280", label: "Gray" },
-];
+]
 
 interface CategoryManagerProps {
-  organizationId: string;
+  organizationId: string
 }
 
 export function CategoryManager({ organizationId }: CategoryManagerProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [editingCategory, setEditingCategory] = useState<KnowledgeCategory | null>(null);
-  const [creatingCategory, setCreatingCategory] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<KnowledgeCategory | null>(null);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [editingCategory, setEditingCategory] = useState<KnowledgeCategory | null>(null)
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<KnowledgeCategory | null>(null)
   const [newCategory, setNewCategory] = useState({
-    name: '',
-    color: '#3B82F6',
-    description: '',
-  });
+    name: "",
+    color: "#3B82F6",
+    description: "",
+  })
 
   const { data: categories, isLoading } = useQuery({
-    queryKey: ['knowledge-categories', organizationId],
+    queryKey: ["knowledge-categories", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_categories')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeCategory[];
+        .from("knowledge_categories")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeCategory[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   const { data: usageCounts } = useQuery({
-    queryKey: ['category-usage-counts', organizationId],
+    queryKey: ["category-usage-counts", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_entries')
-        .select('category')
-        .eq('organization_id', organizationId);
-      if (error) throw error;
-      
-      const counts: Record<string, number> = {};
-      data.forEach(entry => {
+        .from("knowledge_entries")
+        .select("category")
+        .eq("organization_id", organizationId)
+      if (error) throw error
+
+      const counts: Record<string, number> = {}
+      data.forEach((entry) => {
         if (entry.category) {
-          counts[entry.category] = (counts[entry.category] || 0) + 1;
+          counts[entry.category] = (counts[entry.category] || 0) + 1
         }
-      });
-      return counts;
+      })
+      return counts
     },
-  });
+  })
 
   const createMutation = useMutation({
     mutationFn: async (category: typeof newCategory) => {
-      const { error } = await supabase
-        .from('knowledge_categories')
-        .insert({
-          organization_id: organizationId,
-          name: category.name,
-          color: category.color,
-          description: category.description || null,
-        });
-      if (error) throw error;
+      const { error } = await supabase.from("knowledge_categories").insert({
+        organization_id: organizationId,
+        name: category.name,
+        color: category.color,
+        description: category.description || null,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Category created successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-categories'] });
-      setCreatingCategory(false);
-      setNewCategory({ name: '', color: '#3B82F6', description: '' });
+      toast({ title: "Category created successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      setCreatingCategory(false)
+      setNewCategory({ name: "", color: "#3B82F6", description: "" })
     },
     onError: (error) => {
       toast({
         title: "Failed to create category",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const updateMutation = useMutation({
     mutationFn: async (category: KnowledgeCategory) => {
       const { error } = await supabase
-        .from('knowledge_categories')
+        .from("knowledge_categories")
         .update({
           name: category.name,
           color: category.color,
           description: category.description,
         })
-        .eq('id', category.id);
-      if (error) throw error;
+        .eq("id", category.id)
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Category updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-categories'] });
-      setEditingCategory(null);
+      toast({ title: "Category updated successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      setEditingCategory(null)
     },
     onError: (error) => {
       toast({
         title: "Failed to update category",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async (categoryId: string) => {
-      const { error } = await supabase
-        .from('knowledge_categories')
-        .delete()
-        .eq('id', categoryId);
-      if (error) throw error;
+      const { error } = await supabase.from("knowledge_categories").delete().eq("id", categoryId)
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Category deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-categories'] });
-      setDeleteConfirm(null);
+      toast({ title: "Category deleted successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      setDeleteConfirm(null)
     },
     onError: (error) => {
       toast({
         title: "Failed to delete category",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const getCategoryUsageCount = (categoryName: string) => {
-    return usageCounts?.[categoryName] || 0;
-  };
+    return usageCounts?.[categoryName] || 0
+  }
 
   return (
     <Card>
@@ -190,7 +185,9 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
         {isLoading ? (
           <p className="text-muted-foreground">Loading categories...</p>
         ) : categories?.length === 0 ? (
-          <p className="text-muted-foreground">No categories yet. Create your first category to get started.</p>
+          <p className="text-muted-foreground">
+            No categories yet. Create your first category to get started.
+          </p>
         ) : (
           <div className="space-y-3">
             {categories?.map((category) => (
@@ -318,7 +315,9 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
                 <label className="text-sm font-medium mb-2 block">Color</label>
                 <Select
                   value={editingCategory.color}
-                  onValueChange={(value) => setEditingCategory({ ...editingCategory, color: value })}
+                  onValueChange={(value) =>
+                    setEditingCategory({ ...editingCategory, color: value })
+                  }
                 >
                   <SelectTrigger>
                     <div className="flex items-center gap-2">
@@ -347,8 +346,10 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
               <div>
                 <label className="text-sm font-medium mb-2 block">Description</label>
                 <Textarea
-                  value={editingCategory.description || ''}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                  value={editingCategory.description || ""}
+                  onChange={(e) =>
+                    setEditingCategory({ ...editingCategory, description: e.target.value })
+                  }
                   rows={2}
                 />
               </div>
@@ -380,7 +381,8 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
                 Are you sure you want to delete "{deleteConfirm.name}"?
                 {getCategoryUsageCount(deleteConfirm.name) > 0 && (
                   <span className="block mt-2 text-destructive">
-                    Warning: This category is used by {getCategoryUsageCount(deleteConfirm.name)} entries.
+                    Warning: This category is used by {getCategoryUsageCount(deleteConfirm.name)}{" "}
+                    entries.
                   </span>
                 )}
               </DialogDescription>
@@ -402,5 +404,5 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
         </Dialog>
       )}
     </Card>
-  );
+  )
 }

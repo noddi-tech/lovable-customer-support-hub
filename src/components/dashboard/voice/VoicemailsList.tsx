@@ -1,55 +1,62 @@
-import React, { useState, useRef } from 'react';
-import { Phone, Play, Pause, Download, FileAudio, Clock, User, AlertCircle, Voicemail as VoicemailIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { DynamicAudioPlayer } from '@/components/ui/dynamic-audio-player';
-import { useVoicemails, Voicemail } from '@/hooks/useVoicemails';
-import { AgentAssignmentSelect } from './AgentAssignmentSelect';
-import { CallActionButton } from './CallActionButton';
-import { formatDistanceToNow } from 'date-fns';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
-
+import { formatDistanceToNow } from "date-fns"
+import { Clock, FileAudio, Play, User } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DynamicAudioPlayer } from "@/components/ui/dynamic-audio-player"
+import { useVoicemails } from "@/hooks/useVoicemails"
+import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
+import { AgentAssignmentSelect } from "./AgentAssignmentSelect"
+import { CallActionButton } from "./CallActionButton"
 
 interface VoicemailCardProps {
-  voicemail: any;
-  downloadVoicemail: (voicemailId: string) => void;
-  getPlaybackUrl: (voicemailId: string) => Promise<any>;
-  onAssign: (id: string, agentId: string) => void;
-  isDownloading: boolean;
-  isAssigning: boolean;
-  onSelect?: (voicemail: any) => void;
-  isSelected?: boolean;
+  voicemail: any
+  downloadVoicemail: (voicemailId: string) => void
+  getPlaybackUrl: (voicemailId: string) => Promise<any>
+  onAssign: (id: string, agentId: string) => void
+  isDownloading: boolean
+  isAssigning: boolean
+  onSelect?: (voicemail: any) => void
+  isSelected?: boolean
 }
 
-const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign, isDownloading, isAssigning, onSelect, isSelected }: VoicemailCardProps) => {
-  const { t } = useTranslation();
+const VoicemailCard = ({
+  voicemail,
+  downloadVoicemail,
+  getPlaybackUrl,
+  onAssign,
+  isDownloading,
+  isAssigning,
+  onSelect,
+  isSelected,
+}: VoicemailCardProps) => {
+  const { t } = useTranslation()
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'Unknown';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!seconds) return "Unknown"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   // Get recording URL from event data
-  const recordingUrl = voicemail.event_data?.recording_url;
-  const hasValidRecordingUrl = recordingUrl && recordingUrl.length > 0;
-  const hasTranscription = !!voicemail.event_data?.transcription;
+  const recordingUrl = voicemail.event_data?.recording_url
+  const hasValidRecordingUrl = recordingUrl && recordingUrl.length > 0
+  const hasTranscription = !!voicemail.event_data?.transcription
 
   return (
-    <Card 
+    <Card
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
+        isSelected ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
       onClick={(e) => {
         // Only trigger selection if clicking the card, not interactive elements
-        if ((e.target as HTMLElement).closest('button, select, audio')) {
-          return;
+        if ((e.target as HTMLElement).closest("button, select, audio")) {
+          return
         }
-        onSelect?.(voicemail);
+        onSelect?.(voicemail)
       }}
     >
       <CardHeader className="pb-3">
@@ -82,24 +89,24 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
           )}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="pt-0 space-y-4">
         {/* Audio Player */}
         {hasValidRecordingUrl && recordingUrl && (
-          <DynamicAudioPlayer 
-            initialSrc={recordingUrl} 
+          <DynamicAudioPlayer
+            initialSrc={recordingUrl}
             title="Voicemail Recording"
             duration={voicemail.event_data.duration}
             onGetFreshUrl={async () => {
               try {
-                return await getPlaybackUrl(voicemail.id);
+                return await getPlaybackUrl(voicemail.id)
               } catch (error) {
-                console.error('Failed to get playback URL:', error);
-                throw error;
+                console.error("Failed to get playback URL:", error)
+                throw error
               }
             }}
             onDownload={() => {
-              downloadVoicemail(voicemail.id);
+              downloadVoicemail(voicemail.id)
             }}
           />
         )}
@@ -120,7 +127,8 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
             <div className="flex items-center gap-2">
               <Clock className="h-3 w-3" />
               <span>
-                Call started {formatDistanceToNow(new Date(voicemail.calls.started_at), { addSuffix: true })}
+                Call started{" "}
+                {formatDistanceToNow(new Date(voicemail.calls.started_at), { addSuffix: true })}
               </span>
             </div>
           </div>
@@ -153,18 +161,22 @@ const VoicemailCard = ({ voicemail, downloadVoicemail, getPlaybackUrl, onAssign,
         )}
       </CardContent>
     </Card>
-  );
-};
-
-interface VoicemailsListProps {
-  statusFilter?: string;
-  onSelectVoicemail?: (voicemail: any) => void;
-  selectedVoicemailId?: string;
+  )
 }
 
-export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter, onSelectVoicemail, selectedVoicemailId }) => {
-  const [filter, setFilter] = useState<string>(statusFilter || 'all');
-  
+interface VoicemailsListProps {
+  statusFilter?: string
+  onSelectVoicemail?: (voicemail: any) => void
+  selectedVoicemailId?: string
+}
+
+export const VoicemailsList: React.FC<VoicemailsListProps> = ({
+  statusFilter,
+  onSelectVoicemail,
+  selectedVoicemailId,
+}) => {
+  const [filter, setFilter] = useState<string>(statusFilter || "all")
+
   const {
     voicemails,
     recentVoicemails,
@@ -176,35 +188,38 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter, on
     isAudioLoading,
     assignVoicemail,
     isAssigning,
-    getPlaybackUrl
-  } = useVoicemails();
-  
+    getPlaybackUrl,
+  } = useVoicemails()
+
   // Use statusFilter from props or local filter state
-  const effectiveFilter = statusFilter || filter;
+  const effectiveFilter = statusFilter || filter
 
   // Filter voicemails based on effective filter
-  const filteredVoicemails = effectiveFilter === 'all' 
-    ? voicemails
-    : voicemails?.filter(voicemail => {
-        switch (effectiveFilter) {
-          case 'pending': return voicemail.status === 'pending';
-          case 'assigned': return voicemail.status === 'assigned';
-          case 'closed': return voicemail.status === 'closed';
-          default: return true;
-        }
-      }) || [];
+  const filteredVoicemails =
+    effectiveFilter === "all"
+      ? voicemails
+      : voicemails?.filter((voicemail) => {
+          switch (effectiveFilter) {
+            case "pending":
+              return voicemail.status === "pending"
+            case "assigned":
+              return voicemail.status === "assigned"
+            case "closed":
+              return voicemail.status === "closed"
+            default:
+              return true
+          }
+        }) || []
 
   if (error) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Voicemails</CardTitle>
-          <CardDescription>
-            Failed to load voicemails. Please try again.
-          </CardDescription>
+          <CardDescription>Failed to load voicemails. Please try again.</CardDescription>
         </CardHeader>
       </Card>
-    );
+    )
   }
 
   return (
@@ -213,13 +228,10 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter, on
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">Voicemails</h3>
-            <p className="text-sm text-muted-foreground">
-              Customer voicemail messages
-            </p>
+            <p className="text-sm text-muted-foreground">Customer voicemail messages</p>
           </div>
         </div>
       )}
-
 
       {/* Voicemails List */}
       {isLoading ? (
@@ -260,5 +272,5 @@ export const VoicemailsList: React.FC<VoicemailsListProps> = ({ statusFilter, on
         </div>
       )}
     </div>
-  );
-};
+  )
+}

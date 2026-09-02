@@ -1,34 +1,34 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { subDays } from 'date-fns';
-import { ArrowRight, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { MetricTile, attainmentTone } from '@/components/dashboard/MetricTile';
-import { MetricsDialogShell } from '@/components/dashboard/shared/MetricsDialogShell';
-import { useCallAnalytics } from '@/hooks/useCallAnalytics';
+import { subDays } from "date-fns"
+import { ArrowRight, Phone } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { attainmentTone, MetricTile } from "@/components/dashboard/MetricTile"
+import { MetricsDialogShell } from "@/components/dashboard/shared/MetricsDialogShell"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useCallAnalytics } from "@/hooks/useCallAnalytics"
 
 interface VoiceMetricsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 function trendLabel(pct: number | null | undefined) {
-  if (pct === null || pct === undefined || Number.isNaN(pct)) return undefined;
-  const sign = pct > 0 ? '+' : '';
-  return `${sign}${pct}% vs previous period`;
+  if (pct === null || pct === undefined || Number.isNaN(pct)) return undefined
+  const sign = pct > 0 ? "+" : ""
+  return `${sign}${pct}% vs previous period`
 }
 
 /** Voice KPIs in the same popup frame the inbox and live chat use. */
 export function VoiceMetricsDialog({ open, onOpenChange }: VoiceMetricsDialogProps) {
-  const navigate = useNavigate();
-  const [days, setDays] = useState<number>(30);
+  const navigate = useNavigate()
+  const [days, setDays] = useState<number>(30)
 
-  const range = useMemo(() => ({ from: subDays(new Date(), days), to: new Date() }), [days]);
-  const { metrics, agentStats, isLoading } = useCallAnalytics(open ? range : undefined);
+  const range = useMemo(() => ({ from: subDays(new Date(), days), to: new Date() }), [days])
+  const { metrics, agentStats, isLoading } = useCallAnalytics(open ? range : undefined)
 
-  const agents = agentStats ?? [];
+  const agents = agentStats ?? []
 
   return (
     <MetricsDialogShell
@@ -47,8 +47,8 @@ export function VoiceMetricsDialog({ open, onOpenChange }: VoiceMetricsDialogPro
           variant="ghost"
           className="h-7 gap-1.5 px-2 text-xs"
           onClick={() => {
-            onOpenChange(false);
-            navigate('/voice/analytics');
+            onOpenChange(false)
+            navigate("/voice/analytics")
           }}
         >
           Full analytics <ArrowRight className="h-3.5 w-3.5" />
@@ -75,7 +75,7 @@ export function VoiceMetricsDialog({ open, onOpenChange }: VoiceMetricsDialogPro
             <MetricTile
               label="Missed calls"
               value={String(metrics.missedCalls)}
-              tone={metrics.missedCalls > 0 ? 'warn' : 'good'}
+              tone={metrics.missedCalls > 0 ? "warn" : "good"}
               hint={trendLabel(metrics.missedTrend)}
               description="Calls that rang out without an agent picking up. Each one is a customer who has to call back or write in instead."
             />
@@ -133,7 +133,7 @@ export function VoiceMetricsDialog({ open, onOpenChange }: VoiceMetricsDialogPro
         </div>
       )}
     </MetricsDialogShell>
-  );
+  )
 }
 
-export default VoiceMetricsDialog;
+export default VoiceMetricsDialog

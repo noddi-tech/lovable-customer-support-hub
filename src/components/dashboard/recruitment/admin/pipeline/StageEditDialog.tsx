@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { Check, ChevronDown } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Dialog,
   DialogContent,
@@ -6,71 +9,64 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { ChevronDown, Check } from 'lucide-react';
-import { PRESET_COLORS, slugifyStageId, ensureUniqueStageId, type Stage } from './types';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { ensureUniqueStageId, PRESET_COLORS, type Stage, slugifyStageId } from "./types"
 
 interface Props {
-  open: boolean;
-  stage: Stage | null;
-  mode: 'create' | 'edit';
-  existingIds: string[];
-  onClose: () => void;
-  onSave: (updated: Stage) => void;
+  open: boolean
+  stage: Stage | null
+  mode: "create" | "edit"
+  existingIds: string[]
+  onClose: () => void
+  onSave: (updated: Stage) => void
 }
 
 export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSave }: Props) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [color, setColor] = useState<string>(PRESET_COLORS[0].value);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [generatedId, setGeneratedId] = useState('');
-  const [slaEnabled, setSlaEnabled] = useState(false);
-  const [slaHours, setSlaHours] = useState<string>('');
-  const [slaError, setSlaError] = useState<string | null>(null);
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [color, setColor] = useState<string>(PRESET_COLORS[0].value)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [generatedId, setGeneratedId] = useState("")
+  const [slaEnabled, setSlaEnabled] = useState(false)
+  const [slaHours, setSlaHours] = useState<string>("")
+  const [slaError, setSlaError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open && stage) {
-      setName(stage.name);
-      setDescription(stage.description ?? '');
-      setColor(stage.color || PRESET_COLORS[0].value);
-      setGeneratedId(stage.id);
-      setAdvancedOpen(false);
-      const enabled = stage.sla_hours != null && (stage.sla_enabled ?? true);
-      setSlaEnabled(enabled);
-      setSlaHours(stage.sla_hours != null ? String(stage.sla_hours) : '');
-      setSlaError(null);
+      setName(stage.name)
+      setDescription(stage.description ?? "")
+      setColor(stage.color || PRESET_COLORS[0].value)
+      setGeneratedId(stage.id)
+      setAdvancedOpen(false)
+      const enabled = stage.sla_hours != null && (stage.sla_enabled ?? true)
+      setSlaEnabled(enabled)
+      setSlaHours(stage.sla_hours != null ? String(stage.sla_hours) : "")
+      setSlaError(null)
     }
-  }, [open, stage]);
+  }, [open, stage])
 
-  const isCreate = mode === 'create';
-  const trimmedName = name.trim();
-  const valid = trimmedName.length > 0;
+  const isCreate = mode === "create"
+  const trimmedName = name.trim()
+  const valid = trimmedName.length > 0
 
   const handleNameBlur = () => {
     if (isCreate && trimmedName) {
-      const base = slugifyStageId(trimmedName);
-      const without = existingIds.filter((id) => id !== stage?.id);
-      const unique = ensureUniqueStageId(base, without);
-      setGeneratedId(unique);
+      const base = slugifyStageId(trimmedName)
+      const without = existingIds.filter((id) => id !== stage?.id)
+      const unique = ensureUniqueStageId(base, without)
+      setGeneratedId(unique)
     }
-  };
+  }
 
   const handleSubmit = () => {
-    if (!valid || !stage) return;
+    if (!valid || !stage) return
     if (slaEnabled && (!slaHours || Number(slaHours) < 1 || Number(slaHours) > 720)) {
-      setSlaError('Skriv inn timer (1–720)');
-      return;
+      setSlaError("Skriv inn timer (1–720)")
+      return
     }
     const finalId = isCreate
       ? generatedId ||
@@ -78,7 +74,7 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
           slugifyStageId(trimmedName),
           existingIds.filter((id) => id !== stage.id),
         )
-      : stage.id;
+      : stage.id
     onSave({
       ...stage,
       id: finalId,
@@ -87,18 +83,18 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
       color,
       sla_hours: slaEnabled ? Number(slaHours) : null,
       sla_enabled: slaEnabled,
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isCreate ? 'Legg til stadium' : 'Rediger stadium'}</DialogTitle>
+          <DialogTitle>{isCreate ? "Legg til stadium" : "Rediger stadium"}</DialogTitle>
           <DialogDescription>
             {isCreate
-              ? 'Definer et nytt stadium i pipelinen.'
-              : 'Endre navn, farge eller beskrivelse for dette stadiet.'}
+              ? "Definer et nytt stadium i pipelinen."
+              : "Endre navn, farge eller beskrivelse for dette stadiet."}
           </DialogDescription>
         </DialogHeader>
 
@@ -134,7 +130,7 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
                   type="button"
                   onClick={() => setColor(c.value)}
                   className={`h-8 w-8 rounded-md flex items-center justify-center transition-all ${
-                    color === c.value ? 'ring-2 ring-ring ring-offset-2' : ''
+                    color === c.value ? "ring-2 ring-ring ring-offset-2" : ""
                   }`}
                   style={{ backgroundColor: c.value }}
                   aria-label={c.label}
@@ -150,21 +146,21 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm">SLA-varsler</Label>
-                <p className="text-xs text-muted-foreground">
-                  Varsle hvis fastlåst i dette steget
-                </p>
+                <p className="text-xs text-muted-foreground">Varsle hvis fastlåst i dette steget</p>
               </div>
               <Switch
                 checked={slaEnabled}
                 onCheckedChange={(v) => {
-                  setSlaEnabled(v);
-                  setSlaError(null);
+                  setSlaEnabled(v)
+                  setSlaError(null)
                 }}
               />
             </div>
             {slaEnabled && (
               <div className="space-y-1.5">
-                <Label htmlFor="sla-hours" className="text-xs">Varsle etter X timer</Label>
+                <Label htmlFor="sla-hours" className="text-xs">
+                  Varsle etter X timer
+                </Label>
                 <Input
                   id="sla-hours"
                   type="number"
@@ -172,14 +168,15 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
                   max={720}
                   value={slaHours}
                   onChange={(e) => {
-                    setSlaHours(e.target.value);
-                    setSlaError(null);
+                    setSlaHours(e.target.value)
+                    setSlaError(null)
                   }}
                   placeholder="f.eks. 72"
                 />
                 {slaError && <p className="text-xs text-destructive">{slaError}</p>}
                 <p className="text-xs text-muted-foreground">
-                  Søkere som har vært i dette steget lenger enn X timer dukker opp i "Trenger oppmerksomhet" på Oversikt.
+                  Søkere som har vært i dette steget lenger enn X timer dukker opp i "Trenger
+                  oppmerksomhet" på Oversikt.
                 </p>
               </div>
             )}
@@ -189,7 +186,7 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="px-0 hover:bg-transparent">
                 <ChevronDown
-                  className={`h-4 w-4 mr-1 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                  className={`h-4 w-4 mr-1 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
                 />
                 Avansert
               </Button>
@@ -198,7 +195,7 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
               <Label htmlFor="stage-id">Stadium-ID</Label>
               <Input
                 id="stage-id"
-                value={isCreate ? generatedId : stage?.id ?? ''}
+                value={isCreate ? generatedId : (stage?.id ?? "")}
                 readOnly
                 className="font-mono text-xs"
               />
@@ -214,10 +211,10 @@ export function StageEditDialog({ open, stage, mode, existingIds, onClose, onSav
             Avbryt
           </Button>
           <Button onClick={handleSubmit} disabled={!valid}>
-            {isCreate ? 'Legg til' : 'Lagre'}
+            {isCreate ? "Legg til" : "Lagre"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

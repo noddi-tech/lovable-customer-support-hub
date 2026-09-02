@@ -1,12 +1,12 @@
-import React from 'react';
-import { StageFieldRequirementsTab } from '../admin/scoring/StageFieldRequirementsTab';
+import type React from "react"
+import { StageFieldRequirementsTab } from "../admin/scoring/StageFieldRequirementsTab"
 
 interface Props {
-  positionId: string;
+  positionId: string
 }
 
 const PositionStageFieldRequirements: React.FC<Props> = ({ positionId }) => (
   <StageFieldRequirementsTab positionId={positionId} />
-);
+)
 
-export default PositionStageFieldRequirements;
+export default PositionStageFieldRequirements

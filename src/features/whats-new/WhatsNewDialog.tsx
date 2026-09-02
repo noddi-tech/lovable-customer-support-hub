@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { Sparkles, X } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,28 +9,26 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Sparkles, X } from 'lucide-react';
-import { useWhatsNew } from './useWhatsNew';
+} from "@/components/ui/dialog"
+import { useWhatsNew } from "./useWhatsNew"
 
 /**
  * Shows unseen feature announcements once per user, on app open.
  */
 export const WhatsNewDialog: React.FC = () => {
-  const { unseen, dismiss, ready } = useWhatsNew();
-  const [open, setOpen] = useState(false);
+  const { unseen, dismiss, ready } = useWhatsNew()
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (ready && unseen.length > 0) setOpen(true);
-  }, [ready, unseen.length]);
+    if (ready && unseen.length > 0) setOpen(true)
+  }, [ready, unseen.length])
 
   const close = () => {
-    dismiss(unseen.map((a) => a.id));
-    setOpen(false);
-  };
+    dismiss(unseen.map((a) => a.id))
+    setOpen(false)
+  }
 
-  if (unseen.length === 0) return null;
+  if (unseen.length === 0) return null
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
@@ -48,14 +49,12 @@ export const WhatsNewDialog: React.FC = () => {
             <span className="text-xs font-medium uppercase tracking-wide">New in Support Hub</span>
           </div>
           <DialogTitle>What&apos;s new</DialogTitle>
-          <DialogDescription>
-            A quick look at what changed since your last visit.
-          </DialogDescription>
+          <DialogDescription>A quick look at what changed since your last visit.</DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {unseen.map((item) => {
-            const Icon = item.icon;
+            const Icon = item.icon
             return (
               <div key={item.id} className="rounded-lg border bg-muted/30 p-4">
                 <div className="flex items-start gap-3">
@@ -89,7 +88,7 @@ export const WhatsNewDialog: React.FC = () => {
                   </div>
                 </div>
               </div>
-            );
+            )
           })}
         </div>
 
@@ -100,5 +99,5 @@ export const WhatsNewDialog: React.FC = () => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

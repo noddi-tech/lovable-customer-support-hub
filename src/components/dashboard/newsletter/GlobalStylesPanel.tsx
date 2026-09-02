@@ -1,82 +1,81 @@
-import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { useTranslation } from 'react-i18next';
-import { useNewsletterStore } from './useNewsletterStore';
-import { useDesignSystem } from '@/contexts/DesignSystemContext';
+import type React from "react"
+import { useTranslation } from "react-i18next"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { useDesignSystem } from "@/contexts/DesignSystemContext"
+import { useNewsletterStore } from "./useNewsletterStore"
 
 export const GlobalStylesPanel: React.FC = () => {
-  const { t } = useTranslation();
-  const { globalStyles, updateGlobalStyles } = useNewsletterStore();
-  const designSystem = useDesignSystem();
+  const { t } = useTranslation()
+  const { globalStyles, updateGlobalStyles } = useNewsletterStore()
+  const designSystem = useDesignSystem()
 
   const handleStyleChange = (field: string, value: string) => {
-    updateGlobalStyles({ [field]: value });
-  };
+    updateGlobalStyles({ [field]: value })
+  }
 
   const syncWithDesignSystem = () => {
     // TODO: Sync with actual design system when available
     updateGlobalStyles({
-      primaryColor: '#007aff',
-      secondaryColor: '#5856d6'
-    });
-  };
+      primaryColor: "#007aff",
+      secondaryColor: "#5856d6",
+    })
+  }
 
   return (
     <div className="pane">
       <div className="p-4 space-y-6">
         <div>
-          <h3 className="font-medium mb-2">{t('globalStyles')}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t('globalStylesDescription')}
-          </p>
+          <h3 className="font-medium mb-2">{t("globalStyles")}</h3>
+          <p className="text-sm text-muted-foreground">{t("globalStylesDescription")}</p>
         </div>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={syncWithDesignSystem}
-          className="w-full"
-        >
-          {t('syncWithDesignSystem')}
+        <Button variant="outline" size="sm" onClick={syncWithDesignSystem} className="w-full">
+          {t("syncWithDesignSystem")}
         </Button>
 
         <Separator />
 
         {/* Colors */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">{t('colors')}</h4>
-          
+          <h4 className="font-medium text-sm">{t("colors")}</h4>
+
           <div>
-            <Label htmlFor="primary-color">{t('primaryColor')}</Label>
+            <Label htmlFor="primary-color">{t("primaryColor")}</Label>
             <Input
               id="primary-color"
               type="color"
               value={globalStyles.primaryColor}
-              onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
+              onChange={(e) => handleStyleChange("primaryColor", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="secondary-color">{t('secondaryColor')}</Label>
+            <Label htmlFor="secondary-color">{t("secondaryColor")}</Label>
             <Input
               id="secondary-color"
               type="color"
               value={globalStyles.secondaryColor}
-              onChange={(e) => handleStyleChange('secondaryColor', e.target.value)}
+              onChange={(e) => handleStyleChange("secondaryColor", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="background-color">{t('backgroundColor')}</Label>
+            <Label htmlFor="background-color">{t("backgroundColor")}</Label>
             <Input
               id="background-color"
               type="color"
               value={globalStyles.backgroundColor}
-              onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+              onChange={(e) => handleStyleChange("backgroundColor", e.target.value)}
             />
           </div>
         </div>
@@ -85,13 +84,13 @@ export const GlobalStylesPanel: React.FC = () => {
 
         {/* Typography */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">{t('typography')}</h4>
-          
+          <h4 className="font-medium text-sm">{t("typography")}</h4>
+
           <div>
-            <Label htmlFor="font-family">{t('fontFamily')}</Label>
-            <Select 
-              value={globalStyles.fontFamily} 
-              onValueChange={(value) => handleStyleChange('fontFamily', value)}
+            <Label htmlFor="font-family">{t("fontFamily")}</Label>
+            <Select
+              value={globalStyles.fontFamily}
+              onValueChange={(value) => handleStyleChange("fontFamily", value)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -109,10 +108,10 @@ export const GlobalStylesPanel: React.FC = () => {
           </div>
 
           <div>
-            <Label htmlFor="font-size">{t('baseFontSize')}</Label>
-            <Select 
-              value={globalStyles.fontSize} 
-              onValueChange={(value) => handleStyleChange('fontSize', value)}
+            <Label htmlFor="font-size">{t("baseFontSize")}</Label>
+            <Select
+              value={globalStyles.fontSize}
+              onValueChange={(value) => handleStyleChange("fontSize", value)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -131,13 +130,13 @@ export const GlobalStylesPanel: React.FC = () => {
 
         {/* Layout */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">{t('layout')}</h4>
-          
+          <h4 className="font-medium text-sm">{t("layout")}</h4>
+
           <div>
-            <Label htmlFor="max-width">{t('maxWidth')}</Label>
-            <Select 
-              value={globalStyles.maxWidth} 
-              onValueChange={(value) => handleStyleChange('maxWidth', value)}
+            <Label htmlFor="max-width">{t("maxWidth")}</Label>
+            <Select
+              value={globalStyles.maxWidth}
+              onValueChange={(value) => handleStyleChange("maxWidth", value)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -156,35 +155,33 @@ export const GlobalStylesPanel: React.FC = () => {
 
         {/* Preview */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">{t('preview')}</h4>
-          <div 
+          <h4 className="font-medium text-sm">{t("preview")}</h4>
+          <div
             className="p-4 border rounded-lg"
             style={{
               backgroundColor: globalStyles.backgroundColor,
               fontFamily: globalStyles.fontFamily,
-              fontSize: globalStyles.fontSize
+              fontSize: globalStyles.fontSize,
             }}
           >
-            <h3 style={{ color: globalStyles.primaryColor, marginBottom: '8px' }}>
-              {t('sampleHeading')}
+            <h3 style={{ color: globalStyles.primaryColor, marginBottom: "8px" }}>
+              {t("sampleHeading")}
             </h3>
-            <p style={{ marginBottom: '12px' }}>
-              {t('sampleText')}
-            </p>
+            <p style={{ marginBottom: "12px" }}>{t("sampleText")}</p>
             <button
               style={{
                 backgroundColor: globalStyles.primaryColor,
-                color: 'white',
-                padding: '8px 16px',
-                border: 'none',
-                borderRadius: '4px'
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "4px",
               }}
             >
-              {t('sampleButton')}
+              {t("sampleButton")}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

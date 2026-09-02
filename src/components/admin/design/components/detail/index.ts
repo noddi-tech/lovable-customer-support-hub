@@ -1,2 +1,2 @@
 // Detail Components
-export { ReplySidebar } from './ReplySidebar';
+export { ReplySidebar } from "./ReplySidebar"

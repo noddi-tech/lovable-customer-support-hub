@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NotificationSettings } from '@/components/dashboard/voice/NotificationSettings';
-import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
-import { Bell, Phone, Settings } from 'lucide-react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Bell, Phone, Settings } from "lucide-react"
+import { useState } from "react"
+import { VoiceIntegrationsList } from "@/components/admin/VoiceIntegrationsList"
+import { NotificationSettings } from "@/components/dashboard/voice/NotificationSettings"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function VoiceSettingsPage() {
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [soundVolume, setSoundVolume] = useState(0.7);
-  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [soundVolume, setSoundVolume] = useState(0.7)
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true)
 
   return (
     <div className="space-y-4 p-3 pb-24 sm:space-y-6 sm:p-6 sm:pb-6">
@@ -26,22 +26,20 @@ export default function VoiceSettingsPage() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="notifications" className="space-y-6">
-        <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <TabsList className="w-max">
-          <TabsTrigger value="notifications" className="shrink-0 gap-2">
+        <TabsList className="flex h-auto min-w-0 flex-wrap justify-start gap-1">
+          <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="shrink-0 gap-2">
+          <TabsTrigger value="integrations" className="gap-2">
             <Phone className="h-4 w-4" />
             Integrations
           </TabsTrigger>
-          <TabsTrigger value="advanced" className="shrink-0 gap-2">
+          <TabsTrigger value="advanced" className="gap-2">
             <Settings className="h-4 w-4" />
             Advanced
           </TabsTrigger>
         </TabsList>
-        </div>
 
         <TabsContent value="notifications" className="space-y-6">
           <Card>
@@ -74,18 +72,14 @@ export default function VoiceSettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Advanced Settings</CardTitle>
-              <CardDescription>
-                Configure advanced voice system options
-              </CardDescription>
+              <CardDescription>Configure advanced voice system options</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Advanced settings coming soon...
-              </p>
+              <p className="text-sm text-muted-foreground">Advanced settings coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }

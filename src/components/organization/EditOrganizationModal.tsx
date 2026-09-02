@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,54 +9,54 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useOrganizations, Organization } from '@/hooks/useOrganizations';
-import { Loader2 } from 'lucide-react';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { type Organization, useOrganizations } from "@/hooks/useOrganizations"
 
 interface EditOrganizationModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  organization: Organization;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organization: Organization
 }
 
-export function EditOrganizationModal({ open, onOpenChange, organization }: EditOrganizationModalProps) {
-  const { updateOrganization, isUpdating } = useOrganizations();
+export function EditOrganizationModal({
+  open,
+  onOpenChange,
+  organization,
+}: EditOrganizationModalProps) {
+  const { updateOrganization, isUpdating } = useOrganizations()
   const [formData, setFormData] = useState({
     name: organization.name,
     slug: organization.slug,
     primary_color: organization.primary_color,
-    sender_display_name: organization.sender_display_name || '',
-  });
+    sender_display_name: organization.sender_display_name || "",
+  })
 
   useEffect(() => {
     setFormData({
       name: organization.name,
       slug: organization.slug,
       primary_color: organization.primary_color,
-      sender_display_name: organization.sender_display_name || '',
-    });
-  }, [organization]);
+      sender_display_name: organization.sender_display_name || "",
+    })
+  }, [organization])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     updateOrganization({
       id: organization.id,
       updates: formData,
-    });
-    onOpenChange(false);
-  };
+    })
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Organization</DialogTitle>
-          <DialogDescription>
-            Update organization details and settings.
-          </DialogDescription>
+          <DialogDescription>Update organization details and settings.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -130,5 +133,5 @@ export function EditOrganizationModal({ open, onOpenChange, organization }: Edit
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

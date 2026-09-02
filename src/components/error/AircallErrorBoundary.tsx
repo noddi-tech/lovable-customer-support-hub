@@ -1,70 +1,70 @@
 /**
  * Aircall Error Boundary Component (Phase 4)
- * 
+ *
  * Catches and handles errors in the Aircall integration without crashing the entire app.
  * Provides recovery options for users.
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react"
+import { Component, type ErrorInfo, type ReactNode } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  hasError: boolean
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
 
 export class AircallErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
-    this.state = { 
-      hasError: false, 
+    super(props)
+    this.state = {
+      hasError: false,
       error: null,
-      errorInfo: null
-    };
+      errorInfo: null,
+    }
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error };
+    return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[AircallErrorBoundary] Caught error:', {
+    console.error("[AircallErrorBoundary] Caught error:", {
       error: error.message,
       stack: error.stack,
-      componentStack: errorInfo.componentStack
-    });
-    
-    this.setState({ errorInfo });
-    
+      componentStack: errorInfo.componentStack,
+    })
+
+    this.setState({ errorInfo })
+
     // Optional: Send to error tracking service
     // trackError('aircall_integration_error', { error, errorInfo });
   }
 
   handleReload = () => {
-    window.location.reload();
-  };
+    window.location.reload()
+  }
 
   handleReset = () => {
-    this.setState({ 
-      hasError: false, 
+    this.setState({
+      hasError: false,
       error: null,
-      errorInfo: null 
-    });
-  };
+      errorInfo: null,
+    })
+  }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback;
+        return this.props.fallback
       }
 
       return (
@@ -74,11 +74,12 @@ export class AircallErrorBoundary extends Component<Props, State> {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Phone System Error</AlertTitle>
               <AlertDescription className="mt-2">
-                {this.state.error?.message || 'An unexpected error occurred in the Aircall phone system'}
+                {this.state.error?.message ||
+                  "An unexpected error occurred in the Aircall phone system"}
               </AlertDescription>
             </Alert>
 
-            {import.meta.env.MODE === 'development' && this.state.error && (
+            {import.meta.env.MODE === "development" && this.state.error && (
               <div className="p-3 bg-muted rounded-md text-xs font-mono overflow-auto max-h-48">
                 <div className="font-bold mb-2">Error Details:</div>
                 <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
@@ -116,9 +117,9 @@ export class AircallErrorBoundary extends Component<Props, State> {
             </p>
           </Card>
         </div>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }

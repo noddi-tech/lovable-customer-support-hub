@@ -1,95 +1,101 @@
-import React, { useEffect, useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query"
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  CircleSlash,
+  Loader2,
+  Sparkles,
+} from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Label } from "@/components/ui/label"
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  Sparkles, AlertCircle, CheckCircle2, CircleSlash, ChevronDown, ChevronRight, Loader2,
-} from 'lucide-react';
-import { usePositionScoringQueueStatus } from '@/hooks/recruitment/usePositionScoringQueueStatus';
-import { useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+  type PositionRubricStatus,
+  usePositionRubricStatus,
+} from "@/hooks/recruitment/usePositionRubricStatus"
 import {
   usePositionScoringConfig,
   useUpdatePositionScoringConfig,
-} from '@/hooks/recruitment/usePositionScoringConfig';
-import {
-  useScoringBaselines,
-  type ScoringRubric,
-} from '@/hooks/recruitment/useScoringBaselines';
-import {
-  usePositionRubricStatus,
-  type PositionRubricStatus,
-} from '@/hooks/recruitment/usePositionRubricStatus';
-import { RubricBuilder, emptyRubric } from '../admin/scoring/RubricBuilder';
+} from "@/hooks/recruitment/usePositionScoringConfig"
+import { usePositionScoringQueueStatus } from "@/hooks/recruitment/usePositionScoringQueueStatus"
+import { type ScoringRubric, useScoringBaselines } from "@/hooks/recruitment/useScoringBaselines"
+import { useToast } from "@/hooks/use-toast"
+import { emptyRubric, RubricBuilder } from "../admin/scoring/RubricBuilder"
 
 interface Props {
-  positionId: string;
+  positionId: string
 }
 
-const NONE_VALUE = '__none__';
+const NONE_VALUE = "__none__"
 
-function statusCopy(s: PositionRubricStatus): { label: string; tone: 'active' | 'inactive' | 'off' } {
+function statusCopy(s: PositionRubricStatus): {
+  label: string
+  tone: "active" | "inactive" | "off"
+} {
   switch (s.state) {
-    case 'active':
-      if (s.source === 'own') return { label: 'AI-scoring aktiv (egen rubrik)', tone: 'active' };
-      if (s.source === 'baseline')
-        return { label: `AI-scoring aktiv (bruker baseline: ${s.baselineName})`, tone: 'active' };
-      return { label: `AI-scoring aktiv (org-standard: ${s.baselineName})`, tone: 'active' };
-    case 'force_disabled':
-      return { label: 'AI-scoring deaktivert manuelt', tone: 'off' };
-    case 'inactive':
+    case "active":
+      if (s.source === "own") return { label: "AI-scoring aktiv (egen rubrik)", tone: "active" }
+      if (s.source === "baseline")
+        return { label: `AI-scoring aktiv (bruker baseline: ${s.baselineName})`, tone: "active" }
+      return { label: `AI-scoring aktiv (org-standard: ${s.baselineName})`, tone: "active" }
+    case "force_disabled":
+      return { label: "AI-scoring deaktivert manuelt", tone: "off" }
     default:
       return {
-        label: 'AI-scoring ikke konfigurert — legg til rubrik eller sett en standard baseline',
-        tone: 'inactive',
-      };
+        label: "AI-scoring ikke konfigurert — legg til rubrik eller sett en standard baseline",
+        tone: "inactive",
+      }
   }
 }
 
 const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
-  const qc = useQueryClient();
-  const { data: config, isLoading } = usePositionScoringConfig(positionId);
-  const { data: baselines } = useScoringBaselines();
-  const { data: status } = usePositionRubricStatus(positionId);
-  const { data: queueStatus } = usePositionScoringQueueStatus(positionId);
-  const update = useUpdatePositionScoringConfig();
-  const { toast } = useToast();
+  const qc = useQueryClient()
+  const { data: config, isLoading } = usePositionScoringConfig(positionId)
+  const { data: baselines } = useScoringBaselines()
+  const { data: status } = usePositionRubricStatus(positionId)
+  const { data: queueStatus } = usePositionScoringQueueStatus(positionId)
+  const update = useUpdatePositionScoringConfig()
+  const { toast } = useToast()
 
-  const [baselineId, setBaselineId] = useState<string | null>(null);
-  const [overrideRubric, setOverrideRubric] = useState(false);
-  const [rubric, setRubric] = useState<ScoringRubric>(emptyRubric());
-  const [dirty, setDirty] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [baselineId, setBaselineId] = useState<string | null>(null)
+  const [overrideRubric, setOverrideRubric] = useState(false)
+  const [rubric, setRubric] = useState<ScoringRubric>(emptyRubric())
+  const [dirty, setDirty] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   useEffect(() => {
-    if (!config) return;
-    setBaselineId(config.scoring_global_baseline_id);
-    setOverrideRubric(!!config.scoring_rubric);
-    setRubric((config.scoring_rubric as ScoringRubric) ?? emptyRubric());
-    setDirty(false);
-  }, [config]);
+    if (!config) return
+    setBaselineId(config.scoring_global_baseline_id)
+    setOverrideRubric(!!config.scoring_rubric)
+    setRubric((config.scoring_rubric as ScoringRubric) ?? emptyRubric())
+    setDirty(false)
+  }, [config])
 
-  const markDirty = () => setDirty(true);
+  const markDirty = () => setDirty(true)
 
-  const totalWeight = rubric.criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0);
-  const baseline = baselines?.find((b) => b.id === baselineId) ?? null;
+  const totalWeight = rubric.criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0)
+  const baseline = baselines?.find((b) => b.id === baselineId) ?? null
 
   const canSave = overrideRubric
     ? rubric.criteria.length > 0 &&
       rubric.criteria.every((c) => c.name.trim().length > 0) &&
       totalWeight === 100
-    : true;
+    : true
 
   const handleSave = async () => {
     try {
@@ -97,39 +103,39 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
         id: positionId,
         scoring_global_baseline_id: baselineId,
         scoring_rubric: overrideRubric ? rubric : null,
-      });
-      toast({ title: 'Scoring-konfigurasjon lagret' });
-      setDirty(false);
-      qc.invalidateQueries({ queryKey: ['position-rubric-status', positionId] });
+      })
+      toast({ title: "Scoring-konfigurasjon lagret" })
+      setDirty(false)
+      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke lagre', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke lagre", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleReactivate = async () => {
     try {
-      await update.mutateAsync({ id: positionId, scoring_enabled: true });
-      toast({ title: 'AI-scoring reaktivert' });
-      qc.invalidateQueries({ queryKey: ['position-rubric-status', positionId] });
+      await update.mutateAsync({ id: positionId, scoring_enabled: true })
+      toast({ title: "AI-scoring reaktivert" })
+      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke reaktivere', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke reaktivere", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleForceDisable = async (next: boolean) => {
     try {
-      await update.mutateAsync({ id: positionId, scoring_enabled: !next });
-      toast({ title: next ? 'AI-scoring stoppet' : 'AI-scoring reaktivert' });
-      qc.invalidateQueries({ queryKey: ['position-rubric-status', positionId] });
+      await update.mutateAsync({ id: positionId, scoring_enabled: !next })
+      toast({ title: next ? "AI-scoring stoppet" : "AI-scoring reaktivert" })
+      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke endre', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke endre", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
-  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  if (isLoading) return <Skeleton className="h-48 w-full" />
 
-  const copy = status ? statusCopy(status) : null;
-  const isForceOff = config?.scoring_enabled === false;
+  const copy = status ? statusCopy(status) : null
+  const isForceOff = config?.scoring_enabled === false
 
   return (
     <Card>
@@ -149,33 +155,34 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
           {copy && (
             <div
               className={
-                'flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm ' +
-                (copy.tone === 'active'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                  : copy.tone === 'off'
-                  ? 'border-amber-200 bg-amber-50 text-amber-900'
-                  : 'border-muted bg-muted/30 text-muted-foreground')
+                "flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm " +
+                (copy.tone === "active"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  : copy.tone === "off"
+                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    : "border-muted bg-muted/30 text-muted-foreground")
               }
             >
               <span className="flex items-center gap-2 flex-wrap">
-                {copy.tone === 'active' ? (
+                {copy.tone === "active" ? (
                   <CheckCircle2 className="h-4 w-4" />
-                ) : copy.tone === 'off' ? (
+                ) : copy.tone === "off" ? (
                   <CircleSlash className="h-4 w-4" />
                 ) : (
                   <AlertCircle className="h-4 w-4" />
                 )}
                 <span>{copy.label}</span>
-                {copy.tone === 'active' && queueStatus && queueStatus.queueCount > 0 && (
+                {copy.tone === "active" && queueStatus && queueStatus.queueCount > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
                     {queueStatus.processingCount > 0 && (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     )}
-                    {queueStatus.queueCount} søker{queueStatus.queueCount === 1 ? '' : 'e'} i kø · {queueStatus.etaLabel}
+                    {queueStatus.queueCount} søker{queueStatus.queueCount === 1 ? "" : "e"} i kø ·{" "}
+                    {queueStatus.etaLabel}
                   </span>
                 )}
               </span>
-              {copy.tone === 'off' && (
+              {copy.tone === "off" && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -197,18 +204,20 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
           <Select
             value={baselineId ?? NONE_VALUE}
             onValueChange={(v) => {
-              setBaselineId(v === NONE_VALUE ? null : v);
-              markDirty();
+              setBaselineId(v === NONE_VALUE ? null : v)
+              markDirty()
             }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Velg en baseline" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE_VALUE}>(Ingen — bruk org-standard eller egen rubrik)</SelectItem>
+              <SelectItem value={NONE_VALUE}>
+                (Ingen — bruk org-standard eller egen rubrik)
+              </SelectItem>
               {(baselines ?? []).map((b) => (
                 <SelectItem key={b.id} value={b.id}>
-                  {b.name} {b.is_default && '★'}
+                  {b.name} {b.is_default && "★"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -216,8 +225,8 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
           {(baselines ?? []).length === 0 && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
-              Ingen baselines tilgjengelig. Opprett en under Rekruttering → Innstillinger →
-              Scoring, eller huk av «Egen rubrik» under.
+              Ingen baselines tilgjengelig. Opprett en under Rekruttering → Innstillinger → Scoring,
+              eller huk av «Egen rubrik» under.
             </p>
           )}
         </div>
@@ -232,17 +241,23 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
           <Switch
             checked={overrideRubric}
             onCheckedChange={(v) => {
-              setOverrideRubric(v);
+              setOverrideRubric(v)
               if (v && (!rubric.criteria || rubric.criteria.length === 0)) {
-                setRubric(baseline ? (baseline.rubric as ScoringRubric) : emptyRubric());
+                setRubric(baseline ? (baseline.rubric as ScoringRubric) : emptyRubric())
               }
-              markDirty();
+              markDirty()
             }}
           />
         </div>
 
         {overrideRubric ? (
-          <RubricBuilder value={rubric} onChange={(r) => { setRubric(r); markDirty(); }} />
+          <RubricBuilder
+            value={rubric}
+            onChange={(r) => {
+              setRubric(r)
+              markDirty()
+            }}
+          />
         ) : baseline ? (
           <div className="rounded-md border bg-muted/30 p-3 space-y-1">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -304,7 +319,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
         </Collapsible>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default PositionScoringConfig;
+export default PositionScoringConfig

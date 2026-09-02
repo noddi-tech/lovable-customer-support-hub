@@ -2,44 +2,44 @@
  * Slim environment banner shown at the very top of the app.
  * Renders nothing on production (published domain + prod build).
  */
-import { useEffect } from 'react';
+import { useEffect } from "react"
 
-const BANNER_HEIGHT = '1.25rem';
+const BANNER_HEIGHT = "1.25rem"
 
 export const EnvBanner = () => {
-  const host = typeof window !== 'undefined' ? window.location.hostname : '';
-  const isDev = import.meta.env.DEV === true;
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
-  const isLovablePreview = host.includes('id-preview--') || host.includes('.lovableproject.com');
+  const host = typeof window !== "undefined" ? window.location.hostname : ""
+  const isDev = import.meta.env.DEV === true
+  const isLocal = host === "localhost" || host === "127.0.0.1" || host.endsWith(".local")
+  const isLovablePreview = host.includes("id-preview--") || host.includes(".lovableproject.com")
 
-  let label: string | null = null;
-  let tone = '';
+  let label: string | null = null
+  let tone = ""
 
   if (isLocal) {
-    label = `LOCAL DEV · ${window.location.host}`;
-    tone = 'bg-emerald-600 text-white';
+    label = `LOCAL DEV · ${window.location.host}`
+    tone = "bg-emerald-600 text-white"
   } else if (isLovablePreview) {
-    label = `LOVABLE PREVIEW · ${isDev ? 'dev build' : 'prod build'}`;
-    tone = 'bg-amber-500 text-black';
+    label = `LOVABLE PREVIEW · ${isDev ? "dev build" : "prod build"}`
+    tone = "bg-amber-500 text-black"
   } else if (isDev) {
-    label = `DEV BUILD · ${host}`;
-    tone = 'bg-amber-500 text-black';
+    label = `DEV BUILD · ${host}`
+    tone = "bg-amber-500 text-black"
   }
 
   // Reserve space so the banner pushes the app down instead of covering it.
   useEffect(() => {
-    const root = document.documentElement;
+    const root = document.documentElement
     if (label) {
-      root.style.setProperty('--env-banner-h', BANNER_HEIGHT);
+      root.style.setProperty("--env-banner-h", BANNER_HEIGHT)
     } else {
-      root.style.removeProperty('--env-banner-h');
+      root.style.removeProperty("--env-banner-h")
     }
     return () => {
-      root.style.removeProperty('--env-banner-h');
-    };
-  }, [label]);
+      root.style.removeProperty("--env-banner-h")
+    }
+  }, [label])
 
-  if (!label) return null; // production — stay silent
+  if (!label) return null // production — stay silent
 
   return (
     <div
@@ -47,5 +47,5 @@ export const EnvBanner = () => {
     >
       {label}
     </div>
-  );
-};
+  )
+}

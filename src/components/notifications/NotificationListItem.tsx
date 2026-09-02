@@ -1,42 +1,37 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { 
-  Check, 
-  Trash2, 
-  ExternalLink,
-  Bell,
-  UserCheck,
-  Phone,
-  AtSign,
-  Circle
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import type { EnhancedNotification, NotificationPriority } from '@/hooks/useNotificationFilters';
+import { formatDistanceToNow } from "date-fns"
+import { AtSign, Bell, Check, Circle, ExternalLink, Phone, Trash2, UserCheck } from "lucide-react"
+import type React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import type { EnhancedNotification, NotificationPriority } from "@/hooks/useNotificationFilters"
+import { cn } from "@/lib/utils"
 
 interface NotificationListItemProps {
-  notification: EnhancedNotification;
-  onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
-  onNavigate: (notification: EnhancedNotification) => void;
+  notification: EnhancedNotification
+  onMarkAsRead: (id: string) => void
+  onDelete: (id: string) => void
+  onNavigate: (notification: EnhancedNotification) => void
 }
 
 const priorityConfig: Record<NotificationPriority, { color: string; label: string }> = {
-  urgent: { color: 'bg-destructive', label: 'Urgent' },
-  high: { color: 'bg-warning', label: 'High' },
-  normal: { color: 'bg-primary', label: 'Normal' },
-  low: { color: 'bg-muted-foreground', label: 'Low' },
-};
+  urgent: { color: "bg-destructive", label: "Urgent" },
+  high: { color: "bg-warning", label: "High" },
+  normal: { color: "bg-primary", label: "Normal" },
+  low: { color: "bg-muted-foreground", label: "Low" },
+}
 
 const getCategoryIcon = (category: string) => {
   switch (category) {
-    case 'calls': return Phone;
-    case 'assigned': return UserCheck;
-    case 'mentions': return AtSign;
-    default: return Bell;
+    case "calls":
+      return Phone
+    case "assigned":
+      return UserCheck
+    case "mentions":
+      return AtSign
+    default:
+      return Bell
   }
-};
+}
 
 export const NotificationListItem: React.FC<NotificationListItemProps> = ({
   notification,
@@ -44,9 +39,10 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
   onDelete,
   onNavigate,
 }) => {
-  const Icon = getCategoryIcon(notification.category);
-  const priority = priorityConfig[notification.priority];
-  const hasLink = notification.data?.conversation_id || notification.data?.ticket_id || notification.data?.call_id;
+  const Icon = getCategoryIcon(notification.category)
+  const priority = priorityConfig[notification.priority]
+  const hasLink =
+    notification.data?.conversation_id || notification.data?.ticket_id || notification.data?.call_id
 
   return (
     <div
@@ -54,27 +50,31 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
         "group relative flex items-start gap-4 p-4 border-b border-border transition-colors",
         !notification.is_read && "bg-muted/30",
         "hover:bg-muted/50",
-        hasLink && "cursor-pointer"
+        hasLink && "cursor-pointer",
       )}
       onClick={() => hasLink && onNavigate(notification)}
     >
       {/* Priority indicator line */}
-      <div 
+      <div
         className={cn(
           "absolute left-0 top-0 bottom-0 w-1 rounded-l",
-          notification.priority === 'urgent' && "bg-destructive",
-          notification.priority === 'high' && "bg-warning",
-          notification.priority === 'normal' && !notification.is_read && "bg-primary",
-        )} 
+          notification.priority === "urgent" && "bg-destructive",
+          notification.priority === "high" && "bg-warning",
+          notification.priority === "normal" && !notification.is_read && "bg-primary",
+        )}
       />
-      
+
       {/* Icon */}
-      <div className={cn(
-        "shrink-0 h-10 w-10 rounded-full flex items-center justify-center",
-        notification.priority === 'urgent' ? "bg-destructive/10 text-destructive" :
-        notification.priority === 'high' ? "bg-warning/10 text-warning" :
-        "bg-muted text-muted-foreground"
-      )}>
+      <div
+        className={cn(
+          "shrink-0 h-10 w-10 rounded-full flex items-center justify-center",
+          notification.priority === "urgent"
+            ? "bg-destructive/10 text-destructive"
+            : notification.priority === "high"
+              ? "bg-warning/10 text-warning"
+              : "bg-muted text-muted-foreground",
+        )}
+      >
         <Icon className="h-5 w-5" />
       </div>
 
@@ -82,22 +82,22 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className={cn(
-              "text-sm font-medium",
-              !notification.is_read && "text-foreground",
-              notification.is_read && "text-muted-foreground"
-            )}>
+            <h4
+              className={cn(
+                "text-sm font-medium",
+                !notification.is_read && "text-foreground",
+                notification.is_read && "text-muted-foreground",
+              )}
+            >
               {notification.title}
             </h4>
-            {!notification.is_read && (
-              <Circle className="h-2 w-2 fill-primary text-primary" />
-            )}
-            {notification.priority === 'urgent' && (
+            {!notification.is_read && <Circle className="h-2 w-2 fill-primary text-primary" />}
+            {notification.priority === "urgent" && (
               <Badge variant="destructive" className="text-xs px-1.5 py-0">
                 Urgent
               </Badge>
             )}
-            {notification.category === 'assigned' && (
+            {notification.category === "assigned" && (
               <Badge variant="secondary" className="text-xs px-1.5 py-0">
                 Assigned to you
               </Badge>
@@ -107,11 +107,13 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
             {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
           </span>
         </div>
-        
-        <p className={cn(
-          "text-sm mt-1 line-clamp-2",
-          notification.is_read ? "text-muted-foreground" : "text-foreground/80"
-        )}>
+
+        <p
+          className={cn(
+            "text-sm mt-1 line-clamp-2",
+            notification.is_read ? "text-muted-foreground" : "text-foreground/80",
+          )}
+        >
           {notification.message}
         </p>
 
@@ -129,8 +131,8 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
               size="sm"
               className="h-7 text-xs"
               onClick={(e) => {
-                e.stopPropagation();
-                onMarkAsRead(notification.id);
+                e.stopPropagation()
+                onMarkAsRead(notification.id)
               }}
             >
               <Check className="h-3 w-3 mr-1" />
@@ -143,8 +145,8 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
               size="sm"
               className="h-7 text-xs"
               onClick={(e) => {
-                e.stopPropagation();
-                onNavigate(notification);
+                e.stopPropagation()
+                onNavigate(notification)
               }}
             >
               <ExternalLink className="h-3 w-3 mr-1" />
@@ -156,8 +158,8 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
             size="sm"
             className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={(e) => {
-              e.stopPropagation();
-              onDelete(notification.id);
+              e.stopPropagation()
+              onDelete(notification.id)
             }}
           >
             <Trash2 className="h-3 w-3 mr-1" />
@@ -166,5 +168,5 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

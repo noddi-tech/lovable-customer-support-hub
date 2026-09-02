@@ -3,12 +3,12 @@
  * Prevents showing email twice and prioritizes actual names
  */
 
-import type { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
+import type { NoddiLookupResponse } from "@/hooks/useNoddihKundeData"
 
 interface CustomerDisplayResult {
-  displayName: string;
-  showEmail: boolean;
-  email: string | null;
+  displayName: string
+  showEmail: boolean
+  email: string | null
 }
 
 /**
@@ -18,22 +18,22 @@ interface CustomerDisplayResult {
 export function getCustomerDisplayWithNoddi(
   noddiData: NoddiLookupResponse | null | undefined,
   fullName: string | null | undefined,
-  email: string | null | undefined
+  email: string | null | undefined,
 ): CustomerDisplayResult {
-  const normalizedEmail = email?.trim() || '';
-  
+  const normalizedEmail = email?.trim() || ""
+
   // Priority 1: Noddi API display_name
-  const noddiDisplayName = noddiData?.data?.ui_meta?.display_name?.trim();
+  const noddiDisplayName = noddiData?.data?.ui_meta?.display_name?.trim()
   if (noddiDisplayName && noddiDisplayName.toLowerCase() !== normalizedEmail.toLowerCase()) {
     return {
       displayName: noddiDisplayName,
       showEmail: !!normalizedEmail,
-      email: normalizedEmail || null
-    };
+      email: normalizedEmail || null,
+    }
   }
-  
+
   // Fallback to standard logic
-  return getCustomerDisplay(fullName, email);
+  return getCustomerDisplay(fullName, email)
 }
 
 /**
@@ -42,47 +42,50 @@ export function getCustomerDisplayWithNoddi(
  */
 export function getCustomerDisplay(
   fullName: string | null | undefined,
-  email: string | null | undefined
+  email: string | null | undefined,
 ): CustomerDisplayResult {
-  const normalizedName = fullName?.trim() || '';
-  const normalizedEmail = email?.trim() || '';
-  
+  const normalizedName = fullName?.trim() || ""
+  const normalizedEmail = email?.trim() || ""
+
   // Check if name is essentially the same as email (case insensitive)
-  const nameIsEmail = normalizedName.toLowerCase() === normalizedEmail.toLowerCase();
-  
+  const nameIsEmail = normalizedName.toLowerCase() === normalizedEmail.toLowerCase()
+
   // Check if name looks like an email (contains @)
-  const nameContainsAt = normalizedName.includes('@');
-  
+  const nameContainsAt = normalizedName.includes("@")
+
   // If we have a proper name that's different from email
   if (normalizedName && !nameIsEmail && !nameContainsAt) {
     return {
       displayName: normalizedName,
       showEmail: !!normalizedEmail,
-      email: normalizedEmail || null
-    };
+      email: normalizedEmail || null,
+    }
   }
-  
+
   // If name is email or empty, show email as the display name (once only)
   if (normalizedEmail) {
     return {
       displayName: normalizedEmail,
       showEmail: false, // Don't show email again below
-      email: normalizedEmail
-    };
+      email: normalizedEmail,
+    }
   }
-  
+
   // Fallback for no data
   return {
-    displayName: 'Unknown',
+    displayName: "Unknown",
     showEmail: false,
-    email: null
-  };
+    email: null,
+  }
 }
 
 /**
  * Gets the initial letter for avatar display
  */
-export function getCustomerInitial(fullName: string | null | undefined, email: string | null | undefined): string {
-  const { displayName } = getCustomerDisplay(fullName, email);
-  return displayName.charAt(0).toUpperCase() || 'U';
+export function getCustomerInitial(
+  fullName: string | null | undefined,
+  email: string | null | undefined,
+): string {
+  const { displayName } = getCustomerDisplay(fullName, email)
+  return displayName.charAt(0).toUpperCase() || "U"
 }

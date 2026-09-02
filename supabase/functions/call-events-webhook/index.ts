@@ -1,195 +1,189 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aircall-signature',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-aircall-signature",
+}
 
 // Verify Aircall webhook signature
 async function verifyAircallSignature(
   payload: string,
   signature: string | null,
-  token: string
+  token: string,
 ): Promise<boolean> {
   if (!signature) {
-    console.warn('⚠️ No signature provided in webhook request');
-    return false;
+    console.warn("⚠️ No signature provided in webhook request")
+    return false
   }
 
   try {
-    const encoder = new TextEncoder();
+    const encoder = new TextEncoder()
     const key = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       encoder.encode(token),
-      { name: 'HMAC', hash: 'SHA-256' },
+      { name: "HMAC", hash: "SHA-256" },
       false,
-      ['sign']
-    );
+      ["sign"],
+    )
 
-    const signatureBuffer = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(payload)
-    );
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(payload))
 
     const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
 
-    const isValid = expectedSignature === signature;
-    
+    const isValid = expectedSignature === signature
+
     if (!isValid) {
-      console.error('❌ Signature mismatch:', {
-        expected: expectedSignature.substring(0, 20) + '...',
-        received: signature.substring(0, 20) + '...'
-      });
+      console.error("❌ Signature mismatch:", {
+        expected: `${expectedSignature.substring(0, 20)}...`,
+        received: `${signature.substring(0, 20)}...`,
+      })
     }
 
-    return isValid;
+    return isValid
   } catch (error) {
-    console.error('❌ Signature verification error:', error);
-    return false;
+    console.error("❌ Signature verification error:", error)
+    return false
   }
 }
 
 // Function to download and store voicemail in Supabase storage
 async function downloadAndStoreVoicemail(supabase: any, voicemailUrl: string, callUuid: string) {
   try {
-    console.log('📥 Downloading voicemail from:', voicemailUrl);
-    
+    console.log("📥 Downloading voicemail from:", voicemailUrl)
+
     // Fetch the voicemail file
-    const response = await fetch(voicemailUrl);
+    const response = await fetch(voicemailUrl)
     if (!response.ok) {
-      throw new Error(`Failed to download voicemail: ${response.status}`);
+      throw new Error(`Failed to download voicemail: ${response.status}`)
     }
-    
-    const audioBuffer = await response.arrayBuffer();
-    const audioFile = new Uint8Array(audioBuffer);
-    
+
+    const audioBuffer = await response.arrayBuffer()
+    const audioFile = new Uint8Array(audioBuffer)
+
     // Generate a storage path
-    const fileName = `${callUuid}-${Date.now()}.mp3`;
-    const filePath = `voicemails/${fileName}`;
-    
-    console.log('💾 Storing voicemail in Supabase storage:', filePath);
-    
+    const fileName = `${callUuid}-${Date.now()}.mp3`
+    const filePath = `voicemails/${fileName}`
+
+    console.log("💾 Storing voicemail in Supabase storage:", filePath)
+
     // Upload to Supabase storage
-    const { data, error } = await supabase.storage
-      .from('voicemails')
-      .upload(filePath, audioFile, {
-        contentType: 'audio/mpeg',
-        upsert: false
-      });
-    
+    const { data, error } = await supabase.storage.from("voicemails").upload(filePath, audioFile, {
+      contentType: "audio/mpeg",
+      upsert: false,
+    })
+
     if (error) {
-      console.error('❌ Error uploading voicemail:', error);
-      throw error;
+      console.error("❌ Error uploading voicemail:", error)
+      throw error
     }
-    
-    console.log('✅ Voicemail stored successfully:', data);
-    return filePath;
-    
+
+    console.log("✅ Voicemail stored successfully:", data)
+    return filePath
   } catch (error) {
-    console.error('❌ Error downloading/storing voicemail:', error);
-    throw error;
+    console.error("❌ Error downloading/storing voicemail:", error)
+    throw error
   }
 }
 
 // Provider-specific adapters
 interface StandardCallEvent {
-  externalId: string;
-  provider: string;
-  customerPhone?: string;
-  agentPhone?: string;
-  status: string;
-  direction: 'inbound' | 'outbound';
-  startedAt: string;
-  endedAt?: string;
-  durationSeconds?: number;
-  recordingUrl?: string;
-  metadata: Record<string, any>;
-  eventType: string;
-  eventData: Record<string, any>;
+  externalId: string
+  provider: string
+  customerPhone?: string
+  agentPhone?: string
+  status: string
+  direction: "inbound" | "outbound"
+  startedAt: string
+  endedAt?: string
+  durationSeconds?: number
+  recordingUrl?: string
+  metadata: Record<string, any>
+  eventType: string
+  eventData: Record<string, any>
 }
 
 class AircallAdapter {
   static convertWebhookToStandardEvent(payload: any): StandardCallEvent {
-    const call = payload.data;
-    console.log('Aircall webhook payload:', JSON.stringify(payload, null, 2));
-    
+    const call = payload.data
+    console.log("Aircall webhook payload:", JSON.stringify(payload, null, 2))
+
     // Determine final status based on both Aircall status AND end_reason
-    let finalStatus = 'ringing';
-    
-    if (call.status === 'done' || call.status === 'hungup' || payload.event === 'call.ended') {
+    let finalStatus = "ringing"
+
+    if (call.status === "done" || call.status === "hungup" || payload.event === "call.ended") {
       // Call has ended - determine why
       const missedReasons = [
-        'agents_did_not_answer',
-        'abandoned_in_ivr', 
-        'not_answered',
-        'short_abandoned',
-        'no_available_agent',
-        'out_of_opening_hours',
-        'abandoned_in_classic'
-      ];
-      
+        "agents_did_not_answer",
+        "abandoned_in_ivr",
+        "not_answered",
+        "short_abandoned",
+        "no_available_agent",
+        "out_of_opening_hours",
+        "abandoned_in_classic",
+      ]
+
       if (call.missed_call_reason && missedReasons.includes(call.missed_call_reason)) {
-        finalStatus = 'missed';
+        finalStatus = "missed"
       } else if (call.answered_at) {
         // Call was answered and then ended
-        finalStatus = 'completed';
+        finalStatus = "completed"
       } else {
         // No answered_at and no clear missed reason - default to missed
-        finalStatus = 'missed';
+        finalStatus = "missed"
       }
     } else {
       // Call is still in progress
       const statusMap: Record<string, string> = {
-        'initial': 'ringing',
-        'ringing': 'ringing',
-        'answered': 'answered',
-        'transferred': 'transferred',
-        'hold': 'on_hold',
-        'busy': 'busy',
-        'failed': 'failed'
-      };
-      finalStatus = statusMap[call.status] || 'ringing';
+        initial: "ringing",
+        ringing: "ringing",
+        answered: "answered",
+        transferred: "transferred",
+        hold: "on_hold",
+        busy: "busy",
+        failed: "failed",
+      }
+      finalStatus = statusMap[call.status] || "ringing"
     }
 
     // Map Aircall events to our event types
     const eventTypeMap: Record<string, string> = {
-      'call.created': 'call_started',
-      'call.answered': 'call_answered', 
-      'call.hungup': 'call_ended',
-      'call.ended': 'call_ended',
-      'call.ended-manual': 'call_ended',
-      'call.missed': 'call_missed',
-      'call.transferred': 'call_transferred',
-      'call.hold': 'call_on_hold',
-      'call.unhold': 'call_resumed',
-      'call.voicemail': 'voicemail_left',
-      'call.voicemail_left': 'voicemail_left',
-      'call.ivr_option_selected': 'dtmf_pressed'
-    };
+      "call.created": "call_started",
+      "call.answered": "call_answered",
+      "call.hungup": "call_ended",
+      "call.ended": "call_ended",
+      "call.ended-manual": "call_ended",
+      "call.missed": "call_missed",
+      "call.transferred": "call_transferred",
+      "call.hold": "call_on_hold",
+      "call.unhold": "call_resumed",
+      "call.voicemail": "voicemail_left",
+      "call.voicemail_left": "voicemail_left",
+      "call.ivr_option_selected": "dtmf_pressed",
+    }
 
     // Convert Unix timestamps to ISO strings
     const convertTimestamp = (unixTimestamp: any): string | undefined => {
-      if (!unixTimestamp) return undefined;
-      if (typeof unixTimestamp === 'number') {
-        return new Date(unixTimestamp * 1000).toISOString();
+      if (!unixTimestamp) return undefined
+      if (typeof unixTimestamp === "number") {
+        return new Date(unixTimestamp * 1000).toISOString()
       }
-      if (typeof unixTimestamp === 'string' && /^\d+$/.test(unixTimestamp)) {
-        return new Date(parseInt(unixTimestamp) * 1000).toISOString();
+      if (typeof unixTimestamp === "string" && /^\d+$/.test(unixTimestamp)) {
+        return new Date(parseInt(unixTimestamp, 10) * 1000).toISOString()
       }
-      return unixTimestamp;
-    };
+      return unixTimestamp
+    }
 
     return {
       externalId: call.id.toString(),
-      provider: 'aircall',
+      provider: "aircall",
       customerPhone: call.raw_digits || call.from?.phone_number,
       agentPhone: call.to?.phone_number,
       status: finalStatus,
-      direction: call.direction === 'inbound' ? 'inbound' : 'outbound',
+      direction: call.direction === "inbound" ? "inbound" : "outbound",
       startedAt: convertTimestamp(call.started_at) || new Date().toISOString(),
       endedAt: convertTimestamp(call.ended_at),
       durationSeconds: call.duration || undefined,
@@ -201,269 +195,287 @@ class AircallAdapter {
         contact: call.contact || null,
         missedCallReason: call.missed_call_reason || null,
         answeredAt: call.answered_at || null,
-        originalPayload: call
+        originalPayload: call,
       },
-      eventType: eventTypeMap[payload.event] || 'call_started',
+      eventType: eventTypeMap[payload.event] || "call_started",
       eventData: {
         webhookEvent: payload.event,
         timestamp: convertTimestamp(payload.timestamp) || new Date().toISOString(),
-        callData: call
-      }
-    };
+        callData: call,
+      },
+    }
   }
 }
 
 // Generic adapter dispatcher
 function adaptWebhookEvent(provider: string, payload: any): StandardCallEvent {
   switch (provider.toLowerCase()) {
-    case 'aircall':
-      return AircallAdapter.convertWebhookToStandardEvent(payload);
+    case "aircall":
+      return AircallAdapter.convertWebhookToStandardEvent(payload)
     default:
-      throw new Error(`Unknown provider: ${provider}`);
+      throw new Error(`Unknown provider: ${provider}`)
   }
 }
 
 async function getOrganizationFromDomain(supabase: any, domain: string): Promise<string | null> {
   // For now, map to noddi org. Later we can add domain-based routing
   const { data: org, error } = await supabase
-    .from('organizations')
-    .select('id, name, slug')
-    .eq('slug', 'noddi')
-    .single();
-    
+    .from("organizations")
+    .select("id, name, slug")
+    .eq("slug", "noddi")
+    .single()
+
   if (error) {
-    console.error('❌ Error fetching organization:', error);
-    return null;
+    console.error("❌ Error fetching organization:", error)
+    return null
   }
-  
+
   if (!org) {
-    console.error('❌ Organization "noddi" not found in database');
-    return null;
+    console.error('❌ Organization "noddi" not found in database')
+    return null
   }
-  
-  console.log('✅ Organization found:', org);
-  return org.id;
+
+  console.log("✅ Organization found:", org)
+  return org.id
 }
 
-async function processCallEvent(supabase: any, standardEvent: StandardCallEvent, organizationId: string) {
-  console.log('Processing standard event:', JSON.stringify(standardEvent, null, 2));
+async function processCallEvent(
+  supabase: any,
+  standardEvent: StandardCallEvent,
+  organizationId: string,
+) {
+  console.log("Processing standard event:", JSON.stringify(standardEvent, null, 2))
 
   // Fetch customer data - ALWAYS use Noddi API for live calls to get fresh data
-  let customerId = null;
-  let customerName = null;
-  let customerEmail = null;
+  let customerId = null
+  let customerName = null
+  let customerEmail = null
 
   if (standardEvent.customerPhone) {
     try {
       // For NEW INCOMING CALLS, always fetch fresh data from Noddi API
-      console.log('📞 NEW CALL - Fetching fresh customer data from Noddi API:', standardEvent.customerPhone);
-      
+      console.log(
+        "📞 NEW CALL - Fetching fresh customer data from Noddi API:",
+        standardEvent.customerPhone,
+      )
+
       const { data: noddiData, error: noddiError } = await supabase.functions.invoke(
-        'noddi-customer-lookup',
+        "noddi-customer-lookup",
         {
-          body: { 
+          body: {
             phone: standardEvent.customerPhone,
             organizationId: organizationId,
-            forceRefresh: true // ← ALWAYS force refresh for live calls
-          }
-        }
-      );
+            forceRefresh: true, // ← ALWAYS force refresh for live calls
+          },
+        },
+      )
 
       if (noddiError) {
-        console.warn('⚠️ Noddi lookup failed, checking local database as fallback:', noddiError);
-        
+        console.warn("⚠️ Noddi lookup failed, checking local database as fallback:", noddiError)
+
         // Fallback to local database if Noddi API fails
         const { data: localCustomer, error: localError } = await supabase
-          .from('customers')
-          .select('id, full_name, email')
-          .eq('phone', standardEvent.customerPhone)
-          .eq('organization_id', organizationId)
-          .maybeSingle();
+          .from("customers")
+          .select("id, full_name, email")
+          .eq("phone", standardEvent.customerPhone)
+          .eq("organization_id", organizationId)
+          .maybeSingle()
 
         if (!localError && localCustomer) {
-          customerId = localCustomer.id;
-          customerName = localCustomer.full_name;
-          customerEmail = localCustomer.email;
-          console.log('✅ Using local database (Noddi unavailable):', { customerId, customerName });
+          customerId = localCustomer.id
+          customerName = localCustomer.full_name
+          customerEmail = localCustomer.email
+          console.log("✅ Using local database (Noddi unavailable):", { customerId, customerName })
         }
       } else if (noddiData?.data?.found && noddiData.data.user) {
         // ✅ Got fresh data from Noddi
-        const user = noddiData.data.user;
-        const uiMeta = noddiData.data.ui_meta;
-        const userGroup = noddiData.data.all_user_groups?.find(
-          (g: any) => g.is_personal || g.is_default
-        ) || noddiData.data.all_user_groups?.[0];
-        
+        const user = noddiData.data.user
+        const uiMeta = noddiData.data.ui_meta
+        const userGroup =
+          noddiData.data.all_user_groups?.find((g: any) => g.is_personal || g.is_default) ||
+          noddiData.data.all_user_groups?.[0]
+
         // Extract name using same logic as syncCustomerFromNoddi
-        if (uiMeta?.display_name && uiMeta.display_name.trim()) {
-          customerName = uiMeta.display_name.trim();
-        } else if (userGroup?.name && userGroup.name.trim()) {
-          customerName = userGroup.name.trim();
+        if (uiMeta?.display_name?.trim()) {
+          customerName = uiMeta.display_name.trim()
+        } else if (userGroup?.name?.trim()) {
+          customerName = userGroup.name.trim()
         } else if (user.first_name || user.last_name) {
-          customerName = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+          customerName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim()
         }
-        
-        customerEmail = user.email || null;
-        
-        console.log('✅ Fresh customer data from Noddi:', { customerName, customerEmail });
-        
+
+        customerEmail = user.email || null
+
+        console.log("✅ Fresh customer data from Noddi:", { customerName, customerEmail })
+
         // Update/create customer in local database with fresh data
         const { data: customer, error: insertError } = await supabase
-          .from('customers')
-          .upsert({
-            phone: standardEvent.customerPhone,
-            full_name: customerName,
-            email: customerEmail,
-            organization_id: organizationId,
-            metadata: {
-              noddi_user_id: user.id,
-              synced_from_noddi: true,
-              last_synced_at: new Date().toISOString()
+          .from("customers")
+          .upsert(
+            {
+              phone: standardEvent.customerPhone,
+              full_name: customerName,
+              email: customerEmail,
+              organization_id: organizationId,
+              metadata: {
+                noddi_user_id: user.id,
+                synced_from_noddi: true,
+                last_synced_at: new Date().toISOString(),
+              },
+              updated_at: new Date().toISOString(), // ← Ensure timestamp updates
             },
-            updated_at: new Date().toISOString() // ← Ensure timestamp updates
-          }, {
-            onConflict: 'phone,organization_id',
-            ignoreDuplicates: false // ← Always update with fresh data
-          })
-          .select('id')
-          .single();
-        
+            {
+              onConflict: "phone,organization_id",
+              ignoreDuplicates: false, // ← Always update with fresh data
+            },
+          )
+          .select("id")
+          .single()
+
         if (!insertError && customer) {
-          customerId = customer.id;
-          console.log('✅ Customer synced to local database with fresh data:', customerId);
+          customerId = customer.id
+          console.log("✅ Customer synced to local database with fresh data:", customerId)
         }
       } else {
         // Not found in Noddi - cache this result in noddi_customer_cache
-        console.log('❌ Not a Noddi customer:', standardEvent.customerPhone);
-        
-        await supabase
-          .from('noddi_customer_cache')
-          .upsert({
+        console.log("❌ Not a Noddi customer:", standardEvent.customerPhone)
+
+        await supabase.from("noddi_customer_cache").upsert(
+          {
             phone: standardEvent.customerPhone,
             email: standardEvent.customerPhone,
             organization_id: organizationId,
             noddi_user_id: null,
             last_refreshed_at: new Date().toISOString(),
-            cached_customer_data: { found: false }
-          }, {
-            onConflict: 'phone,organization_id'
-          });
+            cached_customer_data: { found: false },
+          },
+          {
+            onConflict: "phone,organization_id",
+          },
+        )
       }
     } catch (err) {
-      console.error('❌ Exception during customer lookup:', err);
+      console.error("❌ Exception during customer lookup:", err)
       // Continue without customer data
     }
   }
 
   // Upsert call record
-  const terminalStatuses = ['completed', 'missed', 'failed', 'busy'];
-  const isTerminal = terminalStatuses.includes(standardEvent.status);
-  
+  const terminalStatuses = ["completed", "missed", "failed", "busy"]
+  const isTerminal = terminalStatuses.includes(standardEvent.status)
+
   const { data: call, error: callError } = await supabase
-    .from('calls')
-    .upsert({
-      external_id: standardEvent.externalId,
-      provider: standardEvent.provider,
-      organization_id: organizationId,
-      customer_id: customerId, // ← Set the foreign key relationship
-      customer_phone: standardEvent.customerPhone,
-      customer_name: customerName, // Populated from local DB or Noddi
-      customer_email: customerEmail, // Populated from local DB or Noddi
-      agent_phone: standardEvent.agentPhone,
-      status: standardEvent.status,
-      direction: standardEvent.direction,
-      started_at: standardEvent.startedAt,
-      // Only set ended_at if status is terminal
-      ...(standardEvent.endedAt && isTerminal ? { ended_at: standardEvent.endedAt } : {}),
-      duration_seconds: standardEvent.durationSeconds,
-      recording_url: standardEvent.recordingUrl,
-      metadata: standardEvent.metadata,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'provider,external_id',
-      ignoreDuplicates: false
-    })
+    .from("calls")
+    .upsert(
+      {
+        external_id: standardEvent.externalId,
+        provider: standardEvent.provider,
+        organization_id: organizationId,
+        customer_id: customerId, // ← Set the foreign key relationship
+        customer_phone: standardEvent.customerPhone,
+        customer_name: customerName, // Populated from local DB or Noddi
+        customer_email: customerEmail, // Populated from local DB or Noddi
+        agent_phone: standardEvent.agentPhone,
+        status: standardEvent.status,
+        direction: standardEvent.direction,
+        started_at: standardEvent.startedAt,
+        // Only set ended_at if status is terminal
+        ...(standardEvent.endedAt && isTerminal ? { ended_at: standardEvent.endedAt } : {}),
+        duration_seconds: standardEvent.durationSeconds,
+        recording_url: standardEvent.recordingUrl,
+        metadata: standardEvent.metadata,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "provider,external_id",
+        ignoreDuplicates: false,
+      },
+    )
     .select()
-    .single();
+    .single()
 
   if (callError) {
-    console.error('Error upserting call:', callError);
-    throw callError;
+    console.error("Error upserting call:", callError)
+    throw callError
   }
 
-  console.log('Call upserted successfully:', call);
+  console.log("Call upserted successfully:", call)
 
   // Insert call event
   const { data: callEvent, error: eventError } = await supabase
-    .from('call_events')
+    .from("call_events")
     .insert({
       call_id: call.id,
       event_type: standardEvent.eventType,
       event_data: standardEvent.eventData,
-      timestamp: standardEvent.eventData.timestamp || new Date().toISOString()
+      timestamp: standardEvent.eventData.timestamp || new Date().toISOString(),
     })
     .select()
-    .single();
+    .single()
 
   if (eventError) {
-    console.error('Error inserting call event:', eventError);
-    throw eventError;
+    console.error("Error inserting call event:", eventError)
+    throw eventError
   }
 
-  console.log('Call event inserted successfully:', callEvent);
+  console.log("Call event inserted successfully:", callEvent)
 
   // Process internal events based on webhook mappings
-  await processInternalEvents(supabase, standardEvent, call, callEvent, organizationId);
+  await processInternalEvents(supabase, standardEvent, call, callEvent, organizationId)
 
-  return { call, callEvent };
+  return { call, callEvent }
 }
 
 // New function to handle internal event processing
 async function processInternalEvents(
-  supabase: any, 
-  standardEvent: StandardCallEvent, 
-  call: any, 
-  callEvent: any, 
-  organizationId: string
+  supabase: any,
+  standardEvent: StandardCallEvent,
+  call: any,
+  callEvent: any,
+  organizationId: string,
 ) {
   try {
-    console.log('Checking for internal event mappings...');
-    
+    console.log("Checking for internal event mappings...")
+
     // Get webhook event mappings for this provider and event
     const { data: mappings, error: mappingsError } = await supabase
-      .from('webhook_event_mappings')
-      .select('*')
-      .eq('provider', standardEvent.provider)
-      .eq('external_event', standardEvent.eventData.webhookEvent)
-      .eq('is_active', true);
+      .from("webhook_event_mappings")
+      .select("*")
+      .eq("provider", standardEvent.provider)
+      .eq("external_event", standardEvent.eventData.webhookEvent)
+      .eq("is_active", true)
 
     if (mappingsError) {
-      console.error('Error fetching webhook mappings:', mappingsError);
-      return;
+      console.error("Error fetching webhook mappings:", mappingsError)
+      return
     }
 
     if (!mappings || mappings.length === 0) {
-      console.log('No webhook mappings found for:', standardEvent.provider, standardEvent.eventData.webhookEvent);
-      return;
+      console.log(
+        "No webhook mappings found for:",
+        standardEvent.provider,
+        standardEvent.eventData.webhookEvent,
+      )
+      return
     }
 
-    console.log('Found webhook mappings:', mappings);
+    console.log("Found webhook mappings:", mappings)
 
     for (const mapping of mappings) {
       // Check if conditions are met
       if (!evaluateConditions(mapping.condition_rules, standardEvent)) {
-        console.log('Conditions not met for mapping:', mapping.id);
-        continue;
+        console.log("Conditions not met for mapping:", mapping.id)
+        continue
       }
 
       // Extract data using mapping rules
-      const eventData = extractEventData(mapping.data_mapping, standardEvent);
-      
-      console.log('Creating internal event:', mapping.internal_event_type, eventData);
+      const eventData = extractEventData(mapping.data_mapping, standardEvent)
+
+      console.log("Creating internal event:", mapping.internal_event_type, eventData)
 
       // Create internal event
       const { data: internalEvent, error: internalError } = await supabase
-        .from('internal_events')
+        .from("internal_events")
         .insert({
           organization_id: organizationId,
           event_type: mapping.internal_event_type,
@@ -471,231 +483,234 @@ async function processInternalEvents(
           customer_phone: standardEvent.customerPhone,
           event_data: eventData,
           triggered_by_event_id: callEvent.id,
-          status: 'pending'
+          status: "pending",
         })
         .select()
-        .single();
+        .single()
 
       if (internalError) {
-        console.error('Error creating internal event:', internalError);
+        console.error("Error creating internal event:", internalError)
       } else {
-        console.log('Internal event created successfully:', internalEvent);
-        
+        console.log("Internal event created successfully:", internalEvent)
+
         // If this is a voicemail event, download and store the audio file
-        if (mapping.internal_event_type === 'voicemail_left' && eventData.recording_url) {
+        if (mapping.internal_event_type === "voicemail_left" && eventData.recording_url) {
           try {
-            console.log('📞 Processing voicemail for storage...');
-            const callUuid = standardEvent.eventData?.callData?.call_uuid || `call-${Date.now()}`;
-            const storagePath = await downloadAndStoreVoicemail(supabase, eventData.recording_url, callUuid);
-            
+            console.log("📞 Processing voicemail for storage...")
+            const callUuid = standardEvent.eventData?.callData?.call_uuid || `call-${Date.now()}`
+            const storagePath = await downloadAndStoreVoicemail(
+              supabase,
+              eventData.recording_url,
+              callUuid,
+            )
+
             // Update the internal event with the local storage path
             const { error: updateError } = await supabase
-              .from('internal_events')
+              .from("internal_events")
               .update({
                 event_data: {
                   ...eventData,
                   storage_path: storagePath,
-                  original_recording_url: eventData.recording_url
-                }
+                  original_recording_url: eventData.recording_url,
+                },
               })
-              .eq('id', internalEvent.id);
-              
+              .eq("id", internalEvent.id)
+
             if (updateError) {
-              console.error('❌ Error updating internal event with storage path:', updateError);
+              console.error("❌ Error updating internal event with storage path:", updateError)
             } else {
-              console.log('✅ Updated internal event with storage path:', storagePath);
+              console.log("✅ Updated internal event with storage path:", storagePath)
             }
           } catch (error) {
-            console.error('❌ Error processing voicemail storage:', error);
+            console.error("❌ Error processing voicemail storage:", error)
             // Don't fail the entire webhook - just log the error
           }
         }
       }
     }
   } catch (error) {
-    console.error('Error processing internal events:', error);
+    console.error("Error processing internal events:", error)
   }
 }
 
 // Helper function to evaluate condition rules
 function evaluateConditions(conditionRules: any, standardEvent: StandardCallEvent): boolean {
   if (!conditionRules || Object.keys(conditionRules).length === 0) {
-    return true; // No conditions means always match
+    return true // No conditions means always match
   }
 
   try {
     // Check IVR options condition
     if (conditionRules.ivr_options) {
-      const callData = standardEvent.eventData.callData;
-      const ivrOptions = callData?.ivr_options || [];
-      
+      const callData = standardEvent.eventData.callData
+      const ivrOptions = callData?.ivr_options || []
+
       for (const option of ivrOptions) {
-        if (conditionRules.ivr_options.branch && option.branch === conditionRules.ivr_options.branch) {
-          return true;
+        if (
+          conditionRules.ivr_options.branch &&
+          option.branch === conditionRules.ivr_options.branch
+        ) {
+          return true
         }
       }
-      return false;
+      return false
     }
 
     // Add more condition types as needed
-    return true;
+    return true
   } catch (error) {
-    console.error('Error evaluating conditions:', error);
-    return false;
+    console.error("Error evaluating conditions:", error)
+    return false
   }
 }
 
 // Helper function to extract data using JSONPath-like mapping
 function extractEventData(dataMapping: any, standardEvent: StandardCallEvent): any {
-  const result: any = {};
+  const result: any = {}
 
   try {
     for (const [key, path] of Object.entries(dataMapping)) {
-      if (typeof path === 'string') {
+      if (typeof path === "string") {
         // Simple JSONPath-like extraction
-        if (path.startsWith('$.')) {
-          const pathParts = path.substring(2).split('.');
-          let value = standardEvent;
-          
+        if (path.startsWith("$.")) {
+          const pathParts = path.substring(2).split(".")
+          let value = standardEvent
+
           for (const part of pathParts) {
-            if (part.includes('[') && part.includes(']')) {
+            if (part.includes("[") && part.includes("]")) {
               // Handle array access like 'ivr_options[0]'
-              const [arrayName, indexStr] = part.split('[');
-              const index = parseInt(indexStr.replace(']', ''));
-              value = (value as any)?.[arrayName]?.[index];
+              const [arrayName, indexStr] = part.split("[")
+              const index = parseInt(indexStr.replace("]", ""), 10)
+              value = (value as any)?.[arrayName]?.[index]
             } else {
-              value = (value as any)?.[part];
+              value = (value as any)?.[part]
             }
-            
-            if (value === undefined) break;
+
+            if (value === undefined) break
           }
-          
-          result[key] = value;
+
+          result[key] = value
         } else {
           // Direct value
-          result[key] = path;
+          result[key] = path
         }
       } else {
         // Direct value (non-string)
-        result[key] = path;
+        result[key] = path
       }
     }
   } catch (error) {
-    console.error('Error extracting event data:', error);
+    console.error("Error extracting event data:", error)
   }
 
-  return result;
+  return result
 }
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    console.log('🎯 Webhook received:', req.method, req.url);
-    
+    console.log("🎯 Webhook received:", req.method, req.url)
+
     // Get the raw body for signature verification
-    const rawBody = await req.text();
-    const signature = req.headers.get('x-aircall-signature');
-    
+    const rawBody = await req.text()
+    const signature = req.headers.get("x-aircall-signature")
+
     // Verify signature if Aircall webhook token is configured
-    const aircallToken = Deno.env.get('AIRCALL_WEBHOOK_TOKEN');
+    const aircallToken = Deno.env.get("AIRCALL_WEBHOOK_TOKEN")
     if (aircallToken) {
-      const isValid = await verifyAircallSignature(rawBody, signature, aircallToken);
+      const isValid = await verifyAircallSignature(rawBody, signature, aircallToken)
       if (!isValid) {
-        console.error('❌ Invalid webhook signature - rejecting request');
-        return new Response(
-          JSON.stringify({ error: 'Invalid signature' }),
-          { 
-            status: 401, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+        console.error("❌ Invalid webhook signature - rejecting request")
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
-      console.log('✅ Webhook signature verified');
+      console.log("✅ Webhook signature verified")
     } else {
-      console.warn('⚠️ AIRCALL_WEBHOOK_TOKEN not configured - skipping signature verification');
+      console.warn("⚠️ AIRCALL_WEBHOOK_TOKEN not configured - skipping signature verification")
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verify organization exists at startup
-    console.log('🔍 Verifying organization exists...');
+    console.log("🔍 Verifying organization exists...")
     const { data: orgCheck, error: orgCheckError } = await supabase
-      .from('organizations')
-      .select('id, name, slug')
-      .eq('slug', 'noddi')
-      .single();
-    
+      .from("organizations")
+      .select("id, name, slug")
+      .eq("slug", "noddi")
+      .single()
+
     if (orgCheckError || !orgCheck) {
-      console.error('❌ CRITICAL: Organization "noddi" not found!');
-      const { data: allOrgs } = await supabase
-        .from('organizations')
-        .select('slug');
-      console.log('Available organizations:', allOrgs?.map(o => o.slug) || []);
-      throw new Error('Organization "noddi" not found in database. Check organization configuration.');
+      console.error('❌ CRITICAL: Organization "noddi" not found!')
+      const { data: allOrgs } = await supabase.from("organizations").select("slug")
+      console.log("Available organizations:", allOrgs?.map((o) => o.slug) || [])
+      throw new Error(
+        'Organization "noddi" not found in database. Check organization configuration.',
+      )
     }
-    
-    console.log('✅ Organization verified:', orgCheck);
+
+    console.log("✅ Organization verified:", orgCheck)
 
     // Parse webhook payload
-    const payload = JSON.parse(rawBody);
-    console.log('📦 Raw webhook payload:', JSON.stringify(payload, null, 2));
+    const payload = JSON.parse(rawBody)
+    console.log("📦 Raw webhook payload:", JSON.stringify(payload, null, 2))
 
     // Determine provider from URL path or payload
-    const url = new URL(req.url);
-    const pathSegments = url.pathname.split('/');
-    const provider = pathSegments[pathSegments.length - 1] || 'aircall'; // Default to aircall
+    const url = new URL(req.url)
+    const pathSegments = url.pathname.split("/")
+    const provider = pathSegments[pathSegments.length - 1] || "aircall" // Default to aircall
 
-    console.log('Detected provider:', provider);
+    console.log("Detected provider:", provider)
 
     // Convert to standard event format
-    const standardEvent = adaptWebhookEvent(provider, payload);
-    console.log('Converted to standard event:', JSON.stringify(standardEvent, null, 2));
+    const standardEvent = adaptWebhookEvent(provider, payload)
+    console.log("Converted to standard event:", JSON.stringify(standardEvent, null, 2))
 
     // Get organization ID
-    const organizationId = await getOrganizationFromDomain(supabase, 'noddi');
+    const organizationId = await getOrganizationFromDomain(supabase, "noddi")
     if (!organizationId) {
-      console.error('❌ Failed to get organization ID for "noddi"');
-      throw new Error('No organization found - check database for organization with slug "noddi"');
+      console.error('❌ Failed to get organization ID for "noddi"')
+      throw new Error('No organization found - check database for organization with slug "noddi"')
     }
-    
-    console.log('✅ Using organization ID:', organizationId);
+
+    console.log("✅ Using organization ID:", organizationId)
 
     // Process the call event
-    const result = await processCallEvent(supabase, standardEvent, organizationId);
+    const result = await processCallEvent(supabase, standardEvent, organizationId)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         callId: result.call.id,
         eventId: result.callEvent.id,
-        message: 'Call event processed successfully' 
+        message: "Call event processed successfully",
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
-
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      },
+    )
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    
+    console.error("Error processing webhook:", error)
+
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
-    );
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      },
+    )
   }
-});
+})

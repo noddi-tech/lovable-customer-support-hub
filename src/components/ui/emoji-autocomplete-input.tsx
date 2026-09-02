@@ -1,131 +1,137 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { getEmojiSuggestions as getEmojiSuggestionsUtil, type EmojiData } from '@/utils/emojiUtils';
-
-
+import type React from "react"
+import { useCallback, useRef, useState } from "react"
+import { type EmojiData, getEmojiSuggestions as getEmojiSuggestionsUtil } from "@/utils/emojiUtils"
 
 interface EmojiAutocompleteInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onKeyDown?: (e: React.KeyboardEvent) => void;
-  className?: string;
-  placeholder?: string;
-  disabled?: boolean;
+  value: string
+  onChange: (value: string) => void
+  onKeyDown?: (e: React.KeyboardEvent) => void
+  className?: string
+  placeholder?: string
+  disabled?: boolean
 }
-
 
 export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
   value,
   onChange,
   onKeyDown,
-  className = '',
+  className = "",
   placeholder,
-  disabled = false
+  disabled = false,
 }) => {
-  const [suggestions, setSuggestions] = useState<EmojiData[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [currentShortcode, setCurrentShortcode] = useState('');
-  const [shortcodeStart, setShortcodeStart] = useState(-1);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
-
+  const [suggestions, setSuggestions] = useState<EmojiData[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [currentShortcode, setCurrentShortcode] = useState("")
+  const [shortcodeStart, setShortcodeStart] = useState(-1)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
   // Detect emoji shortcodes in the text
   const detectShortcode = useCallback((text: string, cursorPosition: number) => {
-    let start = cursorPosition - 1;
-    while (start >= 0 && text[start] !== ':' && text[start] !== ' ' && text[start] !== '\n') {
-      start--;
+    let start = cursorPosition - 1
+    while (start >= 0 && text[start] !== ":" && text[start] !== " " && text[start] !== "\n") {
+      start--
     }
 
-    if (start >= 0 && text[start] === ':') {
-      const shortcode = text.substring(start, cursorPosition);
+    if (start >= 0 && text[start] === ":") {
+      const shortcode = text.substring(start, cursorPosition)
       if (shortcode.length > 1) {
-        return { shortcode, start };
+        return { shortcode, start }
       }
     }
-    return null;
-  }, []);
+    return null
+  }, [])
 
   // Handle text change
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-    
-    requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        const cursorPosition = textareaRef.current.selectionStart || 0;
-        const detection = detectShortcode(newValue, cursorPosition);
-        
-        if (detection) {
-          const { shortcode, start } = detection;
-          const searchTerm = shortcode.substring(1);
-          const suggestions = getEmojiSuggestionsUtil(searchTerm);
-          
-          if (suggestions.length > 0) {
-            setSuggestions(suggestions);
-            setCurrentShortcode(shortcode);
-            setShortcodeStart(start);
-            setShowSuggestions(true);
-            setSelectedIndex(0);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value
+      onChange(newValue)
+
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          const cursorPosition = textareaRef.current.selectionStart || 0
+          const detection = detectShortcode(newValue, cursorPosition)
+
+          if (detection) {
+            const { shortcode, start } = detection
+            const searchTerm = shortcode.substring(1)
+            const suggestions = getEmojiSuggestionsUtil(searchTerm)
+
+            if (suggestions.length > 0) {
+              setSuggestions(suggestions)
+              setCurrentShortcode(shortcode)
+              setShortcodeStart(start)
+              setShowSuggestions(true)
+              setSelectedIndex(0)
+            } else {
+              setShowSuggestions(false)
+            }
           } else {
-            setShowSuggestions(false);
+            setShowSuggestions(false)
           }
-        } else {
-          setShowSuggestions(false);
         }
-      }
-    });
-  }, [onChange, detectShortcode]);
+      })
+    },
+    [onChange, detectShortcode],
+  )
 
   // Handle emoji selection
-  const selectEmoji = useCallback((emoji: EmojiData) => {
-    if (shortcodeStart === -1) return;
+  const selectEmoji = useCallback(
+    (emoji: EmojiData) => {
+      if (shortcodeStart === -1) return
 
-    const beforeShortcode = value.substring(0, shortcodeStart);
-    const afterShortcode = value.substring(shortcodeStart + currentShortcode.length);
-    const newValue = beforeShortcode + emoji.emoji + afterShortcode;
+      const beforeShortcode = value.substring(0, shortcodeStart)
+      const afterShortcode = value.substring(shortcodeStart + currentShortcode.length)
+      const newValue = beforeShortcode + emoji.emoji + afterShortcode
 
-    onChange(newValue);
-    setShowSuggestions(false);
+      onChange(newValue)
+      setShowSuggestions(false)
 
-    setTimeout(() => {
-      if (textareaRef.current) {
-        const newCursorPosition = shortcodeStart + emoji.emoji.length;
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-        textareaRef.current.focus();
-      }
-    }, 0);
-  }, [value, shortcodeStart, currentShortcode, onChange]);
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const newCursorPosition = shortcodeStart + emoji.emoji.length
+          textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition)
+          textareaRef.current.focus()
+        }
+      }, 0)
+    },
+    [value, shortcodeStart, currentShortcode, onChange],
+  )
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showSuggestions && suggestions.length > 0) {
-      switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex(prev => prev > 0 ? prev - 1 : suggestions.length - 1);
-          return;
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex(prev => prev < suggestions.length - 1 ? prev + 1 : 0);
-          return;
-        case 'Enter':
-          e.preventDefault();
-          selectEmoji(suggestions[selectedIndex]);
-          return;
-        case 'Escape':
-          e.preventDefault();
-          setShowSuggestions(false);
-          return;
-        case 'Tab':
-          e.preventDefault();
-          selectEmoji(suggestions[selectedIndex]);
-          return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (showSuggestions && suggestions.length > 0) {
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault()
+            setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1))
+            return
+          case "ArrowDown":
+            e.preventDefault()
+            setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0))
+            return
+          case "Enter":
+            e.preventDefault()
+            selectEmoji(suggestions[selectedIndex])
+            return
+          case "Escape":
+            e.preventDefault()
+            setShowSuggestions(false)
+            return
+          case "Tab":
+            e.preventDefault()
+            selectEmoji(suggestions[selectedIndex])
+            return
+        }
       }
-    }
 
-    onKeyDown?.(e);
-  }, [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown]);
+      onKeyDown?.(e)
+    },
+    [showSuggestions, suggestions, selectedIndex, selectEmoji, onKeyDown],
+  )
 
   return (
     <div className="relative">
@@ -138,14 +144,14 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
         placeholder={placeholder}
         disabled={disabled}
       />
-      
+
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
           className="absolute z-[9999] bg-card border border-border rounded-md shadow-xl max-w-80 min-w-64 mb-1"
           style={{
-            bottom: '100%',
-            left: '0',
+            bottom: "100%",
+            left: "0",
           }}
         >
           <div className="p-2 border-b border-border">
@@ -160,8 +166,8 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
                   key={emoji.shortcode}
                   type="button"
                   className={`w-full justify-start text-left h-auto p-2 mb-1 rounded-sm transition-colors flex items-center ${
-                    index === selectedIndex 
-                      ? "bg-accent text-accent-foreground" 
+                    index === selectedIndex
+                      ? "bg-accent text-accent-foreground"
                       : "hover:bg-accent hover:text-accent-foreground"
                   }`}
                   onClick={() => selectEmoji(emoji)}
@@ -181,5 +187,5 @@ export const EmojiAutocompleteInput: React.FC<EmojiAutocompleteInputProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

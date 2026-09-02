@@ -1,17 +1,7 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
-import { Heading } from '@/components/ui/heading';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Pencil, Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,50 +12,60 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
-  useFieldMappingTemplates,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import {
   useCreateTemplate,
   useDeleteTemplate,
-} from '@/hooks/recruitment/useFieldMappingTemplates';
+  useFieldMappingTemplates,
+} from "@/hooks/recruitment/useFieldMappingTemplates"
+import { useToast } from "@/hooks/use-toast"
 
 export default function SystemTemplatesPage() {
-  const { data, isLoading } = useFieldMappingTemplates('system');
-  const create = useCreateTemplate();
-  const del = useDeleteTemplate();
-  const { toast } = useToast();
+  const { data, isLoading } = useFieldMappingTemplates("system")
+  const create = useCreateTemplate()
+  const del = useDeleteTemplate()
+  const { toast } = useToast()
 
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [roleHint, setRoleHint] = useState('');
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [roleHint, setRoleHint] = useState("")
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast({ title: 'Navn er påkrevd', variant: 'destructive' });
-      return;
+      toast({ title: "Navn er påkrevd", variant: "destructive" })
+      return
     }
     try {
       await create.mutateAsync({
         name: name.trim(),
         description: description.trim() || null,
         target_role_hint: roleHint.trim() || null,
-        scope: 'system',
-      });
-      toast({ title: 'Mal opprettet' });
-      setOpen(false);
-      setName('');
-      setDescription('');
-      setRoleHint('');
+        scope: "system",
+      })
+      toast({ title: "Mal opprettet" })
+      setOpen(false)
+      setName("")
+      setDescription("")
+      setRoleHint("")
     } catch (e: any) {
-      toast({ title: 'Opprettelse feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Opprettelse feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <AdminPortalLayout>
@@ -165,7 +165,11 @@ export default function SystemTemplatesPage() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label>Navn</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="f.eks. Standard sjåfør-skjema" />
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="f.eks. Standard sjåfør-skjema"
+                />
               </div>
               <div className="space-y-1">
                 <Label>Beskrivelse</Label>
@@ -173,7 +177,11 @@ export default function SystemTemplatesPage() {
               </div>
               <div className="space-y-1">
                 <Label>Anbefalt for rolle (valgfritt)</Label>
-                <Input value={roleHint} onChange={(e) => setRoleHint(e.target.value)} placeholder="f.eks. driver" />
+                <Input
+                  value={roleHint}
+                  onChange={(e) => setRoleHint(e.target.value)}
+                  placeholder="f.eks. driver"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -188,5 +196,5 @@ export default function SystemTemplatesPage() {
         </Dialog>
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

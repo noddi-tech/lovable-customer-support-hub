@@ -1,23 +1,20 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import type { ImportResult } from './useImport';
+import { CheckCircle2, ChevronDown, ChevronRight } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import type { ImportResult } from "./useImport"
 
 interface Props {
-  result: ImportResult;
-  onRestart: () => void;
+  result: ImportResult
+  onRestart: () => void
 }
 
 const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
 
   return (
     <div className="flex justify-center">
@@ -27,9 +24,7 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
             <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold">Import fullført!</h3>
-          <p className="text-sm text-muted-foreground">
-            Søkerne er nå tilgjengelige i pipeline.
-          </p>
+          <p className="text-sm text-muted-foreground">Søkerne er nå tilgjengelige i pipeline.</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -42,9 +37,7 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
             <div className="text-xs text-muted-foreground mt-1">Duplikater</div>
           </div>
           <div className="rounded-lg border p-4 text-center bg-destructive/5 border-destructive/30">
-            <div className="text-2xl font-semibold text-destructive">
-              {result.errors.length}
-            </div>
+            <div className="text-2xl font-semibold text-destructive">{result.errors.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Feil</div>
           </div>
         </div>
@@ -54,18 +47,14 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="w-full justify-between">
                 <span>Vis feil ({result.errors.length})</span>
-                {open ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
+                {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2">
               <div className="rounded-md border max-h-64 overflow-auto divide-y">
                 {result.errors.map((e, i) => (
                   <div key={i} className="px-3 py-2 text-sm">
-                    <span className="font-medium">Rad {e.row}:</span>{' '}
+                    <span className="font-medium">Rad {e.row}:</span>{" "}
                     <span className="text-muted-foreground">{e.reason}</span>
                   </div>
                 ))}
@@ -78,13 +67,13 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
           <Button variant="outline" onClick={onRestart}>
             Importer flere
           </Button>
-          <Button onClick={() => navigate('/operations/recruitment/pipeline')}>
+          <Button onClick={() => navigate("/operations/recruitment/pipeline")}>
             Se søkere i pipeline
           </Button>
         </div>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default ImportDoneStep;
+export default ImportDoneStep

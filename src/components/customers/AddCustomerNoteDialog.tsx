@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,16 +7,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useCustomerNoteMutations } from '@/hooks/useCustomerRecord';
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useCustomerNoteMutations } from "@/hooks/useCustomerRecord"
 
 interface AddCustomerNoteDialogProps {
-  customerId: string;
-  customerName?: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  customerId: string
+  customerName?: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 /**
@@ -29,22 +29,22 @@ export function AddCustomerNoteDialog({
   open,
   onOpenChange,
 }: AddCustomerNoteDialogProps) {
-  const [content, setContent] = useState('');
-  const { addNote } = useCustomerNoteMutations(customerId);
+  const [content, setContent] = useState("")
+  const { addNote } = useCustomerNoteMutations(customerId)
 
   const submit = () => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
+    const trimmed = content.trim()
+    if (!trimmed) return
     addNote.mutate(
       { content: trimmed },
       {
         onSuccess: () => {
-          setContent('');
-          onOpenChange(false);
+          setContent("")
+          onOpenChange(false)
         },
       },
-    );
-  };
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,7 +52,9 @@ export function AddCustomerNoteDialog({
         <DialogHeader>
           <DialogTitle>Add note</DialogTitle>
           <DialogDescription>
-            {customerName ? `Internal note about ${customerName}.` : 'Internal note about this customer.'}
+            {customerName
+              ? `Internal note about ${customerName}.`
+              : "Internal note about this customer."}
           </DialogDescription>
         </DialogHeader>
         <Textarea
@@ -62,7 +64,7 @@ export function AddCustomerNoteDialog({
           placeholder="Write a note visible to your team…"
           className="min-h-[120px] text-base sm:text-sm"
           onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit();
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit()
           }}
         />
         <DialogFooter>
@@ -70,10 +72,10 @@ export function AddCustomerNoteDialog({
             Cancel
           </Button>
           <Button onClick={submit} disabled={!content.trim() || addNote.isPending}>
-            {addNote.isPending ? 'Saving…' : 'Save note'}
+            {addNote.isPending ? "Saving…" : "Save note"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

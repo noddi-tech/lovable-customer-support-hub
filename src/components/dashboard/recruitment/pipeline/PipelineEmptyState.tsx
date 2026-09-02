@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Briefcase } from "lucide-react"
+import type React from "react"
+import { Link } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 const PipelineEmptyState: React.FC = () => {
   return (
@@ -22,7 +22,7 @@ const PipelineEmptyState: React.FC = () => {
         </Button>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default PipelineEmptyState;
+export default PipelineEmptyState

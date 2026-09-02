@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { useConversationView } from '@/contexts/ConversationViewContext';
+import { useEffect } from "react"
+import { useConversationView } from "@/contexts/ConversationViewContext"
 
 export const useConversationShortcuts = () => {
-  const { conversation, updateStatus, dispatch } = useConversationView();
+  const { conversation, updateStatus, dispatch } = useConversationView()
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -12,54 +12,54 @@ export const useConversationShortcuts = () => {
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLSelectElement
       ) {
-        return;
+        return
       }
 
       // Don't trigger if modifier keys are pressed (except shift for some shortcuts)
       if (event.ctrlKey || event.metaKey || event.altKey) {
-        return;
+        return
       }
 
       switch (event.key.toLowerCase()) {
-        case 'c':
-          if (!event.shiftKey && conversation?.status !== 'closed') {
-            event.preventDefault();
-            updateStatus({ status: 'closed' });
+        case "c":
+          if (!event.shiftKey && conversation?.status !== "closed") {
+            event.preventDefault()
+            updateStatus({ status: "closed" })
           }
-          break;
-        case 'o':
-          if (!event.shiftKey && conversation?.status !== 'open') {
-            event.preventDefault();
-            updateStatus({ status: 'open' });
+          break
+        case "o":
+          if (!event.shiftKey && conversation?.status !== "open") {
+            event.preventDefault()
+            updateStatus({ status: "open" })
           }
-          break;
-        case 'p':
-          if (!event.shiftKey && conversation?.status !== 'pending') {
-            event.preventDefault();
-            updateStatus({ status: 'pending' });
+          break
+        case "p":
+          if (!event.shiftKey && conversation?.status !== "pending") {
+            event.preventDefault()
+            updateStatus({ status: "pending" })
           }
-          break;
-        case 'a':
+          break
+        case "a":
           if (!event.shiftKey && conversation && !conversation.is_archived) {
-            event.preventDefault();
-            updateStatus({ isArchived: true });
+            event.preventDefault()
+            updateStatus({ isArchived: true })
           }
-          break;
-        case 's':
+          break
+        case "s":
           if (!event.shiftKey) {
-            event.preventDefault();
-            dispatch({ 
-              type: 'SET_SNOOZE_DIALOG', 
-              payload: { open: true, date: new Date(), time: '09:00' } 
-            });
+            event.preventDefault()
+            dispatch({
+              type: "SET_SNOOZE_DIALOG",
+              payload: { open: true, date: new Date(), time: "09:00" },
+            })
           }
-          break;
+          break
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [conversation, updateStatus, dispatch]);
-};
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [conversation, updateStatus, dispatch])
+}

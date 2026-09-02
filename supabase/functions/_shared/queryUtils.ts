@@ -1,7 +1,7 @@
 /**
  * Utilities for safely sanitizing user input for PostgREST queries.
  * Prevents filter injection attacks via .or() clauses.
- * 
+ *
  * Edge Function version - duplicated from src/utils/queryUtils.ts
  */
 
@@ -10,10 +10,8 @@
  * Removes characters that have special meaning in PostgREST filter syntax.
  */
 export function sanitizeForPostgrest(input: string): string {
-  if (!input) return '';
-  return input
-    .replace(/[,;()\\]/g, '')
-    .trim();
+  if (!input) return ""
+  return input.replace(/[,;()\\]/g, "").trim()
 }
 
 /**
@@ -21,26 +19,26 @@ export function sanitizeForPostgrest(input: string): string {
  * Returns null if the email format is invalid.
  */
 export function sanitizeEmailForQuery(email: string): string | null {
-  if (!email) return null;
-  
+  if (!email) return null
+
   const sanitized = email
-    .replace(/[,;()\\]/g, '')
+    .replace(/[,;()\\]/g, "")
     .trim()
-    .toLowerCase();
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    .toLowerCase()
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(sanitized)) {
-    return null;
+    return null
   }
-  
-  return sanitized;
+
+  return sanitized
 }
 
 /**
  * Sanitizes a phone number for query use.
  */
 export function sanitizePhoneForQuery(phone: string): string {
-  if (!phone) return '';
-  const cleaned = phone.replace(/[^\d+]/g, '');
-  return cleaned.replace(/[,;()\\]/g, '').trim();
+  if (!phone) return ""
+  const cleaned = phone.replace(/[^\d+]/g, "")
+  return cleaned.replace(/[,;()\\]/g, "").trim()
 }

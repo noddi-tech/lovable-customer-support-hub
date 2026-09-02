@@ -1,91 +1,99 @@
-export type StatusFilter = 'all' | 'open' | 'unread' | 'assigned' | 'pending' | 'closed' | 'archived' | 'deleted';
-export type PriorityFilter = 'all' | 'low' | 'normal' | 'high' | 'urgent';
+export type StatusFilter =
+  | "all"
+  | "open"
+  | "unread"
+  | "assigned"
+  | "pending"
+  | "closed"
+  | "archived"
+  | "deleted"
+export type PriorityFilter = "all" | "low" | "normal" | "high" | "urgent"
 
-export type InboxId = string;
-export type ConversationId = string;
+export type InboxId = string
+export type ConversationId = string
 
 export interface FilterPreset {
-  id: string;
-  name: string;
+  id: string
+  name: string
   filters: {
-    status?: StatusFilter;
-    priority?: PriorityFilter;
-    assigneeId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    inboxId?: string;
-  };
+    status?: StatusFilter
+    priority?: PriorityFilter
+    assigneeId?: string
+    dateFrom?: string
+    dateTo?: string
+    inboxId?: string
+  }
 }
 
 export interface AdvancedFilters {
-  priority?: PriorityFilter;
-  assigneeId?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  priority?: PriorityFilter
+  assigneeId?: string
+  dateFrom?: string
+  dateTo?: string
 }
 
 export interface Inbox {
-  id: InboxId;
-  name: string;
-  color?: string;
-  is_active?: boolean;
+  id: InboxId
+  name: string
+  color?: string
+  is_active?: boolean
 }
 
 export interface InboxCounts {
-  inboxId: InboxId;
-  total: number;
-  open: number;
-  unread: number;
-  assigned: number;
-  pending: number;
-  closed: number;
-  archived: number;
-  deleted: number;
+  inboxId: InboxId
+  total: number
+  open: number
+  unread: number
+  assigned: number
+  pending: number
+  closed: number
+  archived: number
+  deleted: number
 }
 
 export interface ConversationRow {
-  id: ConversationId;
-  subject: string;
-  preview: string;
-  fromName?: string;
-  channel: 'email' | 'sms' | 'chat' | 'voice' | 'facebook' | 'instagram' | 'whatsapp';
-  updatedAt: string; // ISO
-  unread: boolean;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'open' | 'pending' | 'closed' | 'archived' | 'resolved';
-  assignee?: string;
-  assigneeId?: string;
-  customerId?: string;
-  inboxId?: string;
-  isArchived?: boolean;
-  isDeleted?: boolean;
-  firstResponseAt?: string;
-  slaBreachAt?: string;
-  slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
-  metadata?: Record<string, any>;
+  id: ConversationId
+  subject: string
+  preview: string
+  fromName?: string
+  channel: "email" | "sms" | "chat" | "voice" | "facebook" | "instagram" | "whatsapp"
+  updatedAt: string // ISO
+  unread: boolean
+  priority?: "low" | "normal" | "high" | "urgent"
+  status: "open" | "pending" | "closed" | "archived" | "resolved"
+  assignee?: string
+  assigneeId?: string
+  customerId?: string
+  inboxId?: string
+  isArchived?: boolean
+  isDeleted?: boolean
+  firstResponseAt?: string
+  slaBreachAt?: string
+  slaStatus?: "on_track" | "at_risk" | "breached" | "met"
+  metadata?: Record<string, any>
 }
 
 export interface Message {
-  id: string;
-  author: string;
-  bodyHtml?: string;
-  bodyText?: string;
-  content?: string;
-  createdAt: string; // ISO
-  inbound: boolean;
-  senderType?: 'customer' | 'agent';
-  isInternal?: boolean;
+  id: string
+  author: string
+  bodyHtml?: string
+  bodyText?: string
+  content?: string
+  createdAt: string // ISO
+  inbound: boolean
+  senderType?: "customer" | "agent"
+  isInternal?: boolean
 }
 
 export interface ConversationThread {
-  id: ConversationId;
-  messages: Message[];
-  subject?: string;
+  id: ConversationId
+  messages: Message[]
+  subject?: string
   customer?: {
-    id: string;
-    full_name: string;
-    email: string;
-  };
-  totalMessages?: number;
-  hasMore?: boolean;
+    id: string
+    full_name: string
+    email: string
+  }
+  totalMessages?: number
+  hasMore?: boolean
 }

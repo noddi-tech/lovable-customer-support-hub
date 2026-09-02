@@ -1,12 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, Tag, Globe } from "lucide-react";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Edit, Globe, Plus, Save, Tag, Trash2, X } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -14,24 +11,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import type { KnowledgeCategory } from "./CategoryManager";
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import type { KnowledgeCategory } from "./CategoryManager"
 
 export interface KnowledgeTag {
-  id: string;
-  organization_id: string;
-  name: string;
-  color: string | null;
-  category_id: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string
+  organization_id: string
+  name: string
+  color: string | null
+  category_id: string | null
+  created_at: string
+  updated_at: string
 }
 
 const TAG_COLOR_OPTIONS = [
@@ -43,170 +43,168 @@ const TAG_COLOR_OPTIONS = [
   { value: "#8B5CF6", label: "Purple" },
   { value: "#EC4899", label: "Pink" },
   { value: "#14B8A6", label: "Teal" },
-];
+]
 
 interface TagManagerProps {
-  organizationId: string;
+  organizationId: string
 }
 
 export function TagManager({ organizationId }: TagManagerProps) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [editingTag, setEditingTag] = useState<KnowledgeTag | null>(null);
-  const [creatingTag, setCreatingTag] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<KnowledgeTag | null>(null);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [editingTag, setEditingTag] = useState<KnowledgeTag | null>(null)
+  const [creatingTag, setCreatingTag] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<KnowledgeTag | null>(null)
   const [newTag, setNewTag] = useState({
-    name: '',
-    color: '#6B7280',
+    name: "",
+    color: "#6B7280",
     category_id: null as string | null,
-  });
+  })
 
   const { data: categories } = useQuery({
-    queryKey: ['knowledge-categories', organizationId],
+    queryKey: ["knowledge-categories", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_categories')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeCategory[];
+        .from("knowledge_categories")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeCategory[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   const { data: tags, isLoading } = useQuery({
-    queryKey: ['knowledge-tags', organizationId],
+    queryKey: ["knowledge-tags", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_tags')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeTag[];
+        .from("knowledge_tags")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeTag[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   const { data: tagUsageCounts } = useQuery({
-    queryKey: ['tag-usage-counts', organizationId],
+    queryKey: ["tag-usage-counts", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_entries')
-        .select('tags')
-        .eq('organization_id', organizationId);
-      if (error) throw error;
-      
-      const counts: Record<string, number> = {};
-      data.forEach(entry => {
+        .from("knowledge_entries")
+        .select("tags")
+        .eq("organization_id", organizationId)
+      if (error) throw error
+
+      const counts: Record<string, number> = {}
+      data.forEach((entry) => {
         if (entry.tags && Array.isArray(entry.tags)) {
           entry.tags.forEach((tag: string) => {
-            counts[tag] = (counts[tag] || 0) + 1;
-          });
+            counts[tag] = (counts[tag] || 0) + 1
+          })
         }
-      });
-      return counts;
+      })
+      return counts
     },
-  });
+  })
 
   const createMutation = useMutation({
     mutationFn: async (tag: typeof newTag) => {
-      const { error } = await supabase
-        .from('knowledge_tags')
-        .insert({
-          organization_id: organizationId,
-          name: tag.name.toLowerCase().trim(),
-          color: tag.color,
-          category_id: tag.category_id,
-        });
-      if (error) throw error;
+      const { error } = await supabase.from("knowledge_tags").insert({
+        organization_id: organizationId,
+        name: tag.name.toLowerCase().trim(),
+        color: tag.color,
+        category_id: tag.category_id,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Tag created successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-tags'] });
-      setCreatingTag(false);
-      setNewTag({ name: '', color: '#6B7280', category_id: null });
+      toast({ title: "Tag created successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      setCreatingTag(false)
+      setNewTag({ name: "", color: "#6B7280", category_id: null })
     },
     onError: (error) => {
       toast({
         title: "Failed to create tag",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const updateMutation = useMutation({
     mutationFn: async (tag: KnowledgeTag) => {
       const { error } = await supabase
-        .from('knowledge_tags')
+        .from("knowledge_tags")
         .update({
           name: tag.name.toLowerCase().trim(),
           color: tag.color,
           category_id: tag.category_id,
         })
-        .eq('id', tag.id);
-      if (error) throw error;
+        .eq("id", tag.id)
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Tag updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-tags'] });
-      setEditingTag(null);
+      toast({ title: "Tag updated successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      setEditingTag(null)
     },
     onError: (error) => {
       toast({
         title: "Failed to update tag",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async (tagId: string) => {
-      const { error } = await supabase
-        .from('knowledge_tags')
-        .delete()
-        .eq('id', tagId);
-      if (error) throw error;
+      const { error } = await supabase.from("knowledge_tags").delete().eq("id", tagId)
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Tag deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-tags'] });
-      setDeleteConfirm(null);
+      toast({ title: "Tag deleted successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      setDeleteConfirm(null)
     },
     onError: (error) => {
       toast({
         title: "Failed to delete tag",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const getTagUsageCount = (tagName: string) => {
-    return tagUsageCounts?.[tagName] || 0;
-  };
+    return tagUsageCounts?.[tagName] || 0
+  }
 
   const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return null;
-    return categories?.find(c => c.id === categoryId)?.name || null;
-  };
+    if (!categoryId) return null
+    return categories?.find((c) => c.id === categoryId)?.name || null
+  }
 
   const getCategoryColor = (categoryId: string | null) => {
-    if (!categoryId) return null;
-    return categories?.find(c => c.id === categoryId)?.color || null;
-  };
+    if (!categoryId) return null
+    return categories?.find((c) => c.id === categoryId)?.color || null
+  }
 
   // Group tags by category
-  const globalTags = tags?.filter(t => !t.category_id) || [];
-  const tagsByCategory = categories?.map(category => ({
-    category,
-    tags: tags?.filter(t => t.category_id === category.id) || [],
-  })).filter(group => group.tags.length > 0) || [];
+  const globalTags = tags?.filter((t) => !t.category_id) || []
+  const tagsByCategory =
+    categories
+      ?.map((category) => ({
+        category,
+        tags: tags?.filter((t) => t.category_id === category.id) || [],
+      }))
+      .filter((group) => group.tags.length > 0) || []
 
   return (
     <Card>
@@ -224,7 +222,9 @@ export function TagManager({ organizationId }: TagManagerProps) {
         {isLoading ? (
           <p className="text-muted-foreground">Loading tags...</p>
         ) : tags?.length === 0 ? (
-          <p className="text-muted-foreground">No tags yet. Create your first tag to get started.</p>
+          <p className="text-muted-foreground">
+            No tags yet. Create your first tag to get started.
+          </p>
         ) : (
           <div className="space-y-4">
             {/* Global Tags */}
@@ -232,7 +232,9 @@ export function TagManager({ organizationId }: TagManagerProps) {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Globe className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Global (all categories)</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Global (all categories)
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {globalTags.map((tag) => (
@@ -242,7 +244,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
                     >
                       <Badge
                         variant="outline"
-                        style={{ 
+                        style={{
                           backgroundColor: `${tag.color}20`,
                           borderColor: tag.color || undefined,
                           color: tag.color || undefined,
@@ -293,7 +295,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
                     >
                       <Badge
                         variant="outline"
-                        style={{ 
+                        style={{
                           backgroundColor: `${tag.color}20`,
                           borderColor: tag.color || undefined,
                           color: tag.color || undefined,
@@ -351,8 +353,10 @@ export function TagManager({ organizationId }: TagManagerProps) {
             <div>
               <label className="text-sm font-medium mb-2 block">Category</label>
               <Select
-                value={newTag.category_id || 'global'}
-                onValueChange={(value) => setNewTag({ ...newTag, category_id: value === 'global' ? null : value })}
+                value={newTag.category_id || "global"}
+                onValueChange={(value) =>
+                  setNewTag({ ...newTag, category_id: value === "global" ? null : value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -446,8 +450,10 @@ export function TagManager({ organizationId }: TagManagerProps) {
               <div>
                 <label className="text-sm font-medium mb-2 block">Category</label>
                 <Select
-                  value={editingTag.category_id || 'global'}
-                  onValueChange={(value) => setEditingTag({ ...editingTag, category_id: value === 'global' ? null : value })}
+                  value={editingTag.category_id || "global"}
+                  onValueChange={(value) =>
+                    setEditingTag({ ...editingTag, category_id: value === "global" ? null : value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
@@ -476,14 +482,14 @@ export function TagManager({ organizationId }: TagManagerProps) {
               <div>
                 <label className="text-sm font-medium mb-2 block">Color</label>
                 <Select
-                  value={editingTag.color || '#6B7280'}
+                  value={editingTag.color || "#6B7280"}
                   onValueChange={(value) => setEditingTag({ ...editingTag, color: value })}
                 >
                   <SelectTrigger>
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: editingTag.color || '#6B7280' }}
+                        style={{ backgroundColor: editingTag.color || "#6B7280" }}
                       />
                       <SelectValue />
                     </div>
@@ -553,5 +559,5 @@ export function TagManager({ organizationId }: TagManagerProps) {
         </Dialog>
       )}
     </Card>
-  );
+  )
 }

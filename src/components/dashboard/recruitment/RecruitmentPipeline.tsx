@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useApplicantPipeline } from './applicants/useApplicants';
-import { usePipelineApplications, type PipelineFilters as Filters } from './pipeline/usePipeline';
-import PipelineFilters from './pipeline/PipelineFilters';
-import PipelineBoard from './pipeline/PipelineBoard';
-import PipelineEmptyState from './pipeline/PipelineEmptyState';
+import type React from "react"
+import { useState } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useApplicantPipeline } from "./applicants/useApplicants"
+import PipelineBoard from "./pipeline/PipelineBoard"
+import PipelineEmptyState from "./pipeline/PipelineEmptyState"
+import PipelineFilters from "./pipeline/PipelineFilters"
+import { type PipelineFilters as Filters, usePipelineApplications } from "./pipeline/usePipeline"
 
 const RecruitmentPipeline: React.FC = () => {
-  const [filters, setFilters] = useState<Filters>({ positionId: 'all', assignedTo: 'all' });
-  const { data: pipeline, isLoading: pipelineLoading } = useApplicantPipeline();
-  const { data: applications, isLoading: appsLoading } = usePipelineApplications(filters);
+  const [filters, setFilters] = useState<Filters>({ positionId: "all", assignedTo: "all" })
+  const { data: pipeline, isLoading: pipelineLoading } = useApplicantPipeline()
+  const { data: applications, isLoading: appsLoading } = usePipelineApplications(filters)
 
-  const isLoading = pipelineLoading || appsLoading;
-  const apps = applications ?? [];
+  const isLoading = pipelineLoading || appsLoading
+  const apps = applications ?? []
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] p-6 gap-4">
@@ -32,13 +33,13 @@ const RecruitmentPipeline: React.FC = () => {
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
           Ingen pipeline konfigurert
         </div>
-      ) : apps.length === 0 && filters.positionId === 'all' && filters.assignedTo === 'all' ? (
+      ) : apps.length === 0 && filters.positionId === "all" && filters.assignedTo === "all" ? (
         <PipelineEmptyState />
       ) : (
         <PipelineBoard applications={apps} stages={pipeline.stages} filters={filters} />
       )}
     </div>
-  );
-};
+  )
+}
 
-export default RecruitmentPipeline;
+export default RecruitmentPipeline

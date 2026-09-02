@@ -1,120 +1,123 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import { sanitizeTextForKnowledge } from '../_shared/sanitize-pii.ts';
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0"
+import { sanitizeTextForKnowledge } from "../_shared/sanitize-pii.ts"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Missing configuration' }), {
+      return new Response(JSON.stringify({ error: "Missing configuration" }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const { organizationId, minQualityScore = 4.0 } = await req.json();
-    
+    const { organizationId, minQualityScore = 4.0 } = await req.json()
+
     if (!organizationId) {
-      return new Response(JSON.stringify({ error: 'Missing organizationId' }), {
+      return new Response(JSON.stringify({ error: "Missing organizationId" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     // Find successful responses with good outcomes
     const { data: candidates, error: candidatesError } = await supabase
-      .from('response_tracking')
+      .from("response_tracking")
       .select(`
         *,
         response_outcomes (*)
       `)
-      .eq('organization_id', organizationId)
-      .is('knowledge_entry_id', null); // Not already promoted
+      .eq("organization_id", organizationId)
+      .is("knowledge_entry_id", null) // Not already promoted
 
     if (candidatesError) {
-      console.error('Error fetching candidates:', candidatesError);
-      return new Response(JSON.stringify({ error: 'Failed to fetch candidates' }), {
+      console.error("Error fetching candidates:", candidatesError)
+      return new Response(JSON.stringify({ error: "Failed to fetch candidates" }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const promoted = [];
+    const promoted = []
 
     for (const candidate of candidates || []) {
-      const outcomes = candidate.response_outcomes || [];
-      
-      if (outcomes.length === 0) continue;
+      const outcomes = candidate.response_outcomes || []
+
+      if (outcomes.length === 0) continue
 
       // Calculate quality metrics
-      const totalReplies = outcomes.length;
-      const resolvedCount = outcomes.filter((o: any) => o.conversation_resolved).length;
-      const avgSatisfaction = outcomes.reduce((sum: number, o: any) => sum + (o.customer_satisfaction_score || 0), 0) / totalReplies;
-      const avgReplyTime = outcomes.reduce((sum: number, o: any) => sum + (o.reply_time_seconds || 0), 0) / totalReplies;
+      const totalReplies = outcomes.length
+      const resolvedCount = outcomes.filter((o: any) => o.conversation_resolved).length
+      const avgSatisfaction =
+        outcomes.reduce((sum: number, o: any) => sum + (o.customer_satisfaction_score || 0), 0) /
+        totalReplies
+      const avgReplyTime =
+        outcomes.reduce((sum: number, o: any) => sum + (o.reply_time_seconds || 0), 0) /
+        totalReplies
 
       // Calculate quality score (0-5 scale)
-      const resolutionRate = resolvedCount / totalReplies;
-      let qualityScore = (
-        (avgSatisfaction * 0.4) + // 40% weight on satisfaction
-        (resolutionRate * 5 * 0.4) + // 40% weight on resolution rate
-        (Math.min(1, 300 / Math.max(avgReplyTime, 60)) * 5 * 0.2) // 20% weight on quick replies
-      );
+      const resolutionRate = resolvedCount / totalReplies
+      let qualityScore =
+        avgSatisfaction * 0.4 + // 40% weight on satisfaction
+        resolutionRate * 5 * 0.4 + // 40% weight on resolution rate
+        Math.min(1, 300 / Math.max(avgReplyTime, 60)) * 5 * 0.2 // 20% weight on quick replies
 
       // Boost quality score for refined responses
       if (candidate.was_refined) {
-        qualityScore += 0.5; // Quality bonus for agent-refined responses
+        qualityScore += 0.5 // Quality bonus for agent-refined responses
       }
 
       // Refined responses get priority promotion with lower thresholds
-      const effectiveMinQualityScore = candidate.was_refined ? 3.5 : minQualityScore;
-      const effectiveMinReplies = candidate.was_refined ? 2 : 3;
+      const effectiveMinQualityScore = candidate.was_refined ? 3.5 : minQualityScore
+      const effectiveMinReplies = candidate.was_refined ? 2 : 3
 
       // Promote if quality score is high enough and has sufficient successful outcomes
       if (qualityScore >= effectiveMinQualityScore && totalReplies >= effectiveMinReplies) {
         // Sanitize PII before promotion
         const [sanitizedContext, sanitizedResponse] = await Promise.all([
-          sanitizeTextForKnowledge(candidate.customer_message || '', OPENAI_API_KEY),
-          sanitizeTextForKnowledge(candidate.agent_response || '', OPENAI_API_KEY),
-        ]);
+          sanitizeTextForKnowledge(candidate.customer_message || "", OPENAI_API_KEY),
+          sanitizeTextForKnowledge(candidate.agent_response || "", OPENAI_API_KEY),
+        ])
 
         // Create embedding from sanitized text
-        const embeddingResp = await fetch('https://api.openai.com/v1/embeddings', {
-          method: 'POST',
+        const embeddingResp = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: 'text-embedding-3-small',
+            model: "text-embedding-3-small",
             input: `${sanitizedContext} ${sanitizedResponse}`,
           }),
-        });
+        })
 
-        const embeddingData = await embeddingResp.json();
-        const embedding = embeddingData?.data?.[0]?.embedding;
+        const embeddingData = await embeddingResp.json()
+        const embedding = embeddingData?.data?.[0]?.embedding
 
         if (!embedding) {
-          console.error('Failed to create embedding for candidate:', candidate.id);
-          continue;
+          console.error("Failed to create embedding for candidate:", candidate.id)
+          continue
         }
 
         // Insert into knowledge_entries with sanitized content
         const { data: knowledgeEntry, error: insertError } = await supabase
-          .from('knowledge_entries')
+          .from("knowledge_entries")
           .insert({
             organization_id: organizationId,
             customer_context: sanitizedContext,
@@ -126,45 +129,53 @@ Deno.serve(async (req) => {
             sanitized_at: new Date().toISOString(),
           })
           .select()
-          .single();
+          .single()
 
         if (insertError) {
-          console.error('Error inserting knowledge entry:', insertError);
-          continue;
+          console.error("Error inserting knowledge entry:", insertError)
+          continue
         }
 
         // Update response_tracking to link to knowledge entry
         await supabase
-          .from('response_tracking')
+          .from("response_tracking")
           .update({ knowledge_entry_id: knowledgeEntry.id })
-          .eq('id', candidate.id);
+          .eq("id", candidate.id)
 
         promoted.push({
           tracking_id: candidate.id,
           knowledge_entry_id: knowledgeEntry.id,
           quality_score: qualityScore,
-        });
+        })
 
-        console.log(`Promoted response ${candidate.id} to knowledge base with score ${qualityScore.toFixed(2)}`);
+        console.log(
+          `Promoted response ${candidate.id} to knowledge base with score ${qualityScore.toFixed(2)}`,
+        )
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true,
-      promoted_count: promoted.length,
-      promoted_entries: promoted
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        promoted_count: promoted.length,
+        promoted_entries: promoted,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    )
   } catch (err) {
-    console.error('auto-promote-responses error', err);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to auto-promote responses', 
-      detail: err instanceof Error ? err.message : String(err) 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("auto-promote-responses error", err)
+    return new Response(
+      JSON.stringify({
+        error: "Failed to auto-promote responses",
+        detail: err instanceof Error ? err.message : String(err),
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    )
   }
-});
+})

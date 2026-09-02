@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import { CheckCircle2, Eye, EyeOff, HelpCircle, Loader2, XCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import {
   Sheet,
   SheetContent,
@@ -6,79 +10,75 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, XCircle, Loader2, Eye, EyeOff, HelpCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useMetaIntegration } from './hooks/useMetaIntegration';
-import { useTestMetaConnection, useTestMetaToken } from '@/hooks/useTestMetaConnection';
-import type { MetaIntegration, MetaTokenTestResult } from './types';
+} from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { useTestMetaConnection, useTestMetaToken } from "@/hooks/useTestMetaConnection"
+import { useMetaIntegration } from "./hooks/useMetaIntegration"
+import type { MetaIntegration, MetaTokenTestResult } from "./types"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  integration: MetaIntegration | null;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  integration: MetaIntegration | null
 }
 
 export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Props) {
-  const { toast } = useToast();
-  const { updateIntegration } = useMetaIntegration();
-  const testToken = useTestMetaToken();
-  const runHealth = useTestMetaConnection(integration?.id);
+  const { toast } = useToast()
+  const { updateIntegration } = useMetaIntegration()
+  const testToken = useTestMetaToken()
+  const runHealth = useTestMetaConnection(integration?.id)
 
-  const [token, setToken] = useState('');
-  const [show, setShow] = useState(false);
-  const [validation, setValidation] = useState<MetaTokenTestResult | null>(null);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [token, setToken] = useState("")
+  const [show, setShow] = useState(false)
+  const [validation, setValidation] = useState<MetaTokenTestResult | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
-      setToken('');
-      setShow(false);
-      setValidation(null);
-      setHelpOpen(false);
+      setToken("")
+      setShow(false)
+      setValidation(null)
+      setHelpOpen(false)
     }
-  }, [open]);
+  }, [open])
 
   const handleValidate = async () => {
-    if (!integration) return;
+    if (!integration) return
     if (token.trim().length < 20) {
-      toast({ title: 'Tokenet ser for kort ut', variant: 'destructive' });
-      return;
+      toast({ title: "Tokenet ser for kort ut", variant: "destructive" })
+      return
     }
     try {
       const r = await testToken.mutateAsync({
         integration_id: integration.id,
         candidate_token: token.trim(),
-      });
-      setValidation(r);
+      })
+      setValidation(r)
     } catch (e: any) {
-      toast({ title: 'Validering feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Validering feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleSave = async () => {
-    if (!integration || !validation?.valid) return;
+    if (!integration || !validation?.valid) return
     try {
       await updateIntegration.mutateAsync({
         id: integration.id,
         page_access_token: token.trim(),
-      });
+      })
       // Re-run health to refresh cached state and status flags
       try {
-        await runHealth.mutateAsync();
+        await runHealth.mutateAsync()
       } catch {
         // non-blocking
       }
-      toast({ title: 'Token oppdatert' });
-      onOpenChange(false);
+      toast({ title: "Token oppdatert" })
+      onOpenChange(false)
     } catch (e: any) {
-      toast({ title: 'Kunne ikke lagre token', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke lagre token", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <>
@@ -87,7 +87,8 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
           <SheetHeader>
             <SheetTitle>Forny Page Access Token</SheetTitle>
             <SheetDescription>
-              Lim inn et nytt Page Access Token fra Meta Business Suite. Vi validerer det mot Meta før lagring.
+              Lim inn et nytt Page Access Token fra Meta Business Suite. Vi validerer det mot Meta
+              før lagring.
             </SheetDescription>
           </SheetHeader>
 
@@ -95,28 +96,21 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="new-meta-token">Nytt Page Access Token</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShow((v) => !v)}
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShow((v) => !v)}>
                   {show ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-                  {show ? 'Skjul' : 'Vis'}
+                  {show ? "Skjul" : "Vis"}
                 </Button>
               </div>
               <Textarea
                 id="new-meta-token"
                 value={token}
                 onChange={(e) => {
-                  setToken(e.target.value);
-                  setValidation(null);
+                  setToken(e.target.value)
+                  setValidation(null)
                 }}
                 placeholder="EAAB..."
-                className={
-                  'font-mono text-xs min-h-[120px] ' + (show ? '' : 'text-security-disc')
-                }
-                style={!show ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties) : undefined}
+                className={`font-mono text-xs min-h-[120px] ${show ? "" : "text-security-disc"}`}
+                style={!show ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties) : undefined}
               />
               <button
                 type="button"
@@ -128,13 +122,15 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
               </button>
             </div>
 
-            {validation && (
-              validation.valid ? (
+            {validation &&
+              (validation.valid ? (
                 <Alert className="border-emerald-500/30 bg-emerald-500/10">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   <AlertTitle className="text-emerald-700">Token er gyldig</AlertTitle>
                   <AlertDescription className="text-xs space-y-0.5">
-                    <div>Side: {validation.owner_name ?? '—'} (ID {validation.owner_id})</div>
+                    <div>
+                      Side: {validation.owner_name ?? "—"} (ID {validation.owner_id})
+                    </div>
                     <div>Tilganger: alle nødvendige er gitt</div>
                   </AlertDescription>
                 </Alert>
@@ -143,14 +139,13 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
                   <XCircle className="h-4 w-4 text-destructive" />
                   <AlertTitle className="text-destructive">Token er ikke gyldig</AlertTitle>
                   <AlertDescription className="text-xs">
-                    {validation.error_summary ?? 'Ukjent feil'}
+                    {validation.error_summary ?? "Ukjent feil"}
                     {validation.scopes_missing.length > 0 && (
-                      <div className="mt-1">Mangler: {validation.scopes_missing.join(', ')}</div>
+                      <div className="mt-1">Mangler: {validation.scopes_missing.join(", ")}</div>
                     )}
                   </AlertDescription>
                 </Alert>
-              )
-            )}
+              ))}
           </div>
 
           <SheetFooter className="gap-2">
@@ -182,12 +177,13 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
           <SheetHeader>
             <SheetTitle>Slik genererer du en Page Access Token</SheetTitle>
             <SheetDescription>
-              Du må være administrator av Meta-siden og ha tilgang til vår Meta-app i Business Manager.
+              Du må være administrator av Meta-siden og ha tilgang til vår Meta-app i Business
+              Manager.
             </SheetDescription>
           </SheetHeader>
           <ol className="list-decimal pl-5 py-4 space-y-3 text-sm">
             <li>
-              Gå til{' '}
+              Gå til{" "}
               <a
                 href="https://developers.facebook.com/tools/explorer/"
                 target="_blank"
@@ -200,7 +196,7 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
             </li>
             <li>Velg vår Meta-app fra dropdown øverst til høyre.</li>
             <li>
-              Under <span className="font-medium">User or Page</span>, velg{' '}
+              Under <span className="font-medium">User or Page</span>, velg{" "}
               <span className="font-medium">Get Page Access Token</span> og velg den aktuelle siden
               (f.eks. Noddi).
             </li>
@@ -215,11 +211,12 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
               </ul>
             </li>
             <li>
-              Klikk <span className="font-medium">Generate Access Token</span> og godkjenn i popup-vinduet.
+              Klikk <span className="font-medium">Generate Access Token</span> og godkjenn i
+              popup-vinduet.
             </li>
             <li>
-              Kopier hele tokenet (starter med <code className="bg-muted px-1 rounded">EAA…</code>) og lim
-              inn her.
+              Kopier hele tokenet (starter med <code className="bg-muted px-1 rounded">EAA…</code>)
+              og lim inn her.
             </li>
             <li>
               <span className="text-muted-foreground">Tips:</span> For tokens som ikke utløper, bytt
@@ -230,5 +227,5 @@ export function MetaTokenRefreshDialog({ open, onOpenChange, integration }: Prop
         </SheetContent>
       </Sheet>
     </>
-  );
+  )
 }

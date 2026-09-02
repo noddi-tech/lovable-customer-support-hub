@@ -1,161 +1,178 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { Widget, WidgetAPI } from './Widget';
-import type { WidgetInitOptions } from './types';
-import { setIdentity, clearIdentity, updateWidgetContext, contextFromInitOptions, setBrand, setSupportedLocales, setHostEnableKnowledgeSearch } from './api';
-import { sanitizeSupportedLocales } from './translations';
-import { sanitizeTheme } from './theme';
-// @ts-ignore - Vite handles this import
-import widgetStyles from './styles/widget.css?inline';
+import { createRoot } from "react-dom/client"
+import {
+  clearIdentity,
+  contextFromInitOptions,
+  setBrand,
+  setHostEnableKnowledgeSearch,
+  setIdentity,
+  setSupportedLocales,
+  updateWidgetContext,
+} from "./api"
+// @ts-expect-error - Vite handles this import
+import widgetStyles from "./styles/widget.css?inline"
+import { sanitizeTheme } from "./theme"
+import { sanitizeSupportedLocales } from "./translations"
+import type { WidgetInitOptions } from "./types"
+import { Widget, type WidgetAPI } from "./Widget"
 
 // Store widget API reference for programmatic control
-let widgetAPI: WidgetAPI | null = null;
-let pendingCommands: Array<() => void> = [];
-let initOptions: WidgetInitOptions | null = null;
-let isReadyFlag = false;
-let readyCallbacks: Array<() => void> = [];
+let widgetAPI: WidgetAPI | null = null
+let pendingCommands: Array<() => void> = []
+let initOptions: WidgetInitOptions | null = null
+let isReadyFlag = false
+let readyCallbacks: Array<() => void> = []
 
 /** True once the widget is mounted and programmatic commands take effect. */
 function isReady() {
-  return isReadyFlag;
+  return isReadyFlag
 }
 
 /** NoddiWidget('onReady', cb) — fires immediately when already booted. */
 function onReady(callback?: () => void) {
-  if (typeof callback !== 'function') return;
-  if (isReadyFlag) callback();
-  else readyCallbacks.push(callback);
+  if (typeof callback !== "function") return
+  if (isReadyFlag) callback()
+  else readyCallbacks.push(callback)
 }
 
 // Queue for commands before initialization
 declare global {
   interface Window {
     NoddiWidget: {
-      q?: any[];
-      init?: (options: WidgetInitOptions) => void;
-      open?: () => void;
-      close?: () => void;
-      toggle?: () => void;
-      identify?: (options: Record<string, unknown> | null) => void;
-      clearIdentity?: () => void;
-      update?: (options: Record<string, unknown>) => void;
-      shutdown?: () => void;
-      isReady?: () => boolean;
-      onReady?: (callback: () => void) => void;
-      (command: string, options?: any): void;
-    };
-    noddi: (command: string, options?: any) => void;
+      q?: any[]
+      init?: (options: WidgetInitOptions) => void
+      open?: () => void
+      close?: () => void
+      toggle?: () => void
+      identify?: (options: Record<string, unknown> | null) => void
+      clearIdentity?: () => void
+      update?: (options: Record<string, unknown>) => void
+      shutdown?: () => void
+      isReady?: () => boolean
+      onReady?: (callback: () => void) => void
+      (command: string, options?: any): void
+    }
+    noddi: (command: string, options?: any) => void
   }
 }
 
-console.log('[Noddi] Widget script loaded at', new Date().toISOString());
+console.log("[Noddi] Widget script loaded at", new Date().toISOString())
 
 function injectStyles() {
-  const styleId = 'noddi-widget-styles';
+  const styleId = "noddi-widget-styles"
   if (!document.getElementById(styleId)) {
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = widgetStyles;
-    document.head.appendChild(style);
-    console.log('[Noddi] Styles injected');
+    const style = document.createElement("style")
+    style.id = styleId
+    style.textContent = widgetStyles
+    document.head.appendChild(style)
+    console.log("[Noddi] Styles injected")
   }
 }
 
 function initializeWidget(options: WidgetInitOptions) {
-  console.log('[Noddi] initializeWidget called with options:', options);
-  initOptions = options;
+  console.log("[Noddi] initializeWidget called with options:", options)
+  initOptions = options
   // Host may narrow the language picker: supportedLocales: ['nb-NO', 'en-US'].
-  setSupportedLocales(sanitizeSupportedLocales((options as any).supportedLocales));
-  setHostEnableKnowledgeSearch((options as any).enableKnowledgeSearch);
-  isReadyFlag = false;
-  
+  setSupportedLocales(sanitizeSupportedLocales((options as any).supportedLocales))
+  setHostEnableKnowledgeSearch((options as any).enableKnowledgeSearch)
+  isReadyFlag = false
+
   // Inject CSS styles
-  injectStyles();
-  
+  injectStyles()
+
   // Create container for the widget
-  const containerId = 'noddi-widget-root';
-  
+  const containerId = "noddi-widget-root"
+
   // Remove existing container if present
-  const existing = document.getElementById(containerId);
+  const existing = document.getElementById(containerId)
   if (existing) {
-    existing.remove();
-    console.log('[Noddi] Removed existing container');
+    existing.remove()
+    console.log("[Noddi] Removed existing container")
   }
-  
+
   // Create new container
-  const container = document.createElement('div');
-  container.id = containerId;
-  document.body.appendChild(container);
-  console.log('[Noddi] Created container:', container);
-  
+  const container = document.createElement("div")
+  container.id = containerId
+  document.body.appendChild(container)
+  console.log("[Noddi] Created container:", container)
+
   // Render widget with onMount callback to get API reference
-  const root = createRoot(container);
+  const root = createRoot(container)
   root.render(
-    <Widget 
-      options={options} 
+    <Widget
+      options={options}
       onMount={(api) => {
-        widgetAPI = api;
-        isReadyFlag = true;
-        console.log('[Noddi] Widget API mounted, flushing', pendingCommands.length, 'pending commands');
-        pendingCommands.forEach(cmd => cmd());
-        pendingCommands = [];
+        widgetAPI = api
+        isReadyFlag = true
+        console.log(
+          "[Noddi] Widget API mounted, flushing",
+          pendingCommands.length,
+          "pending commands",
+        )
+        pendingCommands.forEach((cmd) => cmd())
+        pendingCommands = []
         if (initOptions?.onReady) {
-          initOptions.onReady();
+          initOptions.onReady()
         }
-        readyCallbacks.forEach(cb => { try { cb(); } catch (e) { console.error('[Noddi] onReady callback failed', e); } });
-        readyCallbacks = [];
+        readyCallbacks.forEach((cb) => {
+          try {
+            cb()
+          } catch (e) {
+            console.error("[Noddi] onReady callback failed", e)
+          }
+        })
+        readyCallbacks = []
       }}
-    />
-  );
-  
-  console.log('[Noddi] Widget rendered with key:', options.widgetKey);
+    />,
+  )
+
+  console.log("[Noddi] Widget rendered with key:", options.widgetKey)
 }
 
 // Programmatic control functions
 function openWidget() {
   if (widgetAPI) {
-    console.log('[Noddi] Opening widget programmatically');
-    widgetAPI.setIsOpen(true);
+    console.log("[Noddi] Opening widget programmatically")
+    widgetAPI.setIsOpen(true)
   } else {
-    console.log('[Noddi] Queuing open command (widget not ready yet)');
-    pendingCommands.push(() => widgetAPI!.setIsOpen(true));
+    console.log("[Noddi] Queuing open command (widget not ready yet)")
+    pendingCommands.push(() => widgetAPI!.setIsOpen(true))
   }
 }
 
 function closeWidget() {
   if (widgetAPI) {
-    console.log('[Noddi] Closing widget programmatically');
-    widgetAPI.setIsOpen(false);
+    console.log("[Noddi] Closing widget programmatically")
+    widgetAPI.setIsOpen(false)
   } else {
-    console.log('[Noddi] Queuing close command (widget not ready yet)');
-    pendingCommands.push(() => widgetAPI!.setIsOpen(false));
+    console.log("[Noddi] Queuing close command (widget not ready yet)")
+    pendingCommands.push(() => widgetAPI!.setIsOpen(false))
   }
 }
 
 function toggleWidget() {
   if (widgetAPI) {
-    console.log('[Noddi] Toggling widget programmatically');
-    widgetAPI.toggle();
+    console.log("[Noddi] Toggling widget programmatically")
+    widgetAPI.toggle()
   } else {
-    console.log('[Noddi] Queuing toggle command (widget not ready yet)');
-    pendingCommands.push(() => widgetAPI!.toggle());
+    console.log("[Noddi] Queuing toggle command (widget not ready yet)")
+    pendingCommands.push(() => widgetAPI!.toggle())
   }
 }
 
 /** NoddiWidget('identify', { userId, email, name, phone }) — pass null to clear. */
 function identifyVisitor(options?: any) {
   if (options === null) {
-    clearVisitorIdentity();
-    return;
+    clearVisitorIdentity()
+    return
   }
-  if (!options || typeof options !== 'object') return;
+  if (!options || typeof options !== "object") return
   setIdentity({
     user_id: options.userId ?? options.user_id,
     email: options.email,
     name: options.name,
     phone: options.phone,
-  });
-  widgetAPI?.refreshIdentity?.();
+  })
+  widgetAPI?.refreshIdentity?.()
 }
 
 /**
@@ -163,97 +180,96 @@ function identifyVisitor(options?: any) {
  * staying booted (logout without a re-init).
  */
 function clearVisitorIdentity() {
-  clearIdentity();
-  widgetAPI?.reset?.();
+  clearIdentity()
+  widgetAPI?.reset?.()
 }
 
 /** NoddiWidget('update', { brand, locale, bookingId, context: {...} }) — merge mid-session. */
 function updateWidget(options?: any) {
-  if (!options || typeof options !== 'object') return;
-  if (typeof options.brand === 'string' && options.brand) setBrand(options.brand);
+  if (!options || typeof options !== "object") return
+  if (typeof options.brand === "string" && options.brand) setBrand(options.brand)
   let localeChanged =
-    options.locale !== undefined || (options.context && options.context.locale !== undefined);
+    options.locale !== undefined || (options.context && options.context.locale !== undefined)
   if (options.supportedLocales !== undefined) {
-    setSupportedLocales(sanitizeSupportedLocales(options.supportedLocales));
-    localeChanged = true;
+    setSupportedLocales(sanitizeSupportedLocales(options.supportedLocales))
+    localeChanged = true
   }
   if (options.enableKnowledgeSearch !== undefined) {
-    setHostEnableKnowledgeSearch(options.enableKnowledgeSearch);
+    setHostEnableKnowledgeSearch(options.enableKnowledgeSearch)
     // Home actions must reflect the new gate without a re-init.
-    localeChanged = true;
+    localeChanged = true
   }
   if (options.theme !== undefined) {
-    widgetAPI?.setTheme?.(sanitizeTheme(options.theme));
+    widgetAPI?.setTheme?.(sanitizeTheme(options.theme))
   }
-  updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) });
-  if (options.identity !== undefined) identifyVisitor(options.identity);
+  updateWidgetContext({ ...contextFromInitOptions(options), ...(options.context || {}) })
+  if (options.identity !== undefined) identifyVisitor(options.identity)
   // Re-mount the panel so the new host locale takes effect immediately.
-  if (localeChanged) widgetAPI?.refreshIdentity?.();
+  if (localeChanged) widgetAPI?.refreshIdentity?.()
 }
-
 
 /** NoddiWidget('shutdown') — forget the visitor on logout. */
 function shutdownWidget() {
-  clearVisitorIdentity();
+  clearVisitorIdentity()
 }
 
 // Process queued commands
 function processQueue() {
-  const queue = window.NoddiWidget?.q || [];
-  console.log('[Noddi] Processing queue:', queue.length, 'commands');
-  
+  const queue = window.NoddiWidget?.q || []
+  console.log("[Noddi] Processing queue:", queue.length, "commands")
+
   queue.forEach((args: any[]) => {
-    const [command, options] = args;
-    console.log('[Noddi] Processing command:', command, options);
-    handleCommand(command, options);
-  });
+    const [command, options] = args
+    console.log("[Noddi] Processing command:", command, options)
+    handleCommand(command, options)
+  })
 }
 
 // Centralized command handler
 function handleCommand(command: string, options?: any): any {
   switch (command) {
-    case 'init':
+    case "init":
       if (options?.widgetKey) {
-        initializeWidget(options);
+        initializeWidget(options)
       }
-      break;
-    case 'open':
-      openWidget();
-      break;
-    case 'close':
-      closeWidget();
-      break;
-    case 'toggle':
-      toggleWidget();
-      break;
-    case 'identify':
-      identifyVisitor(options === undefined ? undefined : options);
-      break;
-    case 'clearIdentity':
-      clearVisitorIdentity();
-      break;
-    case 'isReady':
-      return isReady();
-    case 'onReady':
-      onReady(options);
-      break;
-    case 'update':
-      updateWidget(options);
-      break;
-    case 'shutdown':
-      shutdownWidget();
-      break;
+      break
+    case "open":
+      openWidget()
+      break
+    case "close":
+      closeWidget()
+      break
+    case "toggle":
+      toggleWidget()
+      break
+    case "identify":
+      identifyVisitor(options === undefined ? undefined : options)
+      break
+    case "clearIdentity":
+      clearVisitorIdentity()
+      break
+    case "isReady":
+      return isReady()
+    case "onReady":
+      onReady(options)
+      break
+    case "update":
+      updateWidget(options)
+      break
+    case "shutdown":
+      shutdownWidget()
+      break
     default:
-      console.warn('[Noddi] Unknown command:', command);
+      console.warn("[Noddi] Unknown command:", command)
   }
 }
 
 // Set up the global API
-console.log('[Noddi] Setting up global API');
+console.log("[Noddi] Setting up global API")
 window.NoddiWidget = Object.assign(
-  function(command: string, options?: any) {
-    console.log('[Noddi] NoddiWidget called:', command, options);
-    return handleCommand(command, options);
+  (command: string, options?: any) => {
+    console.log("[Noddi] NoddiWidget called:", command, options)
+    return handleCommand(command, options)
   },
   {
     init: initializeWidget,
@@ -267,16 +283,16 @@ window.NoddiWidget = Object.assign(
     isReady,
     onReady,
     q: window.NoddiWidget?.q || [],
-  }
-);
+  },
+)
 
 // Also support the noddi() shorthand from embed code
-window.noddi = function(command: string, options?: any) {
-  console.log('[Noddi] noddi() called:', command, options);
-  return handleCommand(command, options);
-};
+window.noddi = (command: string, options?: any) => {
+  console.log("[Noddi] noddi() called:", command, options)
+  return handleCommand(command, options)
+}
 
-console.log('[Noddi] Global API ready, queue length:', window.NoddiWidget.q?.length);
+console.log("[Noddi] Global API ready, queue length:", window.NoddiWidget.q?.length)
 
 // Process any queued commands
-processQueue();
+processQueue()

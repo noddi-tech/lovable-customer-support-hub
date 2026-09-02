@@ -1,33 +1,29 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Facebook, Loader2, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import {
-  useStartMetaOAuth,
-  useMetaPageList,
-  type MetaPageOption,
-} from '../../hooks/useMetaOAuth';
-import { useMetaIntegration } from '../../hooks/useMetaIntegration';
-import type { MetaIntegration } from '../../types';
+import { AlertCircle, Eye, EyeOff, Facebook, Loader2, RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { useMetaIntegration } from "../../hooks/useMetaIntegration"
+import { type MetaPageOption, useMetaPageList, useStartMetaOAuth } from "../../hooks/useMetaOAuth"
+import type { MetaIntegration } from "../../types"
 
 interface Props {
-  mode: 'create' | 'reconnect';
-  existingIntegrationId: string | null;
-  stateId: string | null; // present after returning from FB
+  mode: "create" | "reconnect"
+  existingIntegrationId: string | null
+  stateId: string | null // present after returning from FB
   onPickedOAuth: (selection: {
-    state_id: string;
-    page_id: string;
-    page_name: string;
-    granted_scopes: string[];
-  }) => void;
-  onPickedManual: (integration: MetaIntegration) => void;
-  onBack: () => void;
+    state_id: string
+    page_id: string
+    page_name: string
+    granted_scopes: string[]
+  }) => void
+  onPickedManual: (integration: MetaIntegration) => void
+  onBack: () => void
 }
 
 export function Step2SelectPage({
@@ -38,95 +34,95 @@ export function Step2SelectPage({
   onPickedManual,
   onBack,
 }: Props) {
-  const { toast } = useToast();
-  const start = useStartMetaOAuth();
-  const pageList = useMetaPageList(stateId);
-  const { createIntegration, updateIntegration } = useMetaIntegration();
+  const { toast } = useToast()
+  const start = useStartMetaOAuth()
+  const pageList = useMetaPageList(stateId)
+  const { createIntegration, updateIntegration } = useMetaIntegration()
 
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
 
   // Manual form
-  const [manualPageId, setManualPageId] = useState('');
-  const [manualPageName, setManualPageName] = useState('');
-  const [manualToken, setManualToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
-  const [manualBusy, setManualBusy] = useState(false);
+  const [manualPageId, setManualPageId] = useState("")
+  const [manualPageName, setManualPageName] = useState("")
+  const [manualToken, setManualToken] = useState("")
+  const [showToken, setShowToken] = useState(false)
+  const [manualBusy, setManualBusy] = useState(false)
 
   useEffect(() => {
     if (pageList.error) {
       toast({
-        title: 'Kunne ikke hente sider',
-        description: (pageList.error as any)?.message ?? 'Prøv igjen',
-        variant: 'destructive',
-      });
+        title: "Kunne ikke hente sider",
+        description: (pageList.error as any)?.message ?? "Prøv igjen",
+        variant: "destructive",
+      })
     }
-  }, [pageList.error, toast]);
+  }, [pageList.error, toast])
 
   const handleStartOAuth = async () => {
     try {
-      await start.mutateAsync({ mode, existing_integration_id: existingIntegrationId });
+      await start.mutateAsync({ mode, existing_integration_id: existingIntegrationId })
       // Browser navigates away; nothing else to do.
     } catch (e: any) {
       toast({
-        title: 'Kunne ikke starte tilkobling',
+        title: "Kunne ikke starte tilkobling",
         description: e?.message,
-        variant: 'destructive',
-      });
+        variant: "destructive",
+      })
     }
-  };
+  }
 
   const handleConfirmPage = () => {
-    if (!stateId || !pageList.data || !selectedPageId) return;
-    const page = pageList.data.pages.find((p) => p.id === selectedPageId);
-    if (!page) return;
+    if (!stateId || !pageList.data || !selectedPageId) return
+    const page = pageList.data.pages.find((p) => p.id === selectedPageId)
+    if (!page) return
     onPickedOAuth({
       state_id: stateId,
       page_id: page.id,
       page_name: page.name,
       granted_scopes: pageList.data.granted_scopes,
-    });
-  };
+    })
+  }
 
   const handleManualSave = async () => {
     if (!manualPageId.trim() || !manualPageName.trim() || !manualToken.trim()) {
-      toast({ title: 'Fyll inn alle feltene', variant: 'destructive' });
-      return;
+      toast({ title: "Fyll inn alle feltene", variant: "destructive" })
+      return
     }
-    setManualBusy(true);
+    setManualBusy(true)
     try {
-      let integration: MetaIntegration;
-      if (mode === 'reconnect' && existingIntegrationId) {
+      let integration: MetaIntegration
+      if (mode === "reconnect" && existingIntegrationId) {
         integration = await updateIntegration.mutateAsync({
           id: existingIntegrationId,
           page_id: manualPageId.trim(),
           page_name: manualPageName.trim(),
           page_access_token: manualToken.trim(),
-          status: 'configured',
+          status: "configured",
           status_message: null,
-        });
+        })
       } else {
         integration = await createIntegration.mutateAsync({
           page_id: manualPageId.trim(),
           page_name: manualPageName.trim(),
           page_access_token: manualToken.trim(),
-        });
+        })
       }
-      onPickedManual(integration);
+      onPickedManual(integration)
     } catch (e: any) {
       toast({
-        title: 'Kunne ikke lagre tilkobling',
+        title: "Kunne ikke lagre tilkobling",
         description: e?.message,
-        variant: 'destructive',
-      });
+        variant: "destructive",
+      })
     } finally {
-      setManualBusy(false);
+      setManualBusy(false)
     }
-  };
+  }
 
-  const oauthArrived = !!stateId;
+  const oauthArrived = !!stateId
 
   return (
-    <Tabs defaultValue={oauthArrived ? 'oauth' : 'oauth'} className="space-y-4">
+    <Tabs defaultValue={oauthArrived ? "oauth" : "oauth"} className="space-y-4">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="oauth">Med Facebook (anbefalt)</TabsTrigger>
         <TabsTrigger value="manual">Manuell (avansert)</TabsTrigger>
@@ -137,8 +133,8 @@ export function Step2SelectPage({
         {!oauthArrived && (
           <div className="space-y-3 rounded-md border bg-muted/30 p-4">
             <p className="text-sm text-muted-foreground">
-              Vi sender deg til Facebook for å logge inn og velge hvilken side du vil koble til.
-              Du blir sendt rett tilbake hit.
+              Vi sender deg til Facebook for å logge inn og velge hvilken side du vil koble til. Du
+              blir sendt rett tilbake hit.
             </p>
             <Button onClick={handleStartOAuth} disabled={start.isPending}>
               {start.isPending ? (
@@ -164,10 +160,15 @@ export function Step2SelectPage({
             <AlertTitle className="text-amber-700">Ingen sider funnet</AlertTitle>
             <AlertDescription className="text-xs space-y-3">
               <p>
-                Vi fant ingen Facebook-sider knyttet til kontoen din. Sjekk at du er
-                administrator for siden i Meta Business Suite.
+                Vi fant ingen Facebook-sider knyttet til kontoen din. Sjekk at du er administrator
+                for siden i Meta Business Suite.
               </p>
-              <Button size="sm" variant="outline" onClick={handleStartOAuth} disabled={start.isPending}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleStartOAuth}
+                disabled={start.isPending}
+              >
                 {start.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -191,10 +192,8 @@ export function Step2SelectPage({
                 <label
                   key={p.id}
                   className={
-                    'flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors ' +
-                    (selectedPageId === p.id
-                      ? 'border-primary bg-primary/5'
-                      : 'hover:bg-muted/50')
+                    "flex items-center gap-3 rounded-md border p-3 cursor-pointer transition-colors " +
+                    (selectedPageId === p.id ? "border-primary bg-primary/5" : "hover:bg-muted/50")
                   }
                 >
                   <input
@@ -205,7 +204,7 @@ export function Step2SelectPage({
                     onChange={() => setSelectedPageId(p.id)}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{p.name || '(uten navn)'}</div>
+                    <div className="text-sm font-medium truncate">{p.name || "(uten navn)"}</div>
                     <div className="text-xs text-muted-foreground font-mono">ID: {p.id}</div>
                   </div>
                   {!p.can_manage && (
@@ -223,8 +222,8 @@ export function Step2SelectPage({
       {/* === Manual tab === */}
       <TabsContent value="manual" className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Bruk denne hvis du allerede har et Page Access Token fra Graph Explorer eller en System User.
-          Du må fortsatt være administrator av siden.
+          Bruk denne hvis du allerede har et Page Access Token fra Graph Explorer eller en System
+          User. Du må fortsatt være administrator av siden.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
@@ -248,22 +247,17 @@ export function Step2SelectPage({
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <Label className="text-xs">Page Access Token</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowToken((v) => !v)}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowToken((v) => !v)}>
               {showToken ? <EyeOff className="h-3 w-3 mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
-              {showToken ? 'Skjul' : 'Vis'}
+              {showToken ? "Skjul" : "Vis"}
             </Button>
           </div>
           <Textarea
             value={manualToken}
             onChange={(e) => setManualToken(e.target.value)}
             placeholder="EAAB..."
-            className={'font-mono text-xs min-h-[100px] ' + (showToken ? '' : 'text-security-disc')}
-            style={!showToken ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties) : undefined}
+            className={`font-mono text-xs min-h-[100px] ${showToken ? "" : "text-security-disc"}`}
+            style={!showToken ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties) : undefined}
           />
         </div>
       </TabsContent>
@@ -286,5 +280,5 @@ export function Step2SelectPage({
         </div>
       </div>
     </Tabs>
-  );
+  )
 }

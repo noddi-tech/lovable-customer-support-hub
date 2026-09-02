@@ -1,21 +1,21 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useCases, getCaseSlaState, CASE_STATUS_LABELS, type CaseStatus } from '@/hooks/useCases';
-import { toast } from 'sonner';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { ArrowLeft, Plus } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/hooks/useAuth"
+import { CASE_STATUS_LABELS, type CaseStatus, getCaseSlaState, useCases } from "@/hooks/useCases"
+import { supabase } from "@/integrations/supabase/client"
 
-const sel = (s: string): string => s;
+const sel = (s: string): string => s
 
 function Metric({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
@@ -26,12 +26,12 @@ function Metric({ label, value, hint }: { label: string; value: string | number;
         {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function BreakdownList({ rows }: { rows: Array<{ label: string; count: number }> }) {
-  const total = rows.reduce((acc, r) => acc + r.count, 0) || 1;
-  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No data yet.</p>;
+  const total = rows.reduce((acc, r) => acc + r.count, 0) || 1
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No data yet.</p>
   return (
     <div className="space-y-2">
       {rows
@@ -52,64 +52,76 @@ function BreakdownList({ rows }: { rows: Array<{ label: string; count: number }>
           </div>
         ))}
     </div>
-  );
+  )
 }
 
-function TaxonomyEditor({ table, title }: { table: 'case_categories' | 'case_resolution_codes'; title: string }) {
-  const { profile } = useAuth();
-  const queryClient = useQueryClient();
-  const [name, setName] = useState('');
+function TaxonomyEditor({
+  table,
+  title,
+}: {
+  table: "case_categories" | "case_resolution_codes"
+  title: string
+}) {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState("")
 
   const { data: rows = [] } = useQuery({
-    queryKey: ['taxonomy', table, profile?.organization_id],
+    queryKey: ["taxonomy", table, profile?.organization_id],
     enabled: !!profile?.organization_id,
     queryFn: async () => {
       const { data, error } = await (supabase.from(table) as any)
-        .select(sel('id, name, slug, is_active, sort_order'))
-        .order('sort_order');
-      if (error) throw error;
+        .select(sel("id, name, slug, is_active, sort_order"))
+        .order("sort_order")
+      if (error) throw error
       return (data ?? []) as Array<{
-        id: string;
-        name: string;
-        slug: string;
-        is_active: boolean;
-        sort_order: number;
-      }>;
+        id: string
+        name: string
+        slug: string
+        is_active: boolean
+        sort_order: number
+      }>
     },
-  });
+  })
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['taxonomy', table] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["taxonomy", table] })
 
   const add = async () => {
-    if (!name.trim() || !profile?.organization_id) return;
-    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (!name.trim() || !profile?.organization_id) return
+    const slug = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
     const { error } = await (supabase.from(table) as any).insert({
       organization_id: profile.organization_id,
       name: name.trim(),
       slug,
       sort_order: rows.length + 1,
-    });
+    })
     if (error) {
-      toast.error(error.message);
-      return;
+      toast.error(error.message)
+      return
     }
-    setName('');
-    refresh();
-    queryClient.invalidateQueries({ queryKey: ['case-categories'] });
-    queryClient.invalidateQueries({ queryKey: ['case-resolution-codes'] });
-    toast.success(`${title} added`);
-  };
+    setName("")
+    refresh()
+    queryClient.invalidateQueries({ queryKey: ["case-categories"] })
+    queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
+    toast.success(`${title} added`)
+  }
 
   const toggle = async (id: string, isActive: boolean) => {
-    const { error } = await (supabase.from(table) as any).update({ is_active: !isActive }).eq('id', id);
+    const { error } = await (supabase.from(table) as any)
+      .update({ is_active: !isActive })
+      .eq("id", id)
     if (error) {
-      toast.error(error.message);
-      return;
+      toast.error(error.message)
+      return
     }
-    refresh();
-    queryClient.invalidateQueries({ queryKey: ['case-categories'] });
-    queryClient.invalidateQueries({ queryKey: ['case-resolution-codes'] });
-  };
+    refresh()
+    queryClient.invalidateQueries({ queryKey: ["case-categories"] })
+    queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
+  }
 
   return (
     <Card>
@@ -131,51 +143,54 @@ function TaxonomyEditor({ table, title }: { table: 'case_categories' | 'case_res
         <div className="space-y-1.5">
           {rows.map((r) => (
             <div key={r.id} className="flex items-center gap-2 text-sm">
-              <span className={r.is_active ? '' : 'text-muted-foreground line-through'}>{r.name}</span>
+              <span className={r.is_active ? "" : "text-muted-foreground line-through"}>
+                {r.name}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto h-7 text-xs"
                 onClick={() => toggle(r.id, r.is_active)}
               >
-                {r.is_active ? 'Disable' : 'Enable'}
+                {r.is_active ? "Disable" : "Enable"}
               </Button>
             </div>
           ))}
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export default function CaseReportsPage() {
-  const navigate = useNavigate();
-  const { data: cases = [], isLoading } = useCases({ view: 'all' });
+  const navigate = useNavigate()
+  const { data: cases = [], isLoading } = useCases({ view: "all" })
 
   const stats = useMemo(() => {
-    const open = cases.filter((c) => c.status !== 'resolved' && c.status !== 'closed');
-    const closed = cases.filter((c) => c.status === 'resolved' || c.status === 'closed');
-    const breached = open.filter((c) => getCaseSlaState(c) === 'breached');
-    const unassigned = open.filter((c) => !c.owner_id);
+    const open = cases.filter((c) => c.status !== "resolved" && c.status !== "closed")
+    const closed = cases.filter((c) => c.status === "resolved" || c.status === "closed")
+    const breached = open.filter((c) => getCaseSlaState(c) === "breached")
+    const unassigned = open.filter((c) => !c.owner_id)
 
-    const withResolution = closed.filter((c) => c.resolved_at);
+    const withResolution = closed.filter((c) => c.resolved_at)
     const avgResolutionHours =
       withResolution.length > 0
         ? withResolution.reduce(
             (acc, c) =>
-              acc + (new Date(c.resolved_at!).getTime() - new Date(c.created_at).getTime()) / 3600000,
+              acc +
+              (new Date(c.resolved_at!).getTime() - new Date(c.created_at).getTime()) / 3600000,
             0,
           ) / withResolution.length
-        : null;
+        : null
 
     const byKey = (items: typeof cases, keyFn: (c: (typeof cases)[number]) => string) => {
-      const map = new Map<string, number>();
+      const map = new Map<string, number>()
       items.forEach((c) => {
-        const k = keyFn(c);
-        map.set(k, (map.get(k) ?? 0) + 1);
-      });
-      return Array.from(map.entries()).map(([label, count]) => ({ label, count }));
-    };
+        const k = keyFn(c)
+        map.set(k, (map.get(k) ?? 0) + 1)
+      })
+      return Array.from(map.entries()).map(([label, count]) => ({ label, count }))
+    }
 
     return {
       open,
@@ -183,12 +198,12 @@ export default function CaseReportsPage() {
       breached,
       unassigned,
       avgResolutionHours,
-      byCategory: byKey(cases, (c) => c.category?.name ?? 'Uncategorised'),
-      byResolution: byKey(closed, (c) => c.resolution_code?.name ?? 'No code'),
-      byOwner: byKey(open, (c) => c.owner?.full_name ?? 'Unassigned'),
+      byCategory: byKey(cases, (c) => c.category?.name ?? "Uncategorised"),
+      byResolution: byKey(closed, (c) => c.resolution_code?.name ?? "No code"),
+      byOwner: byKey(open, (c) => c.owner?.full_name ?? "Unassigned"),
       byStatus: byKey(cases, (c) => CASE_STATUS_LABELS[c.status as CaseStatus] ?? c.status),
-    };
-  }, [cases]);
+    }
+  }, [cases])
 
   return (
     <UnifiedAppLayout>
@@ -196,7 +211,7 @@ export default function CaseReportsPage() {
         <header className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <Button variant="ghost" size="sm" onClick={() => navigate('/operations/cases')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/operations/cases")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-lg font-semibold">Case reporting</h1>
@@ -219,14 +234,16 @@ export default function CaseReportsPage() {
                   <Metric
                     label="Overdue"
                     value={stats.breached.length}
-                    hint={stats.breached.length > 0 ? 'Needs immediate follow-up' : 'All within SLA'}
+                    hint={
+                      stats.breached.length > 0 ? "Needs immediate follow-up" : "All within SLA"
+                    }
                   />
                   <Metric label="Unassigned" value={stats.unassigned.length} />
                   <Metric
                     label="Avg. resolution"
                     value={
                       stats.avgResolutionHours === null
-                        ? '—'
+                        ? "—"
                         : `${stats.avgResolutionHours.toFixed(1)} h`
                     }
                     hint={`${stats.closed.length} resolved`}
@@ -285,5 +302,5 @@ export default function CaseReportsPage() {
         </div>
       </div>
     </UnifiedAppLayout>
-  );
+  )
 }

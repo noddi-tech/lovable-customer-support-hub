@@ -1,68 +1,65 @@
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Loader2, Inbox } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useDiscoverMetaForms } from '../../hooks/useMetaOAuth';
-import { useFormPositionMappings } from '../../hooks/useFormPositionMappings';
+import { AlertCircle, Inbox, Loader2 } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
+import { useFormPositionMappings } from "../../hooks/useFormPositionMappings"
+import { useDiscoverMetaForms } from "../../hooks/useMetaOAuth"
 
 interface Props {
-  integrationId: string;
-  onFinish: () => void;
-  onBack: () => void;
+  integrationId: string
+  onFinish: () => void
+  onBack: () => void
 }
 
 export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
-  const { toast } = useToast();
-  const discovery = useDiscoverMetaForms(integrationId);
-  const { mappings, createMapping } = useFormPositionMappings(integrationId);
+  const { toast } = useToast()
+  const discovery = useDiscoverMetaForms(integrationId)
+  const { mappings, createMapping } = useFormPositionMappings(integrationId)
 
-  const existingFormIds = useMemo(
-    () => new Set(mappings.map((m) => m.form_id)),
-    [mappings],
-  );
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
+  const existingFormIds = useMemo(() => new Set(mappings.map((m) => m.form_id)), [mappings])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [busy, setBusy] = useState(false)
 
   const toggle = (id: string) => {
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const handleSaveSelected = async () => {
     if (!discovery.data?.forms || selected.size === 0) {
-      onFinish();
-      return;
+      onFinish()
+      return
     }
-    setBusy(true);
+    setBusy(true)
     try {
       for (const id of selected) {
-        const form = discovery.data.forms.find((f) => f.id === id);
-        if (!form || existingFormIds.has(id)) continue;
+        const form = discovery.data.forms.find((f) => f.id === id)
+        if (!form || existingFormIds.has(id)) continue
         await createMapping.mutateAsync({
           form_id: form.id,
           form_name: form.name || null,
           position_id: null,
-        });
+        })
       }
-      toast({ title: `${selected.size} skjema lagt til` });
-      onFinish();
+      toast({ title: `${selected.size} skjema lagt til` })
+      onFinish()
     } catch (e: any) {
       toast({
-        title: 'Kunne ikke lagre alle skjemaer',
+        title: "Kunne ikke lagre alle skjemaer",
         description: e?.message,
-        variant: 'destructive',
-      });
+        variant: "destructive",
+      })
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-4">
@@ -85,13 +82,11 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
           <AlertTitle className="text-amber-700">Kunne ikke hente skjemaer automatisk</AlertTitle>
           <AlertDescription className="text-xs space-y-1">
             <p>
-              Vi kunne ikke liste skjemaene fra Facebook fordi tilgangen{' '}
+              Vi kunne ikke liste skjemaene fra Facebook fordi tilgangen{" "}
               <code className="font-mono">pages_manage_ads</code> mangler. Det er greit — du kan
               legge inn skjema-IDer manuelt i "Skjemaer"-fanen etterpå.
             </p>
-            <p className="text-muted-foreground">
-              Lead-mottak fungerer uten denne tilgangen.
-            </p>
+            <p className="text-muted-foreground">Lead-mottak fungerer uten denne tilgangen.</p>
           </AlertDescription>
         </Alert>
       )}
@@ -100,7 +95,7 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
         <Alert className="border-destructive/30 bg-destructive/10">
           <AlertCircle className="h-4 w-4 text-destructive" />
           <AlertDescription className="text-xs">
-            {(discovery.error as any)?.message ?? 'Kunne ikke hente skjemaer'}
+            {(discovery.error as any)?.message ?? "Kunne ikke hente skjemaer"}
           </AlertDescription>
         </Alert>
       )}
@@ -119,13 +114,13 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
             (du kan koble dem til konkrete stillinger senere).
           </p>
           {discovery.data.forms.map((form) => {
-            const already = existingFormIds.has(form.id);
+            const already = existingFormIds.has(form.id)
             return (
               <label
                 key={form.id}
                 className={
-                  'flex items-center gap-3 rounded-md border p-3 ' +
-                  (already ? 'bg-muted/30 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/40')
+                  "flex items-center gap-3 rounded-md border p-3 " +
+                  (already ? "bg-muted/30 cursor-not-allowed" : "cursor-pointer hover:bg-muted/40")
                 }
               >
                 <Checkbox
@@ -134,7 +129,7 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
                   onCheckedChange={() => toggle(form.id)}
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{form.name || '(uten navn)'}</div>
+                  <div className="text-sm font-medium truncate">{form.name || "(uten navn)"}</div>
                   <div className="text-xs text-muted-foreground font-mono">
                     ID: {form.id}
                     {form.status && <span className="ml-2 uppercase">· {form.status}</span>}
@@ -146,7 +141,7 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
                   </span>
                 )}
               </label>
-            );
+            )
           })}
         </div>
       )}
@@ -157,9 +152,9 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
         </Button>
         <Button onClick={handleSaveSelected} disabled={busy}>
           {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {selected.size > 0 ? `Lagre ${selected.size} og fullfør` : 'Fullfør'}
+          {selected.size > 0 ? `Lagre ${selected.size} og fullfør` : "Fullfør"}
         </Button>
       </div>
     </div>
-  );
+  )
 }

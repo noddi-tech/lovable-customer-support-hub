@@ -1,85 +1,85 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, MinusCircle, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { formatCountdown } from '@/lib/sla';
+import { AlertCircle, CheckCircle, MinusCircle, XCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatCountdown } from "@/lib/sla"
+import { cn } from "@/lib/utils"
 
 interface SLABadgeProps {
-  status?: 'on_track' | 'at_risk' | 'breached' | 'met';
-  slaBreachAt?: string;
+  status?: "on_track" | "at_risk" | "breached" | "met"
+  slaBreachAt?: string
 }
 
 /** Live-ticking clock; updates every second under an hour, otherwise every 30s. */
 function useNow(intervalMs: number) {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs)
+    return () => window.clearInterval(id)
+  }, [intervalMs])
+  return now
 }
 
 export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
-  const breachTime = slaBreachAt ? new Date(slaBreachAt).getTime() : NaN;
-  const hasDeadline = Number.isFinite(breachTime);
+  const breachTime = slaBreachAt ? new Date(slaBreachAt).getTime() : NaN
+  const hasDeadline = Number.isFinite(breachTime)
   // Tick fast when the deadline is close so the countdown feels live.
-  const coarse = !hasDeadline || Math.abs(breachTime - Date.now()) > 3_600_000;
-  const now = useNow(coarse ? 30_000 : 1_000);
+  const coarse = !hasDeadline || Math.abs(breachTime - Date.now()) > 3_600_000
+  const now = useNow(coarse ? 30_000 : 1_000)
 
-  const remainingMs = hasDeadline ? breachTime - now : null;
-  const overdue = remainingMs !== null && remainingMs <= 0;
+  const remainingMs = hasDeadline ? breachTime - now : null
+  const overdue = remainingMs !== null && remainingMs <= 0
   // The stored status can lag behind the clock — trust the deadline once it passes.
-  const effective = overdue && status && status !== 'met' ? 'breached' : (status ?? 'none');
+  const effective = overdue && status && status !== "met" ? "breached" : (status ?? "none")
 
   const configs = {
     on_track: {
       icon: CheckCircle,
-      label: 'On track',
-      dotColor: 'bg-emerald-500',
+      label: "On track",
+      dotColor: "bg-emerald-500",
       className:
-        'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
+        "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800",
     },
     at_risk: {
       icon: AlertCircle,
-      label: 'At risk',
-      dotColor: 'bg-amber-500',
+      label: "At risk",
+      dotColor: "bg-amber-500",
       className:
-        'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
+        "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800",
     },
     breached: {
       icon: XCircle,
-      label: 'Breached',
-      dotColor: 'bg-red-500',
+      label: "Breached",
+      dotColor: "bg-red-500",
       className:
-        'bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700',
+        "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-700",
     },
     met: {
       icon: CheckCircle,
-      label: 'Met',
-      dotColor: 'bg-emerald-500',
+      label: "Met",
+      dotColor: "bg-emerald-500",
       className:
-        'bg-emerald-50/60 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900',
+        "bg-emerald-50/60 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900",
     },
     none: {
       icon: MinusCircle,
-      label: 'No SLA',
-      dotColor: 'bg-muted-foreground/40',
-      className: 'bg-muted/50 text-muted-foreground border-border',
+      label: "No SLA",
+      dotColor: "bg-muted-foreground/40",
+      className: "bg-muted/50 text-muted-foreground border-border",
     },
-  } as const;
+  } as const
 
-  const config = configs[effective as keyof typeof configs];
-  if (!config) return null;
+  const config = configs[effective as keyof typeof configs]
+  if (!config) return null
 
-  const Icon = config.icon;
-  const live = effective === 'on_track' || effective === 'at_risk' || effective === 'breached';
-  const countdown = remainingMs === null || !live ? null : formatCountdown(remainingMs);
-  const urgent = effective === 'breached' || (remainingMs !== null && remainingMs <= 30 * 60_000);
+  const Icon = config.icon
+  const live = effective === "on_track" || effective === "at_risk" || effective === "breached"
+  const countdown = remainingMs === null || !live ? null : formatCountdown(remainingMs)
+  const urgent = effective === "breached" || (remainingMs !== null && remainingMs <= 30 * 60_000)
 
   const deadlineLabel = hasDeadline
-    ? new Date(breachTime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-    : null;
+    ? new Date(breachTime).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+    : null
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -88,35 +88,35 @@ export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
           <Badge
             variant="outline"
             className={cn(
-              'text-[10px] flex items-center gap-1 px-1.5 py-0.5 font-semibold tabular-nums cursor-help',
+              "text-[10px] flex items-center gap-1 px-1.5 py-0.5 font-semibold tabular-nums cursor-help",
               config.className,
-              effective === 'breached' && 'animate-pulse',
+              effective === "breached" && "animate-pulse",
             )}
           >
-            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', config.dotColor)} />
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", config.dotColor)} />
             <Icon className="w-3 h-3 shrink-0" />
             {countdown ? (
-              <span className="whitespace-nowrap">
-                {overdue ? `+${countdown}` : countdown}
-              </span>
+              <span className="whitespace-nowrap">{overdue ? `+${countdown}` : countdown}</span>
             ) : (
               <span className="whitespace-nowrap">{config.label}</span>
             )}
           </Badge>
         </TooltipTrigger>
         <TooltipContent side="left" className="max-w-[240px] text-xs leading-relaxed">
-          {effective === 'met'
-            ? 'First reply was sent within the SLA target for this conversation.'
-            : effective === 'none'
-              ? 'No SLA deadline applies to this conversation yet — no target is set for its inbox, priority or channel.'
+          {effective === "met"
+            ? "First reply was sent within the SLA target for this conversation."
+            : effective === "none"
+              ? "No SLA deadline applies to this conversation yet — no target is set for its inbox, priority or channel."
               : overdue
                 ? `SLA breached ${countdown} ago — this reply is late. Answer it now or reassign it.`
                 : urgent
                   ? `Only ${countdown} left to send the first reply before the SLA breaks.`
                   : `${countdown} left before the first-reply SLA breaks.`}
-          {deadlineLabel && effective !== 'none' && <div className="mt-1 opacity-70">Deadline: {deadlineLabel}</div>}
+          {deadlineLabel && effective !== "none" && (
+            <div className="mt-1 opacity-70">Deadline: {deadlineLabel}</div>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }

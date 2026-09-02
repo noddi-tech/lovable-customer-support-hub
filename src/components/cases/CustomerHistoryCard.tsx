@@ -1,25 +1,28 @@
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCustomerConversations } from '@/hooks/useCustomerRecord';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { History, Mail, MessageSquare } from 'lucide-react';
+import { History, Mail, MessageSquare } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useCustomerConversations } from "@/hooks/useCustomerRecord"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
 
 interface CustomerHistoryCardProps {
-  customerId?: string | null;
-  currentConversationId?: string | null;
+  customerId?: string | null
+  currentConversationId?: string | null
 }
 
-export function CustomerHistoryCard({ customerId, currentConversationId }: CustomerHistoryCardProps) {
-  const navigate = useNavigate();
-  const { dateTime } = useDateFormatting();
+export function CustomerHistoryCard({
+  customerId,
+  currentConversationId,
+}: CustomerHistoryCardProps) {
+  const navigate = useNavigate()
+  const { dateTime } = useDateFormatting()
   const { data: conversations = [], isLoading } = useCustomerConversations(
     customerId,
     currentConversationId,
-  );
+  )
 
-  if (!customerId) return null;
+  if (!customerId) return null
 
   return (
     <Card>
@@ -47,13 +50,13 @@ export function CustomerHistoryCard({ customerId, currentConversationId }: Custo
                 className="w-full rounded-md border p-2 text-left transition-colors hover:bg-accent/50"
               >
                 <div className="flex items-center gap-2">
-                  {c.channel === 'email' ? (
+                  {c.channel === "email" ? (
                     <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   ) : (
                     <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   )}
                   <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                    {c.subject || '(no subject)'}
+                    {c.subject || "(no subject)"}
                   </span>
                 </div>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">{dateTime(c.updated_at)}</p>
@@ -71,5 +74,5 @@ export function CustomerHistoryCard({ customerId, currentConversationId }: Custo
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

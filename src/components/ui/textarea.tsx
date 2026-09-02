@@ -1,17 +1,33 @@
 import * as React from "react"
-
-import { cn } from "@/lib/utils"
 import { EmojiAutocompleteInput } from "@/components/ui/emoji-autocomplete-input"
+import { cn } from "@/lib/utils"
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  emojiAutocomplete?: boolean;
+  emojiAutocomplete?: boolean
 }
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, emojiAutocomplete = true, onChange, onKeyDown, placeholder, disabled, value: propValue, defaultValue, ...props }, ref) => {
+  (
+    {
+      className,
+      emojiAutocomplete = true,
+      onChange,
+      onKeyDown,
+      placeholder,
+      disabled,
+      value: propValue,
+      defaultValue,
+      ...props
+    },
+    ref,
+  ) => {
     // Support both controlled and uncontrolled usage seamlessly
     const [internalValue, setInternalValue] = React.useState<string>(
-      typeof defaultValue === "string" ? defaultValue : (defaultValue != null ? String(defaultValue) : "")
+      typeof defaultValue === "string"
+        ? defaultValue
+        : defaultValue != null
+          ? String(defaultValue)
+          : "",
     )
 
     const isControlled = propValue !== undefined
@@ -22,7 +38,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       if (!isControlled) setInternalValue(val)
       // Synthesize a minimal ChangeEvent for consumers expecting e.target.value
       if (onChange) {
-        const syntheticEvent = { target: { value: val } } as unknown as React.ChangeEvent<HTMLTextAreaElement>
+        const syntheticEvent = {
+          target: { value: val },
+        } as unknown as React.ChangeEvent<HTMLTextAreaElement>
         onChange(syntheticEvent)
       }
     }
@@ -35,7 +53,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           onKeyDown={onKeyDown}
           className={cn(
             "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            className
+            className,
           )}
           placeholder={placeholder}
           disabled={disabled}
@@ -47,7 +65,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <textarea
         className={cn(
           "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          className
+          className,
         )}
         ref={ref}
         onChange={onChange}
@@ -59,7 +77,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         {...props}
       />
     )
-  }
+  },
 )
 Textarea.displayName = "Textarea"
 

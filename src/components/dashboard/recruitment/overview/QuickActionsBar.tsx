@@ -1,14 +1,14 @@
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Download, Kanban, List, UserPlus } from 'lucide-react';
+import { Download, Kanban, List, UserPlus } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 
 interface Props {
-  onAddApplicant: () => void;
-  onImport: () => void;
+  onAddApplicant: () => void
+  onImport: () => void
 }
 
 export default function QuickActionsBar({ onAddApplicant, onImport }: Props) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -20,14 +20,22 @@ export default function QuickActionsBar({ onAddApplicant, onImport }: Props) {
         <UserPlus />
         Legg til søker
       </Button>
-      <Button variant="outline" size="sm" onClick={() => navigate('/operations/recruitment/pipeline')}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate("/operations/recruitment/pipeline")}
+      >
         <Kanban />
         Se kanban
       </Button>
-      <Button variant="outline" size="sm" onClick={() => navigate('/operations/recruitment/applicants')}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate("/operations/recruitment/applicants")}
+      >
         <List />
         Se alle søkere
       </Button>
     </div>
-  );
+  )
 }

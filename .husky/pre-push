@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Same gate agents/Lovable must run before push (see AGENTS.md).
+# Autofix + verify; do not restage (push has no index to amend).
+sh scripts/quality-gate.sh --fix-and-check

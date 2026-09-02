@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { submitContactForm, getIdentity, storeSubmission, type StoredSubmission } from '../api';
-import { getWidgetTranslations } from '../translations';
+import type React from "react"
+import { useState } from "react"
+import { getIdentity, type StoredSubmission, storeSubmission, submitContactForm } from "../api"
+import { getWidgetTranslations } from "../translations"
 
 interface ContactFormProps {
-  widgetKey: string;
-  primaryColor: string;
+  widgetKey: string
+  primaryColor: string
   /** Receives the message that was just sent so the panel can keep showing it. */
-  onSuccess: (submission: StoredSubmission) => void;
-  language: string;
-  initialMessage?: string;
+  onSuccess: (submission: StoredSubmission) => void
+  language: string
+  initialMessage?: string
 }
 
 export const ContactForm: React.FC<ContactFormProps> = ({
@@ -18,42 +19,42 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   language,
   initialMessage,
 }) => {
-  const identity = getIdentity();
-  const [name, setName] = useState(identity.name || '');
-  const [email, setEmail] = useState(identity.email || '');
-  const [message, setMessage] = useState(initialMessage || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const identity = getIdentity()
+  const [name, setName] = useState(identity.name || "")
+  const [email, setEmail] = useState(identity.email || "")
+  const [message, setMessage] = useState(initialMessage || "")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const t = getWidgetTranslations(language);
+  const t = getWidgetTranslations(language)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    
+    e.preventDefault()
+    setError(null)
+
     // Basic validation
     if (!name.trim() || !email.trim() || !message.trim()) {
-      setError(t.fillAllFields);
-      return;
+      setError(t.fillAllFields)
+      return
     }
-    
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError(t.invalidEmail);
-      return;
+      setError(t.invalidEmail)
+      return
     }
-    
-    setIsSubmitting(true);
-    
+
+    setIsSubmitting(true)
+
     const result = await submitContactForm({
       widgetKey,
       name: name.trim(),
       email: email.trim(),
       message: message.trim(),
       pageUrl: window.location.href,
-    });
-    
-    setIsSubmitting(false);
-    
+    })
+
+    setIsSubmitting(false)
+
     if (result.success) {
       const submission: StoredSubmission = {
         conversationId: result.conversationId,
@@ -61,16 +62,16 @@ export const ContactForm: React.FC<ContactFormProps> = ({
         email: email.trim(),
         message: message.trim(),
         sentAt: new Date().toISOString(),
-      };
+      }
       // Keep the message locally so reopening the widget still shows what was sent.
-      storeSubmission(submission);
+      storeSubmission(submission)
       // Keep name/email prefilled for the next message; only clear the message body.
-      setMessage('');
-      onSuccess(submission);
+      setMessage("")
+      onSuccess(submission)
     } else {
-      setError(result.error || 'Failed to send message');
+      setError(result.error || "Failed to send message")
     }
-  };
+  }
 
   return (
     <form onSubmit={handleSubmit} className="noddi-widget-form">
@@ -86,7 +87,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           disabled={isSubmitting}
         />
       </div>
-      
+
       <div className="noddi-widget-field">
         <label htmlFor="noddi-email">{t.email}</label>
         <input
@@ -99,7 +100,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           disabled={isSubmitting}
         />
       </div>
-      
+
       <div className="noddi-widget-field">
         <label htmlFor="noddi-message">{t.message}</label>
         <textarea
@@ -112,11 +113,9 @@ export const ContactForm: React.FC<ContactFormProps> = ({
           disabled={isSubmitting}
         />
       </div>
-      
-      {error && (
-        <div className="noddi-widget-error">{error}</div>
-      )}
-      
+
+      {error && <div className="noddi-widget-error">{error}</div>}
+
       <button
         type="submit"
         className="noddi-widget-submit"
@@ -126,5 +125,5 @@ export const ContactForm: React.FC<ContactFormProps> = ({
         {isSubmitting ? t.sending : t.sendMessageBtn}
       </button>
     </form>
-  );
-};
+  )
+}

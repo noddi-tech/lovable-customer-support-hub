@@ -1,36 +1,50 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useOrganizationStore } from "@/stores/organizationStore";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface InviteUserDialogProps {
-  trigger?: React.ReactNode;
+  trigger?: React.ReactNode
 }
 
 export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "agent" | "user">("agent");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const { currentOrganizationId } = useOrganizationStore();
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState<"admin" | "agent" | "user">("agent")
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+  const { currentOrganizationId } = useOrganizationStore()
 
   const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!email) {
       toast({
         title: "Error",
         description: "Please enter an email address",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     if (!currentOrganizationId) {
@@ -38,11 +52,11 @@ export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
         title: "Error",
         description: "No organization selected",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       const { data, error } = await supabase.functions.invoke("send-organization-invite", {
@@ -51,30 +65,30 @@ export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
           organizationId: currentOrganizationId,
           role,
         },
-      });
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       toast({
         title: "Invitation sent!",
         description: `An invitation has been sent to ${email}`,
-      });
+      })
 
       // Reset form and close dialog
-      setEmail("");
-      setRole("agent");
-      setOpen(false);
+      setEmail("")
+      setRole("agent")
+      setOpen(false)
     } catch (error: any) {
-      console.error("Error sending invite:", error);
+      console.error("Error sending invite:", error)
       toast({
         title: "Failed to send invitation",
         description: error.message || "Please try again later",
         variant: "destructive",
-      });
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -109,7 +123,11 @@ export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(value: any) => setRole(value)} disabled={loading}>
+              <Select
+                value={role}
+                onValueChange={(value: any) => setRole(value)}
+                disabled={loading}
+              >
                 <SelectTrigger id="role">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -122,7 +140,12 @@ export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
@@ -133,5 +156,5 @@ export const InviteUserDialog = ({ trigger }: InviteUserDialogProps) => {
         </form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

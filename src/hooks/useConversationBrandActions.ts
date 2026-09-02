@@ -1,6 +1,6 @@
-import { useEntityBrandActions } from '@/hooks/useEntityBrandActions';
+import { useEntityBrandActions } from "@/hooks/useEntityBrandActions"
 
-const INVALIDATE_KEYS = ['conversations', 'chat-conversations', 'conversation'];
+const INVALIDATE_KEYS = ["conversations", "chat-conversations", "conversation"]
 
 /**
  * Lets agents categorise incoming email / text conversations by brand.
@@ -11,8 +11,8 @@ const INVALIDATE_KEYS = ['conversations', 'chat-conversations', 'conversation'];
  */
 export function useConversationBrandActions() {
   return useEntityBrandActions({
-    table: 'conversations',
+    table: "conversations",
     invalidateKeys: INVALIDATE_KEYS,
-    context: 'useConversationBrandActions',
-  });
+    context: "useConversationBrandActions",
+  })
 }

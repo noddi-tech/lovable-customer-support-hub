@@ -3,37 +3,37 @@
 // The table itself is not publicly readable — lookup goes through the public
 // meta-deletion-status edge function, which returns status fields for one
 // exact confirmation code only.
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
+import { supabase } from "@/integrations/supabase/client"
 
 interface DeletionRequest {
-  confirmation_code: string;
-  status: 'pending' | 'completed' | 'failed';
-  created_at: string;
-  completed_at: string | null;
+  confirmation_code: string
+  status: "pending" | "completed" | "failed"
+  created_at: string
+  completed_at: string | null
 }
 
 export default function DataDeletionStatus() {
-  const { code } = useParams<{ code: string }>();
-  const [request, setRequest] = useState<DeletionRequest | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { code } = useParams<{ code: string }>()
+  const [request, setRequest] = useState<DeletionRequest | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!code) return;
-    (async () => {
-      const { data, error } = await supabase.functions.invoke('meta-deletion-status', {
+    if (!code) return
+    ;(async () => {
+      const { data, error } = await supabase.functions.invoke("meta-deletion-status", {
         body: { code },
-      });
+      })
       if (error) {
-        setError(error.message);
+        setError(error.message)
       } else {
-        setRequest(((data as { request?: DeletionRequest | null } | null)?.request ?? null));
+        setRequest((data as { request?: DeletionRequest | null } | null)?.request ?? null)
       }
-      setLoading(false);
-    })();
-  }, [code]);
+      setLoading(false)
+    })()
+  }, [code])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -48,36 +48,36 @@ export default function DataDeletionStatus() {
           <p className="text-sm text-destructive">Kunne ikke hente status: {error}</p>
         ) : !request ? (
           <p className="text-sm text-muted-foreground">
-            Vi finner ingen forespørsel med denne koden. Det kan ta noen minutter
-            før den blir tilgjengelig.
+            Vi finner ingen forespørsel med denne koden. Det kan ta noen minutter før den blir
+            tilgjengelig.
           </p>
         ) : (
           <div className="space-y-2 text-sm">
             <div>
               <span className="text-muted-foreground">Status: </span>
               <span className="font-medium">
-                {request.status === 'pending' && 'Under behandling'}
-                {request.status === 'completed' && 'Fullført'}
-                {request.status === 'failed' && 'Feilet'}
+                {request.status === "pending" && "Under behandling"}
+                {request.status === "completed" && "Fullført"}
+                {request.status === "failed" && "Feilet"}
               </span>
             </div>
             <div>
               <span className="text-muted-foreground">Forespurt: </span>
-              {new Date(request.created_at).toLocaleString('nb-NO')}
+              {new Date(request.created_at).toLocaleString("nb-NO")}
             </div>
             {request.completed_at ? (
               <div>
                 <span className="text-muted-foreground">Fullført: </span>
-                {new Date(request.completed_at).toLocaleString('nb-NO')}
+                {new Date(request.completed_at).toLocaleString("nb-NO")}
               </div>
             ) : null}
             <p className="pt-3 text-xs text-muted-foreground">
-              Tilgangstokens og Facebook-bruker-ID for kontoen som ba om sletting
-              er fjernet fra våre systemer. Dersom du har spørsmål, kontakt support@noddi.co.
+              Tilgangstokens og Facebook-bruker-ID for kontoen som ba om sletting er fjernet fra
+              våre systemer. Dersom du har spørsmål, kontakt support@noddi.co.
             </p>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }

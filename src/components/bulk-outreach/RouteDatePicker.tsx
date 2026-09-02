@@ -1,19 +1,19 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface RouteDatePickerProps {
-  onFetchBookings: (date: string) => void;
-  isLoading: boolean;
+  onFetchBookings: (date: string) => void
+  isLoading: boolean
 }
 
 export function RouteDatePicker({ onFetchBookings, isLoading }: RouteDatePickerProps) {
   const [date, setDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  });
+    const today = new Date()
+    return today.toISOString().split("T")[0]
+  })
 
   return (
     <div className="space-y-3">
@@ -39,5 +39,5 @@ export function RouteDatePicker({ onFetchBookings, isLoading }: RouteDatePickerP
         Loads all Noddi bookings for the selected date so you can select affected customers.
       </p>
     </div>
-  );
+  )
 }

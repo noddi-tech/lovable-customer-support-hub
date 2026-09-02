@@ -1,132 +1,180 @@
-import { Filter, CheckCheck, ChevronDown, Move, Settings, CheckSquare, X, Plus, MoreHorizontal, Inbox, Clock, CheckCircle, Mail, Flag, ArrowDown, ArrowUp, Minus, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  CheckCheck,
+  CheckCircle,
+  CheckSquare,
+  ChevronDown,
+  Clock,
+  Filter,
+  Flag,
+  Inbox,
+  Mail,
+  Minus,
+  MoreHorizontal,
+  Move,
+  Plus,
+  Search,
+  Settings,
+  X,
+} from "lucide-react"
+import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { TagFilterSelect } from "@/components/tags/TagFilterSelect"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuTrigger,
+  DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ConversationMigrator } from "../ConversationMigrator";
-import { ThreadMerger } from "../ThreadMerger";
-import { NewConversationDialog } from "../NewConversationDialog";
-import { useConversationList } from "@/contexts/ConversationListContext";
-import { useTranslation } from "react-i18next";
-import type { SortBy } from "@/contexts/ConversationListContext";
-import { useMemo, useState } from "react";
-import { useIsMobile } from "@/hooks/use-responsive";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
-import { useAccessibleInboxes } from "@/hooks/useInteractionsData";
-import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts";
-import { getConversationBrand } from "@/lib/conversationBrand";
-import { BrandFilterSelect } from "./BrandFilterSelect";
-import { TagFilterSelect } from "@/components/tags/TagFilterSelect";
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import type { SortBy } from "@/contexts/ConversationListContext"
+import { useConversationList } from "@/contexts/ConversationListContext"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts"
+import { useAccessibleInboxes } from "@/hooks/useInteractionsData"
+import { getConversationBrand } from "@/lib/conversationBrand"
+import { ConversationMigrator } from "../ConversationMigrator"
+import { NewConversationDialog } from "../NewConversationDialog"
+import { ThreadMerger } from "../ThreadMerger"
+import { BrandFilterSelect } from "./BrandFilterSelect"
 
 interface ConversationListHeaderProps {
-  onToggleCollapse?: () => void;
-  selectedInboxId: string;
-  onInboxChange?: (inboxId: string) => void;
-  bulkSelectionMode?: boolean;
-  onToggleBulkMode?: () => void;
+  onToggleCollapse?: () => void
+  selectedInboxId: string
+  onInboxChange?: (inboxId: string) => void
+  bulkSelectionMode?: boolean
+  onToggleBulkMode?: () => void
 }
 
-export const ConversationListHeader = ({ 
-  onToggleCollapse, 
-  selectedInboxId, 
+export const ConversationListHeader = ({
+  onToggleCollapse,
+  selectedInboxId,
   onInboxChange,
   bulkSelectionMode = false,
-  onToggleBulkMode
+  onToggleBulkMode,
 }: ConversationListHeaderProps) => {
-  const { state, dispatch, conversations, filteredConversations, markAllAsRead, isMarkingAllAsRead, hasNextPage, isFetchingNextPage } = useConversationList();
-  const { t } = useTranslation();
-  const [showMigrator, setShowMigrator] = useState(false);
-  const [showThreadMerger, setShowThreadMerger] = useState(false);
-  const isMobile = useIsMobile();
-  const { data: inboxes = [] } = useAccessibleInboxes();
-  const { data: outstanding = {} } = useInboxOutstandingCounts();
+  const {
+    state,
+    dispatch,
+    conversations,
+    filteredConversations,
+    markAllAsRead,
+    isMarkingAllAsRead,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useConversationList()
+  const { t } = useTranslation()
+  const [showMigrator, setShowMigrator] = useState(false)
+  const [showThreadMerger, setShowThreadMerger] = useState(false)
+  const isMobile = useIsMobile()
+  const { data: inboxes = [] } = useAccessibleInboxes()
+  const { data: outstanding = {} } = useInboxOutstandingCounts()
 
-  const unreadCount = filteredConversations.filter(c => !c.is_read).length;
+  const unreadCount = filteredConversations.filter((c) => !c.is_read).length
 
   const statusCounts = useMemo(() => {
     const base = (conversations ?? []).filter((c: any) =>
-      state.purposeFilter === 'all' || !state.purposeFilter
+      state.purposeFilter === "all" || !state.purposeFilter
         ? true
-        : (c.conversation_type ?? 'support') === state.purposeFilter
-    );
+        : (c.conversation_type ?? "support") === state.purposeFilter,
+    )
     return {
       all: base.length,
-      open: base.filter((c: any) => c.status === 'open').length,
-      pending: base.filter((c: any) => c.status === 'pending').length,
-      closed: base.filter((c: any) => c.status === 'closed').length,
-    };
-  }, [conversations, state.purposeFilter]);
-
+      open: base.filter((c: any) => c.status === "open").length,
+      pending: base.filter((c: any) => c.status === "pending").length,
+      closed: base.filter((c: any) => c.status === "closed").length,
+    }
+  }, [conversations, state.purposeFilter])
 
   // Brands present in the loaded conversations, for the brand filter dropdown
   const brandOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    (conversations ?? []).forEach((c: any) => {
-      const brand = getConversationBrand(c.metadata, c.channel);
-      if (brand) map.set(brand.key, brand.label);
-    });
+    const map = new Map<string, string>()
+    ;(conversations ?? []).forEach((c: any) => {
+      const brand = getConversationBrand(c.metadata, c.channel)
+      if (brand) map.set(brand.key, brand.label)
+    })
     return Array.from(map, ([key, label]) => ({ key, label })).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
-  }, [conversations]);
+      a.label.localeCompare(b.label),
+    )
+  }, [conversations])
 
-  const hasActiveFilters = state.searchQuery || state.statusFilter !== 'all' || state.priorityFilter !== 'all' || state.brandFilter !== 'all' || state.tagFilter.length > 0;
-  
+  const hasActiveFilters =
+    state.searchQuery ||
+    state.statusFilter !== "all" ||
+    state.priorityFilter !== "all" ||
+    state.brandFilter !== "all" ||
+    state.tagFilter.length > 0
+
   const activeFilterCount = [
-    state.statusFilter !== 'all',
-    state.priorityFilter !== 'all',
-    state.brandFilter !== 'all',
+    state.statusFilter !== "all",
+    state.priorityFilter !== "all",
+    state.brandFilter !== "all",
     state.tagFilter.length > 0,
-    state.searchQuery.length > 0
-  ].filter(Boolean).length;
+    state.searchQuery.length > 0,
+  ].filter(Boolean).length
 
   const clearAllFilters = () => {
-    dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
-    dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' });
-    dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' });
-    dispatch({ type: 'SET_BRAND_FILTER', payload: 'all' });
-    dispatch({ type: 'SET_TAG_FILTER', payload: [] });
-  };
+    dispatch({ type: "SET_SEARCH_QUERY", payload: "" })
+    dispatch({ type: "SET_STATUS_FILTER", payload: "all" })
+    dispatch({ type: "SET_PRIORITY_FILTER", payload: "all" })
+    dispatch({ type: "SET_BRAND_FILTER", payload: "all" })
+    dispatch({ type: "SET_TAG_FILTER", payload: [] })
+  }
 
   const getFilterLabel = () => {
-    const parts: string[] = [];
-    if (state.statusFilter !== 'all') parts.push(state.statusFilter);
-    if (state.priorityFilter !== 'all') parts.push(state.priorityFilter);
-    if (parts.length === 0) return t('dashboard.conversationList.filters', 'Filters');
-    return parts.join(', ');
-  };
+    const parts: string[] = []
+    if (state.statusFilter !== "all") parts.push(state.statusFilter)
+    if (state.priorityFilter !== "all") parts.push(state.priorityFilter)
+    if (parts.length === 0) return t("dashboard.conversationList.filters", "Filters")
+    return parts.join(", ")
+  }
 
   const getSortLabel = (sortBy: SortBy) => {
     switch (sortBy) {
-      case 'latest': return t('dashboard.conversationList.sortLatest', 'Latest');
-      case 'oldest': return t('dashboard.conversationList.sortOldest', 'Oldest');
-      case 'priority': return t('dashboard.conversationList.sortPriority', 'Priority');
-      case 'unread': return t('dashboard.conversationList.sortUnread', 'Unread First');
-      default: return t('dashboard.conversationList.sortLatest', 'Latest');
+      case "latest":
+        return t("dashboard.conversationList.sortLatest", "Latest")
+      case "oldest":
+        return t("dashboard.conversationList.sortOldest", "Oldest")
+      case "priority":
+        return t("dashboard.conversationList.sortPriority", "Priority")
+      case "unread":
+        return t("dashboard.conversationList.sortUnread", "Unread First")
+      default:
+        return t("dashboard.conversationList.sortLatest", "Latest")
     }
-  };
+  }
 
   return (
     <div className="flex-shrink-0 px-1.5 pt-1 pb-3 bg-card">
       {!isMobile && (
         <div className="flex items-center justify-between mb-0.5 px-0.5">
           <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
-            {t('dashboard.conversationList.quickActions', 'Quick actions')}
+            {t("dashboard.conversationList.quickActions", "Quick actions")}
           </span>
           <span className="text-[9px] text-muted-foreground uppercase tracking-wide font-medium">
-            {t('dashboard.conversationList.sortFiltering', 'Sort / Filtering')}
+            {t("dashboard.conversationList.sortFiltering", "Sort / Filtering")}
           </span>
         </div>
       )}
@@ -137,7 +185,7 @@ export const ConversationListHeader = ({
           <NewConversationDialog>
             <Button variant="default" size="xxs">
               <Plus className="!w-2.5 !h-2.5" />
-              {!isMobile && t('dashboard.conversationList.new', 'New')}
+              {!isMobile && t("dashboard.conversationList.new", "New")}
             </Button>
           </NewConversationDialog>
 
@@ -152,9 +200,9 @@ export const ConversationListHeader = ({
                   onClick={() => onToggleBulkMode?.()}
                 >
                   <CheckSquare className="!w-2.5 !h-2.5" />
-                  {bulkSelectionMode 
-                    ? t('dashboard.conversationList.exitSelection', 'Exit') 
-                    : t('dashboard.conversationList.select', 'Select')}
+                  {bulkSelectionMode
+                    ? t("dashboard.conversationList.exitSelection", "Exit")
+                    : t("dashboard.conversationList.select", "Select")}
                 </Button>
               )}
 
@@ -163,15 +211,15 @@ export const ConversationListHeader = ({
                 <DialogTrigger asChild>
                   <Button variant="outline" size="xxs">
                     <Settings className="!w-2.5 !h-2.5" />
-                    {t('dashboard.conversationList.merge', 'Merge')}
+                    {t("dashboard.conversationList.merge", "Merge")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
+                    <DialogTitle>{t("dashboard.threadMerger", "Thread Merger")}</DialogTitle>
                   </DialogHeader>
-                  <ThreadMerger 
-                    inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                  <ThreadMerger
+                    inboxId={selectedInboxId !== "all" ? selectedInboxId : undefined}
                     onMergeComplete={() => setShowThreadMerger(false)}
                   />
                 </DialogContent>
@@ -182,15 +230,17 @@ export const ConversationListHeader = ({
                 <DialogTrigger asChild>
                   <Button variant="outline" size="xxs">
                     <Move className="!w-2.5 !h-2.5" />
-                    {t('dashboard.conversationList.migrate', 'Migrate')}
+                    {t("dashboard.conversationList.migrate", "Migrate")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
+                    <DialogTitle>
+                      {t("dashboard.migrateConversations", "Migrate Conversations")}
+                    </DialogTitle>
                   </DialogHeader>
-                  <ConversationMigrator 
-                    sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+                  <ConversationMigrator
+                    sourceInboxId={selectedInboxId !== "all" ? selectedInboxId : undefined}
                     onMigrationComplete={() => setShowMigrator(false)}
                   />
                 </DialogContent>
@@ -204,7 +254,7 @@ export const ConversationListHeader = ({
                 disabled={isMarkingAllAsRead || unreadCount === 0}
               >
                 <CheckCheck className="!w-2.5 !h-2.5" />
-                {t('dashboard.conversationList.markAllRead', 'Read')}
+                {t("dashboard.conversationList.markAllRead", "Read")}
                 {unreadCount > 0 && (
                   <Badge variant="destructive" className="h-3.5 px-1 text-[9px] ml-0.5">
                     {unreadCount}
@@ -226,7 +276,7 @@ export const ConversationListHeader = ({
                 {onToggleBulkMode && (
                   <DropdownMenuItem onClick={() => onToggleBulkMode?.()}>
                     <CheckSquare className="w-4 h-4 mr-2" />
-                    {bulkSelectionMode ? 'Exit Selection' : 'Select'}
+                    {bulkSelectionMode ? "Exit Selection" : "Select"}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => setShowThreadMerger(true)}>
@@ -237,7 +287,10 @@ export const ConversationListHeader = ({
                   <Move className="w-4 h-4 mr-2" />
                   Migrate
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={markAllAsRead} disabled={isMarkingAllAsRead || unreadCount === 0}>
+                <DropdownMenuItem
+                  onClick={markAllAsRead}
+                  disabled={isMarkingAllAsRead || unreadCount === 0}
+                >
                   <CheckCheck className="w-4 h-4 mr-2" />
                   Mark All Read {unreadCount > 0 && `(${unreadCount})`}
                 </DropdownMenuItem>
@@ -250,19 +303,21 @@ export const ConversationListHeader = ({
         <div className="flex items-center gap-1 ml-auto flex-shrink-0">
           {/* Purpose filter chips: Alle / Kundesupport / Rekruttering */}
           <div className="hidden sm:flex items-center rounded-md border border-input bg-background overflow-hidden">
-            {([
-              { v: 'all', label: 'Alle' },
-              { v: 'support', label: 'Kundesupport' },
-              { v: 'recruitment', label: 'Rekruttering' },
-            ] as const).map((opt) => (
+            {(
+              [
+                { v: "all", label: "Alle" },
+                { v: "support", label: "Kundesupport" },
+                { v: "recruitment", label: "Rekruttering" },
+              ] as const
+            ).map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => dispatch({ type: 'SET_PURPOSE_FILTER', payload: opt.v })}
+                onClick={() => dispatch({ type: "SET_PURPOSE_FILTER", payload: opt.v })}
                 className={`px-2 h-7 text-[10px] transition-colors ${
                   state.purposeFilter === opt.v
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted'
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {opt.label}
@@ -274,7 +329,9 @@ export const ConversationListHeader = ({
             <DropdownMenuTrigger asChild>
               <button className="flex h-7 items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
                 <Filter className="!w-2.5 !h-2.5 shrink-0" />
-                {!isMobile && <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>}
+                {!isMobile && (
+                  <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>
+                )}
                 {activeFilterCount > 0 && (
                   <Badge className="h-3.5 w-3.5 p-0 flex items-center justify-center text-[8px] bg-primary text-primary-foreground rounded-full">
                     {activeFilterCount}
@@ -284,27 +341,58 @@ export const ConversationListHeader = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>{t('dashboard.conversationList.statusFilter', 'Status')}</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {t("dashboard.conversationList.statusFilter", "Status")}
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={state.statusFilter}
-                onValueChange={(value) => dispatch({ type: 'SET_STATUS_FILTER', payload: value })}
+                onValueChange={(value) => dispatch({ type: "SET_STATUS_FILTER", payload: value })}
               >
-                <DropdownMenuRadioItem value="all" className="gap-2"><Mail className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allStatus', 'All Status')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="open" className="gap-2"><Inbox className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.open', 'Open')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="pending" className="gap-2"><Clock className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.pending', 'Pending')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="closed" className="gap-2"><CheckCircle className="!w-3.5 !h-3.5 text-green-600" />{t('dashboard.conversationList.closed', 'Closed')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2">
+                  <Mail className="!w-3.5 !h-3.5" />
+                  {t("dashboard.conversationList.allStatus", "All Status")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="open" className="gap-2">
+                  <Inbox className="!w-3.5 !h-3.5 text-blue-600" />
+                  {t("dashboard.conversationList.open", "Open")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pending" className="gap-2">
+                  <Clock className="!w-3.5 !h-3.5 text-orange-600" />
+                  {t("dashboard.conversationList.pending", "Pending")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="closed" className="gap-2">
+                  <CheckCircle className="!w-3.5 !h-3.5 text-green-600" />
+                  {t("dashboard.conversationList.closed", "Closed")}
+                </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel>{t('dashboard.conversationList.priorityFilter', 'Priority')}</DropdownMenuLabel>
+              <DropdownMenuLabel>
+                {t("dashboard.conversationList.priorityFilter", "Priority")}
+              </DropdownMenuLabel>
               <DropdownMenuRadioGroup
                 value={state.priorityFilter}
-                onValueChange={(value) => dispatch({ type: 'SET_PRIORITY_FILTER', payload: value })}
+                onValueChange={(value) => dispatch({ type: "SET_PRIORITY_FILTER", payload: value })}
               >
-                <DropdownMenuRadioItem value="all" className="gap-2"><Flag className="!w-3.5 !h-3.5" />{t('dashboard.conversationList.allPriority', 'All Priority')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="low" className="gap-2"><ArrowDown className="!w-3.5 !h-3.5 text-muted-foreground" />{t('dashboard.conversationList.low', 'Low')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="normal" className="gap-2"><Minus className="!w-3.5 !h-3.5 text-blue-600" />{t('dashboard.conversationList.normal', 'Normal')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="high" className="gap-2"><ArrowUp className="!w-3.5 !h-3.5 text-orange-600" />{t('dashboard.conversationList.high', 'High')}</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="urgent" className="gap-2"><AlertTriangle className="!w-3.5 !h-3.5 text-destructive" />{t('dashboard.conversationList.urgent', 'Urgent')}</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all" className="gap-2">
+                  <Flag className="!w-3.5 !h-3.5" />
+                  {t("dashboard.conversationList.allPriority", "All Priority")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="low" className="gap-2">
+                  <ArrowDown className="!w-3.5 !h-3.5 text-muted-foreground" />
+                  {t("dashboard.conversationList.low", "Low")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="normal" className="gap-2">
+                  <Minus className="!w-3.5 !h-3.5 text-blue-600" />
+                  {t("dashboard.conversationList.normal", "Normal")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="high" className="gap-2">
+                  <ArrowUp className="!w-3.5 !h-3.5 text-orange-600" />
+                  {t("dashboard.conversationList.high", "High")}
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="urgent" className="gap-2">
+                  <AlertTriangle className="!w-3.5 !h-3.5 text-destructive" />
+                  {t("dashboard.conversationList.urgent", "Urgent")}
+                </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
 
               {hasActiveFilters && (
@@ -312,7 +400,7 @@ export const ConversationListHeader = ({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={clearAllFilters} className="justify-center text-xs">
                     <X className="!w-3 !h-3 mr-1" />
-                    {t('dashboard.conversationList.clearFilters', 'Clear Filters')}
+                    {t("dashboard.conversationList.clearFilters", "Clear Filters")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -322,7 +410,7 @@ export const ConversationListHeader = ({
           {/* Brand filter */}
           <BrandFilterSelect
             value={state.brandFilter}
-            onChange={(value) => dispatch({ type: 'SET_BRAND_FILTER', payload: value })}
+            onChange={(value) => dispatch({ type: "SET_BRAND_FILTER", payload: value })}
             options={brandOptions}
             triggerClassName="h-7 text-[10px] px-2"
           />
@@ -330,23 +418,31 @@ export const ConversationListHeader = ({
           {/* Tag filter */}
           <TagFilterSelect
             value={state.tagFilter}
-            onChange={(value) => dispatch({ type: 'SET_TAG_FILTER', payload: value })}
+            onChange={(value) => dispatch({ type: "SET_TAG_FILTER", payload: value })}
             className="h-7 text-[10px] px-2"
           />
 
           {/* Sort Select */}
-          <Select 
-            value={state.sortBy} 
-            onValueChange={(value: SortBy) => dispatch({ type: 'SET_SORT_BY', payload: value })}
+          <Select
+            value={state.sortBy}
+            onValueChange={(value: SortBy) => dispatch({ type: "SET_SORT_BY", payload: value })}
           >
             <SelectTrigger className="w-auto h-7 text-[10px] gap-1 px-2">
               <SelectValue>{getSortLabel(state.sortBy)}</SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
-              <SelectItem value="latest">{t('dashboard.conversationList.sortLatest', 'Latest')}</SelectItem>
-              <SelectItem value="oldest">{t('dashboard.conversationList.sortOldest', 'Oldest')}</SelectItem>
-              <SelectItem value="priority">{t('dashboard.conversationList.sortPriority', 'Priority')}</SelectItem>
-              <SelectItem value="unread">{t('dashboard.conversationList.sortUnread', 'Unread First')}</SelectItem>
+              <SelectItem value="latest">
+                {t("dashboard.conversationList.sortLatest", "Latest")}
+              </SelectItem>
+              <SelectItem value="oldest">
+                {t("dashboard.conversationList.sortOldest", "Oldest")}
+              </SelectItem>
+              <SelectItem value="priority">
+                {t("dashboard.conversationList.sortPriority", "Priority")}
+              </SelectItem>
+              <SelectItem value="unread">
+                {t("dashboard.conversationList.sortUnread", "Unread First")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -360,8 +456,11 @@ export const ConversationListHeader = ({
             type="search"
             inputMode="search"
             value={state.searchQuery}
-            onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-            placeholder={t('dashboard.conversationList.searchPlaceholder', 'Search conversations...')}
+            onChange={(e) => dispatch({ type: "SET_SEARCH_QUERY", payload: e.target.value })}
+            placeholder={t(
+              "dashboard.conversationList.searchPlaceholder",
+              "Search conversations...",
+            )}
             className="h-10 pl-8 text-base"
           />
         </div>
@@ -371,58 +470,86 @@ export const ConversationListHeader = ({
       {isMobile && (
         <div className="mt-2 space-y-2">
           <Select
-            value={selectedInboxId && selectedInboxId !== 'all' && !selectedInboxId.includes(',') ? selectedInboxId : 'all'}
+            value={
+              selectedInboxId && selectedInboxId !== "all" && !selectedInboxId.includes(",")
+                ? selectedInboxId
+                : "all"
+            }
             onValueChange={(value) => onInboxChange?.(value)}
           >
             <SelectTrigger className="h-10 w-full text-sm">
               <span className="flex items-center gap-2 min-w-0">
                 <Inbox className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <SelectValue placeholder={t('dashboard.conversationList.allInboxes', 'All inboxes')} />
+                <SelectValue
+                  placeholder={t("dashboard.conversationList.allInboxes", "All inboxes")}
+                />
               </span>
             </SelectTrigger>
             <SelectContent className="max-h-[50vh]">
-              <SelectItem value="all">{t('dashboard.conversationList.allInboxes', 'All inboxes')}</SelectItem>
+              <SelectItem value="all">
+                {t("dashboard.conversationList.allInboxes", "All inboxes")}
+              </SelectItem>
               {inboxes.map((inbox) => {
-                const counts = outstanding[inbox.id];
-                const open = counts?.open ?? 0;
+                const counts = outstanding[inbox.id]
+                const open = counts?.open ?? 0
                 return (
                   <SelectItem key={inbox.id} value={inbox.id}>
                     <span className="flex items-center gap-2">
                       <span className="truncate">{inbox.name}</span>
                       <Badge
                         variant="secondary"
-                        className={`h-4 px-1 text-[10px] ${open === 0 ? 'text-muted-foreground' : ''}`}
+                        className={`h-4 px-1 text-[10px] ${open === 0 ? "text-muted-foreground" : ""}`}
                       >
                         {open}
                       </Badge>
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
 
           <div className="flex items-center gap-1.5 overflow-x-auto -mx-1.5 px-1.5 pb-0.5">
-            {([
-              { v: 'all', label: t('dashboard.conversationList.allStatus', 'All Status'), count: statusCounts.all },
-              { v: 'open', label: t('dashboard.conversationList.open', 'Open'), count: statusCounts.open },
-              { v: 'pending', label: t('dashboard.conversationList.pending', 'Pending'), count: statusCounts.pending },
-              { v: 'closed', label: t('dashboard.conversationList.closed', 'Closed'), count: statusCounts.closed },
-            ] as const).map((opt) => (
+            {(
+              [
+                {
+                  v: "all",
+                  label: t("dashboard.conversationList.allStatus", "All Status"),
+                  count: statusCounts.all,
+                },
+                {
+                  v: "open",
+                  label: t("dashboard.conversationList.open", "Open"),
+                  count: statusCounts.open,
+                },
+                {
+                  v: "pending",
+                  label: t("dashboard.conversationList.pending", "Pending"),
+                  count: statusCounts.pending,
+                },
+                {
+                  v: "closed",
+                  label: t("dashboard.conversationList.closed", "Closed"),
+                  count: statusCounts.closed,
+                },
+              ] as const
+            ).map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: opt.v })}
+                onClick={() => dispatch({ type: "SET_STATUS_FILTER", payload: opt.v })}
                 className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 h-8 text-xs transition-colors ${
                   state.statusFilter === opt.v
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-input bg-background text-muted-foreground'
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-input bg-background text-muted-foreground"
                 }`}
               >
                 {opt.label}
                 <span
                   className={`inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] ${
-                    state.statusFilter === opt.v ? 'bg-primary-foreground/20' : 'bg-muted text-foreground/70'
+                    state.statusFilter === opt.v
+                      ? "bg-primary-foreground/20"
+                      : "bg-muted text-foreground/70"
                   }`}
                 >
                   {opt.count}
@@ -431,19 +558,21 @@ export const ConversationListHeader = ({
             ))}
 
             <span className="shrink-0 w-px h-5 bg-border mx-0.5" />
-            {([
-              { v: 'all', label: 'Alle' },
-              { v: 'support', label: 'Kundesupport' },
-              { v: 'recruitment', label: 'Rekruttering' },
-            ] as const).map((opt) => (
+            {(
+              [
+                { v: "all", label: "Alle" },
+                { v: "support", label: "Kundesupport" },
+                { v: "recruitment", label: "Rekruttering" },
+              ] as const
+            ).map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => dispatch({ type: 'SET_PURPOSE_FILTER', payload: opt.v })}
+                onClick={() => dispatch({ type: "SET_PURPOSE_FILTER", payload: opt.v })}
                 className={`shrink-0 rounded-full border px-3 h-8 text-xs transition-colors ${
                   state.purposeFilter === opt.v
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-input bg-background text-muted-foreground'
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-input bg-background text-muted-foreground"
                 }`}
               >
                 {opt.label}
@@ -459,10 +588,10 @@ export const ConversationListHeader = ({
           <Dialog open={showThreadMerger} onOpenChange={setShowThreadMerger}>
             <DialogContent className="max-w-[95vw]">
               <DialogHeader>
-                <DialogTitle>{t('dashboard.threadMerger', 'Thread Merger')}</DialogTitle>
+                <DialogTitle>{t("dashboard.threadMerger", "Thread Merger")}</DialogTitle>
               </DialogHeader>
-              <ThreadMerger 
-                inboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+              <ThreadMerger
+                inboxId={selectedInboxId !== "all" ? selectedInboxId : undefined}
                 onMergeComplete={() => setShowThreadMerger(false)}
               />
             </DialogContent>
@@ -470,10 +599,12 @@ export const ConversationListHeader = ({
           <Dialog open={showMigrator} onOpenChange={setShowMigrator}>
             <DialogContent className="max-w-[95vw]">
               <DialogHeader>
-                <DialogTitle>{t('dashboard.migrateConversations', 'Migrate Conversations')}</DialogTitle>
+                <DialogTitle>
+                  {t("dashboard.migrateConversations", "Migrate Conversations")}
+                </DialogTitle>
               </DialogHeader>
-              <ConversationMigrator 
-                sourceInboxId={selectedInboxId !== 'all' ? selectedInboxId : undefined}
+              <ConversationMigrator
+                sourceInboxId={selectedInboxId !== "all" ? selectedInboxId : undefined}
                 onMigrationComplete={() => setShowMigrator(false)}
               />
             </DialogContent>
@@ -485,45 +616,61 @@ export const ConversationListHeader = ({
       {hasActiveFilters && (
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
-            {t('dashboard.conversationList.activeFilters', 'Active filters:')}
+            {t("dashboard.conversationList.activeFilters", "Active filters:")}
           </span>
           {state.searchQuery && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              Search: "{state.searchQuery.substring(0, 20)}{state.searchQuery.length > 20 ? '...' : ''}"
-              <button onClick={() => dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })} className="ml-1 hover:text-foreground">
+              Search: "{state.searchQuery.substring(0, 20)}
+              {state.searchQuery.length > 20 ? "..." : ""}"
+              <button
+                onClick={() => dispatch({ type: "SET_SEARCH_QUERY", payload: "" })}
+                className="ml-1 hover:text-foreground"
+              >
                 <X className="!w-2.5 !h-2.5" />
               </button>
             </Badge>
           )}
-          {state.statusFilter !== 'all' && (
+          {state.statusFilter !== "all" && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              {state.statusFilter === 'open' && <Inbox className="!w-3 !h-3 text-blue-600" />}
-              {state.statusFilter === 'pending' && <Clock className="!w-3 !h-3 text-orange-600" />}
-              {state.statusFilter === 'closed' && <CheckCircle className="!w-3 !h-3 text-green-600" />}
+              {state.statusFilter === "open" && <Inbox className="!w-3 !h-3 text-blue-600" />}
+              {state.statusFilter === "pending" && <Clock className="!w-3 !h-3 text-orange-600" />}
+              {state.statusFilter === "closed" && (
+                <CheckCircle className="!w-3 !h-3 text-green-600" />
+              )}
               {state.statusFilter}
-              <button onClick={() => dispatch({ type: 'SET_STATUS_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
+              <button
+                onClick={() => dispatch({ type: "SET_STATUS_FILTER", payload: "all" })}
+                className="ml-1 hover:text-foreground"
+              >
                 <X className="!w-2.5 !h-2.5" />
               </button>
             </Badge>
           )}
-          {state.priorityFilter !== 'all' && (
+          {state.priorityFilter !== "all" && (
             <Badge variant="secondary" className="h-5 px-2 text-xs gap-1">
-              {state.priorityFilter === 'low' && <ArrowDown className="!w-3 !h-3 text-muted-foreground" />}
-              {state.priorityFilter === 'normal' && <Minus className="!w-3 !h-3 text-blue-600" />}
-              {state.priorityFilter === 'high' && <ArrowUp className="!w-3 !h-3 text-orange-600" />}
-              {state.priorityFilter === 'urgent' && <AlertTriangle className="!w-3 !h-3 text-destructive" />}
+              {state.priorityFilter === "low" && (
+                <ArrowDown className="!w-3 !h-3 text-muted-foreground" />
+              )}
+              {state.priorityFilter === "normal" && <Minus className="!w-3 !h-3 text-blue-600" />}
+              {state.priorityFilter === "high" && <ArrowUp className="!w-3 !h-3 text-orange-600" />}
+              {state.priorityFilter === "urgent" && (
+                <AlertTriangle className="!w-3 !h-3 text-destructive" />
+              )}
               {state.priorityFilter}
-              <button onClick={() => dispatch({ type: 'SET_PRIORITY_FILTER', payload: 'all' })} className="ml-1 hover:text-foreground">
+              <button
+                onClick={() => dispatch({ type: "SET_PRIORITY_FILTER", payload: "all" })}
+                className="ml-1 hover:text-foreground"
+              >
                 <X className="!w-2.5 !h-2.5" />
               </button>
             </Badge>
           )}
 
           <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-5 px-2 text-xs">
-            {t('dashboard.conversationList.clearAll', 'Clear all')}
+            {t("dashboard.conversationList.clearAll", "Clear all")}
           </Button>
         </div>
       )}
     </div>
-  );
-};
+  )
+}

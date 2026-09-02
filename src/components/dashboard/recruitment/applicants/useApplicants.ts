@@ -1,161 +1,172 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { useAuth } from '@/hooks/useAuth';
-import { sanitizeForPostgrest } from '@/utils/queryUtils';
-import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
+import { sanitizeForPostgrest } from "@/utils/queryUtils"
 
 export interface ApplicantRow {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string | null;
-  source: string;
-  created_at: string;
-  import_status?: string | null;
-  imported_via?: string | null;
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  source: string
+  created_at: string
+  import_status?: string | null
+  imported_via?: string | null
   applications: {
-    id: string;
-    current_stage_id: string;
-    score: number | null;
-    assigned_to: string | null;
-    applied_at: string;
-    position_id: string;
-    job_positions: { id: string; title: string } | null;
-  }[];
+    id: string
+    current_stage_id: string
+    score: number | null
+    assigned_to: string | null
+    applied_at: string
+    position_id: string
+    job_positions: { id: string; title: string } | null
+  }[]
 }
 
 export interface ApplicantsFilters {
-  search: string;
-  source: string;
-  positionId: string;
-  stageId: string;
-  scoreTier?: 'all' | 'unscored' | 'low' | 'weak' | 'maybe' | 'strong';
-  pendingReviewOnly?: boolean;
-  tagIds?: string[];
+  search: string
+  source: string
+  positionId: string
+  stageId: string
+  scoreTier?: "all" | "unscored" | "low" | "weak" | "maybe" | "strong"
+  pendingReviewOnly?: boolean
+  tagIds?: string[]
 }
 
 export interface PipelineStage {
-  id: string;
-  name: string;
-  color: string;
-  order: number;
+  id: string
+  name: string
+  color: string
+  order: number
 }
 
 export function useApplicants(filters: ApplicantsFilters) {
-  const { currentOrganizationId } = useOrganizationStore();
-  const { search, source, positionId, stageId, pendingReviewOnly, tagIds } = filters;
-  const tagKey = (tagIds ?? []).slice().sort().join(',');
+  const { currentOrganizationId } = useOrganizationStore()
+  const { search, source, positionId, stageId, pendingReviewOnly, tagIds } = filters
+  const tagKey = (tagIds ?? []).slice().sort().join(",")
 
   return useQuery({
-    queryKey: ['applicants', currentOrganizationId, search, source, positionId, stageId, pendingReviewOnly, tagKey],
+    queryKey: [
+      "applicants",
+      currentOrganizationId,
+      search,
+      source,
+      positionId,
+      stageId,
+      pendingReviewOnly,
+      tagKey,
+    ],
     queryFn: async () => {
       // If filtering by tags, first fetch matching applicant_ids (OR semantics)
-      let tagFilteredIds: string[] | null = null;
+      let tagFilteredIds: string[] | null = null
       if (tagIds && tagIds.length > 0) {
         const { data: links, error: linkErr } = await supabase
-          .from('recruitment_applicant_tags')
-          .select('applicant_id')
-          .in('tag_id', tagIds);
-        if (linkErr) throw linkErr;
-        tagFilteredIds = Array.from(new Set((links ?? []).map((l: any) => l.applicant_id as string)));
-        if (tagFilteredIds.length === 0) return [] as ApplicantRow[];
+          .from("recruitment_applicant_tags")
+          .select("applicant_id")
+          .in("tag_id", tagIds)
+        if (linkErr) throw linkErr
+        tagFilteredIds = Array.from(
+          new Set((links ?? []).map((l: any) => l.applicant_id as string)),
+        )
+        if (tagFilteredIds.length === 0) return [] as ApplicantRow[]
       }
 
-      const useInner = positionId !== 'all' || stageId !== 'all';
+      const useInner = positionId !== "all" || stageId !== "all"
       const select = useInner
-        ? '*, applications!inner(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))'
-        : '*, applications(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))';
+        ? "*, applications!inner(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))"
+        : "*, applications(id, current_stage_id, score, assigned_to, applied_at, position_id, job_positions(id, title))"
 
       let q = supabase
-        .from('applicants')
+        .from("applicants")
         .select(select)
-        .is('anonymized_at', null) // Phase 12: hide GDPR-erased applicants from default lists.
-        .order('created_at', { ascending: false });
+        .is("anonymized_at", null) // Phase 12: hide GDPR-erased applicants from default lists.
+        .order("created_at", { ascending: false })
 
-      if (source !== 'all') q = q.eq('source', source);
-      if (positionId !== 'all') q = q.eq('applications.position_id', positionId);
-      if (stageId !== 'all') q = q.eq('applications.current_stage_id', stageId);
-      if (pendingReviewOnly) q = (q as any).eq('import_status', 'pending_review');
-      if (tagFilteredIds) q = q.in('id', tagFilteredIds);
+      if (source !== "all") q = q.eq("source", source)
+      if (positionId !== "all") q = q.eq("applications.position_id", positionId)
+      if (stageId !== "all") q = q.eq("applications.current_stage_id", stageId)
+      if (pendingReviewOnly) q = (q as any).eq("import_status", "pending_review")
+      if (tagFilteredIds) q = q.in("id", tagFilteredIds)
 
       if (search.trim()) {
-        const safe = sanitizeForPostgrest(search.trim());
+        const safe = sanitizeForPostgrest(search.trim())
         if (safe) {
           q = q.or(
-            `first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`
-          );
+            `first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`,
+          )
         }
       }
 
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as unknown as ApplicantRow[];
+      const { data, error } = await q
+      if (error) throw error
+      return (data ?? []) as unknown as ApplicantRow[]
     },
     enabled: !!currentOrganizationId,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     staleTime: 0,
-  });
+  })
 }
 
 export function useApplicantPipeline() {
-  const { currentOrganizationId } = useOrganizationStore();
+  const { currentOrganizationId } = useOrganizationStore()
 
   return useQuery({
-    queryKey: ['recruitment-pipeline-default', currentOrganizationId],
+    queryKey: ["recruitment-pipeline-default", currentOrganizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recruitment_pipelines')
-        .select('id, name, stages')
-        .eq('is_default', true)
-        .maybeSingle();
+        .from("recruitment_pipelines")
+        .select("id, name, stages")
+        .eq("is_default", true)
+        .maybeSingle()
 
-      if (error) throw error;
-      if (!data) return null;
+      if (error) throw error
+      if (!data) return null
       const stages = Array.isArray((data as any).stages)
         ? ((data as any).stages as PipelineStage[])
-        : [];
-      return { id: data.id, name: data.name, stages };
+        : []
+      return { id: data.id, name: data.name, stages }
     },
     enabled: !!currentOrganizationId,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     staleTime: 0,
-  });
+  })
 }
 
 export interface CreateApplicantInput {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string | null;
-  position_id: string;
-  source: string;
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  position_id: string
+  source: string
   qualifications: {
-    drivers_license_classes: string[];
-    years_experience: number | null;
-    availability_date: string | null;
-    language_norwegian: string;
-    work_permit_status: string;
-  };
-  noteContent: string;
+    drivers_license_classes: string[]
+    years_experience: number | null
+    availability_date: string | null
+    language_norwegian: string
+    work_permit_status: string
+  }
+  noteContent: string
 }
 
 export function useCreateApplicant() {
-  const queryClient = useQueryClient();
-  const { currentOrganizationId } = useOrganizationStore();
-  const { profile } = useAuth();
+  const queryClient = useQueryClient()
+  const { currentOrganizationId } = useOrganizationStore()
+  const { profile } = useAuth()
 
   return useMutation({
     mutationFn: async (input: CreateApplicantInput): Promise<{ applicantId: string }> => {
-      if (!currentOrganizationId) throw new Error('No organization selected');
-      if (!profile?.id) throw new Error('No profile loaded');
+      if (!currentOrganizationId) throw new Error("No organization selected")
+      if (!profile?.id) throw new Error("No profile loaded")
 
       // 1. Insert applicant
       const { data: applicant, error: applicantErr } = await supabase
-        .from('applicants')
+        .from("applicants")
         .insert({
           organization_id: currentOrganizationId,
           first_name: input.first_name,
@@ -171,67 +182,67 @@ export function useCreateApplicant() {
           language_norwegian: input.qualifications.language_norwegian,
           work_permit_status: input.qualifications.work_permit_status,
         })
-        .select('id')
-        .single();
-      if (applicantErr) throw applicantErr;
+        .select("id")
+        .single()
+      if (applicantErr) throw applicantErr
 
       // 2. Insert application
       const { data: application, error: appErr } = await supabase
-        .from('applications')
+        .from("applications")
         .insert({
           applicant_id: applicant.id,
           position_id: input.position_id,
-          current_stage_id: 'not_reviewed',
+          current_stage_id: "not_reviewed",
           organization_id: currentOrganizationId,
         })
-        .select('id')
-        .single();
-      if (appErr) throw appErr;
+        .select("id")
+        .single()
+      if (appErr) throw appErr
 
       // 3. Insert created event
-      const { error: evtErr } = await supabase.from('application_events').insert({
+      const { error: evtErr } = await supabase.from("application_events").insert({
         application_id: application.id,
         applicant_id: applicant.id,
         organization_id: currentOrganizationId,
-        event_type: 'created',
+        event_type: "created",
         event_data: { source: input.source },
         performed_by: profile.id,
-      });
-      if (evtErr) throw evtErr;
+      })
+      if (evtErr) throw evtErr
 
       // 4. Optional note
-      const noteText = input.noteContent.trim();
+      const noteText = input.noteContent.trim()
       if (noteText) {
-        const { error: noteErr } = await supabase.from('applicant_notes').insert({
+        const { error: noteErr } = await supabase.from("applicant_notes").insert({
           applicant_id: applicant.id,
           application_id: application.id,
           organization_id: currentOrganizationId,
           author_id: profile.id,
-          note_type: 'internal',
+          note_type: "internal",
           content: noteText,
-        });
-        if (noteErr) throw noteErr;
+        })
+        if (noteErr) throw noteErr
 
-        const { error: noteEvtErr } = await supabase.from('application_events').insert({
+        const { error: noteEvtErr } = await supabase.from("application_events").insert({
           application_id: application.id,
           applicant_id: applicant.id,
           organization_id: currentOrganizationId,
-          event_type: 'note_added',
-          event_data: { note_type: 'internal', preview: noteText.slice(0, 100) },
+          event_type: "note_added",
+          event_data: { note_type: "internal", preview: noteText.slice(0, 100) },
           performed_by: profile.id,
-        });
-        if (noteEvtErr) throw noteEvtErr;
+        })
+        if (noteEvtErr) throw noteEvtErr
       }
 
-      return { applicantId: applicant.id };
+      return { applicantId: applicant.id }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['applicants'] });
-      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
-      toast.success('Søker opprettet');
+      queryClient.invalidateQueries({ queryKey: ["applicants"] })
+      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      toast.success("Søker opprettet")
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Kunne ikke opprette søker');
+      toast.error(err?.message || "Kunne ikke opprette søker")
     },
-  });
+  })
 }

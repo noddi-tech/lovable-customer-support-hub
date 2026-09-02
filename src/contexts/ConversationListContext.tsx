@@ -1,1091 +1,1182 @@
-import { createContext, useContext, useReducer, useMemo, useEffect, ReactNode } from 'react';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { matchesTagFilter } from '@/components/tags/TagFilterSelect';
-import { useEntityTags } from '@/hooks/useEntityTags';
-import { getConversationBrand } from '@/lib/conversationBrand';
-import { logger } from '@/utils/logger';
-import { groupConversationsByThread } from '@/lib/conversationThreading';
-import { useAgents, toAgentSimple } from '@/hooks/useAgents';
-import { useConversationFilterParams } from '@/hooks/useConversationFilterParams';
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useReducer } from "react"
+import { toast } from "sonner"
+import { matchesTagFilter } from "@/components/tags/TagFilterSelect"
+import { toAgentSimple, useAgents } from "@/hooks/useAgents"
+import { useAuth } from "@/hooks/useAuth"
+import { useConversationFilterParams } from "@/hooks/useConversationFilterParams"
+import { useEntityTags } from "@/hooks/useEntityTags"
+import { supabase } from "@/integrations/supabase/client"
+import { getConversationBrand } from "@/lib/conversationBrand"
+import { groupConversationsByThread } from "@/lib/conversationThreading"
+import { logger } from "@/utils/logger"
 
-export type ConversationStatus = "open" | "pending" | "resolved" | "closed";
-export type ConversationPriority = "low" | "normal" | "high" | "urgent";
-export type ConversationChannel = "email" | "chat" | "widget" | "social" | "facebook" | "instagram" | "whatsapp" | "sms";
-export type SortBy = "latest" | "oldest" | "priority" | "unread";
+export type ConversationStatus = "open" | "pending" | "resolved" | "closed"
+export type ConversationPriority = "low" | "normal" | "high" | "urgent"
+export type ConversationChannel =
+  | "email"
+  | "chat"
+  | "widget"
+  | "social"
+  | "facebook"
+  | "instagram"
+  | "whatsapp"
+  | "sms"
+export type SortBy = "latest" | "oldest" | "priority" | "unread"
 
 export interface Customer {
-  id: string;
-  full_name: string;
-  email: string;
-  phone?: string | null;
+  id: string
+  full_name: string
+  email: string
+  phone?: string | null
 }
 
 export interface AssignedTo {
-  id: string;
-  full_name: string;
-  avatar_url?: string;
+  id: string
+  full_name: string
+  avatar_url?: string
 }
 
 export interface EmailAccount {
-  id: string;
-  email_address: string;
+  id: string
+  email_address: string
 }
 
 export interface Conversation {
-  id: string;
-  subject: string;
-  status: ConversationStatus;
-  priority: ConversationPriority;
-  is_read: boolean;
-  is_archived?: boolean;
-  is_deleted?: boolean;
-  channel: ConversationChannel;
-  updated_at: string;
-  received_at?: string;
-  inbox_id?: string;
-  customer?: Customer;
-  assigned_to?: AssignedTo;
-  email_account?: EmailAccount;
-  snooze_until?: string;
-  preview_text?: string;
-  first_response_at?: string;
-  sla_breach_at?: string;
-  slaStatus?: 'on_track' | 'at_risk' | 'breached' | 'met';
-  thread_count?: number; // Number of conversations in this thread
-  thread_ids?: string[]; // IDs of all conversations in thread
-  is_thread_representative?: boolean; // True for the main/latest conversation in thread
-  metadata?: Record<string, any>;
-  last_message_is_internal?: boolean;
-  last_message_sender_type?: string;
-  conversation_type?: 'support' | 'recruitment' | string;
-  applicant_id?: string | null;
-  applicant?: { id: string; first_name?: string | null; last_name?: string | null; email?: string | null } | null;
+  id: string
+  subject: string
+  status: ConversationStatus
+  priority: ConversationPriority
+  is_read: boolean
+  is_archived?: boolean
+  is_deleted?: boolean
+  channel: ConversationChannel
+  updated_at: string
+  received_at?: string
+  inbox_id?: string
+  customer?: Customer
+  assigned_to?: AssignedTo
+  email_account?: EmailAccount
+  snooze_until?: string
+  preview_text?: string
+  first_response_at?: string
+  sla_breach_at?: string
+  slaStatus?: "on_track" | "at_risk" | "breached" | "met"
+  thread_count?: number // Number of conversations in this thread
+  thread_ids?: string[] // IDs of all conversations in thread
+  is_thread_representative?: boolean // True for the main/latest conversation in thread
+  metadata?: Record<string, any>
+  last_message_is_internal?: boolean
+  last_message_sender_type?: string
+  conversation_type?: "support" | "recruitment" | string
+  applicant_id?: string | null
+  applicant?: {
+    id: string
+    first_name?: string | null
+    last_name?: string | null
+    email?: string | null
+  } | null
 }
 
 interface ArchiveDialogState {
-  open: boolean;
-  ids: string[];
-  nonClosedCount: number;
-  totalCount: number;
+  open: boolean
+  ids: string[]
+  nonClosedCount: number
+  totalCount: number
 }
 
-export type PurposeFilter = 'all' | 'support' | 'recruitment';
+export type PurposeFilter = "all" | "support" | "recruitment"
 
 interface ConversationListState {
-  searchQuery: string;
-  statusFilter: string;
-  priorityFilter: string;
+  searchQuery: string
+  statusFilter: string
+  priorityFilter: string
   /** Brand key from conversation metadata, 'all' or 'unknown' (no brand). */
-  brandFilter: string;
+  brandFilter: string
   /** Selected tag ids, or the UNTAGGED sentinel. Empty means no tag filter. */
-  tagFilter: string[];
-  purposeFilter: PurposeFilter;
+  tagFilter: string[]
+  purposeFilter: PurposeFilter
   /** Channel chip: 'all', a conversation channel, or 'social' (facebook+instagram). */
-  channelFilter: string;
-  sortBy: SortBy;
-  deleteDialogOpen: boolean;
-  conversationToDelete: string | null;
-  showFilters: boolean;
-  selectedConversations: Set<string>;
-  bulkSelectionMode: boolean;
-  tableSort: { key: string; direction: 'asc' | 'desc' | null };
-  archiveDialog: ArchiveDialogState;
-  pageSize: number;
-  currentPage: number;
+  channelFilter: string
+  sortBy: SortBy
+  deleteDialogOpen: boolean
+  conversationToDelete: string | null
+  showFilters: boolean
+  selectedConversations: Set<string>
+  bulkSelectionMode: boolean
+  tableSort: { key: string; direction: "asc" | "desc" | null }
+  archiveDialog: ArchiveDialogState
+  pageSize: number
+  currentPage: number
 }
 
 type ConversationListAction =
-  | { type: 'SET_SEARCH_QUERY'; payload: string }
-  | { type: 'SET_STATUS_FILTER'; payload: string }
-  | { type: 'SET_PRIORITY_FILTER'; payload: string }
-  | { type: 'SET_BRAND_FILTER'; payload: string }
-  | { type: 'SET_TAG_FILTER'; payload: string[] }
-  | { type: 'SET_PURPOSE_FILTER'; payload: PurposeFilter }
-  | { type: 'SET_CHANNEL_FILTER'; payload: string }
-  | { type: 'SET_SORT_BY'; payload: SortBy }
-  | { type: 'TOGGLE_FILTERS' }
-  | { type: 'OPEN_DELETE_DIALOG'; payload: string }
-  | { type: 'CLOSE_DELETE_DIALOG' }
-  | { type: 'TOGGLE_BULK_SELECTION'; payload: { id: string; selected: boolean } }
-  | { type: 'SET_BULK_SELECTION'; payload: { ids: string[]; selected: boolean } }
-  | { type: 'CLEAR_BULK_SELECTION' }
-  | { type: 'TOGGLE_BULK_MODE' }
-  | { type: 'ENABLE_BULK_MODE' }
-  | { type: 'SET_SORT'; payload: string }
-  | { type: 'OPEN_ARCHIVE_DIALOG'; payload: ArchiveDialogState }
-  | { type: 'CLOSE_ARCHIVE_DIALOG' }
-  | { type: 'SET_PAGE_SIZE'; payload: number }
-  | { type: 'SET_CURRENT_PAGE'; payload: number };
+  | { type: "SET_SEARCH_QUERY"; payload: string }
+  | { type: "SET_STATUS_FILTER"; payload: string }
+  | { type: "SET_PRIORITY_FILTER"; payload: string }
+  | { type: "SET_BRAND_FILTER"; payload: string }
+  | { type: "SET_TAG_FILTER"; payload: string[] }
+  | { type: "SET_PURPOSE_FILTER"; payload: PurposeFilter }
+  | { type: "SET_CHANNEL_FILTER"; payload: string }
+  | { type: "SET_SORT_BY"; payload: SortBy }
+  | { type: "TOGGLE_FILTERS" }
+  | { type: "OPEN_DELETE_DIALOG"; payload: string }
+  | { type: "CLOSE_DELETE_DIALOG" }
+  | { type: "TOGGLE_BULK_SELECTION"; payload: { id: string; selected: boolean } }
+  | { type: "SET_BULK_SELECTION"; payload: { ids: string[]; selected: boolean } }
+  | { type: "CLEAR_BULK_SELECTION" }
+  | { type: "TOGGLE_BULK_MODE" }
+  | { type: "ENABLE_BULK_MODE" }
+  | { type: "SET_SORT"; payload: string }
+  | { type: "OPEN_ARCHIVE_DIALOG"; payload: ArchiveDialogState }
+  | { type: "CLOSE_ARCHIVE_DIALOG" }
+  | { type: "SET_PAGE_SIZE"; payload: number }
+  | { type: "SET_CURRENT_PAGE"; payload: number }
 
-const PURPOSE_FILTER_STORAGE_KEY = 'conversationList.purposeFilter.v1';
+const PURPOSE_FILTER_STORAGE_KEY = "conversationList.purposeFilter.v1"
 
 function loadPurposeFilter(): PurposeFilter {
-  if (typeof window === 'undefined') return 'all';
+  if (typeof window === "undefined") return "all"
   try {
-    const v = window.localStorage.getItem(PURPOSE_FILTER_STORAGE_KEY);
-    if (v === 'support' || v === 'recruitment' || v === 'all') return v;
+    const v = window.localStorage.getItem(PURPOSE_FILTER_STORAGE_KEY)
+    if (v === "support" || v === "recruitment" || v === "all") return v
   } catch {}
-  return 'all';
+  return "all"
 }
 
 const initialState: ConversationListState = {
-  searchQuery: '',
-  statusFilter: 'all',
-  priorityFilter: 'all',
-  brandFilter: 'all',
+  searchQuery: "",
+  statusFilter: "all",
+  priorityFilter: "all",
+  brandFilter: "all",
   tagFilter: [],
   purposeFilter: loadPurposeFilter(),
-  channelFilter: 'all',
-  sortBy: 'latest',
+  channelFilter: "all",
+  sortBy: "latest",
   deleteDialogOpen: false,
   conversationToDelete: null,
   showFilters: false,
   selectedConversations: new Set(),
   bulkSelectionMode: false,
-  tableSort: { key: 'waiting', direction: 'desc' },
+  tableSort: { key: "waiting", direction: "desc" },
   archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 },
   pageSize: 50,
   currentPage: 1,
-};
+}
 
-function conversationListReducer(state: ConversationListState, action: ConversationListAction): ConversationListState {
+function conversationListReducer(
+  state: ConversationListState,
+  action: ConversationListAction,
+): ConversationListState {
   switch (action.type) {
-    case 'SET_SEARCH_QUERY':
-      return { ...state, searchQuery: action.payload, currentPage: 1 };
-    case 'SET_STATUS_FILTER':
-      return { ...state, statusFilter: action.payload, currentPage: 1 };
-    case 'SET_PURPOSE_FILTER':
-      try { window.localStorage.setItem(PURPOSE_FILTER_STORAGE_KEY, action.payload); } catch {}
-      return { ...state, purposeFilter: action.payload, currentPage: 1 };
-    case 'SET_PRIORITY_FILTER':
-      return { ...state, priorityFilter: action.payload, currentPage: 1 };
-    case 'SET_CHANNEL_FILTER':
-      return { ...state, channelFilter: action.payload, currentPage: 1 };
-    case 'SET_BRAND_FILTER':
-      return { ...state, brandFilter: action.payload, currentPage: 1 };
-    case 'SET_TAG_FILTER':
-      return { ...state, tagFilter: action.payload, currentPage: 1 };
-    case 'SET_SORT_BY':
-      return { ...state, sortBy: action.payload };
-    case 'TOGGLE_FILTERS':
-      return { ...state, showFilters: !state.showFilters };
-    case 'OPEN_DELETE_DIALOG':
-      return { ...state, deleteDialogOpen: true, conversationToDelete: action.payload };
-    case 'CLOSE_DELETE_DIALOG':
-      return { ...state, deleteDialogOpen: false, conversationToDelete: null };
-    case 'TOGGLE_BULK_SELECTION': {
-      const newSelected = new Set(state.selectedConversations);
+    case "SET_SEARCH_QUERY":
+      return { ...state, searchQuery: action.payload, currentPage: 1 }
+    case "SET_STATUS_FILTER":
+      return { ...state, statusFilter: action.payload, currentPage: 1 }
+    case "SET_PURPOSE_FILTER":
+      try {
+        window.localStorage.setItem(PURPOSE_FILTER_STORAGE_KEY, action.payload)
+      } catch {}
+      return { ...state, purposeFilter: action.payload, currentPage: 1 }
+    case "SET_PRIORITY_FILTER":
+      return { ...state, priorityFilter: action.payload, currentPage: 1 }
+    case "SET_CHANNEL_FILTER":
+      return { ...state, channelFilter: action.payload, currentPage: 1 }
+    case "SET_BRAND_FILTER":
+      return { ...state, brandFilter: action.payload, currentPage: 1 }
+    case "SET_TAG_FILTER":
+      return { ...state, tagFilter: action.payload, currentPage: 1 }
+    case "SET_SORT_BY":
+      return { ...state, sortBy: action.payload }
+    case "TOGGLE_FILTERS":
+      return { ...state, showFilters: !state.showFilters }
+    case "OPEN_DELETE_DIALOG":
+      return { ...state, deleteDialogOpen: true, conversationToDelete: action.payload }
+    case "CLOSE_DELETE_DIALOG":
+      return { ...state, deleteDialogOpen: false, conversationToDelete: null }
+    case "TOGGLE_BULK_SELECTION": {
+      const newSelected = new Set(state.selectedConversations)
       if (action.payload.selected) {
-        newSelected.add(action.payload.id);
+        newSelected.add(action.payload.id)
       } else {
-        newSelected.delete(action.payload.id);
+        newSelected.delete(action.payload.id)
       }
-      return { ...state, selectedConversations: newSelected };
+      return { ...state, selectedConversations: newSelected }
     }
-    case 'SET_BULK_SELECTION': {
-      const newSelected = new Set(state.selectedConversations);
+    case "SET_BULK_SELECTION": {
+      const newSelected = new Set(state.selectedConversations)
       action.payload.ids.forEach((id) =>
         action.payload.selected ? newSelected.add(id) : newSelected.delete(id),
-      );
-      return { ...state, selectedConversations: newSelected };
+      )
+      return { ...state, selectedConversations: newSelected }
     }
-    case 'CLEAR_BULK_SELECTION':
-      return { ...state, selectedConversations: new Set() };
-    case 'ENABLE_BULK_MODE':
-      return state.bulkSelectionMode ? state : { ...state, bulkSelectionMode: true };
-    case 'TOGGLE_BULK_MODE':
-      return { ...state, bulkSelectionMode: !state.bulkSelectionMode, selectedConversations: new Set() };
-    case 'SET_SORT': {
-      const currentKey = state.tableSort.key;
-      const currentDirection = state.tableSort.direction;
-      
+    case "CLEAR_BULK_SELECTION":
+      return { ...state, selectedConversations: new Set() }
+    case "ENABLE_BULK_MODE":
+      return state.bulkSelectionMode ? state : { ...state, bulkSelectionMode: true }
+    case "TOGGLE_BULK_MODE":
+      return {
+        ...state,
+        bulkSelectionMode: !state.bulkSelectionMode,
+        selectedConversations: new Set(),
+      }
+    case "SET_SORT": {
+      const currentKey = state.tableSort.key
+      const currentDirection = state.tableSort.direction
+
       if (action.payload === currentKey) {
         // Toggle through: null -> asc -> desc -> null
-        const newDirection = currentDirection === null ? 'asc' : currentDirection === 'asc' ? 'desc' : null;
-        return { ...state, tableSort: { key: action.payload, direction: newDirection } };
+        const newDirection =
+          currentDirection === null ? "asc" : currentDirection === "asc" ? "desc" : null
+        return { ...state, tableSort: { key: action.payload, direction: newDirection } }
       } else {
         // New column, start with ascending
-        return { ...state, tableSort: { key: action.payload, direction: 'asc' } };
+        return { ...state, tableSort: { key: action.payload, direction: "asc" } }
       }
     }
-    case 'OPEN_ARCHIVE_DIALOG':
-      return { ...state, archiveDialog: action.payload };
-    case 'CLOSE_ARCHIVE_DIALOG':
-      return { ...state, archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 } };
-    case 'SET_PAGE_SIZE':
-      return { ...state, pageSize: action.payload, currentPage: 1 };
-    case 'SET_CURRENT_PAGE':
-      return { ...state, currentPage: action.payload };
+    case "OPEN_ARCHIVE_DIALOG":
+      return { ...state, archiveDialog: action.payload }
+    case "CLOSE_ARCHIVE_DIALOG":
+      return { ...state, archiveDialog: { open: false, ids: [], nonClosedCount: 0, totalCount: 0 } }
+    case "SET_PAGE_SIZE":
+      return { ...state, pageSize: action.payload, currentPage: 1 }
+    case "SET_CURRENT_PAGE":
+      return { ...state, currentPage: action.payload }
     default:
-      return state;
+      return state
   }
 }
 
 interface ConversationListContextType {
-  state: ConversationListState;
-  dispatch: React.Dispatch<ConversationListAction>;
-  conversations: Conversation[];
-  isLoading: boolean;
-  isFetchingNextPage: boolean;
-  hasNextPage: boolean;
-  fetchNextPage: () => void;
-  loadAllConversations: () => Promise<void>;
-  totalCount: number;
-  hasSessionError: boolean;
-  archiveConversation: (id: string) => void;
-  confirmArchive: (alsoClose: boolean) => void;
-  deleteConversation: (id: string) => void;
-  markAllAsRead: () => void;
-  isMarkingAllAsRead: boolean;
-  toggleConversationRead: (id: string, currentReadState: boolean) => void;
-  filteredConversations: Conversation[];
-  paginatedConversations: Conversation[];
+  state: ConversationListState
+  dispatch: React.Dispatch<ConversationListAction>
+  conversations: Conversation[]
+  isLoading: boolean
+  isFetchingNextPage: boolean
+  hasNextPage: boolean
+  fetchNextPage: () => void
+  loadAllConversations: () => Promise<void>
+  totalCount: number
+  hasSessionError: boolean
+  archiveConversation: (id: string) => void
+  confirmArchive: (alsoClose: boolean) => void
+  deleteConversation: (id: string) => void
+  markAllAsRead: () => void
+  isMarkingAllAsRead: boolean
+  toggleConversationRead: (id: string, currentReadState: boolean) => void
+  filteredConversations: Conversation[]
+  paginatedConversations: Conversation[]
   /** Rows in this inbox/tab hidden by the active filter chips. */
-  hiddenByFiltersCount: number;
+  hiddenByFiltersCount: number
   /** Row counts per channel chip, before the channel filter is applied. */
-  channelCounts: Record<string, number>;
-  bulkMarkAsRead: () => void;
-  bulkMarkAsUnread: () => void;
-  bulkChangeStatus: (status: string) => void;
-  bulkArchive: () => void;
-  bulkDelete: () => void;
-  bulkAssign: (assigneeId: string) => void;
-  agents: Array<{ id: string; name: string }>;
+  channelCounts: Record<string, number>
+  bulkMarkAsRead: () => void
+  bulkMarkAsUnread: () => void
+  bulkChangeStatus: (status: string) => void
+  bulkArchive: () => void
+  bulkDelete: () => void
+  bulkAssign: (assigneeId: string) => void
+  agents: Array<{ id: string; name: string }>
   /** Currently selected inbox id, or 'all' for the combined view. */
-  selectedInboxId: string;
-
+  selectedInboxId: string
 }
 
-const ConversationListContext = createContext<ConversationListContextType | undefined>(undefined);
+const ConversationListContext = createContext<ConversationListContextType | undefined>(undefined)
 
 interface ConversationListProviderProps {
-  children: ReactNode;
-  selectedTab: string;
-  selectedInboxId: string;
+  children: ReactNode
+  selectedTab: string
+  selectedInboxId: string
 }
 
-export const ConversationListProvider = ({ children, selectedTab, selectedInboxId }: ConversationListProviderProps) => {
-  const [state, baseDispatch] = useReducer(conversationListReducer, initialState);
+export const ConversationListProvider = ({
+  children,
+  selectedTab,
+  selectedInboxId,
+}: ConversationListProviderProps) => {
+  const [state, baseDispatch] = useReducer(conversationListReducer, initialState)
 
   // Brand + tag filters are mirrored in the URL so the interactions sidebar
   // (rendered outside this provider) can drive the same filters.
-  const { brand: brandParam, tagsParam: tagsParamRaw, setBrand, setTags } = useConversationFilterParams();
+  const {
+    brand: brandParam,
+    tagsParam: tagsParamRaw,
+    setBrand,
+    setTags,
+  } = useConversationFilterParams()
 
   const dispatch = useMemo<typeof baseDispatch>(
     () => (action: ConversationListAction) => {
-      if (action.type === 'SET_BRAND_FILTER') setBrand(action.payload);
-      if (action.type === 'SET_TAG_FILTER') setTags(action.payload);
-      baseDispatch(action);
+      if (action.type === "SET_BRAND_FILTER") setBrand(action.payload)
+      if (action.type === "SET_TAG_FILTER") setTags(action.payload)
+      baseDispatch(action)
     },
-    [setBrand, setTags]
-  );
+    [setBrand, setTags],
+  )
 
   useEffect(() => {
-    baseDispatch({ type: 'SET_BRAND_FILTER', payload: brandParam });
-  }, [brandParam]);
+    baseDispatch({ type: "SET_BRAND_FILTER", payload: brandParam })
+  }, [brandParam])
 
   useEffect(() => {
-    baseDispatch({ type: 'SET_TAG_FILTER', payload: tagsParamRaw ? tagsParamRaw.split(',').filter(Boolean) : [] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tagsParamRaw]);
+    baseDispatch({
+      type: "SET_TAG_FILTER",
+      payload: tagsParamRaw ? tagsParamRaw.split(",").filter(Boolean) : [],
+    })
+  }, [tagsParamRaw])
 
-  const queryClient = useQueryClient();
-  const { user, profile } = useAuth();
-  const { tagsByEntity: conversationTags } = useEntityTags('conversation');
-
+  const queryClient = useQueryClient()
+  const { user, profile } = useAuth()
+  const { tagsByEntity: conversationTags } = useEntityTags("conversation")
 
   // Fetch agents for assignment - uses shared hook for consistent caching
-  const { data: agentsRaw = [] } = useAgents({ enabled: !!user });
-  const agentsData = toAgentSimple(agentsRaw);
+  const { data: agentsRaw = [] } = useAgents({ enabled: !!user })
+  const agentsData = toAgentSimple(agentsRaw)
 
   // Fetch conversations with infinite query for pagination
-  const { 
-    data, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage,
-    isLoading, 
-    error 
-  } = useInfiniteQuery({
-    queryKey: ['conversations', user?.id, selectedInboxId, selectedTab],
-    enabled: !!user,
-    staleTime: 5 * 1000, // 5 seconds - faster updates for instant UI feedback
-    refetchOnWindowFocus: false,
-    gcTime: 10 * 60 * 1000,
-    refetchInterval: 60 * 1000, // Fallback polling every 60 seconds
-    refetchIntervalInBackground: false, // Only when tab is focused
-    initialPageParam: 0,
-    queryFn: async ({ pageParam = 0 }) => {
-      logger.info('Fetching conversations page', { 
-        userId: user?.id, 
-        offset: pageParam,
-        inbox: selectedInboxId,
-        status: selectedTab 
-      }, 'ConversationListProvider');
-      
-      // Determine if we should fetch deleted conversations
-      const includeDeleted = selectedTab === 'deleted';
-      
-      const { data, error } = await supabase.rpc('get_conversations_with_session_recovery', {
-        // Multi-inbox selections fetch everything and are filtered client-side
-        inbox_uuid: (selectedInboxId && selectedInboxId !== 'all' && !selectedInboxId.includes(','))
-          ? selectedInboxId
-          : null,
-        include_deleted: includeDeleted
-      });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } =
+    useInfiniteQuery({
+      queryKey: ["conversations", user?.id, selectedInboxId, selectedTab],
+      enabled: !!user,
+      staleTime: 5 * 1000, // 5 seconds - faster updates for instant UI feedback
+      refetchOnWindowFocus: false,
+      gcTime: 10 * 60 * 1000,
+      refetchInterval: 60 * 1000, // Fallback polling every 60 seconds
+      refetchIntervalInBackground: false, // Only when tab is focused
+      initialPageParam: 0,
+      queryFn: async ({ pageParam = 0 }) => {
+        logger.info(
+          "Fetching conversations page",
+          {
+            userId: user?.id,
+            offset: pageParam,
+            inbox: selectedInboxId,
+            status: selectedTab,
+          },
+          "ConversationListProvider",
+        )
 
-      if (error) {
-        logger.error('Error fetching conversations', error, 'ConversationListProvider');
-        if (error?.code === 'PGRST301' || 
-            error?.message?.includes('JWT expired') ||
-            error?.message?.includes('auth.uid() is null') ||
-            error?.code === 'PGRST116') {
-          throw new Error('SESSION_ERROR');
+        // Determine if we should fetch deleted conversations
+        const includeDeleted = selectedTab === "deleted"
+
+        const { data, error } = await supabase.rpc("get_conversations_with_session_recovery", {
+          // Multi-inbox selections fetch everything and are filtered client-side
+          inbox_uuid:
+            selectedInboxId && selectedInboxId !== "all" && !selectedInboxId.includes(",")
+              ? selectedInboxId
+              : null,
+          include_deleted: includeDeleted,
+        })
+
+        if (error) {
+          logger.error("Error fetching conversations", error, "ConversationListProvider")
+          if (
+            error?.code === "PGRST301" ||
+            error?.message?.includes("JWT expired") ||
+            error?.message?.includes("auth.uid() is null") ||
+            error?.code === "PGRST116"
+          ) {
+            throw new Error("SESSION_ERROR")
+          }
+          throw error
         }
-        throw error;
-      }
-      
-      const nowMs = Date.now();
-      const conversations = (data || []).map((conv: any) => ({
-        ...conv,
-        is_deleted: conv.is_deleted || false,
-        // The RPC returns the raw deadline; derive the badge status here so the
-        // SLA column actually renders (met once we replied, otherwise counting down).
-        slaStatus: conv.first_response_at
-          ? 'met'
-          : conv.sla_breach_at
-            ? new Date(conv.sla_breach_at).getTime() <= nowMs
-              ? 'breached'
-              : new Date(conv.sla_breach_at).getTime() - nowMs < 2 * 60 * 60 * 1000
-                ? 'at_risk'
-                : 'on_track'
-            : undefined,
-        // Transform flat RPC fields to nested objects
-        customer: conv.customer_id ? {
-          id: conv.customer_id,
-          full_name: conv.customer_name || conv.customer_email || 'Unknown',
-          email: conv.customer_email || ''
-        } : conv.customer,
-        assigned_to: conv.assigned_to_id ? {
-          id: conv.assigned_to_id,
-          full_name: conv.assigned_to_name || 'Unassigned'
-        } : conv.assigned_to,
-      })) as Conversation[];
 
-      
-      const totalCount = (data as any)?.[0]?.total_count || 0;
-      
-      logger.info('Conversations page fetched', { 
-        count: conversations.length,
-        totalCount,
-        hasMore: pageParam + 50 < totalCount
-      }, 'ConversationListProvider');
-      
-      return {
-        conversations,
-        totalCount,
-        nextOffset: pageParam + 50
-      };
-    },
-    getNextPageParam: (lastPage) => {
-      const loadedCount = lastPage.nextOffset;
-      return loadedCount < lastPage.totalCount ? lastPage.nextOffset : undefined;
-    },
-    retry: (failureCount, error: any) => {
-      if (error?.message === 'SESSION_ERROR') {
-        return false;
-      }
-      return failureCount < 2;
-    }
-  });
+        const nowMs = Date.now()
+        const conversations = (data || []).map((conv: any) => ({
+          ...conv,
+          is_deleted: conv.is_deleted || false,
+          // The RPC returns the raw deadline; derive the badge status here so the
+          // SLA column actually renders (met once we replied, otherwise counting down).
+          slaStatus: conv.first_response_at
+            ? "met"
+            : conv.sla_breach_at
+              ? new Date(conv.sla_breach_at).getTime() <= nowMs
+                ? "breached"
+                : new Date(conv.sla_breach_at).getTime() - nowMs < 2 * 60 * 60 * 1000
+                  ? "at_risk"
+                  : "on_track"
+              : undefined,
+          // Transform flat RPC fields to nested objects
+          customer: conv.customer_id
+            ? {
+                id: conv.customer_id,
+                full_name: conv.customer_name || conv.customer_email || "Unknown",
+                email: conv.customer_email || "",
+              }
+            : conv.customer,
+          assigned_to: conv.assigned_to_id
+            ? {
+                id: conv.assigned_to_id,
+                full_name: conv.assigned_to_name || "Unassigned",
+              }
+            : conv.assigned_to,
+        })) as Conversation[]
+
+        const totalCount = (data as any)?.[0]?.total_count || 0
+
+        logger.info(
+          "Conversations page fetched",
+          {
+            count: conversations.length,
+            totalCount,
+            hasMore: pageParam + 50 < totalCount,
+          },
+          "ConversationListProvider",
+        )
+
+        return {
+          conversations,
+          totalCount,
+          nextOffset: pageParam + 50,
+        }
+      },
+      getNextPageParam: (lastPage) => {
+        const loadedCount = lastPage.nextOffset
+        return loadedCount < lastPage.totalCount ? lastPage.nextOffset : undefined
+      },
+      retry: (failureCount, error: any) => {
+        if (error?.message === "SESSION_ERROR") {
+          return false
+        }
+        return failureCount < 2
+      },
+    })
 
   // Flatten paginated data and apply threading
   const conversations = useMemo(() => {
-    const flattened = data?.pages.flatMap(page => page.conversations) || [];
-    
+    const flattened = data?.pages.flatMap((page) => page.conversations) || []
+
     // Apply conversation threading to group related conversations
     // This groups conversations from the same customer with the same subject
-    const threaded = groupConversationsByThread(flattened);
-    
-    logger.debug('Conversation threading applied', {
-      original: flattened.length,
-      afterThreading: threaded.length,
-      reduced: flattened.length - threaded.length
-    }, 'ConversationListProvider');
-    
-    return threaded;
-  }, [data]);
-  
-  const totalCount = data?.pages[0]?.totalCount || 0;
+    const threaded = groupConversationsByThread(flattened)
+
+    logger.debug(
+      "Conversation threading applied",
+      {
+        original: flattened.length,
+        afterThreading: threaded.length,
+        reduced: flattened.length - threaded.length,
+      },
+      "ConversationListProvider",
+    )
+
+    return threaded
+  }, [data])
+
+  const totalCount = data?.pages[0]?.totalCount || 0
 
   // Detect session errors
-  const hasSessionError = error?.message === 'SESSION_ERROR';
+  const hasSessionError = error?.message === "SESSION_ERROR"
 
   // Archive conversation mutation
   const archiveConversationMutation = useMutation({
     mutationFn: async (conversationId: string) => {
       const { error } = await supabase
-        .from('conversations')
-        .update({ 
-          status: 'closed',
+        .from("conversations")
+        .update({
+          status: "closed",
           is_archived: true,
-          is_read: true
+          is_read: true,
         })
-        .eq('id', conversationId);
-      
-      if (error) throw error;
+        .eq("id", conversationId)
+
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation archived successfully');
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      toast.success("Conversation archived successfully")
     },
     onError: (error) => {
-      logger.error('Error archiving conversation', error, 'ConversationListProvider');
-      toast.error('Failed to archive conversation');
-    }
-  });
+      logger.error("Error archiving conversation", error, "ConversationListProvider")
+      toast.error("Failed to archive conversation")
+    },
+  })
 
   // Delete conversation mutation (soft delete - sets deleted_at timestamp)
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId: string) => {
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', conversationId);
-      
-      if (error) throw error;
+        .eq("id", conversationId)
+
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success('Conversation moved to trash');
-      dispatch({ type: 'CLOSE_DELETE_DIALOG' });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      toast.success("Conversation moved to trash")
+      dispatch({ type: "CLOSE_DELETE_DIALOG" })
     },
     onError: (error) => {
-      logger.error('Error deleting conversation', error, 'ConversationListProvider');
-      toast.error('Failed to delete conversation');
-    }
-  });
+      logger.error("Error deleting conversation", error, "ConversationListProvider")
+      toast.error("Failed to delete conversation")
+    },
+  })
 
   // Mark all as read mutation
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
       // Get filtered conversations based on current state
-      const effectiveInboxId = selectedTab.startsWith('inbox-')
-        ? selectedTab.replace('inbox-', '')
-        : (selectedInboxId !== 'all' ? selectedInboxId : null);
-      const effectiveInboxIds = effectiveInboxId ? effectiveInboxId.split(',').filter(Boolean) : [];
+      const effectiveInboxId = selectedTab.startsWith("inbox-")
+        ? selectedTab.replace("inbox-", "")
+        : selectedInboxId !== "all"
+          ? selectedInboxId
+          : null
+      const effectiveInboxIds = effectiveInboxId ? effectiveInboxId.split(",").filter(Boolean) : []
 
-      const filteredConversations = conversations
-        .filter((conversation) => {
-          const matchesSearch = conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-            conversation.customer?.full_name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-            conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase());
-          
-          const matchesStatus = state.statusFilter === "all" || conversation.status === state.statusFilter;
-          const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-          const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
-          
-          const matchesTab = (() => {
-            const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
-            switch (selectedTab) {
-              case "open":
-                return conversation.status === 'open' 
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "pending":
-                return conversation.status === 'pending' 
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "assigned":
-                return !!conversation.assigned_to 
-                  && conversation.assigned_to.id === profile?.id
-                  && conversation.status !== 'closed'
-                  && !conversation.is_archived
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "closed":
-                return conversation.status === 'closed' 
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "archived":
-                return conversation.is_archived === true 
-                  && !conversation.is_deleted;
-              case "deleted":
-                return conversation.is_deleted === true;
-              case "snoozed":
-                return isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "all":
-                return !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "unread":
-                return !conversation.is_read 
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              case "email":
-              case "facebook":
-              case "instagram":
-              case "whatsapp":
-                return conversation.channel === selectedTab 
-                  && !isSnoozedActive 
-                  && !conversation.is_deleted;
-              default:
-                if (selectedTab.startsWith('inbox-')) {
-                  const inboxId = selectedTab.replace('inbox-', '');
-                  return conversation.inbox_id === inboxId 
-                    && !isSnoozedActive 
-                    && !conversation.is_deleted;
-                }
-                return !isSnoozedActive 
-                  && !conversation.is_deleted;
-            }
-          })();
+      const filteredConversations = conversations.filter((conversation) => {
+        const matchesSearch =
+          conversation.subject.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+          conversation.customer?.full_name
+            .toLowerCase()
+            .includes(state.searchQuery.toLowerCase()) ||
+          conversation.customer?.email.toLowerCase().includes(state.searchQuery.toLowerCase())
 
-          return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab;
-        });
+        const matchesStatus =
+          state.statusFilter === "all" || conversation.status === state.statusFilter
+        const matchesPriority =
+          state.priorityFilter === "all" || conversation.priority === state.priorityFilter
+        const matchesInbox =
+          effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || "")
+
+        const matchesTab = (() => {
+          const isSnoozedActive =
+            !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date()
+          switch (selectedTab) {
+            case "open":
+              return conversation.status === "open" && !isSnoozedActive && !conversation.is_deleted
+            case "pending":
+              return (
+                conversation.status === "pending" && !isSnoozedActive && !conversation.is_deleted
+              )
+            case "assigned":
+              return (
+                !!conversation.assigned_to &&
+                conversation.assigned_to.id === profile?.id &&
+                conversation.status !== "closed" &&
+                !conversation.is_archived &&
+                !isSnoozedActive &&
+                !conversation.is_deleted
+              )
+            case "closed":
+              return (
+                conversation.status === "closed" && !isSnoozedActive && !conversation.is_deleted
+              )
+            case "archived":
+              return conversation.is_archived === true && !conversation.is_deleted
+            case "deleted":
+              return conversation.is_deleted === true
+            case "snoozed":
+              return isSnoozedActive && !conversation.is_deleted
+            case "all":
+              return !isSnoozedActive && !conversation.is_deleted
+            case "unread":
+              return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted
+            case "email":
+            case "facebook":
+            case "instagram":
+            case "whatsapp":
+              return (
+                conversation.channel === selectedTab && !isSnoozedActive && !conversation.is_deleted
+              )
+            default:
+              if (selectedTab.startsWith("inbox-")) {
+                const inboxId = selectedTab.replace("inbox-", "")
+                return (
+                  conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted
+                )
+              }
+              return !isSnoozedActive && !conversation.is_deleted
+          }
+        })()
+
+        return matchesSearch && matchesStatus && matchesPriority && matchesInbox && matchesTab
+      })
 
       const unreadConversationIds = filteredConversations
-        .filter(conv => !conv.is_read)
-        .map(conv => conv.id);
-      
+        .filter((conv) => !conv.is_read)
+        .map((conv) => conv.id)
+
       if (unreadConversationIds.length === 0) {
-        throw new Error('No unread conversations to mark as read');
+        throw new Error("No unread conversations to mark as read")
       }
 
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ is_read: true })
-        .in('id', unreadConversationIds);
-      
-      if (error) throw error;
-      
-      return unreadConversationIds.length;
+        .in("id", unreadConversationIds)
+
+      if (error) throw error
+
+      return unreadConversationIds.length
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success(`Marked ${count} conversations as read`);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      toast.success(`Marked ${count} conversations as read`)
     },
     onError: (error: any) => {
-      logger.error('Error marking conversations as read', error, 'ConversationListProvider');
-      if (error.message === 'No unread conversations to mark as read') {
-        toast.info('No unread conversations to mark as read');
+      logger.error("Error marking conversations as read", error, "ConversationListProvider")
+      if (error.message === "No unread conversations to mark as read") {
+        toast.info("No unread conversations to mark as read")
       } else {
-        toast.error('Failed to mark conversations as read');
+        toast.error("Failed to mark conversations as read")
       }
-    }
-  });
+    },
+  })
 
   const archiveConversation = (id: string) => {
     // Archiving always closes the conversation as well — no extra prompt.
-    archiveConversationMutation.mutate(id);
-  };
+    archiveConversationMutation.mutate(id)
+  }
 
   const confirmArchive = async (alsoClose: boolean) => {
-    const { ids } = state.archiveDialog;
-    if (ids.length === 0) return;
-    
-    const idChunks = chunkArray(ids, 20);
+    const { ids } = state.archiveDialog
+    if (ids.length === 0) return
+
+    const idChunks = chunkArray(ids, 20)
     try {
       for (const chunk of idChunks) {
         // Archiving always closes the conversation as well.
-        const updatePayload: Record<string, any> = { is_archived: true, status: 'closed', is_read: true };
-        
-        const { error } = await supabase
-          .from('conversations')
-          .update(updatePayload)
-          .in('id', chunk);
-        if (error) throw error;
+        const updatePayload: Record<string, any> = {
+          is_archived: true,
+          status: "closed",
+          is_read: true,
+        }
+
+        const { error } = await supabase.from("conversations").update(updatePayload).in("id", chunk)
+        if (error) throw error
       }
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success(`Archived ${ids.length} conversation${ids.length > 1 ? 's' : ''}`);
-      dispatch({ type: 'CLOSE_ARCHIVE_DIALOG' });
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      toast.success(`Archived ${ids.length} conversation${ids.length > 1 ? "s" : ""}`)
+      dispatch({ type: "CLOSE_ARCHIVE_DIALOG" })
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to archive conversations', error, 'confirmArchive');
-      toast.error('Failed to archive conversations');
+      logger.error("Failed to archive conversations", error, "confirmArchive")
+      toast.error("Failed to archive conversations")
     }
-  };
+  }
 
   const deleteConversation = (id: string) => {
     if (state.conversationToDelete) {
-      deleteConversationMutation.mutate(state.conversationToDelete);
+      deleteConversationMutation.mutate(state.conversationToDelete)
     }
-  };
+  }
 
   const markAllAsRead = () => {
-    markAllAsReadMutation.mutate();
-  };
+    markAllAsReadMutation.mutate()
+  }
 
   // Toggle individual conversation read/unread status
   const toggleConversationReadMutation = useMutation({
     mutationFn: async ({ id, currentReadState }: { id: string; currentReadState: boolean }) => {
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ is_read: !currentReadState })
-        .eq('id', id);
-      
-      if (error) throw error;
+        .eq("id", id)
+
+      if (error) throw error
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-      toast.success(variables.currentReadState ? 'Marked as unread' : 'Marked as read');
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      toast.success(variables.currentReadState ? "Marked as unread" : "Marked as read")
     },
     onError: (error) => {
-      logger.error('Error toggling conversation read status', error, 'ConversationListProvider');
-      toast.error('Failed to update conversation');
-    }
-  });
+      logger.error("Error toggling conversation read status", error, "ConversationListProvider")
+      toast.error("Failed to update conversation")
+    },
+  })
 
   const toggleConversationRead = (id: string, currentReadState: boolean) => {
-    toggleConversationReadMutation.mutate({ id, currentReadState });
-  };
+    toggleConversationReadMutation.mutate({ id, currentReadState })
+  }
 
   // Filter and sort conversations
-  const effectiveInboxId = selectedTab.startsWith('inbox-')
-    ? selectedTab.replace('inbox-', '')
-    : (selectedInboxId !== 'all' ? selectedInboxId : null);
+  const effectiveInboxId = selectedTab.startsWith("inbox-")
+    ? selectedTab.replace("inbox-", "")
+    : selectedInboxId !== "all"
+      ? selectedInboxId
+      : null
   const effectiveInboxIds = useMemo(
-    () => (effectiveInboxId ? effectiveInboxId.split(',').filter(Boolean) : []),
-    [effectiveInboxId]
-  );
+    () => (effectiveInboxId ? effectiveInboxId.split(",").filter(Boolean) : []),
+    [effectiveInboxId],
+  )
 
   const { list: preChannelConversations, hiddenCount: hiddenByFiltersCount } = useMemo(() => {
-    let hiddenCount = 0;
+    let hiddenCount = 0
     const filtered = conversations.filter((conversation) => {
-      const matchesSearch = 
-        (conversation.subject || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-        (conversation.customer?.full_name || '').toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-        (conversation.customer?.email || '').toLowerCase().includes(state.searchQuery.toLowerCase());
-      
+      const matchesSearch =
+        (conversation.subject || "").toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+        (conversation.customer?.full_name || "")
+          .toLowerCase()
+          .includes(state.searchQuery.toLowerCase()) ||
+        (conversation.customer?.email || "").toLowerCase().includes(state.searchQuery.toLowerCase())
+
       // CRITICAL FIX: Don't apply state.statusFilter when selectedTab is handling status filtering
       // This prevents duplicate filtering that was hiding conversations
-      const isTabHandlingStatus = selectedTab !== 'all' && ['unread', 'assigned', 'pending', 'closed', 'archived', 'snoozed'].includes(selectedTab);
-      const matchesStatus = isTabHandlingStatus || state.statusFilter === "all" || conversation.status === state.statusFilter;
-      
-      const matchesPriority = state.priorityFilter === "all" || conversation.priority === state.priorityFilter;
-      const matchesBrand = state.brandFilter === 'all' ||
-        (getConversationBrand(conversation.metadata, conversation.channel)?.key ?? 'unknown') === state.brandFilter;
+      const isTabHandlingStatus =
+        selectedTab !== "all" &&
+        ["unread", "assigned", "pending", "closed", "archived", "snoozed"].includes(selectedTab)
+      const matchesStatus =
+        isTabHandlingStatus ||
+        state.statusFilter === "all" ||
+        conversation.status === state.statusFilter
+
+      const matchesPriority =
+        state.priorityFilter === "all" || conversation.priority === state.priorityFilter
+      const matchesBrand =
+        state.brandFilter === "all" ||
+        (getConversationBrand(conversation.metadata, conversation.channel)?.key ?? "unknown") ===
+          state.brandFilter
       const matchesTags = matchesTagFilter(
         (conversationTags.get(conversation.id) || []).map((t) => t.id),
         state.tagFilter,
-      );
-      const matchesInbox = effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || '');
-      const convPurpose = (conversation.conversation_type === 'recruitment') ? 'recruitment' : 'support';
-      const matchesPurpose = state.purposeFilter === 'all' || convPurpose === state.purposeFilter;
-      
+      )
+      const matchesInbox =
+        effectiveInboxIds.length === 0 || effectiveInboxIds.includes(conversation.inbox_id || "")
+      const convPurpose =
+        conversation.conversation_type === "recruitment" ? "recruitment" : "support"
+      const matchesPurpose = state.purposeFilter === "all" || convPurpose === state.purposeFilter
+
       const matchesTab = (() => {
-        const isSnoozedActive = !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date();
-        
+        const isSnoozedActive =
+          !!conversation.snooze_until && new Date(conversation.snooze_until) > new Date()
+
         // When viewing a specific inbox directly (not "all"), show ALL conversations in that inbox
         // regardless of status, unless a specific status tab is selected
-        const isViewingSpecificInbox = selectedInboxId && selectedInboxId !== 'all';
-        
+        const isViewingSpecificInbox = selectedInboxId && selectedInboxId !== "all"
+
         switch (selectedTab) {
           case "open":
-            return conversation.status === 'open' 
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return conversation.status === "open" && !isSnoozedActive && !conversation.is_deleted
           case "pending":
-            return conversation.status === 'pending' 
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return conversation.status === "pending" && !isSnoozedActive && !conversation.is_deleted
           case "assigned":
-            return !!conversation.assigned_to 
-              && conversation.assigned_to.id === profile?.id
-              && conversation.status !== 'closed'
-              && !conversation.is_archived
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return (
+              !!conversation.assigned_to &&
+              conversation.assigned_to.id === profile?.id &&
+              conversation.status !== "closed" &&
+              !conversation.is_archived &&
+              !isSnoozedActive &&
+              !conversation.is_deleted
+            )
           case "closed":
-            return conversation.status === 'closed' 
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return conversation.status === "closed" && !isSnoozedActive && !conversation.is_deleted
           case "archived":
-            return conversation.is_archived === true 
-              && !conversation.is_deleted;
+            return conversation.is_archived === true && !conversation.is_deleted
           case "deleted":
-            return conversation.is_deleted === true;
+            return conversation.is_deleted === true
           case "snoozed":
-            return isSnoozedActive 
-              && !conversation.is_deleted;
+            return isSnoozedActive && !conversation.is_deleted
           case "all":
-            return !isSnoozedActive 
-              && !conversation.is_deleted;
+            return !isSnoozedActive && !conversation.is_deleted
           case "unread":
-            return !conversation.is_read 
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return !conversation.is_read && !isSnoozedActive && !conversation.is_deleted
           case "email":
           case "facebook":
           case "instagram":
           case "whatsapp":
-            return conversation.channel === selectedTab 
-              && !isSnoozedActive 
-              && !conversation.is_deleted;
+            return (
+              conversation.channel === selectedTab && !isSnoozedActive && !conversation.is_deleted
+            )
           default:
-            if (selectedTab.startsWith('inbox-')) {
-              const inboxId = selectedTab.replace('inbox-', '');
-              return conversation.inbox_id === inboxId 
-                && !isSnoozedActive 
-                && !conversation.is_deleted;
+            if (selectedTab.startsWith("inbox-")) {
+              const inboxId = selectedTab.replace("inbox-", "")
+              return (
+                conversation.inbox_id === inboxId && !isSnoozedActive && !conversation.is_deleted
+              )
             }
-            return !isSnoozedActive 
-              && !conversation.is_deleted;
+            return !isSnoozedActive && !conversation.is_deleted
         }
-      })();
+      })()
 
-      const visible = matchesSearch && matchesStatus && matchesPriority && matchesBrand && matchesTags && matchesInbox && matchesPurpose && matchesTab;
+      const visible =
+        matchesSearch &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesBrand &&
+        matchesTags &&
+        matchesInbox &&
+        matchesPurpose &&
+        matchesTab
 
       // Track rows that belong to this inbox/tab but are hidden by the
       // search / status / priority / purpose filter chips, so the UI can say
       // "hidden by filters" instead of celebrating a false inbox zero.
-      if (!visible && matchesInbox && matchesTab) hiddenCount++;
+      if (!visible && matchesInbox && matchesTab) hiddenCount++
 
-      return visible;
-    });
+      return visible
+    })
 
     // Apply table sorting if a column is sorted
     if (state.tableSort.direction) {
       const sorted = filtered.sort((a, b) => {
-        const multiplier = state.tableSort.direction === 'asc' ? 1 : -1;
-        
+        const multiplier = state.tableSort.direction === "asc" ? 1 : -1
+
         switch (state.tableSort.key) {
-          case 'customer':
-            return multiplier * ((a.customer?.full_name || '').localeCompare(b.customer?.full_name || ''));
-          case 'subject':
-            return multiplier * ((a.subject || '').localeCompare(b.subject || ''));
-          case 'channel':
-            return multiplier * a.channel.localeCompare(b.channel);
-          case 'inbox':
-            return multiplier * ((a.inbox_id || '').localeCompare(b.inbox_id || ''));
+          case "customer":
+            return (
+              multiplier * (a.customer?.full_name || "").localeCompare(b.customer?.full_name || "")
+            )
+          case "subject":
+            return multiplier * (a.subject || "").localeCompare(b.subject || "")
+          case "channel":
+            return multiplier * a.channel.localeCompare(b.channel)
+          case "inbox":
+            return multiplier * (a.inbox_id || "").localeCompare(b.inbox_id || "")
 
-          case 'waiting':
-          case 'received':
+          case "waiting":
+          case "received": {
             // Use received_at (last message arrival) for sorting, fallback to updated_at
-            const aTime = new Date(a.received_at || a.updated_at).getTime();
-            const bTime = new Date(b.received_at || b.updated_at).getTime();
-            return multiplier * (aTime - bTime);
+            const aTime = new Date(a.received_at || a.updated_at).getTime()
+            const bTime = new Date(b.received_at || b.updated_at).getTime()
+            return multiplier * (aTime - bTime)
+          }
 
-          case 'sla':
-            const slaOrder = { breached: 4, at_risk: 3, on_track: 2, met: 1 };
-            const aSla = slaOrder[a.slaStatus || 'on_track'] || 2;
-            const bSla = slaOrder[b.slaStatus || 'on_track'] || 2;
-            return multiplier * (aSla - bSla);
-          case 'status':
-            const statusOrder = { open: 1, pending: 2, resolved: 3, closed: 4 };
-            const aStatus = statusOrder[a.status] || 1;
-            const bStatus = statusOrder[b.status] || 1;
-            return multiplier * (aStatus - bStatus);
-          case 'priority':
-            const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
-            const aPriority = priorityOrder[a.priority] || 2;
-            const bPriority = priorityOrder[b.priority] || 2;
-            return multiplier * (aPriority - bPriority);
+          case "sla": {
+            const slaOrder = { breached: 4, at_risk: 3, on_track: 2, met: 1 }
+            const aSla = slaOrder[a.slaStatus || "on_track"] || 2
+            const bSla = slaOrder[b.slaStatus || "on_track"] || 2
+            return multiplier * (aSla - bSla)
+          }
+          case "status": {
+            const statusOrder = { open: 1, pending: 2, resolved: 3, closed: 4 }
+            const aStatus = statusOrder[a.status] || 1
+            const bStatus = statusOrder[b.status] || 1
+            return multiplier * (aStatus - bStatus)
+          }
+          case "priority": {
+            const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 }
+            const aPriority = priorityOrder[a.priority] || 2
+            const bPriority = priorityOrder[b.priority] || 2
+            return multiplier * (aPriority - bPriority)
+          }
           default:
-            return 0;
+            return 0
         }
-      });
-      return { list: sorted, hiddenCount };
+      })
+      return { list: sorted, hiddenCount }
     }
 
     // Otherwise use legacy sortBy - use received_at for time-based sorting
     const sortedByRecency = filtered.sort((a, b) => {
       // Use received_at (last message arrival) instead of updated_at
-      const aTime = new Date(a.received_at || a.updated_at).getTime();
-      const bTime = new Date(b.received_at || b.updated_at).getTime();
-      
+      const aTime = new Date(a.received_at || a.updated_at).getTime()
+      const bTime = new Date(b.received_at || b.updated_at).getTime()
+
       switch (state.sortBy) {
-        case 'oldest':
-          return aTime - bTime;
-        case 'priority':
-          const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
-          const aPriority = priorityOrder[a.priority] || 2;
-          const bPriority = priorityOrder[b.priority] || 2;
-          if (aPriority !== bPriority) return bPriority - aPriority;
-          return bTime - aTime;
-        case 'unread':
-          if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
-          return bTime - aTime;
-        case 'latest':
+        case "oldest":
+          return aTime - bTime
+        case "priority": {
+          const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 }
+          const aPriority = priorityOrder[a.priority] || 2
+          const bPriority = priorityOrder[b.priority] || 2
+          if (aPriority !== bPriority) return bPriority - aPriority
+          return bTime - aTime
+        }
+        case "unread":
+          if (a.is_read !== b.is_read) return a.is_read ? 1 : -1
+          return bTime - aTime
         default:
-          return bTime - aTime;
+          return bTime - aTime
       }
-    });
-    return { list: sortedByRecency, hiddenCount };
-  }, [conversations, state.searchQuery, state.statusFilter, state.priorityFilter, state.brandFilter, state.tagFilter, conversationTags, state.purposeFilter, state.sortBy, state.tableSort, selectedTab, selectedInboxId, effectiveInboxId, effectiveInboxIds]);
+    })
+    return { list: sortedByRecency, hiddenCount }
+  }, [
+    conversations,
+    state.searchQuery,
+    state.statusFilter,
+    state.priorityFilter,
+    state.brandFilter,
+    state.tagFilter,
+    conversationTags,
+    state.purposeFilter,
+    state.sortBy,
+    state.tableSort,
+    selectedTab,
+    selectedInboxId,
+    effectiveInboxIds,
+    profile?.id,
+  ])
 
   // Channel chips ("All · Email · SMS · …") count the list *before* the channel
   // filter is applied, so selecting one chip never zeroes out the others.
   const channelCounts = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number> = {}
     preChannelConversations.forEach((c) => {
-      const key = c.channel === 'facebook' || c.channel === 'instagram' ? 'social' : (c.channel || 'other');
-      map[key] = (map[key] ?? 0) + 1;
-    });
-    return map;
-  }, [preChannelConversations]);
+      const key =
+        c.channel === "facebook" || c.channel === "instagram" ? "social" : c.channel || "other"
+      map[key] = (map[key] ?? 0) + 1
+    })
+    return map
+  }, [preChannelConversations])
 
   const filteredAndSortedConversations = useMemo(() => {
-    if (state.channelFilter === 'all') return preChannelConversations;
-    if (state.channelFilter === 'social') {
+    if (state.channelFilter === "all") return preChannelConversations
+    if (state.channelFilter === "social") {
       return preChannelConversations.filter(
-        (c) => c.channel === 'facebook' || c.channel === 'instagram',
-      );
+        (c) => c.channel === "facebook" || c.channel === "instagram",
+      )
     }
-    return preChannelConversations.filter((c) => c.channel === state.channelFilter);
-  }, [preChannelConversations, state.channelFilter]);
+    return preChannelConversations.filter((c) => c.channel === state.channelFilter)
+  }, [preChannelConversations, state.channelFilter])
 
   // Comprehensive debug logging
-  logger.debug('Filter state', {
-    totalConversations: conversations.length,
-    totalForInbox: effectiveInboxIds.length > 0 ? conversations.filter(c => effectiveInboxIds.includes(c.inbox_id || '')).length : 0,
-    filteredCount: filteredAndSortedConversations.length,
-    selectedTab,
-    selectedInboxId,
-    effectiveInboxId,
-    filters: {
-      searchQuery: state.searchQuery,
-      statusFilter: state.statusFilter,
-      priorityFilter: state.priorityFilter,
-    }
-  }, 'ConversationListFilter');
+  logger.debug(
+    "Filter state",
+    {
+      totalConversations: conversations.length,
+      totalForInbox:
+        effectiveInboxIds.length > 0
+          ? conversations.filter((c) => effectiveInboxIds.includes(c.inbox_id || "")).length
+          : 0,
+      filteredCount: filteredAndSortedConversations.length,
+      selectedTab,
+      selectedInboxId,
+      effectiveInboxId,
+      filters: {
+        searchQuery: state.searchQuery,
+        statusFilter: state.statusFilter,
+        priorityFilter: state.priorityFilter,
+      },
+    },
+    "ConversationListFilter",
+  )
 
   // Helper function to expand thread IDs for bulk operations
   const expandThreadIds = (selectedIds: string[]): string[] => {
-    const expandedIds = new Set<string>();
-    
-    selectedIds.forEach(id => {
+    const expandedIds = new Set<string>()
+
+    selectedIds.forEach((id) => {
       // Find the conversation in our filtered list
-      const conversation = filteredAndSortedConversations.find(c => c.id === id);
-      
+      const conversation = filteredAndSortedConversations.find((c) => c.id === id)
+
       if (conversation?.thread_ids && conversation.thread_ids.length > 0) {
         // If it's a threaded conversation, add all thread IDs
-        conversation.thread_ids.forEach(threadId => expandedIds.add(threadId));
+        conversation.thread_ids.forEach((threadId) => expandedIds.add(threadId))
       } else {
         // Otherwise just add the single ID
-        expandedIds.add(id);
+        expandedIds.add(id)
       }
-    });
-    
-    return Array.from(expandedIds);
-  };
+    })
+
+    return Array.from(expandedIds)
+  }
 
   // Helper function to chunk array into smaller batches to avoid URL length limits
   const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
-    const chunks: T[][] = [];
+    const chunks: T[][] = []
     for (let i = 0; i < array.length; i += chunkSize) {
-      chunks.push(array.slice(i, i + chunkSize));
+      chunks.push(array.slice(i, i + chunkSize))
     }
-    return chunks;
-  };
+    return chunks
+  }
 
   // Bulk operations
   const bulkMarkAsRead = async () => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
     // Expand thread IDs to include all conversations in threads
-    const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
+    const ids = expandThreadIds(selectedIds)
+    const idChunks = chunkArray(ids, 20)
+
     try {
       for (const chunk of idChunks) {
         const { error } = await supabase
-          .from('conversations')
+          .from("conversations")
           .update({ is_read: true })
-          .in('id', chunk);
-        
-        if (error) throw error;
+          .in("id", chunk)
+
+        if (error) throw error
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Marked ${ids.length} conversations as read`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      toast.success(`Marked ${ids.length} conversations as read`)
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to mark conversations as read', error, 'bulkMarkAsRead');
-      toast.error('Failed to mark conversations as read');
+      logger.error("Failed to mark conversations as read", error, "bulkMarkAsRead")
+      toast.error("Failed to mark conversations as read")
     }
-  };
+  }
 
   const bulkMarkAsUnread = async () => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
     // Expand thread IDs to include all conversations in threads
-    const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
+    const ids = expandThreadIds(selectedIds)
+    const idChunks = chunkArray(ids, 20)
+
     try {
       for (const chunk of idChunks) {
         const { error } = await supabase
-          .from('conversations')
+          .from("conversations")
           .update({ is_read: false })
-          .in('id', chunk);
-        
-        if (error) throw error;
+          .in("id", chunk)
+
+        if (error) throw error
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(`Marked ${ids.length} conversations as unread`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      toast.success(`Marked ${ids.length} conversations as unread`)
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to mark conversations as unread', error, 'bulkMarkAsUnread');
-      toast.error('Failed to mark conversations as unread');
+      logger.error("Failed to mark conversations as unread", error, "bulkMarkAsUnread")
+      toast.error("Failed to mark conversations as unread")
     }
-  };
+  }
 
   const bulkChangeStatus = async (status: string) => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
     // Expand thread IDs to include all conversations in threads
-    const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
+    const ids = expandThreadIds(selectedIds)
+    const idChunks = chunkArray(ids, 20)
+
     try {
       for (const chunk of idChunks) {
         const { error } = await supabase
-          .from('conversations')
-          .update(status === 'closed' ? { status, is_read: true } : { status })
-          .in('id', chunk);
-        
-        if (error) throw error;
+          .from("conversations")
+          .update(status === "closed" ? { status, is_read: true } : { status })
+          .in("id", chunk)
+
+        if (error) throw error
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      toast.success(`Changed status to ${status} for ${ids.length} conversation${ids.length === 1 ? '' : 's'}`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      toast.success(
+        `Changed status to ${status} for ${ids.length} conversation${ids.length === 1 ? "" : "s"}`,
+      )
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to change status', error, 'bulkChangeStatus');
-      toast.error('Failed to change status');
+      logger.error("Failed to change status", error, "bulkChangeStatus")
+      toast.error("Failed to change status")
     }
-  };
+  }
 
   const bulkArchive = async () => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
-    const ids = expandThreadIds(selectedIds);
+    const ids = expandThreadIds(selectedIds)
     // Archiving always closes the conversation as well.
     {
-      const idChunks = chunkArray(ids, 20);
+      const idChunks = chunkArray(ids, 20)
       try {
         for (const chunk of idChunks) {
           const { error } = await supabase
-            .from('conversations')
-            .update({ is_archived: true, status: 'closed', is_read: true })
-            .in('id', chunk);
-          if (error) throw error;
+            .from("conversations")
+            .update({ is_archived: true, status: "closed", is_read: true })
+            .in("id", chunk)
+          if (error) throw error
         }
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-        toast.success(`Archived ${ids.length} conversations`);
-        dispatch({ type: 'CLEAR_BULK_SELECTION' });
+        queryClient.invalidateQueries({ queryKey: ["conversations"] })
+        toast.success(`Archived ${ids.length} conversations`)
+        dispatch({ type: "CLEAR_BULK_SELECTION" })
       } catch (error) {
-        logger.error('Failed to archive conversations', error, 'bulkArchive');
-        toast.error('Failed to archive conversations');
+        logger.error("Failed to archive conversations", error, "bulkArchive")
+        toast.error("Failed to archive conversations")
       }
     }
-  };
+  }
 
   const bulkDelete = async () => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
     // Expand thread IDs to include all conversations in threads
-    const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
+    const ids = expandThreadIds(selectedIds)
+    const idChunks = chunkArray(ids, 20)
+
     try {
-      toast.loading(`Deleting ${ids.length} conversations...`, { id: 'bulk-delete' });
+      toast.loading(`Deleting ${ids.length} conversations...`, { id: "bulk-delete" })
 
       // Soft-delete conversations in batches (messages stay linked)
       for (const chunk of idChunks) {
         const { error: conversationsError } = await supabase
-          .from('conversations')
+          .from("conversations")
           .update({ deleted_at: new Date().toISOString() })
-          .in('id', chunk);
-        
-        if (conversationsError) throw conversationsError;
+          .in("id", chunk)
+
+        if (conversationsError) throw conversationsError
       }
 
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      toast.success(`Moved ${ids.length} conversations to trash`, { id: 'bulk-delete' });
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      toast.success(`Moved ${ids.length} conversations to trash`, { id: "bulk-delete" })
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to delete conversations', error, 'bulkDelete');
-      toast.error('Failed to delete conversations', { id: 'bulk-delete' });
+      logger.error("Failed to delete conversations", error, "bulkDelete")
+      toast.error("Failed to delete conversations", { id: "bulk-delete" })
     }
-  };
+  }
 
   const bulkAssign = async (assigneeId: string) => {
-    const selectedIds = Array.from(state.selectedConversations);
-    if (selectedIds.length === 0) return;
+    const selectedIds = Array.from(state.selectedConversations)
+    if (selectedIds.length === 0) return
 
     // Expand thread IDs to include all conversations in threads
-    const ids = expandThreadIds(selectedIds);
-    const idChunks = chunkArray(ids, 20);
-    
+    const ids = expandThreadIds(selectedIds)
+    const idChunks = chunkArray(ids, 20)
+
     try {
       for (const chunk of idChunks) {
         const { error } = await supabase
-          .from('conversations')
+          .from("conversations")
           .update({ assigned_to_id: assigneeId })
-          .in('id', chunk);
-        
-        if (error) throw error;
+          .in("id", chunk)
+
+        if (error) throw error
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      const agent = agentsData.find(a => a.id === assigneeId);
-      toast.success(`Assigned ${ids.length} conversations to ${agent?.name || 'agent'}`);
-      dispatch({ type: 'CLEAR_BULK_SELECTION' });
+
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      const agent = agentsData.find((a) => a.id === assigneeId)
+      toast.success(`Assigned ${ids.length} conversations to ${agent?.name || "agent"}`)
+      dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
-      logger.error('Failed to assign conversations', error, 'bulkAssign');
-      toast.error('Failed to assign conversations');
+      logger.error("Failed to assign conversations", error, "bulkAssign")
+      toast.error("Failed to assign conversations")
     }
-  };
+  }
 
   // Load all conversations by fetching all remaining pages
   const loadAllConversations = async () => {
     const loadNextBatch = async (): Promise<void> => {
       // Check if we can fetch more
       if (!hasNextPage || isFetchingNextPage) {
-        return;
+        return
       }
-      
+
       // Fetch the next page
-      const result = await fetchNextPage();
-      
+      const result = await fetchNextPage()
+
       // Increase delay to 150ms for better stabilization between batches
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
       // Check the result to see if there's more data
       if (result.hasNextPage && !result.isFetchingNextPage) {
         // Recursively load the next batch
-        return loadNextBatch();
+        return loadNextBatch()
       }
-    };
-    
-    try {
-      await loadNextBatch();
-      toast.success('All conversations loaded');
-    } catch (error) {
-      logger.error('Failed to load all conversations', error, 'loadAllConversations');
-      toast.error('Failed to load all conversations');
     }
-  };
+
+    try {
+      await loadNextBatch()
+      toast.success("All conversations loaded")
+    } catch (error) {
+      logger.error("Failed to load all conversations", error, "loadAllConversations")
+      toast.error("Failed to load all conversations")
+    }
+  }
 
   const value = {
     state,
@@ -1109,7 +1200,7 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     channelCounts,
     paginatedConversations: filteredAndSortedConversations.slice(
       (state.currentPage - 1) * state.pageSize,
-      state.currentPage * state.pageSize
+      state.currentPage * state.pageSize,
     ),
     bulkMarkAsRead,
     bulkMarkAsUnread,
@@ -1119,20 +1210,17 @@ export const ConversationListProvider = ({ children, selectedTab, selectedInboxI
     bulkAssign,
     agents: agentsData,
     selectedInboxId,
-
-  };
+  }
 
   return (
-    <ConversationListContext.Provider value={value}>
-      {children}
-    </ConversationListContext.Provider>
-  );
-};
+    <ConversationListContext.Provider value={value}>{children}</ConversationListContext.Provider>
+  )
+}
 
 export const useConversationList = () => {
-  const context = useContext(ConversationListContext);
+  const context = useContext(ConversationListContext)
   if (context === undefined) {
-    throw new Error('useConversationList must be used within a ConversationListProvider');
+    throw new Error("useConversationList must be used within a ConversationListProvider")
   }
-  return context;
-};
+  return context
+}

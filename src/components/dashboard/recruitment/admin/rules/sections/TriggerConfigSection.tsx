@@ -1,27 +1,24 @@
-import { Loader2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Loader2 } from "lucide-react"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { TRIGGER_LABELS, type TriggerType } from '../types';
-import {
-  useStagesForOrg,
-  usePositionsForOrg,
-} from '../hooks/useRules';
+} from "@/components/ui/select"
+import { usePositionsForOrg, useStagesForOrg } from "../hooks/useRules"
+import { TRIGGER_LABELS, type TriggerType } from "../types"
 
 interface Props {
-  triggerType: TriggerType;
-  triggerConfig: Record<string, unknown>;
-  onTriggerTypeChange: (value: TriggerType) => void;
-  onTriggerConfigChange: (config: Record<string, unknown>) => void;
+  triggerType: TriggerType
+  triggerConfig: Record<string, unknown>
+  onTriggerTypeChange: (value: TriggerType) => void
+  onTriggerConfigChange: (config: Record<string, unknown>) => void
   errors?: {
-    stage_id?: { message?: string };
-    position_id?: { message?: string };
-  };
+    stage_id?: { message?: string }
+    position_id?: { message?: string }
+  }
 }
 
 export function TriggerConfigSection({
@@ -31,8 +28,8 @@ export function TriggerConfigSection({
   onTriggerConfigChange,
   errors,
 }: Props) {
-  const { data: stages, isLoading: stagesLoading } = useStagesForOrg();
-  const { data: positions, isLoading: positionsLoading } = usePositionsForOrg();
+  const { data: stages, isLoading: stagesLoading } = useStagesForOrg()
+  const { data: positions, isLoading: positionsLoading } = usePositionsForOrg()
 
   return (
     <div className="space-y-4">
@@ -45,10 +42,7 @@ export function TriggerConfigSection({
         <Label htmlFor="rule-trigger-type" className="text-xs font-medium">
           Type <span className="text-destructive">*</span>
         </Label>
-        <Select
-          value={triggerType}
-          onValueChange={(v) => onTriggerTypeChange(v as TriggerType)}
-        >
+        <Select value={triggerType} onValueChange={(v) => onTriggerTypeChange(v as TriggerType)}>
           <SelectTrigger id="rule-trigger-type">
             <SelectValue />
           </SelectTrigger>
@@ -62,7 +56,7 @@ export function TriggerConfigSection({
         </Select>
       </div>
 
-      {triggerType === 'stage_entered' && (
+      {triggerType === "stage_entered" && (
         <div className="space-y-1.5">
           <Label htmlFor="rule-trigger-stage" className="text-xs font-medium">
             Hvilken fase? <span className="text-destructive">*</span>
@@ -74,7 +68,7 @@ export function TriggerConfigSection({
             </div>
           ) : (
             <Select
-              value={(triggerConfig.stage_id as string) ?? ''}
+              value={(triggerConfig.stage_id as string) ?? ""}
               onValueChange={(v) => onTriggerConfigChange({ stage_id: v })}
             >
               <SelectTrigger id="rule-trigger-stage">
@@ -103,7 +97,7 @@ export function TriggerConfigSection({
         </div>
       )}
 
-      {triggerType === 'application_created' && (
+      {triggerType === "application_created" && (
         <div className="space-y-1.5">
           <Label htmlFor="rule-trigger-position" className="text-xs font-medium">
             Hvilken stilling? <span className="text-muted-foreground">(valgfritt)</span>
@@ -115,11 +109,9 @@ export function TriggerConfigSection({
             </div>
           ) : (
             <Select
-              value={(triggerConfig.position_id as string) ?? '__any__'}
+              value={(triggerConfig.position_id as string) ?? "__any__"}
               onValueChange={(v) =>
-                onTriggerConfigChange(
-                  v === '__any__' ? {} : { position_id: v },
-                )
+                onTriggerConfigChange(v === "__any__" ? {} : { position_id: v })
               }
             >
               <SelectTrigger id="rule-trigger-position">
@@ -141,5 +133,5 @@ export function TriggerConfigSection({
         </div>
       )}
     </div>
-  );
+  )
 }

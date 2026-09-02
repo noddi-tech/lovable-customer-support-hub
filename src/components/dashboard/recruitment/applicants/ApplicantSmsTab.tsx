@@ -1,41 +1,50 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Plus, X, Clock, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import {
-  useApplicantSmsConversations,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  MessageSquare,
+  Plus,
+  X,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
   useApplicantScheduledSms,
+  useApplicantSmsConversations,
   useCancelScheduledSms,
-} from '@/hooks/recruitment/useRecruitmentSms';
-import { ComposeRecruitmentSmsDialog } from './ComposeRecruitmentSmsDialog';
-import { InlineSmsThread } from './InlineSmsThread';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
+} from "@/hooks/recruitment/useRecruitmentSms"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { cn } from "@/lib/utils"
+import { ComposeRecruitmentSmsDialog } from "./ComposeRecruitmentSmsDialog"
+import { InlineSmsThread } from "./InlineSmsThread"
 
 interface Props {
   applicant: {
-    id: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    phone?: string | null;
-  };
+    id: string
+    first_name?: string | null
+    last_name?: string | null
+    phone?: string | null
+  }
 }
 
 export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const { data: conversations, isLoading } = useApplicantSmsConversations(applicant.id);
-  const { data: scheduled } = useApplicantScheduledSms(applicant.id);
-  const cancelMut = useCancelScheduledSms();
-  const { dateTime } = useDateFormatting();
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const { data: conversations, isLoading } = useApplicantSmsConversations(applicant.id)
+  const { data: scheduled } = useApplicantScheduledSms(applicant.id)
+  const cancelMut = useCancelScheduledSms()
+  const { dateTime } = useDateFormatting()
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">
-          {applicant.phone ? `Telefon: ${applicant.phone}` : 'Ingen telefon registrert'}
+          {applicant.phone ? `Telefon: ${applicant.phone}` : "Ingen telefon registrert"}
         </div>
         <Button size="sm" onClick={() => setComposeOpen(true)} disabled={!applicant.phone}>
           <Plus className="h-3.5 w-3.5" />
@@ -61,8 +70,12 @@ export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
                       <div className="text-xs text-destructive mt-0.5">{s.error_message}</div>
                     )}
                   </div>
-                  {s.status === 'pending' && (
-                    <Button size="sm" variant="ghost" onClick={() => cancelMut.mutate({ id: s.id })}>
+                  {s.status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => cancelMut.mutate({ id: s.id })}
+                    >
                       <X className="h-3.5 w-3.5" /> Avbryt
                     </Button>
                   )}
@@ -85,13 +98,13 @@ export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
           ) : (
             <ul className="divide-y">
               {conversations!.map((c) => {
-                const isExpanded = expandedId === c.id;
+                const isExpanded = expandedId === c.id
                 return (
                   <li key={c.id} className="bg-background">
                     <div
                       className={cn(
-                        'flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors',
-                        isExpanded && 'bg-muted/30'
+                        "flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors",
+                        isExpanded && "bg-muted/30",
                       )}
                       onClick={() => setExpandedId(isExpanded ? null : c.id)}
                     >
@@ -102,14 +115,14 @@ export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="text-sm line-clamp-2 break-words">
-                          {c.preview_text || '—'}
+                          {c.preview_text || "—"}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {dateTime(c.updated_at)} • {c.status}
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[10px]">
-                        {c.last_message_sender_type || 'agent'}
+                        {c.last_message_sender_type || "agent"}
                       </Badge>
                       <Link
                         to={`/interactions/text/conversations/${c.id}`}
@@ -129,7 +142,7 @@ export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
                       />
                     )}
                   </li>
-                );
+                )
               })}
             </ul>
           )}
@@ -142,7 +155,7 @@ export const ApplicantSmsTab: React.FC<Props> = ({ applicant }) => {
         applicant={applicant}
       />
     </div>
-  );
-};
+  )
+}
 
-export default ApplicantSmsTab;
+export default ApplicantSmsTab

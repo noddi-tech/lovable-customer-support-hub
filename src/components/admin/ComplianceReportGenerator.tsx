@@ -1,135 +1,155 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Card } from '@/components/ui/card';
-import { FileText, Download, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { format } from "date-fns"
+import { Calendar as CalendarIcon, Download, FileText, Loader2 } from "lucide-react"
+import { useState } from "react"
+import type { DateRange } from "react-day-picker"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Card } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { supabase } from "@/integrations/supabase/client"
 
 interface ComplianceReportGeneratorProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-type ReportTemplate = 'access_control' | 'user_lifecycle' | 'org_changes' | 'security_events';
+type ReportTemplate = "access_control" | "user_lifecycle" | "org_changes" | "security_events"
 
 const reportTemplates: Record<ReportTemplate, { label: string; description: string }> = {
   access_control: {
-    label: 'Access Control Changes',
-    description: 'Role assignments, removals, and permission changes',
+    label: "Access Control Changes",
+    description: "Role assignments, removals, and permission changes",
   },
   user_lifecycle: {
-    label: 'User Lifecycle Report',
-    description: 'User creation, updates, and deletion events',
+    label: "User Lifecycle Report",
+    description: "User creation, updates, and deletion events",
   },
   org_changes: {
-    label: 'Organization Changes',
-    description: 'Organization creation, updates, and membership changes',
+    label: "Organization Changes",
+    description: "Organization creation, updates, and membership changes",
   },
   security_events: {
-    label: 'Security Events',
-    description: 'All security-relevant administrative actions',
+    label: "Security Events",
+    description: "All security-relevant administrative actions",
   },
-};
+}
 
 export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceReportGeneratorProps) {
-  const [template, setTemplate] = useState<ReportTemplate>('access_control');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [template, setTemplate] = useState<ReportTemplate>("access_control")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const handleGenerateCSV = async () => {
     if (!dateRange?.from || !dateRange?.to) {
-      toast.error('Please select a date range');
-      return;
+      toast.error("Please select a date range")
+      return
     }
 
-    setIsGenerating(true);
+    setIsGenerating(true)
     try {
       // Build query based on template
       let query = supabase
-        .from('admin_audit_logs')
-        .select('*')
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: false });
+        .from("admin_audit_logs")
+        .select("*")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString())
+        .order("created_at", { ascending: false })
 
       // Apply template-specific filters
       switch (template) {
-        case 'access_control':
-          query = query.in('action_type', [
-            'user.role.assign',
-            'user.role.remove',
-            'org.member.role.update',
-          ]);
-          break;
-        case 'user_lifecycle':
-          query = query.in('action_type', [
-            'user.create',
-            'user.update',
-            'user.delete',
-          ]);
-          break;
-        case 'org_changes':
-          query = query.in('action_type', [
-            'org.create',
-            'org.update',
-            'org.delete',
-            'org.member.add',
-            'org.member.remove',
-          ]);
-          break;
-        case 'security_events':
+        case "access_control":
+          query = query.in("action_type", [
+            "user.role.assign",
+            "user.role.remove",
+            "org.member.role.update",
+          ])
+          break
+        case "user_lifecycle":
+          query = query.in("action_type", ["user.create", "user.update", "user.delete"])
+          break
+        case "org_changes":
+          query = query.in("action_type", [
+            "org.create",
+            "org.update",
+            "org.delete",
+            "org.member.add",
+            "org.member.remove",
+          ])
+          break
+        case "security_events":
           // Include all events
-          break;
+          break
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query
 
-      if (error) throw error;
+      if (error) throw error
 
       if (!data || data.length === 0) {
-        toast.error('No data found for the selected criteria');
-        return;
+        toast.error("No data found for the selected criteria")
+        return
       }
 
       // Generate CSV
       const csv = [
-        ['Timestamp', 'Actor Email', 'Actor Role', 'Action Type', 'Category', 'Target Type', 'Target', 'Changes', 'Organization ID'].join(','),
-        ...data.map(log => [
-          log.created_at,
-          log.actor_email,
-          log.actor_role,
-          log.action_type,
-          log.action_category,
-          log.target_type,
-          log.target_identifier,
-          JSON.stringify(log.changes).replace(/,/g, ';'),
-          log.organization_id || 'N/A',
-        ].join(','))
-      ].join('\n');
+        [
+          "Timestamp",
+          "Actor Email",
+          "Actor Role",
+          "Action Type",
+          "Category",
+          "Target Type",
+          "Target",
+          "Changes",
+          "Organization ID",
+        ].join(","),
+        ...data.map((log) =>
+          [
+            log.created_at,
+            log.actor_email,
+            log.actor_role,
+            log.action_type,
+            log.action_category,
+            log.target_type,
+            log.target_identifier,
+            JSON.stringify(log.changes).replace(/,/g, ";"),
+            log.organization_id || "N/A",
+          ].join(","),
+        ),
+      ].join("\n")
 
       // Download
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `compliance-report-${template}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
+      const blob = new Blob([csv], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `compliance-report-${template}-${format(new Date(), "yyyy-MM-dd")}.csv`
+      a.click()
 
-      toast.success('Report generated successfully');
-      onOpenChange(false);
+      toast.success("Report generated successfully")
+      onOpenChange(false)
     } catch (error) {
-      console.error('Error generating report:', error);
-      toast.error('Failed to generate report');
+      console.error("Error generating report:", error)
+      toast.error("Failed to generate report")
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -153,9 +173,7 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
                 <Card
                   key={key}
                   className={`p-4 cursor-pointer transition-all ${
-                    template === key
-                      ? 'border-primary bg-primary/5'
-                      : 'hover:border-primary/50'
+                    template === key ? "border-primary bg-primary/5" : "hover:border-primary/50"
                   }`}
                   onClick={() => setTemplate(key as ReportTemplate)}
                 >
@@ -164,9 +182,7 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
                       <h4 className="font-medium">{label}</h4>
                       <p className="text-sm text-muted-foreground mt-1">{description}</p>
                     </div>
-                    {template === key && (
-                      <div className="w-4 h-4 rounded-full bg-primary" />
-                    )}
+                    {template === key && <div className="w-4 h-4 rounded-full bg-primary" />}
                   </div>
                 </Card>
               ))}
@@ -183,13 +199,13 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>
-                        {format(dateRange.from, 'LLL dd, y')} - {format(dateRange.to, 'LLL dd, y')}
+                        {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
                       </>
                     ) : (
-                      format(dateRange.from, 'LLL dd, y')
+                      format(dateRange.from, "LLL dd, y")
                     )
                   ) : (
-                    'Pick a date range'
+                    "Pick a date range"
                   )}
                 </Button>
               </PopoverTrigger>
@@ -239,5 +255,5 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -1,7 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MobileChatBubble } from './MobileChatBubble';
-import type { NormalizedMessage } from '@/lib/normalizeMessage';
+import { useEffect, useRef, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,16 +8,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useNoteMutations } from '@/hooks/useNoteMutations';
-import { noteDebug } from '@/utils/noteInteractionDebug';
+} from "@/components/ui/alert-dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useNoteMutations } from "@/hooks/useNoteMutations"
+import type { NormalizedMessage } from "@/lib/normalizeMessage"
+import { noteDebug } from "@/utils/noteInteractionDebug"
+import { MobileChatBubble } from "./MobileChatBubble"
 
 interface MobileChatMessageListProps {
-  messages: NormalizedMessage[];
-  customerName?: string;
-  customerEmail?: string;
-  customerTyping?: boolean;
-  conversationId?: string;
+  messages: NormalizedMessage[]
+  customerName?: string
+  customerEmail?: string
+  customerTyping?: boolean
+  conversationId?: string
 }
 
 export const MobileChatMessageList = ({
@@ -30,18 +30,18 @@ export const MobileChatMessageList = ({
   customerTyping = false,
   conversationId,
 }: MobileChatMessageListProps) => {
-  const endRef = useRef<HTMLDivElement>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const { deleteNote } = useNoteMutations();
+  const endRef = useRef<HTMLDivElement>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const { deleteNote } = useNoteMutations()
 
   // Sort oldest first
   const sorted = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, customerTyping]);
+    endRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [])
 
   return (
     <>
@@ -66,13 +66,22 @@ export const MobileChatMessageList = ({
           {customerTyping && (
             <div className="self-start">
               <span className="text-[10px] text-muted-foreground mb-0.5 px-1 block">
-                {customerName || 'Customer'}
+                {customerName || "Customer"}
               </span>
               <div className="bg-muted rounded-2xl rounded-bl-md px-3 py-2">
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span
+                    className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
                 </div>
               </div>
             </div>
@@ -86,8 +95,12 @@ export const MobileChatMessageList = ({
       <AlertDialog
         open={!!confirmDeleteId}
         onOpenChange={(open) => {
-          noteDebug('delete_dialog_open_changed', { source: 'MobileChatMessageList', open, messageId: confirmDeleteId }, 'MobileChatMessageList');
-          if (!open) setConfirmDeleteId(null);
+          noteDebug(
+            "delete_dialog_open_changed",
+            { source: "MobileChatMessageList", open, messageId: confirmDeleteId },
+            "MobileChatMessageList",
+          )
+          if (!open) setConfirmDeleteId(null)
         }}
       >
         <AlertDialogContent>
@@ -101,13 +114,17 @@ export const MobileChatMessageList = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const idToDelete = confirmDeleteId;
-                noteDebug('delete_confirm_clicked', { source: 'MobileChatMessageList', messageId: idToDelete }, 'MobileChatMessageList');
-                setConfirmDeleteId(null);
-                if (!idToDelete) return;
+                const idToDelete = confirmDeleteId
+                noteDebug(
+                  "delete_confirm_clicked",
+                  { source: "MobileChatMessageList", messageId: idToDelete },
+                  "MobileChatMessageList",
+                )
+                setConfirmDeleteId(null)
+                if (!idToDelete) return
                 setTimeout(() => {
-                  void deleteNote(idToDelete, conversationId);
-                }, 0);
+                  void deleteNote(idToDelete, conversationId)
+                }, 0)
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -117,5 +134,5 @@ export const MobileChatMessageList = ({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-};
+  )
+}

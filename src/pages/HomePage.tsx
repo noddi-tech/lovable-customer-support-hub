@@ -1,50 +1,52 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
-import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
-import { useInboxDefaults } from '@/hooks/useInboxDefaults';
-import { useDefaultInbox } from '@/hooks/useDefaultInbox';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { groupInboxesByDomain } from '@/utils/inboxGrouping';
-import { useMemo, useState } from 'react';
-import { InboxMetricsDialog } from '@/components/dashboard/InboxMetricsDialog';
-import { SupportOverviewSection } from '@/components/dashboard/SupportOverviewSection';
-import { useSlaRiskByInbox } from '@/hooks/useSlaRisk';
-import { InboxCard } from '@/components/dashboard/home/InboxCard';
-
-import { Inbox, MailOpen, Mail, UserCheck, Clock, Settings2 } from 'lucide-react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Clock, Inbox, Mail, MailOpen, Settings2, UserCheck } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { InboxCard } from "@/components/dashboard/home/InboxCard"
+import { InboxMetricsDialog } from "@/components/dashboard/InboxMetricsDialog"
+import { SupportOverviewSection } from "@/components/dashboard/SupportOverviewSection"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useAuth } from "@/hooks/useAuth"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useDefaultInbox } from "@/hooks/useDefaultInbox"
+import { useInboxDefaults } from "@/hooks/useInboxDefaults"
+import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
+import { useOptimizedCounts } from "@/hooks/useOptimizedCounts"
+import { useSlaRiskByInbox } from "@/hooks/useSlaRisk"
+import { groupInboxesByDomain } from "@/utils/inboxGrouping"
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const { profile, user } = useAuth();
-  const { conversations, inboxes } = useOptimizedCounts();
-  const { byInbox: slaRiskByInbox } = useSlaRiskByInbox();
-  const { data: inboxEmails = {} } = useInboxEmailAddresses();
-  const { data: inboxDefaults = {} } = useInboxDefaults();
-  const { defaultInboxId, setDefaultInbox } = useDefaultInbox();
+  const navigate = useNavigate()
+  const { profile, user } = useAuth()
+  const { conversations, inboxes } = useOptimizedCounts()
+  const { byInbox: slaRiskByInbox } = useSlaRiskByInbox()
+  const { data: inboxEmails = {} } = useInboxEmailAddresses()
+  const { data: inboxDefaults = {} } = useInboxDefaults()
+  const { defaultInboxId, setDefaultInbox } = useDefaultInbox()
 
-  const { dateTime } = useDateFormatting();
-  const [metricsInbox, setMetricsInbox] = useState<{ id: string; name: string } | null>(null);
+  const { dateTime } = useDateFormatting()
+  const [metricsInbox, setMetricsInbox] = useState<{ id: string; name: string } | null>(null)
 
-  const firstName = (profile?.full_name || user?.user_metadata?.full_name || 'there').split(' ')[0];
+  const firstName = (profile?.full_name || user?.user_metadata?.full_name || "there").split(" ")[0]
 
   const inboxGroups = useMemo(
-    () => groupInboxesByDomain(inboxes.filter(i => i.is_active), inboxEmails),
+    () =>
+      groupInboxesByDomain(
+        inboxes.filter((i) => i.is_active),
+        inboxEmails,
+      ),
     [inboxes, inboxEmails],
-  );
-
+  )
 
   const stats = [
-    { label: 'Open', filter: 'open', value: conversations.open, icon: MailOpen },
-    { label: 'Unread', filter: 'unread', value: conversations.unread, icon: Mail },
-    { label: 'Assigned to me', filter: 'assigned', value: conversations.assigned, icon: UserCheck },
-    { label: 'Pending', filter: 'pending', value: conversations.pending, icon: Clock },
-  ];
+    { label: "Open", filter: "open", value: conversations.open, icon: MailOpen },
+    { label: "Unread", filter: "unread", value: conversations.unread, icon: Mail },
+    { label: "Assigned to me", filter: "assigned", value: conversations.assigned, icon: UserCheck },
+    { label: "Pending", filter: "pending", value: conversations.pending, icon: Clock },
+  ]
 
   return (
     <UnifiedAppLayout>
@@ -60,9 +62,7 @@ export default function HomePage() {
           <h1 className="text-xl md:text-2xl font-bold text-foreground">
             Welcome back, {firstName} 👋
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {dateTime(new Date())}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{dateTime(new Date())}</p>
         </div>
 
         {/* Channel overview + gamified leaderboard */}
@@ -82,7 +82,7 @@ export default function HomePage() {
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-[11px]"
-                onClick={() => navigate('/admin/inboxes')}
+                onClick={() => navigate("/admin/inboxes")}
               >
                 <Settings2 className="h-3.5 w-3.5 mr-1.5" />
                 Manage inboxes
@@ -91,7 +91,7 @@ export default function HomePage() {
 
             {/* Stats row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
-              {stats.map(s => (
+              {stats.map((s) => (
                 <Card
                   key={s.label}
                   className="cursor-pointer hover:shadow-md transition-shadow"
@@ -107,7 +107,7 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-4">
-              {inboxGroups.map(group => (
+              {inboxGroups.map((group) => (
                 <div key={group.label}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -115,12 +115,12 @@ export default function HomePage() {
                     </span>
                     <span className="h-px flex-1 bg-border" />
                     <span className="text-[10px] text-muted-foreground">
-                      {group.inboxes.length} {group.inboxes.length === 1 ? 'inbox' : 'inboxes'}
+                      {group.inboxes.length} {group.inboxes.length === 1 ? "inbox" : "inboxes"}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {group.inboxes.map(inbox => {
-                      const slaRisk = slaRiskByInbox.get(inbox.id);
+                    {group.inboxes.map((inbox) => {
+                      const slaRisk = slaRiskByInbox.get(inbox.id)
                       return (
                         <InboxCard
                           key={inbox.id}
@@ -133,7 +133,9 @@ export default function HomePage() {
                           onFixSla={() =>
                             navigate(
                               `/interactions/text/open?inbox=${inbox.id}` +
-                                (slaRisk?.nextConversationId ? `&m=${slaRisk.nextConversationId}` : ''),
+                                (slaRisk?.nextConversationId
+                                  ? `&m=${slaRisk.nextConversationId}`
+                                  : ""),
                             )
                           }
                           onToggleDefault={() =>
@@ -142,9 +144,8 @@ export default function HomePage() {
                           onOpenMetrics={() => setMetricsInbox({ id: inbox.id, name: inbox.name })}
                           onConfigure={() => navigate(`/admin/inboxes/${inbox.id}`)}
                         />
-                      );
+                      )
                     })}
-
                   </div>
                 </div>
               ))}
@@ -153,13 +154,14 @@ export default function HomePage() {
         )}
       </div>
 
-
       <InboxMetricsDialog
         open={Boolean(metricsInbox)}
-        onOpenChange={(open) => { if (!open) setMetricsInbox(null); }}
+        onOpenChange={(open) => {
+          if (!open) setMetricsInbox(null)
+        }}
         inboxId={metricsInbox?.id ?? null}
-        inboxName={metricsInbox?.name ?? ''}
+        inboxName={metricsInbox?.name ?? ""}
       />
     </UnifiedAppLayout>
-  );
+  )
 }

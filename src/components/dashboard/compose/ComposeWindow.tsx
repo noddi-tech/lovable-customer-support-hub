@@ -1,361 +1,367 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  Minus,
-  X,
-  Maximize2,
-  Minimize2,
-  Loader2,
-  Sparkles,
-  Languages,
-  Users,
-  User,
-  Send,
-  Trash2,
-  Paperclip,
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
-  AlertTriangle,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+  Languages,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Paperclip,
+  Send,
+  Sparkles,
+  Trash2,
+  User,
+  Users,
+  X,
+} from "lucide-react"
+import React, { useCallback, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Progress } from "@/components/ui/progress"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useInboxEmailAddresses } from '@/hooks/useInboxEmailAddresses';
-import { useDefaultInbox } from '@/hooks/useDefaultInbox';
-import { createConversationAndSend } from '@/lib/createConversation';
-import { useCompose, type ComposeDraft } from '@/contexts/ComposeContext';
-import { TemplateSelector } from '../conversation-view/TemplateSelector';
-import { AiSuggestionDialog } from '../conversation-view/AiSuggestionDialog';
-import { sortInboxesByName } from '@/lib/sortInboxes';
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { type ComposeDraft, useCompose } from "@/contexts/ComposeContext"
+import { useAuth } from "@/hooks/useAuth"
+import { useDefaultInbox } from "@/hooks/useDefaultInbox"
+import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
+import { supabase } from "@/integrations/supabase/client"
+import { createConversationAndSend } from "@/lib/createConversation"
+import { sortInboxesByName } from "@/lib/sortInboxes"
+import { cn } from "@/lib/utils"
+import { AiSuggestionDialog } from "../conversation-view/AiSuggestionDialog"
+import { TemplateSelector } from "../conversation-view/TemplateSelector"
 
 interface InboxData {
-  id: string;
-  name: string;
-  color: string;
-  is_default: boolean;
+  id: string
+  name: string
+  color: string
+  is_default: boolean
 }
 
 interface NoddiCustomer {
-  id: string;
-  full_name: string;
-  email?: string;
-  metadata?: { noddi_email?: string };
+  id: string
+  full_name: string
+  email?: string
+  metadata?: { noddi_email?: string }
 }
 
 const LANGUAGES = [
-  { code: 'auto', name: 'Auto Detect' },
-  { code: 'en', name: 'English' },
-  { code: 'no', name: 'Norwegian' },
-  { code: 'sv', name: 'Swedish' },
-  { code: 'da', name: 'Danish' },
-  { code: 'de', name: 'German' },
-  { code: 'fr', name: 'French' },
-  { code: 'es', name: 'Spanish' },
-];
+  { code: "auto", name: "Auto Detect" },
+  { code: "en", name: "English" },
+  { code: "no", name: "Norwegian" },
+  { code: "sv", name: "Swedish" },
+  { code: "da", name: "Danish" },
+  { code: "de", name: "German" },
+  { code: "fr", name: "French" },
+  { code: "es", name: "Spanish" },
+]
 
 function parseEmails(raw: string): string[] {
   return raw
     .split(/[\n,;]+/)
     .map((e) => e.trim().toLowerCase())
     .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
-    .filter((e, i, a) => a.indexOf(e) === i);
+    .filter((e, i, a) => a.indexOf(e) === i)
 }
 
 interface ComposeWindowProps {
-  draft: ComposeDraft;
+  draft: ComposeDraft
 }
 
 /** Gmail-style compose window docked to the bottom of the screen. */
 export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
-  const { updateDraft, closeWindow, removeDraft, toggleMinimize } = useCompose();
-  const { profile } = useAuth();
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { updateDraft, closeWindow, removeDraft, toggleMinimize } = useCompose()
+  const { profile } = useAuth()
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
-  const [expanded, setExpanded] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; failed: number } | null>(null);
-  const [suggestions, setSuggestions] = useState<NoddiCustomer[]>([]);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [suggestLoading, setSuggestLoading] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [expanded, setExpanded] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState<{
+    current: number
+    total: number
+    failed: number
+  } | null>(null)
+  const [suggestions, setSuggestions] = useState<NoddiCustomer[]>([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+  const MAX_FILE_BYTES = 10 * 1024 * 1024
 
   const handleFilesPicked = (list: FileList | null) => {
-    if (!list) return;
-    const picked = Array.from(list);
-    const tooBig = picked.filter((f) => f.size > MAX_FILE_BYTES);
+    if (!list) return
+    const picked = Array.from(list)
+    const tooBig = picked.filter((f) => f.size > MAX_FILE_BYTES)
     if (tooBig.length > 0) {
-      toast.error(`${tooBig.map((f) => f.name).join(', ')} exceeds the 10MB limit`);
+      toast.error(`${tooBig.map((f) => f.name).join(", ")} exceeds the 10MB limit`)
     }
-    const ok = picked.filter((f) => f.size <= MAX_FILE_BYTES);
-    if (ok.length > 0) setFiles((prev) => [...prev, ...ok]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+    const ok = picked.filter((f) => f.size <= MAX_FILE_BYTES)
+    if (ok.length > 0) setFiles((prev) => [...prev, ...ok])
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
-  const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index))
 
   const formatBytes = (bytes: number) =>
-    bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    bytes < 1024 * 1024
+      ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+      : `${(bytes / 1024 / 1024).toFixed(1)} MB`
 
   // AI / translation
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
-  const [showAiDialog, setShowAiDialog] = useState(false);
-  const [isRefining, setIsRefining] = useState(false);
-  const [sourceLanguage, setSourceLanguage] = useState('auto');
-  const [targetLanguage, setTargetLanguage] = useState('no');
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [isLoadingAi, setIsLoadingAi] = useState(false)
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null)
+  const [showAiDialog, setShowAiDialog] = useState(false)
+  const [isRefining, setIsRefining] = useState(false)
+  const [sourceLanguage, setSourceLanguage] = useState("auto")
+  const [targetLanguage, setTargetLanguage] = useState("no")
+  const [isTranslating, setIsTranslating] = useState(false)
 
   const { data: inboxes = [] } = useQuery({
-    queryKey: ['inboxes'],
+    queryKey: ["inboxes"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inboxes');
-      if (error) throw error;
-      return sortInboxesByName(data as InboxData[]);
+      const { data, error } = await supabase.rpc("get_inboxes")
+      if (error) throw error
+      return sortInboxesByName(data as InboxData[])
     },
-  });
-  const { data: inboxEmails = {} } = useInboxEmailAddresses();
-  const { defaultInboxId } = useDefaultInbox();
+  })
+  const { data: inboxEmails = {} } = useInboxEmailAddresses()
+  const { defaultInboxId } = useDefaultInbox()
 
   // Default inbox once inboxes are known (user preference wins)
   React.useEffect(() => {
     if (!draft.inboxId && inboxes.length > 0) {
-      const configured = inboxes.filter((i) => inboxEmails[i.id]);
-      const pool = configured.length > 0 ? configured : inboxes;
+      const configured = inboxes.filter((i) => inboxEmails[i.id])
+      const pool = configured.length > 0 ? configured : inboxes
       const def =
-        pool.find((i) => i.id === defaultInboxId) || pool.find((i) => i.is_default) || pool[0];
-      updateDraft(draft.id, { inboxId: def.id });
+        pool.find((i) => i.id === defaultInboxId) || pool.find((i) => i.is_default) || pool[0]
+      updateDraft(draft.id, { inboxId: def.id })
     }
-  }, [inboxes, inboxEmails, defaultInboxId, draft.inboxId, draft.id, updateDraft]);
+  }, [inboxes, inboxEmails, defaultInboxId, draft.inboxId, draft.id, updateDraft])
 
   const parsedEmails = useMemo(
     () => (draft.bulkMode ? parseEmails(draft.bulkEmails) : []),
     [draft.bulkMode, draft.bulkEmails],
-  );
+  )
 
   const set = useCallback(
     (patch: Partial<ComposeDraft>) => updateDraft(draft.id, patch),
     [draft.id, updateDraft],
-  );
+  )
 
   /* ---------- Gmail-style recipient autocomplete ---------- */
-  const orgId = profile?.organization_id;
+  const orgId = profile?.organization_id
 
   React.useEffect(() => {
-    const term = draft.to.trim();
+    const term = draft.to.trim()
     if (draft.bulkMode || !orgId || term.length < 2) {
-      setSuggestions([]);
-      return;
+      setSuggestions([])
+      return
     }
 
-    let cancelled = false;
+    let cancelled = false
     const timer = window.setTimeout(async () => {
-      setSuggestLoading(true);
+      setSuggestLoading(true)
       try {
-        const like = `%${term}%`;
+        const like = `%${term}%`
         const { data: local } = await supabase
-          .from('customers')
-          .select('id, full_name, email, phone')
-          .eq('organization_id', orgId)
+          .from("customers")
+          .select("id, full_name, email, phone")
+          .eq("organization_id", orgId)
           .or(`full_name.ilike.${like},email.ilike.${like}`)
-          .limit(8);
+          .limit(8)
 
         let merged: NoddiCustomer[] = (local || []).map((c: any) => ({
           id: c.id,
           full_name: c.full_name || c.email,
           email: c.email || undefined,
-        }));
+        }))
 
         // Name lookup in Noddi when the term isn't an email fragment
-        if (!term.includes('@')) {
-          const parts = term.split(/\s+/).filter(Boolean);
-          const { data } = await supabase.functions.invoke('noddi-search-by-name', {
+        if (!term.includes("@")) {
+          const parts = term.split(/\s+/).filter(Boolean)
+          const { data } = await supabase.functions.invoke("noddi-search-by-name", {
             body: {
               firstName: parts[0],
-              ...(parts.length > 1 ? { lastName: parts.slice(1).join(' ') } : {}),
+              ...(parts.length > 1 ? { lastName: parts.slice(1).join(" ") } : {}),
               organizationId: orgId,
             },
-          });
+          })
           const remote: NoddiCustomer[] = (data?.results || []).map((r: any) => ({
             id: r.local_customer_id || `noddi-${r.noddi_user_id}`,
             full_name: r.full_name,
             email: r.email || r.noddi_email || undefined,
             metadata: { noddi_email: r.noddi_email },
-          }));
-          merged = [...merged, ...remote];
+          }))
+          merged = [...merged, ...remote]
         }
 
         // Dedupe by email (or id when there is no email)
-        const seen = new Set<string>();
+        const seen = new Set<string>()
         const unique = merged.filter((c) => {
-          const key = (c.email || c.metadata?.noddi_email || c.id).toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+          const key = (c.email || c.metadata?.noddi_email || c.id).toLowerCase()
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
 
         if (!cancelled) {
-          setSuggestions(unique.slice(0, 8));
-          setSuggestOpen(unique.length > 0);
+          setSuggestions(unique.slice(0, 8))
+          setSuggestOpen(unique.length > 0)
         }
       } catch (error) {
-        console.warn('Recipient lookup failed', error);
-        if (!cancelled) setSuggestions([]);
+        console.warn("Recipient lookup failed", error)
+        if (!cancelled) setSuggestions([])
       } finally {
-        if (!cancelled) setSuggestLoading(false);
+        if (!cancelled) setSuggestLoading(false)
       }
-    }, 350);
+    }, 350)
 
     return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [draft.to, draft.bulkMode, orgId]);
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [draft.to, draft.bulkMode, orgId])
 
   const applySuggestion = (customer: NoddiCustomer) => {
     set({
-      to: customer.email || customer.metadata?.noddi_email || '',
+      to: customer.email || customer.metadata?.noddi_email || "",
       toName: customer.full_name,
-    });
-    setSuggestOpen(false);
-    setSuggestions([]);
-  };
+    })
+    setSuggestOpen(false)
+    setSuggestions([])
+  }
 
   const handleGetAiSuggestions = async () => {
     if (!draft.subject.trim()) {
-      toast.error('Please enter a subject first');
-      return;
+      toast.error("Please enter a subject first")
+      return
     }
-    setIsLoadingAi(true);
+    setIsLoadingAi(true)
     try {
-      const { data, error } = await supabase.functions.invoke('ai-email-reply', {
+      const { data, error } = await supabase.functions.invoke("ai-email-reply", {
         body: {
           customerMessage: draft.subject,
           conversationContext: `Creating new conversation about: ${draft.subject}`,
         },
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (data?.suggestions) {
-        setAiSuggestions(data.suggestions);
-        toast.success('AI suggestions generated');
+        setAiSuggestions(data.suggestions)
+        toast.success("AI suggestions generated")
       }
     } catch (error) {
-      console.error('Error getting AI suggestions:', error);
-      toast.error('Failed to get AI suggestions');
+      console.error("Error getting AI suggestions:", error)
+      toast.error("Failed to get AI suggestions")
     } finally {
-      setIsLoadingAi(false);
+      setIsLoadingAi(false)
     }
-  };
+  }
 
   const handleRefine = async (instructions: string) => {
-    if (!selectedSuggestion) return;
-    setIsRefining(true);
+    if (!selectedSuggestion) return
+    setIsRefining(true)
     try {
-      const { data, error } = await supabase.functions.invoke('ai-email-reply', {
+      const { data, error } = await supabase.functions.invoke("ai-email-reply", {
         body: {
           customerMessage: draft.subject,
           conversationContext: `Refine this message: ${selectedSuggestion}`,
           refinementInstructions: instructions,
         },
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (data?.refinedText) {
-        setSelectedSuggestion(data.refinedText);
-        toast.success('Suggestion refined');
+        setSelectedSuggestion(data.refinedText)
+        toast.success("Suggestion refined")
       }
     } catch (error) {
-      console.error('Error refining suggestion:', error);
-      toast.error('Failed to refine suggestion');
+      console.error("Error refining suggestion:", error)
+      toast.error("Failed to refine suggestion")
     } finally {
-      setIsRefining(false);
+      setIsRefining(false)
     }
-  };
+  }
 
   const handleTranslate = async () => {
     if (!draft.body.trim()) {
-      toast.error('Please enter a message first');
-      return;
+      toast.error("Please enter a message first")
+      return
     }
-    setIsTranslating(true);
+    setIsTranslating(true)
     try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
+      const { data, error } = await supabase.functions.invoke("translate-text", {
         body: { text: draft.body, sourceLanguage, targetLanguage },
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (data?.translatedText) {
-        set({ body: data.translatedText });
-        toast.success('Message translated');
+        set({ body: data.translatedText })
+        toast.success("Message translated")
       }
     } catch (error) {
-      console.error('Error translating text:', error);
-      toast.error('Failed to translate text');
+      console.error("Error translating text:", error)
+      toast.error("Failed to translate text")
     } finally {
-      setIsTranslating(false);
+      setIsTranslating(false)
     }
-  };
+  }
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    queryClient.invalidateQueries({ queryKey: ['conversation-counts'] });
-  };
+    queryClient.invalidateQueries({ queryKey: ["conversations"] })
+    queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+  }
 
   const goToInbox = (conversationId?: string) => {
-    const currentParams = new URLSearchParams(window.location.search);
-    const currentInbox = currentParams.get('inbox') || draft.inboxId;
-    const basePath = window.location.pathname.includes('/interactions')
+    const currentParams = new URLSearchParams(window.location.search)
+    const currentInbox = currentParams.get("inbox") || draft.inboxId
+    const basePath = window.location.pathname.includes("/interactions")
       ? window.location.pathname
-      : '/interactions/text/open';
-    navigate(`${basePath}?inbox=${currentInbox}${conversationId ? `&c=${conversationId}` : ''}`);
-  };
+      : "/interactions/text/open"
+    navigate(`${basePath}?inbox=${currentInbox}${conversationId ? `&c=${conversationId}` : ""}`)
+  }
 
   const handleSend = async () => {
     if (!draft.inboxId) {
-      toast.error('Please select an inbox');
-      return;
+      toast.error("Please select an inbox")
+      return
     }
     if (!draft.subject.trim()) {
-      toast.error('Subject is required');
-      return;
+      toast.error("Subject is required")
+      return
     }
 
     if (draft.bulkMode) {
       if (parsedEmails.length === 0) {
-        toast.error('Add at least one valid email');
-        return;
+        toast.error("Add at least one valid email")
+        return
       }
-      setBulkProgress({ current: 0, total: parsedEmails.length, failed: 0 });
-      let failed = 0;
+      setBulkProgress({ current: 0, total: parsedEmails.length, failed: 0 })
+      let failed = 0
       for (let i = 0; i < parsedEmails.length; i++) {
-        const email = parsedEmails[i];
+        const email = parsedEmails[i]
         try {
           await createConversationAndSend({
             customerEmail: email,
-            customerName: email.split('@')[0],
+            customerName: email.split("@")[0],
             subject: draft.subject.trim(),
             initialMessage: draft.body.trim().replace(/\{email\}/gi, email),
             inboxId: draft.inboxId,
@@ -363,33 +369,33 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             organizationId: profile?.organization_id,
             senderProfileUserId: profile?.user_id,
             files,
-          });
+          })
         } catch (error) {
-          console.error(`Failed to send to ${email}:`, error);
-          failed++;
+          console.error(`Failed to send to ${email}:`, error)
+          failed++
         }
-        setBulkProgress({ current: i + 1, total: parsedEmails.length, failed });
+        setBulkProgress({ current: i + 1, total: parsedEmails.length, failed })
       }
-      const sent = parsedEmails.length - failed;
-      if (failed === 0) toast.success(`Successfully sent ${sent} emails`);
-      else toast.warning(`Sent ${sent} emails, ${failed} failed`);
-      setBulkProgress(null);
-      invalidate();
-      removeDraft(draft.id);
-      goToInbox();
-      return;
+      const sent = parsedEmails.length - failed
+      if (failed === 0) toast.success(`Successfully sent ${sent} emails`)
+      else toast.warning(`Sent ${sent} emails, ${failed} failed`)
+      setBulkProgress(null)
+      invalidate()
+      removeDraft(draft.id)
+      goToInbox()
+      return
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.to.trim())) {
-      toast.error('A valid recipient email is required');
-      return;
+      toast.error("A valid recipient email is required")
+      return
     }
 
-    setSending(true);
+    setSending(true)
     try {
       const result = await createConversationAndSend({
         customerEmail: draft.to.trim(),
-        customerName: draft.toName.trim() || draft.to.split('@')[0],
+        customerName: draft.toName.trim() || draft.to.split("@")[0],
         subject: draft.subject.trim(),
         initialMessage: draft.body.trim(),
         inboxId: draft.inboxId,
@@ -397,33 +403,36 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
         organizationId: profile?.organization_id,
         senderProfileUserId: profile?.user_id,
         files,
-      });
+      })
 
-      if (result.emailError) toast.warning(`Conversation created, but: ${result.emailError}`);
-      else toast.success('Email sent');
+      if (result.emailError) toast.warning(`Conversation created, but: ${result.emailError}`)
+      else toast.success("Email sent")
 
-      invalidate();
-      removeDraft(draft.id);
-      goToInbox(result.conversationId);
+      invalidate()
+      removeDraft(draft.id)
+      goToInbox(result.conversationId)
     } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast.error('Failed to create conversation');
+      console.error("Error creating conversation:", error)
+      toast.error("Failed to create conversation")
     } finally {
-      setSending(false);
+      setSending(false)
     }
-  };
+  }
 
-  const busy = sending || !!bulkProgress;
+  const busy = sending || !!bulkProgress
   const title =
     draft.subject.trim() ||
     (draft.bulkMode
       ? `${parsedEmails.length} recipients`
-      : draft.toName.trim() || draft.to.trim() || 'New email');
+      : draft.toName.trim() || draft.to.trim() || "New email")
 
   /* ---------------- Minimized bar ---------------- */
   if (draft.minimized) {
     return (
-      <div className="w-64 rounded-t-lg border border-border bg-card text-card-foreground shadow-lg" style={{ backgroundColor: 'hsl(var(--card))' }}>
+      <div
+        className="w-64 rounded-t-lg border border-border bg-card text-card-foreground shadow-lg"
+        style={{ backgroundColor: "hsl(var(--card))" }}
+      >
         <div className="flex items-center gap-1 px-3 py-2">
           <button
             type="button"
@@ -433,31 +442,41 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             {title}
           </button>
           {busy && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => closeWindow(draft.id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => closeWindow(draft.id)}
+          >
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   /* ---------------- Full window ---------------- */
   return (
     <div
       className={cn(
-        'flex flex-col rounded-t-lg border border-border shadow-2xl overflow-hidden isolate',
-        'bg-card text-card-foreground opacity-100 backdrop-blur-none',
+        "flex flex-col rounded-t-lg border border-border shadow-2xl overflow-hidden isolate",
+        "bg-card text-card-foreground opacity-100 backdrop-blur-none",
         expanded
-          ? 'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vh] rounded-lg'
-          : 'w-[min(96vw,520px)] h-[560px] max-h-[80vh]',
+          ? "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vh] rounded-lg"
+          : "w-[min(96vw,520px)] h-[560px] max-h-[80vh]",
       )}
-      style={{ backgroundColor: 'hsl(var(--card))' }}
+      style={{ backgroundColor: "hsl(var(--card))" }}
     >
-
       {/* Header */}
       <div className="flex items-center gap-1 bg-muted px-3 py-2 border-b border-border">
         <span className="flex-1 min-w-0 text-sm font-medium truncate">{title}</span>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMinimize(draft.id)} title="Minimize">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => toggleMinimize(draft.id)}
+          title="Minimize"
+        >
           <Minus className="h-3.5 w-3.5" />
         </Button>
         <Button
@@ -465,7 +484,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
           size="icon"
           className="h-6 w-6"
           onClick={() => setExpanded((v) => !v)}
-          title={expanded ? 'Restore' : 'Expand'}
+          title={expanded ? "Restore" : "Expand"}
         >
           {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </Button>
@@ -488,11 +507,11 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
           <span className="text-muted-foreground w-14 shrink-0">From</span>
           <Select value={draft.inboxId} onValueChange={(v) => set({ inboxId: v })} disabled={busy}>
             <SelectTrigger className="h-7 border-0 shadow-none focus:ring-0 px-0 text-sm">
-              <SelectValue placeholder={t('conversation.selectInbox')} />
+              <SelectValue placeholder={t("conversation.selectInbox")} />
             </SelectTrigger>
             <SelectContent>
               {inboxes.map((inbox) => {
-                const email = inboxEmails[inbox.id];
+                const email = inboxEmails[inbox.id]
                 return (
                   <SelectItem key={inbox.id} value={inbox.id} disabled={!email}>
                     <div className="flex items-center gap-2 min-w-0">
@@ -500,18 +519,20 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: email ? inbox.color : undefined }}
                       />
-                      <span className={cn('truncate', !email && 'text-muted-foreground')}>{inbox.name}</span>
+                      <span className={cn("truncate", !email && "text-muted-foreground")}>
+                        {inbox.name}
+                      </span>
                       {defaultInboxId === inbox.id && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded border border-primary/40 text-primary shrink-0">
                           Default
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground truncate">
-                        {email ? `(${email})` : '(not configured)'}
+                        {email ? `(${email})` : "(not configured)"}
                       </span>
                     </div>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
@@ -532,7 +553,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                   onChange={(e) => set({ to: e.target.value })}
                   onFocus={() => suggestions.length > 0 && setSuggestOpen(true)}
                   onBlur={() => window.setTimeout(() => setSuggestOpen(false), 150)}
-                  onKeyDown={(e) => e.key === 'Escape' && setSuggestOpen(false)}
+                  onKeyDown={(e) => e.key === "Escape" && setSuggestOpen(false)}
                   placeholder="Name or email"
                   autoComplete="off"
                   disabled={busy}
@@ -555,7 +576,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                         <div className="min-w-0">
                           <div className="truncate text-sm">{customer.full_name}</div>
                           <div className="truncate text-xs text-muted-foreground">
-                            {customer.email || customer.metadata?.noddi_email || 'No email'}
+                            {customer.email || customer.metadata?.noddi_email || "No email"}
                           </div>
                         </div>
                       </button>
@@ -571,8 +592,8 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                     <Label
                       htmlFor={`bulk-${draft.id}`}
                       className={cn(
-                        'text-xs font-normal cursor-pointer',
-                        draft.bulkMode ? 'text-primary' : 'text-muted-foreground',
+                        "text-xs font-normal cursor-pointer",
+                        draft.bulkMode ? "text-primary" : "text-muted-foreground",
                       )}
                     >
                       <Users className="h-4 w-4" />
@@ -587,18 +608,17 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px]">
                   {draft.bulkMode
-                    ? 'Send to many: one separate email and conversation is created per recipient.'
-                    : 'Send to many — turn on to paste a list of recipients and send an individual email to each.'}
+                    ? "Send to many: one separate email and conversation is created per recipient."
+                    : "Send to many — turn on to paste a list of recipients and send an individual email to each."}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
           </div>
           {draft.bulkMode && (
             <Textarea
               value={draft.bulkEmails}
               onChange={(e) => set({ bulkEmails: e.target.value })}
-              placeholder={'customer1@example.com\ncustomer2@example.com'}
+              placeholder={"customer1@example.com\ncustomer2@example.com"}
               disabled={busy}
               className="mt-2 min-h-[72px] resize-none font-mono text-xs"
               emojiAutocomplete={false}
@@ -615,14 +635,18 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
             disabled={busy}
             className="h-7 border-0 shadow-none focus-visible:ring-0 px-0 text-sm"
           />
-          <Select value={draft.priority} onValueChange={(v) => set({ priority: v })} disabled={busy}>
+          <Select
+            value={draft.priority}
+            onValueChange={(v) => set({ priority: v })}
+            disabled={busy}
+          >
             <SelectTrigger
               className="h-7 w-[168px] shrink-0 text-xs"
               title="Priority of the conversation this email creates"
             >
               <span className="flex items-center gap-1.5 min-w-0">
                 <span className="text-muted-foreground shrink-0">Priority:</span>
-                <span className="truncate capitalize">{draft.priority || 'normal'}</span>
+                <span className="truncate capitalize">{draft.priority || "normal"}</span>
               </span>
             </SelectTrigger>
             <SelectContent className="w-[280px]">
@@ -630,8 +654,10 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <div className="flex items-start gap-2">
                   <ArrowDown className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <div>{t('conversation.low')}</div>
-                    <div className="text-xs text-muted-foreground">No rush — handle when there is time</div>
+                    <div>{t("conversation.low")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      No rush — handle when there is time
+                    </div>
                   </div>
                 </div>
               </SelectItem>
@@ -639,8 +665,10 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <div className="flex items-start gap-2">
                   <Minus className="h-3.5 w-3.5 mt-0.5 text-blue-600 shrink-0" />
                   <div className="min-w-0">
-                    <div>{t('conversation.normal')}</div>
-                    <div className="text-xs text-muted-foreground">Default — standard response time</div>
+                    <div>{t("conversation.normal")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Default — standard response time
+                    </div>
                   </div>
                 </div>
               </SelectItem>
@@ -648,8 +676,10 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <div className="flex items-start gap-2">
                   <ArrowUp className="h-3.5 w-3.5 mt-0.5 text-orange-600 shrink-0" />
                   <div className="min-w-0">
-                    <div>{t('conversation.high')}</div>
-                    <div className="text-xs text-muted-foreground">Needs attention before normal cases</div>
+                    <div>{t("conversation.high")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Needs attention before normal cases
+                    </div>
                   </div>
                 </div>
               </SelectItem>
@@ -657,8 +687,10 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 text-destructive shrink-0" />
                   <div className="min-w-0">
-                    <div>{t('conversation.urgent')}</div>
-                    <div className="text-xs text-muted-foreground">Critical — handle immediately</div>
+                    <div>{t("conversation.urgent")}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Critical — handle immediately
+                    </div>
                   </div>
                 </div>
               </SelectItem>
@@ -671,7 +703,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
           <Textarea
             value={draft.body}
             onChange={(e) => set({ body: e.target.value })}
-            placeholder={t('conversation.initialMessagePlaceholder')}
+            placeholder={t("conversation.initialMessagePlaceholder")}
             disabled={busy}
             className="h-full min-h-0 resize-none border-0 shadow-none focus-visible:ring-0 px-0 text-sm"
           />
@@ -716,9 +748,14 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
 
       {/* Footer */}
       <div className="flex items-center gap-1 px-3 py-2 border-t border-border">
-        <Button onClick={handleSend} disabled={busy || !draft.subject.trim()} size="sm" className="gap-2">
+        <Button
+          onClick={handleSend}
+          disabled={busy || !draft.subject.trim()}
+          size="sm"
+          className="gap-2"
+        >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {draft.bulkMode ? `Send (${parsedEmails.length})` : 'Send'}
+          {draft.bulkMode ? `Send (${parsedEmails.length})` : "Send"}
         </Button>
 
         <input
@@ -749,7 +786,11 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
               disabled={isLoadingAi || !draft.subject.trim()}
               title="AI suggestions"
             >
-              {isLoadingAi ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {isLoadingAi ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
             </Button>
           </PopoverTrigger>
           {aiSuggestions.length > 0 && (
@@ -761,8 +802,8 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                     key={index}
                     className="p-3 cursor-pointer hover:bg-accent transition-colors"
                     onClick={() => {
-                      setSelectedSuggestion(suggestion);
-                      setShowAiDialog(true);
+                      setSelectedSuggestion(suggestion)
+                      setShowAiDialog(true)
                     }}
                   >
                     <p className="text-sm line-clamp-3">{suggestion}</p>
@@ -791,10 +832,14 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
               <div className="space-y-1">
                 <Label className="text-xs">From</Label>
                 <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
-                      <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                      <SelectItem key={l.code} value={l.code}>
+                        {l.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -802,15 +847,24 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
               <div className="space-y-1">
                 <Label className="text-xs">To</Label>
                 <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {LANGUAGES.filter((l) => l.code !== 'auto').map((l) => (
-                      <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>
+                    {LANGUAGES.filter((l) => l.code !== "auto").map((l) => (
+                      <SelectItem key={l.code} value={l.code}>
+                        {l.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleTranslate} disabled={isTranslating} className="w-full" size="sm">
+              <Button
+                onClick={handleTranslate}
+                disabled={isTranslating}
+                className="w-full"
+                size="sm"
+              >
                 {isTranslating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Translate
               </Button>
@@ -818,7 +872,10 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
           </PopoverContent>
         </Popover>
 
-        <TemplateSelector onSelectTemplate={(content: string) => set({ body: content })} isMobile={false} />
+        <TemplateSelector
+          onSelectTemplate={(content: string) => set({ body: content })}
+          isMobile={false}
+        />
 
         <div className="flex-1" />
 
@@ -837,17 +894,17 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
       <AiSuggestionDialog
         open={showAiDialog}
         onOpenChange={setShowAiDialog}
-        suggestion={selectedSuggestion || ''}
+        suggestion={selectedSuggestion || ""}
         onUseAsIs={() => {
           if (selectedSuggestion) {
-            set({ body: selectedSuggestion });
-            setShowAiDialog(false);
-            toast.success('Suggestion inserted');
+            set({ body: selectedSuggestion })
+            setShowAiDialog(false)
+            toast.success("Suggestion inserted")
           }
         }}
         onRefine={handleRefine}
         isRefining={isRefining}
       />
     </div>
-  );
-};
+  )
+}

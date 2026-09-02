@@ -1,85 +1,88 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
 
 interface TranscriptRequest {
-  sessionId: string;
-  email: string;
-  language?: string;
+  sessionId: string
+  email: string
+  language?: string
 }
 
 interface ChatMessage {
-  id: string;
-  content: string;
-  sender_type: string;
-  created_at: string;
-  sender_name?: string;
+  id: string
+  content: string
+  sender_type: string
+  created_at: string
+  sender_name?: string
 }
 
 const translations: Record<string, { subject: string; intro: string; footer: string }> = {
   en: {
-    subject: 'Your Chat Transcript',
-    intro: 'Here is a copy of your conversation with our support team.',
-    footer: 'Thank you for contacting us!',
+    subject: "Your Chat Transcript",
+    intro: "Here is a copy of your conversation with our support team.",
+    footer: "Thank you for contacting us!",
   },
   no: {
-    subject: 'Din chat-transkripsjon',
-    intro: 'Her er en kopi av samtalen din med supportteamet vårt.',
-    footer: 'Takk for at du kontaktet oss!',
+    subject: "Din chat-transkripsjon",
+    intro: "Her er en kopi av samtalen din med supportteamet vårt.",
+    footer: "Takk for at du kontaktet oss!",
   },
   sv: {
-    subject: 'Din chatttranskription',
-    intro: 'Här är en kopia av din konversation med vårt supportteam.',
-    footer: 'Tack för att du kontaktade oss!',
+    subject: "Din chatttranskription",
+    intro: "Här är en kopia av din konversation med vårt supportteam.",
+    footer: "Tack för att du kontaktade oss!",
   },
   da: {
-    subject: 'Din chat-udskrift',
-    intro: 'Her er en kopi af din samtale med vores supportteam.',
-    footer: 'Tak fordi du kontaktede os!',
+    subject: "Din chat-udskrift",
+    intro: "Her er en kopi af din samtale med vores supportteam.",
+    footer: "Tak fordi du kontaktede os!",
   },
   de: {
-    subject: 'Ihr Chat-Protokoll',
-    intro: 'Hier ist eine Kopie Ihres Gesprächs mit unserem Support-Team.',
-    footer: 'Vielen Dank für Ihre Kontaktaufnahme!',
+    subject: "Ihr Chat-Protokoll",
+    intro: "Hier ist eine Kopie Ihres Gesprächs mit unserem Support-Team.",
+    footer: "Vielen Dank für Ihre Kontaktaufnahme!",
   },
   fr: {
-    subject: 'Votre transcription de chat',
-    intro: 'Voici une copie de votre conversation avec notre équipe de support.',
-    footer: 'Merci de nous avoir contactés !',
+    subject: "Votre transcription de chat",
+    intro: "Voici une copie de votre conversation avec notre équipe de support.",
+    footer: "Merci de nous avoir contactés !",
   },
   es: {
-    subject: 'Tu transcripción de chat',
-    intro: 'Aquí tienes una copia de tu conversación con nuestro equipo de soporte.',
-    footer: '¡Gracias por contactarnos!',
+    subject: "Tu transcripción de chat",
+    intro: "Aquí tienes una copia de tu conversación con nuestro equipo de soporte.",
+    footer: "¡Gracias por contactarnos!",
   },
   it: {
-    subject: 'La tua trascrizione della chat',
-    intro: 'Ecco una copia della tua conversazione con il nostro team di supporto.',
-    footer: 'Grazie per averci contattato!',
+    subject: "La tua trascrizione della chat",
+    intro: "Ecco una copia della tua conversazione con il nostro team di supporto.",
+    footer: "Grazie per averci contattato!",
   },
   pt: {
-    subject: 'Sua transcrição do chat',
-    intro: 'Aqui está uma cópia da sua conversa com nossa equipe de suporte.',
-    footer: 'Obrigado por entrar em contato!',
+    subject: "Sua transcrição do chat",
+    intro: "Aqui está uma cópia da sua conversa com nossa equipe de suporte.",
+    footer: "Obrigado por entrar em contato!",
   },
   nl: {
-    subject: 'Je chat-transcript',
-    intro: 'Hier is een kopie van je gesprek met ons supportteam.',
-    footer: 'Bedankt voor je contact!',
+    subject: "Je chat-transcript",
+    intro: "Hier is een kopie van je gesprek met ons supportteam.",
+    footer: "Bedankt voor je contact!",
   },
-};
+}
 
 function formatMessage(msg: ChatMessage, isCustomer: boolean): string {
-  const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const senderLabel = isCustomer ? 'You' : (msg.sender_name || 'Agent');
-  const bgColor = isCustomer ? '#7c3aed' : '#f3f4f6';
-  const textColor = isCustomer ? '#ffffff' : '#374151';
-  const align = isCustomer ? 'right' : 'left';
-  
+  const time = new Date(msg.created_at).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  const senderLabel = isCustomer ? "You" : msg.sender_name || "Agent"
+  const bgColor = isCustomer ? "#7c3aed" : "#f3f4f6"
+  const textColor = isCustomer ? "#ffffff" : "#374151"
+  const align = isCustomer ? "right" : "left"
+
   return `
     <tr>
       <td style="text-align: ${align}; padding: 8px 0;">
@@ -91,16 +94,16 @@ function formatMessage(msg: ChatMessage, isCustomer: boolean): string {
         </div>
       </td>
     </tr>
-  `;
+  `
 }
 
 function generateEmailHtml(messages: ChatMessage[], lang: string, companyName?: string): string {
-  const t = translations[lang] || translations.en;
-  const company = companyName || 'Support';
-  
-  const messagesHtml = messages.map(msg => 
-    formatMessage(msg, msg.sender_type === 'customer')
-  ).join('');
+  const t = translations[lang] || translations.en
+  const company = companyName || "Support"
+
+  const messagesHtml = messages
+    .map((msg) => formatMessage(msg, msg.sender_type === "customer"))
+    .join("")
 
   return `
     <!DOCTYPE html>
@@ -139,120 +142,120 @@ function generateEmailHtml(messages: ChatMessage[], lang: string, companyName?: 
       </table>
     </body>
     </html>
-  `;
+  `
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { sessionId, email, language = 'en' }: TranscriptRequest = await req.json();
+    const { sessionId, email, language = "en" }: TranscriptRequest = await req.json()
 
     if (!sessionId || !email) {
-      return new Response(
-        JSON.stringify({ error: 'sessionId and email are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "sessionId and email are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Get the session and its conversation
     const { data: session, error: sessionError } = await supabase
-      .from('widget_chat_sessions')
-      .select('conversation_id, widget_config_id')
-      .eq('id', sessionId)
-      .single();
+      .from("widget_chat_sessions")
+      .select("conversation_id, widget_config_id")
+      .eq("id", sessionId)
+      .single()
 
     if (sessionError || !session) {
-      console.error('Session not found:', sessionError);
-      return new Response(
-        JSON.stringify({ error: 'Session not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Session not found:", sessionError)
+      return new Response(JSON.stringify({ error: "Session not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Get widget config for company name
     const { data: widgetConfig } = await supabase
-      .from('widget_configs')
-      .select('company_name')
-      .eq('id', session.widget_config_id)
-      .single();
+      .from("widget_configs")
+      .select("company_name")
+      .eq("id", session.widget_config_id)
+      .single()
 
     // Get all messages for the conversation
     const { data: messages, error: messagesError } = await supabase
-      .from('messages')
-      .select('id, content, sender_type, created_at')
-      .eq('conversation_id', session.conversation_id)
-      .order('created_at', { ascending: true });
+      .from("messages")
+      .select("id, content, sender_type, created_at")
+      .eq("conversation_id", session.conversation_id)
+      .order("created_at", { ascending: true })
 
     if (messagesError) {
-      console.error('Failed to fetch messages:', messagesError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch messages' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Failed to fetch messages:", messagesError)
+      return new Response(JSON.stringify({ error: "Failed to fetch messages" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     if (!messages || messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No messages in conversation' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "No messages in conversation" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Generate email HTML
-    const emailHtml = generateEmailHtml(messages, language, widgetConfig?.company_name);
-    const t = translations[language] || translations.en;
+    const emailHtml = generateEmailHtml(messages, language, widgetConfig?.company_name)
+    const t = translations[language] || translations.en
 
     // Send email using internal email sending (or Resend if configured)
     // For now, we'll use a simple approach - you can integrate with your email provider
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    
+    const resendApiKey = Deno.env.get("RESEND_API_KEY")
+
     if (resendApiKey) {
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: 'Support <noreply@noddi.no>',
+          from: "Support <noreply@noddi.no>",
           to: [email],
           subject: t.subject,
           html: emailHtml,
         }),
-      });
+      })
 
       if (!emailResponse.ok) {
-        const errorData = await emailResponse.text();
-        console.error('Failed to send email:', errorData);
-        return new Response(
-          JSON.stringify({ error: 'Failed to send email' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        const errorData = await emailResponse.text()
+        console.error("Failed to send email:", errorData)
+        return new Response(JSON.stringify({ error: "Failed to send email" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
-      console.log('Transcript email sent successfully to:', email);
+      console.log("Transcript email sent successfully to:", email)
     } else {
       // Log that email would be sent (for development/testing)
-      console.log('RESEND_API_KEY not configured. Would send transcript to:', email);
-      console.log('Email content generated successfully');
+      console.log("RESEND_API_KEY not configured. Would send transcript to:", email)
+      console.log("Email content generated successfully")
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: 'Transcript sent' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: true, message: "Transcript sent" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error) {
-    console.error('Error in send-chat-transcript:', error);
+    console.error("Error in send-chat-transcript:", error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    )
   }
-});
+})

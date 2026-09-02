@@ -1,23 +1,21 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { AdaptiveSection } from '../components/layouts/AdaptiveSection';
+import type { Meta, StoryObj } from "@storybook/react"
+import { AdaptiveSection } from "../components/layouts/AdaptiveSection"
 
 const meta: Meta<typeof AdaptiveSection> = {
-  title: 'Layout/AdaptiveSection',
+  title: "Layout/AdaptiveSection",
   component: AdaptiveSection,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
-  tags: ['autodocs'],
-};
+  tags: ["autodocs"],
+}
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 const SectionChild = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-muted p-4 rounded border-2 border-dashed border-border">
-    {children}
-  </div>
-);
+  <div className="bg-muted p-4 rounded border-2 border-dashed border-border">{children}</div>
+)
 
 export const Default: Story = {
   args: {
@@ -38,12 +36,12 @@ export const Default: Story = {
       </>
     ),
   },
-};
+}
 
 export const ResponsiveSpacing: Story = {
   args: {
-    direction: 'y',
-    spacing: { sm: '2', md: '4', lg: '6', xl: '8' },
+    direction: "y",
+    spacing: { sm: "2", md: "4", lg: "6", xl: "8" },
     children: (
       <>
         <SectionChild>
@@ -57,16 +55,16 @@ export const ResponsiveSpacing: Story = {
       </>
     ),
   },
-};
+}
 
 export const VisualProperties: Story = {
   args: {
-    background: 'card',
+    background: "card",
     border: true,
     rounded: true,
-    shadow: 'md',
-    padding: '6',
-    spacing: '4',
+    shadow: "md",
+    padding: "6",
+    spacing: "4",
     children: (
       <>
         <SectionChild>
@@ -80,4 +78,4 @@ export const VisualProperties: Story = {
       </>
     ),
   },
-};
+}

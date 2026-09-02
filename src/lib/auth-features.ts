@@ -7,5 +7,5 @@
  * `VITE_PASSWORD_LOGIN=1` to re-expose them (e.g. break-glass / local dev).
  */
 export function isPasswordLoginEnabled(): boolean {
-  return import.meta.env.VITE_PASSWORD_LOGIN === "1";
+  return import.meta.env.VITE_PASSWORD_LOGIN === "1"
 }

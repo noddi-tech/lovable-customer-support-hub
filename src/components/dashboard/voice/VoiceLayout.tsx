@@ -1,60 +1,58 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-responsive';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import type React from "react"
+import { useEffect, useState } from "react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useIsMobile } from "@/hooks/use-responsive"
 
 interface VoiceLayoutProps {
-  leftPane: React.ReactNode;
-  centerPane: React.ReactNode;
-  rightPane: React.ReactNode;
-  leftPaneLabel?: string;
-  centerPaneLabel?: string;
-  rightPaneLabel?: string;
+  leftPane: React.ReactNode
+  centerPane: React.ReactNode
+  rightPane: React.ReactNode
+  leftPaneLabel?: string
+  centerPaneLabel?: string
+  rightPaneLabel?: string
 }
 
 export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   leftPane,
   centerPane,
   rightPane,
-  leftPaneLabel = 'Filters',
-  centerPaneLabel = 'Items',
-  rightPaneLabel = 'Customer Info',
+  leftPaneLabel = "Filters",
+  centerPaneLabel = "Items",
+  rightPaneLabel = "Customer Info",
 }) => {
-  const isMobile = useIsMobile();
-  const [workspaceVisible, setWorkspaceVisible] = useState(false);
+  const isMobile = useIsMobile()
+  const [workspaceVisible, setWorkspaceVisible] = useState(false)
 
   // Detect Aircall workspace visibility
   useEffect(() => {
     const checkWorkspaceVisibility = () => {
-      const container = document.querySelector('#aircall-workspace-container');
+      const container = document.querySelector("#aircall-workspace-container")
       if (container) {
-        const isVisible = container.classList.contains('aircall-visible');
-        setWorkspaceVisible(isVisible);
+        const isVisible = container.classList.contains("aircall-visible")
+        setWorkspaceVisible(isVisible)
       }
-    };
+    }
 
     // Check immediately
-    checkWorkspaceVisibility();
+    checkWorkspaceVisibility()
 
     // Set up MutationObserver to watch for class changes
-    const container = document.querySelector('#aircall-workspace-container');
+    const container = document.querySelector("#aircall-workspace-container")
     if (container) {
-      const observer = new MutationObserver(checkWorkspaceVisibility);
+      const observer = new MutationObserver(checkWorkspaceVisibility)
       observer.observe(container, {
         attributes: true,
-        attributeFilter: ['class']
-      });
+        attributeFilter: ["class"],
+      })
 
-      return () => observer.disconnect();
+      return () => observer.disconnect()
     }
 
     // Fallback: check periodically if container doesn't exist yet
-    const interval = setInterval(checkWorkspaceVisibility, 500);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(checkWorkspaceVisibility, 500)
+    return () => clearInterval(interval)
+  }, [])
 
   // Mobile layout with tabs
   // Add bottom padding to account for fixed phone bar
@@ -67,33 +65,27 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
             <TabsTrigger value="center">{centerPaneLabel}</TabsTrigger>
             <TabsTrigger value="right">{rightPaneLabel}</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="left" className="flex-1 m-0">
             <ScrollArea className="h-full">
-              <div className="p-4">
-                {leftPane}
-              </div>
+              <div className="p-4">{leftPane}</div>
             </ScrollArea>
           </TabsContent>
-          
+
           <TabsContent value="center" className="flex-1 m-0">
             <ScrollArea className="h-full">
-              <div className="p-4">
-                {centerPane}
-              </div>
+              <div className="p-4">{centerPane}</div>
             </ScrollArea>
           </TabsContent>
-          
+
           <TabsContent value="right" className="flex-1 m-0">
             <ScrollArea className="h-full">
-              <div className="p-4">
-                {rightPane}
-              </div>
+              <div className="p-4">{rightPane}</div>
             </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>
-    );
+    )
   }
 
   // Desktop layout with 3 columns always visible
@@ -104,31 +96,27 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
       {/* Left pane - Filters */}
       <div className="border-r border-border bg-muted/30 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-4">
-            {leftPane}
-          </div>
+          <div className="p-4">{leftPane}</div>
         </ScrollArea>
       </div>
 
       {/* Center pane - List */}
-      <div className={`border-r border-border bg-background overflow-hidden transition-[padding] duration-300 ease-in-out ${
-        workspaceVisible ? 'pr-[400px]' : ''
-      }`}>
+      <div
+        className={`border-r border-border bg-background overflow-hidden transition-[padding] duration-300 ease-in-out ${
+          workspaceVisible ? "pr-[400px]" : ""
+        }`}
+      >
         <ScrollArea className="h-full">
-          <div className="p-4">
-            {centerPane}
-          </div>
+          <div className="p-4">{centerPane}</div>
         </ScrollArea>
       </div>
 
       {/* Right pane - Customer Sidebar (Always visible) */}
       <div className="bg-muted/20 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-4">
-            {rightPane}
-          </div>
+          <div className="p-4">{rightPane}</div>
         </ScrollArea>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,4 +1,3 @@
-export { messenteProvider } from './provider.ts';
 export type {
   SmsInboundMessage,
   SmsProvider,
@@ -6,4 +5,5 @@ export type {
   SmsSendResult,
   SmsStatus,
   SmsStatusUpdate,
-} from '../sms-types.ts';
+} from "../sms-types.ts"
+export { messenteProvider } from "./provider.ts"

@@ -1,26 +1,26 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MessageSquareDot, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNewChatAlerts } from '@/hooks/useNewChatAlerts';
+import { MessageSquareDot, X } from "lucide-react"
+import type React from "react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { useNewChatAlerts } from "@/hooks/useNewChatAlerts"
 
 /**
  * Loud, always-visible banner shown to online agents when a customer starts a
  * new live chat. Sits on top of the app so it can't be missed on any route.
  */
 export const NewChatAlertBanner: React.FC = () => {
-  const { alerts, dismiss, dismissAll } = useNewChatAlerts();
-  const navigate = useNavigate();
+  const { alerts, dismiss, dismissAll } = useNewChatAlerts()
+  const navigate = useNavigate()
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) return null
 
-  const [latest] = alerts;
-  const extra = alerts.length - 1;
+  const [latest] = alerts
+  const extra = alerts.length - 1
 
   const open = () => {
-    navigate('/interactions/chat/active');
-    dismissAll();
-  };
+    navigate("/interactions/chat/active")
+    dismissAll()
+  }
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-3">
@@ -31,21 +31,14 @@ export const NewChatAlertBanner: React.FC = () => {
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-tight">
-            New live chat waiting
-          </p>
+          <p className="text-sm font-semibold leading-tight">New live chat waiting</p>
           <p className="truncate text-xs opacity-90">
             {latest.visitorName}
             {extra > 0 && ` + ${extra} more waiting`}
           </p>
         </div>
 
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-9 shrink-0"
-          onClick={open}
-        >
+        <Button size="sm" variant="secondary" className="h-9 shrink-0" onClick={open}>
           Answer
         </Button>
         <Button
@@ -59,5 +52,5 @@ export const NewChatAlertBanner: React.FC = () => {
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}

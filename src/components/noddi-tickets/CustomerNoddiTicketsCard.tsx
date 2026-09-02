@@ -4,61 +4,62 @@
  * narrowed to a specific car (license plate) when one is in context.
  * All data comes from the Noddi backend API — nothing is stored in this app.
  */
-import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Ticket, Car } from 'lucide-react';
-import { useNoddiTickets } from '@/hooks/useNoddiTickets';
-import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from './NoddiTicketBadges';
-import { NoddiTicketDetailsSheet } from './NoddiTicketDetailsSheet';
-import type { NoddiTicket } from '@/types/noddiTicket';
+
+import { format } from "date-fns"
+import { Car, Ticket } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useNoddiTickets } from "@/hooks/useNoddiTickets"
+import type { NoddiTicket } from "@/types/noddiTicket"
+import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from "./NoddiTicketBadges"
+import { NoddiTicketDetailsSheet } from "./NoddiTicketDetailsSheet"
 
 interface Props {
   /** Noddi user group ids belonging to this customer. */
-  userGroupIds: number[];
+  userGroupIds: number[]
   /** Optional license plate to narrow the list to a single car. */
-  licensePlate?: string | null;
+  licensePlate?: string | null
 }
 
 function plateOf(ticket: NoddiTicket): string | null {
-  const raw = ticket.user_group_car?.license_plate as unknown;
-  if (!raw) return null;
-  if (typeof raw === 'string') return raw;
-  if (typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    const value = obj.number ?? obj.license_plate ?? obj.value;
-    return typeof value === 'string' ? value : null;
+  const raw = ticket.user_group_car?.license_plate as unknown
+  if (!raw) return null
+  if (typeof raw === "string") return raw
+  if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>
+    const value = obj.number ?? obj.license_plate ?? obj.value
+    return typeof value === "string" ? value : null
   }
-  return null;
+  return null
 }
 
 export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) {
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-  const [onlyThisCar, setOnlyThisCar] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [onlyThisCar, setOnlyThisCar] = useState(false)
 
-  const ids = useMemo(() => Array.from(new Set(userGroupIds.filter(Boolean))), [userGroupIds]);
+  const ids = useMemo(() => Array.from(new Set(userGroupIds.filter(Boolean))), [userGroupIds])
 
   const { data, isLoading } = useNoddiTickets(
     {
       user_group_ids: ids,
-      statuses: ['OPEN', 'SNOOZED'],
-      ordering: '-created_at',
+      statuses: ["OPEN", "SNOOZED"],
+      ordering: "-created_at",
       page_size: 20,
     },
     { enabled: ids.length > 0 },
-  );
+  )
 
   const tickets = useMemo(() => {
-    const list = data?.results ?? [];
-    if (!onlyThisCar || !licensePlate) return list;
-    const target = licensePlate.replace(/\s/g, '').toUpperCase();
-    return list.filter((t) => (plateOf(t) ?? '').replace(/\s/g, '').toUpperCase() === target);
-  }, [data?.results, onlyThisCar, licensePlate]);
+    const list = data?.results ?? []
+    if (!onlyThisCar || !licensePlate) return list
+    const target = licensePlate.replace(/\s/g, "").toUpperCase()
+    return list.filter((t) => (plateOf(t) ?? "").replace(/\s/g, "").toUpperCase() === target)
+  }, [data?.results, onlyThisCar, licensePlate])
 
-  if (!ids.length) return null;
+  if (!ids.length) return null
 
   return (
     <>
@@ -77,7 +78,7 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
             {licensePlate && (
               <Button
                 size="sm"
-                variant={onlyThisCar ? 'secondary' : 'ghost'}
+                variant={onlyThisCar ? "secondary" : "ghost"}
                 className="h-6 gap-1 px-2 text-[11px]"
                 onClick={() => setOnlyThisCar((v) => !v)}
                 title="Only show tickets for this car"
@@ -100,7 +101,7 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
             </p>
           ) : (
             tickets.map((ticket) => {
-              const plate = plateOf(ticket);
+              const plate = plateOf(ticket)
               return (
                 <button
                   key={ticket.id}
@@ -109,9 +110,11 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="truncate text-xs font-medium">
-                      {ticket.title || 'Untitled ticket'}
+                      {ticket.title || "Untitled ticket"}
                     </span>
-                    <span className="font-mono text-[10px] text-muted-foreground">#{ticket.id}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      #{ticket.id}
+                    </span>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1">
                     <TicketStatusBadge status={ticket.status} />
@@ -126,12 +129,12 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
                   </div>
                   <div className="mt-1 text-[10px] text-muted-foreground">
                     {ticket.created_at
-                      ? format(new Date(ticket.created_at), 'dd MMM yyyy HH:mm')
-                      : '—'}
-                    {ticket.assignee?.name ? ` · ${ticket.assignee.name}` : ' · Unassigned'}
+                      ? format(new Date(ticket.created_at), "dd MMM yyyy HH:mm")
+                      : "—"}
+                    {ticket.assignee?.name ? ` · ${ticket.assignee.name}` : " · Unassigned"}
                   </div>
                 </button>
-              );
+              )
             })
           )}
         </CardContent>
@@ -142,5 +145,5 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
         onOpenChange={(open) => !open && setSelectedTicketId(null)}
       />
     </>
-  );
+  )
 }

@@ -1,181 +1,208 @@
-import { createContext, useState, useEffect, useCallback, useRef, ReactNode, useMemo } from 'react';
-import { aircallPhone, type AircallCall } from '@/integrations/aircall';
-import { aircallEventBridge } from '@/integrations/aircall';
-import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { detectBrowser } from '@/lib/browser-detection';
-import { detectThirdPartyCookies } from '@/lib/cookie-detection';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import { useVoiceIntegrations } from "@/hooks/useVoiceIntegrations"
+import { type AircallCall, aircallEventBridge, aircallPhone } from "@/integrations/aircall"
+import { supabase } from "@/integrations/supabase/client"
+import { detectBrowser } from "@/lib/browser-detection"
+import { detectThirdPartyCookies } from "@/lib/cookie-detection"
 
 export interface AircallContextValue {
-  isInitialized: boolean;
-  isConnected: boolean;
-  currentCall: AircallCall | null;
-  answerCall: () => Promise<void>;
-  rejectCall: () => Promise<void>;
-  hangUp: () => Promise<void>;
-  dialNumber: (phoneNumber: string) => Promise<void>;
-  error: string | null;
-  isReconnecting: boolean;
-  showLoginModal: boolean;
-  showBlockedModal: boolean;
-  diagnosticIssues: string[];
-  openLoginModal: () => void;
-  showWorkspace: () => void;
-  hideWorkspace: () => void;
-  initializationPhase: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed';
-  handleManualLoginConfirm: () => void;
-  retryConnection: () => void;
-  openIncognito: () => void;
-  skipPhoneIntegration: () => void;
-  forceInitialization: () => Promise<void>;
-  isWaitingForWorkspace?: boolean;
-  workspaceVisible: boolean;
-  showAircallWorkspace: (forLogin?: boolean) => void;
-  hideAircallWorkspace: () => void;
-  workspace: any; // Aircall workspace object
-  isWorkspaceReady: boolean; // True when workspace exists and is ready
-  checkLoginStatus: () => Promise<boolean>; // Check if user is logged into Aircall
-  initializePhone: () => Promise<void>; // Manual initialization
-  logout: () => void; // Manual logout from Aircall
+  isInitialized: boolean
+  isConnected: boolean
+  currentCall: AircallCall | null
+  answerCall: () => Promise<void>
+  rejectCall: () => Promise<void>
+  hangUp: () => Promise<void>
+  dialNumber: (phoneNumber: string) => Promise<void>
+  error: string | null
+  isReconnecting: boolean
+  showLoginModal: boolean
+  showBlockedModal: boolean
+  diagnosticIssues: string[]
+  openLoginModal: () => void
+  showWorkspace: () => void
+  hideWorkspace: () => void
+  initializationPhase:
+    | "idle"
+    | "diagnostics"
+    | "creating-workspace"
+    | "workspace-ready"
+    | "logging-in"
+    | "logged-in"
+    | "needs-login"
+    | "failed"
+  handleManualLoginConfirm: () => void
+  retryConnection: () => void
+  openIncognito: () => void
+  skipPhoneIntegration: () => void
+  forceInitialization: () => Promise<void>
+  isWaitingForWorkspace?: boolean
+  workspaceVisible: boolean
+  showAircallWorkspace: (forLogin?: boolean) => void
+  hideAircallWorkspace: () => void
+  workspace: any // Aircall workspace object
+  isWorkspaceReady: boolean // True when workspace exists and is ready
+  checkLoginStatus: () => Promise<boolean> // Check if user is logged into Aircall
+  initializePhone: () => Promise<void> // Manual initialization
+  logout: () => void // Manual logout from Aircall
   // PHASE 4: Debug info for recursion guards
   _debugRecursionGuards?: {
-    isShowing: boolean;
-    isHiding: boolean;
-  };
+    isShowing: boolean
+    isHiding: boolean
+  }
 }
 
-const AircallContext = createContext<AircallContextValue | null>(null);
+const AircallContext = createContext<AircallContextValue | null>(null)
 
 interface AircallProviderProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 /**
  * Aircall Context Provider
- * 
+ *
  * Manages a single instance of Aircall SDK across the entire application.
  * This prevents re-initialization and state loss when components mount/unmount.
  */
 export const AircallProvider = ({ children }: AircallProviderProps) => {
-  const { toast } = useToast();
-  const { profile } = useAuth();
-  const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations();
-  const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast()
+  const { profile } = useAuth()
+  const { getIntegrationByProvider, isLoading: integrationsLoading } = useVoiceIntegrations()
+  const [isInitialized, setIsInitialized] = useState(false)
   // CRITICAL FIX: Never trust localStorage on initial load - always require fresh login
-  const [isConnected, setIsConnected] = useState(false);
-  const [currentCall, setCurrentCall] = useState<AircallCall | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  
+  const [isConnected, setIsConnected] = useState(false)
+  const [currentCall, setCurrentCall] = useState<AircallCall | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isReconnecting, setIsReconnecting] = useState(false)
+
   // Workspace visibility state with localStorage persistence
   const [workspaceVisible, setWorkspaceVisible] = useState(() => {
-    const saved = localStorage.getItem('aircall_workspace_visible');
-    return saved ? saved === 'true' : true; // Default to visible after login
-  });
-  
+    const saved = localStorage.getItem("aircall_workspace_visible")
+    return saved ? saved === "true" : true // Default to visible after login
+  })
+
   // Only show modal if user hasn't opted out
   const [showLoginModal, setShowLoginModal] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const optedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
-    return false; // Always start hidden, let initialization control it
-  });
-  
-  const [showBlockedModal, setShowBlockedModal] = useState(false);
-  const [diagnosticIssues, setDiagnosticIssues] = useState<string[]>([]);
-  const [initializationPhase, setInitializationPhase] = useState<'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed'>('idle');
-  
+    if (typeof window === "undefined") return false
+    const optedOut = sessionStorage.getItem("aircall_opted_out") === "true"
+    return false // Always start hidden, let initialization control it
+  })
+
+  const [showBlockedModal, setShowBlockedModal] = useState(false)
+  const [diagnosticIssues, setDiagnosticIssues] = useState<string[]>([])
+  const [initializationPhase, setInitializationPhase] = useState<
+    | "idle"
+    | "diagnostics"
+    | "creating-workspace"
+    | "workspace-ready"
+    | "logging-in"
+    | "logged-in"
+    | "needs-login"
+    | "failed"
+  >("idle")
+
   // PHASE 2: Workspace readiness state
-  const [isWorkspaceReady, setIsWorkspaceReady] = useState(false);
-  
-  const initAttemptedRef = useRef(false);
-  const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null);
-  const loginPollingRef = useRef<NodeJS.Timeout | null>(null);
-  const loginTimeoutWarningRef = useRef<NodeJS.Timeout | null>(null);
-  const blockingErrorListenerRef = useRef<((e: ErrorEvent) => void) | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  
+  const [isWorkspaceReady, setIsWorkspaceReady] = useState(false)
+
+  const initAttemptedRef = useRef(false)
+  const loginGracePeriodRef = useRef<NodeJS.Timeout | null>(null)
+  const loginPollingRef = useRef<NodeJS.Timeout | null>(null)
+  const loginTimeoutWarningRef = useRef<NodeJS.Timeout | null>(null)
+  const blockingErrorListenerRef = useRef<((e: ErrorEvent) => void) | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
   // PHASE 3: Reconnection mutex and exponential backoff
-  const reconnectAttempts = useRef(0);
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
-  const reconnectionInProgressRef = useRef(false); // Mutex to prevent simultaneous reconnections
-  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>();
-  const MAX_RECONNECT_ATTEMPTS = 5;
-  const BASE_RECONNECT_DELAY = 2000;
-  const GRACE_PERIOD_MS = 30000;
-  const [isPostOAuthSync, setIsPostOAuthSync] = useState(false);
-  
+  const reconnectAttempts = useRef(0)
+  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
+  const reconnectionInProgressRef = useRef(false) // Mutex to prevent simultaneous reconnections
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>()
+  const MAX_RECONNECT_ATTEMPTS = 5
+  const BASE_RECONNECT_DELAY = 2000
+  const GRACE_PERIOD_MS = 30000
+  const [isPostOAuthSync, setIsPostOAuthSync] = useState(false)
+
   // PHASE 1 CRITICAL: Recursion guards to prevent infinite loops
-  const isShowingWorkspaceRef = useRef(false);
-  const isHidingWorkspaceRef = useRef(false);
+  const isShowingWorkspaceRef = useRef(false)
+  const isHidingWorkspaceRef = useRef(false)
 
   // Store connection metadata for state preservation
   const saveConnectionMetadata = useCallback(() => {
-    localStorage.setItem('aircall_connection_timestamp', Date.now().toString());
-    localStorage.setItem('aircall_connection_attempts', reconnectAttempts.current.toString());
-    if (import.meta.env.MODE !== 'production') {
-      console.log('[AircallProvider] 💾 Saved connection metadata');
+    localStorage.setItem("aircall_connection_timestamp", Date.now().toString())
+    localStorage.setItem("aircall_connection_attempts", reconnectAttempts.current.toString())
+    if (import.meta.env.MODE !== "production") {
+      console.log("[AircallProvider] 💾 Saved connection metadata")
     }
-  }, []);
-  
+  }, [])
+
   const getConnectionMetadata = useCallback(() => {
-    const timestamp = localStorage.getItem('aircall_connection_timestamp');
-    const attempts = localStorage.getItem('aircall_connection_attempts');
+    const timestamp = localStorage.getItem("aircall_connection_timestamp")
+    const attempts = localStorage.getItem("aircall_connection_attempts")
     return {
-      timestamp: timestamp ? parseInt(timestamp) : null,
-      attempts: attempts ? parseInt(attempts) : 0
-    };
-  }, []);
+      timestamp: timestamp ? parseInt(timestamp, 10) : null,
+      attempts: attempts ? parseInt(attempts, 10) : 0,
+    }
+  }, [])
 
   // Exponential backoff reconnection logic with mutex
   const attemptReconnect = useCallback(async () => {
     // MUTEX: Prevent multiple simultaneous reconnection attempts
     if (reconnectionInProgressRef.current) {
-      console.log('[AircallProvider] Already reconnecting, skipping attempt');
-      return;
+      console.log("[AircallProvider] Already reconnecting, skipping attempt")
+      return
     }
-    
+
     // PHASE 3: Check if Realtime manager or another system recently reconnected (debounce - increased to 5 seconds)
-    const lastReconnectAttempt = localStorage.getItem('last_reconnect_attempt');
+    const lastReconnectAttempt = localStorage.getItem("last_reconnect_attempt")
     if (lastReconnectAttempt) {
-      const timeSince = Date.now() - parseInt(lastReconnectAttempt);
-      if (timeSince < 5000) { // 5 second debounce (increased from 3)
-        console.log('[AircallProvider] 🔒 Recent reconnection attempt detected, waiting...');
-        return;
+      const timeSince = Date.now() - parseInt(lastReconnectAttempt, 10)
+      if (timeSince < 5000) {
+        // 5 second debounce (increased from 3)
+        console.log("[AircallProvider] 🔒 Recent reconnection attempt detected, waiting...")
+        return
       }
     }
-    
-    localStorage.setItem('last_reconnect_attempt', Date.now().toString());
-    
-    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('[AircallProvider] Max reconnection attempts reached');
-      setError('Unable to reconnect to Aircall. Please refresh the page.');
-      setIsReconnecting(false);
-      reconnectionInProgressRef.current = false;
-      toast({
-        title: 'Connection Failed',
-        description: 'Unable to reconnect to phone system',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    reconnectionInProgressRef.current = true;
 
-    const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts.current);
-    reconnectAttempts.current++;
-    
-    console.log(`[AircallProvider] Reconnection attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
-    
+    localStorage.setItem("last_reconnect_attempt", Date.now().toString())
+
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error("[AircallProvider] Max reconnection attempts reached")
+      setError("Unable to reconnect to Aircall. Please refresh the page.")
+      setIsReconnecting(false)
+      reconnectionInProgressRef.current = false
+      toast({
+        title: "Connection Failed",
+        description: "Unable to reconnect to phone system",
+        variant: "destructive",
+      })
+      return
+    }
+
+    reconnectionInProgressRef.current = true
+
+    const delay = BASE_RECONNECT_DELAY * 2 ** reconnectAttempts.current
+    reconnectAttempts.current++
+
+    console.log(
+      `[AircallProvider] Reconnection attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`,
+    )
+
     reconnectTimeout.current = setTimeout(async () => {
       try {
         // Get fresh configuration data
-        const aircallConfig = getIntegrationByProvider('aircall');
-        const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
+        const aircallConfig = getIntegrationByProvider("aircall")
+        const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere
 
         if (!everywhereConfig?.apiId || !everywhereConfig?.apiToken) {
-          throw new Error('Missing API credentials');
+          throw new Error("Missing API credentials")
         }
 
         await aircallPhone.initialize({
@@ -183,77 +210,77 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
           apiToken: everywhereConfig.apiToken,
           domainName: everywhereConfig.domainName || window.location.hostname,
           onLogin: () => {
-            console.log('[AircallProvider] ✅ Reconnected successfully');
-            setIsConnected(true);
-            setError(null);
-            setIsReconnecting(false);
-            reconnectAttempts.current = 0;
-            reconnectionInProgressRef.current = false; // Release mutex
-            
+            console.log("[AircallProvider] ✅ Reconnected successfully")
+            setIsConnected(true)
+            setError(null)
+            setIsReconnecting(false)
+            reconnectAttempts.current = 0
+            reconnectionInProgressRef.current = false // Release mutex
+
             toast({
-              title: 'Reconnected',
-              description: 'Phone system connection restored',
-            });
+              title: "Reconnected",
+              description: "Phone system connection restored",
+            })
           },
           onLogout: () => {
-            console.warn('[AircallProvider] Connection lost during reconnection');
-            setIsConnected(false);
-            reconnectionInProgressRef.current = false; // Release mutex
-          }
-        });
+            console.warn("[AircallProvider] Connection lost during reconnection")
+            setIsConnected(false)
+            reconnectionInProgressRef.current = false // Release mutex
+          },
+        })
 
-        setIsInitialized(true);
+        setIsInitialized(true)
       } catch (err: any) {
-        console.error('[AircallProvider] Reconnection error:', err);
-        reconnectionInProgressRef.current = false; // Release mutex before retry
-        attemptReconnect();
+        console.error("[AircallProvider] Reconnection error:", err)
+        reconnectionInProgressRef.current = false // Release mutex before retry
+        attemptReconnect()
       }
-    }, delay);
-  }, [getIntegrationByProvider, toast]);
+    }, delay)
+  }, [getIntegrationByProvider, toast])
 
   // Handle disconnection
   const handleDisconnection = useCallback(() => {
-    console.warn('[AircallProvider] Connection lost, attempting reconnection...');
-    setIsConnected(false);
-    setIsReconnecting(true);
-    
+    console.warn("[AircallProvider] Connection lost, attempting reconnection...")
+    setIsConnected(false)
+    setIsReconnecting(true)
+
     toast({
-      title: 'Connection Lost',
-      description: 'Attempting to reconnect...',
-    });
-    
-    attemptReconnect();
-  }, [attemptReconnect, toast]);
+      title: "Connection Lost",
+      description: "Attempting to reconnect...",
+    })
+
+    attemptReconnect()
+  }, [attemptReconnect, toast])
 
   // ============================================================================
   // PHASE 4: localStorage Wrapper Helpers
   // ============================================================================
-  const WORKSPACE_VISIBILITY_KEY = 'aircall_workspace_visible';
+  const WORKSPACE_VISIBILITY_KEY = "aircall_workspace_visible"
 
   const getWorkspaceVisiblePreference = useCallback((): boolean => {
-    const saved = localStorage.getItem(WORKSPACE_VISIBILITY_KEY);
-    return saved ? saved === 'true' : true;
-  }, []);
+    const saved = localStorage.getItem(WORKSPACE_VISIBILITY_KEY)
+    return saved ? saved === "true" : true
+  }, [])
 
   const setWorkspaceVisiblePreference = useCallback((visible: boolean): void => {
-    localStorage.setItem(WORKSPACE_VISIBILITY_KEY, visible.toString());
-  }, []);
+    localStorage.setItem(WORKSPACE_VISIBILITY_KEY, visible.toString())
+  }, [])
 
   // ============================================================================
   // PHASE 1-3-5: BULLETPROOF Workspace Visibility Management
   // Single Source of Truth with Idempotence, Race Condition Handling & JSDoc
   // ============================================================================
-  
+
   /**
    * Shows the Aircall workspace with full idempotence and race condition handling.
-   * 
+   *
    * @remarks
    * - **No auto-hide**: Once shown, workspace remains visible until user explicitly hides it
    * - **Idempotent**: Safe to call multiple times - skips if already visible
    * - **Race condition safe**: Retries up to 3 times if container not yet in DOM
    * - **Persistent**: Saves user preference to localStorage
    * - **Single source of truth**: This is the ONLY function that should show the workspace
-   * 
+   *
    * @example
    * ```ts
    * // From any component using useAircallPhone()
@@ -261,97 +288,114 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * showWorkspace(); // Safe to call repeatedly
    * ```
    */
-  const showAircallWorkspace = useCallback((forLogin = false) => {
-    // PHASE 1 CRITICAL: RECURSION GUARD - Prevent infinite loop
-    if (isShowingWorkspaceRef.current) {
-      console.log('[AircallProvider] 🔒 Already showing workspace, skipping recursive call');
-      return;
-    }
-    
-    isShowingWorkspaceRef.current = true;
-    
-    try {
-      // CRITICAL FIX: Removed blocking isWorkspaceCreated() check
-      // Let the SDK throw its own errors if it's not ready
-      console.log('[AircallProvider] 🚀 Calling SDK showWorkspace() directly');
-      aircallPhone.showWorkspace();
-    
-    // PHASE 1 FIX: Completely bypass all checks for login flow
-    if (forLogin) {
-      console.log('[AircallProvider] 🔓 FORCING workspace visible for login (bypassing all checks)');
-      // Just show the container - no readiness checks needed
-    } else {
-      // Phase 2: Convert blocking check to warning - let SDK handle its own errors
-      if (!isInitialized) {
-        console.warn('[AircallProvider] ⚠️ Workspace may not be fully initialized; trying to show anyway');
-        // DO NOT return - proceed with the call
+  const showAircallWorkspace = useCallback(
+    (forLogin = false) => {
+      // PHASE 1 CRITICAL: RECURSION GUARD - Prevent infinite loop
+      if (isShowingWorkspaceRef.current) {
+        console.log("[AircallProvider] 🔒 Already showing workspace, skipping recursive call")
+        return
       }
-      
-      // PHASE 3: Allow showing workspace if initialized, even if not connected (for login)
-      if (initializationPhase === 'needs-login') {
-        console.log('[AircallProvider] ✅ Showing workspace for login (initialized but not connected)');
-        // Continue to show workspace
-      } else if (!isConnected) {
-        console.warn('[AircallProvider] ⚠️ Workspace not ready for calls yet');
-        // Don't return - still show workspace
-      }
-    }
 
-    // PHASE 2 FIX: Always attempt to apply styles, even if marked visible
-    console.log('[AircallProvider] 🔧 Forcing workspace visibility and pointer-events', { forLogin, isInitialized, isConnected });
+      isShowingWorkspaceRef.current = true
 
-    // PHASE 5: Race Condition Retry Logic
-    let attempts = 0;
-    const MAX_ATTEMPTS = 3;
-    const RETRY_DELAY_MS = 100;
+      try {
+        // CRITICAL FIX: Removed blocking isWorkspaceCreated() check
+        // Let the SDK throw its own errors if it's not ready
+        console.log("[AircallProvider] 🚀 Calling SDK showWorkspace() directly")
+        aircallPhone.showWorkspace()
 
-    const tryShow = () => {
-      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-      
-      if (!container) {
-        attempts++;
-        if (attempts < MAX_ATTEMPTS) {
-          console.warn(`[AircallProvider] Container not found, retry ${attempts}/${MAX_ATTEMPTS} in ${RETRY_DELAY_MS}ms`);
-          setTimeout(tryShow, RETRY_DELAY_MS);
-          return;
+        // PHASE 1 FIX: Completely bypass all checks for login flow
+        if (forLogin) {
+          console.log(
+            "[AircallProvider] 🔓 FORCING workspace visible for login (bypassing all checks)",
+          )
+          // Just show the container - no readiness checks needed
         } else {
-          console.error('[AircallProvider] Cannot show workspace - container not found after 3 attempts');
-          return;
+          // Phase 2: Convert blocking check to warning - let SDK handle its own errors
+          if (!isInitialized) {
+            console.warn(
+              "[AircallProvider] ⚠️ Workspace may not be fully initialized; trying to show anyway",
+            )
+            // DO NOT return - proceed with the call
+          }
+
+          // PHASE 3: Allow showing workspace if initialized, even if not connected (for login)
+          if (initializationPhase === "needs-login") {
+            console.log(
+              "[AircallProvider] ✅ Showing workspace for login (initialized but not connected)",
+            )
+            // Continue to show workspace
+          } else if (!isConnected) {
+            console.warn("[AircallProvider] ⚠️ Workspace not ready for calls yet")
+            // Don't return - still show workspace
+          }
         }
+
+        // PHASE 2 FIX: Always attempt to apply styles, even if marked visible
+        console.log("[AircallProvider] 🔧 Forcing workspace visibility and pointer-events", {
+          forLogin,
+          isInitialized,
+          isConnected,
+        })
+
+        // PHASE 5: Race Condition Retry Logic
+        let attempts = 0
+        const MAX_ATTEMPTS = 3
+        const RETRY_DELAY_MS = 100
+
+        const tryShow = () => {
+          const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+
+          if (!container) {
+            attempts++
+            if (attempts < MAX_ATTEMPTS) {
+              console.warn(
+                `[AircallProvider] Container not found, retry ${attempts}/${MAX_ATTEMPTS} in ${RETRY_DELAY_MS}ms`,
+              )
+              setTimeout(tryShow, RETRY_DELAY_MS)
+              return
+            } else {
+              console.error(
+                "[AircallProvider] Cannot show workspace - container not found after 3 attempts",
+              )
+              return
+            }
+          }
+
+          // CRITICAL FIX: Force remove hidden class and add visible class
+          container.classList.remove("aircall-hidden")
+          container.classList.add("aircall-visible")
+
+          // DEFENSIVE: Force pointer-events as inline style to override any CSS issues
+          container.style.pointerEvents = "auto"
+
+          // Log for debugging
+          const computedStyle = window.getComputedStyle(container)
+          console.log("[AircallProvider] ✅ Workspace shown:", {
+            classList: container.className,
+            computedPointerEvents: computedStyle.pointerEvents,
+            inlinePointerEvents: container.style.pointerEvents,
+            zIndex: computedStyle.zIndex,
+          })
+
+          setWorkspaceVisible(true)
+          setWorkspaceVisiblePreference(true)
+        }
+
+        tryShow()
+      } finally {
+        // Release the lock after a tick to allow the DOM to update
+        setTimeout(() => {
+          isShowingWorkspaceRef.current = false
+        }, 100)
       }
-
-      // CRITICAL FIX: Force remove hidden class and add visible class
-      container.classList.remove('aircall-hidden');
-      container.classList.add('aircall-visible');
-      
-      // DEFENSIVE: Force pointer-events as inline style to override any CSS issues
-      container.style.pointerEvents = 'auto';
-      
-      // Log for debugging
-      const computedStyle = window.getComputedStyle(container);
-      console.log('[AircallProvider] ✅ Workspace shown:', {
-        classList: container.className,
-        computedPointerEvents: computedStyle.pointerEvents,
-        inlinePointerEvents: container.style.pointerEvents,
-        zIndex: computedStyle.zIndex
-      });
-      
-      setWorkspaceVisible(true);
-      setWorkspaceVisiblePreference(true);
-    };
-
-    tryShow();
-    } finally {
-      // Release the lock after a tick to allow the DOM to update
-      setTimeout(() => {
-        isShowingWorkspaceRef.current = false;
-      }, 100);
-    }
-  }, [workspaceVisible, setWorkspaceVisiblePreference, isInitialized, isConnected, initializationPhase, toast, aircallPhone]);
+    },
+    [setWorkspaceVisiblePreference, isInitialized, isConnected, initializationPhase],
+  )
 
   /**
    * Hides the Aircall workspace with full idempotence.
-   * 
+   *
    * @remarks
    * - **Idempotent**: Safe to call multiple times - skips if already hidden
    * - **Persistent**: Saves user preference to localStorage
@@ -360,926 +404,995 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const hideAircallWorkspace = useCallback(() => {
     // PHASE 1 CRITICAL: RECURSION GUARD
     if (isHidingWorkspaceRef.current) {
-      console.log('[AircallProvider] 🔒 Already hiding workspace, skipping recursive call');
-      return;
+      console.log("[AircallProvider] 🔒 Already hiding workspace, skipping recursive call")
+      return
     }
-    
-    isHidingWorkspaceRef.current = true;
-    
+
+    isHidingWorkspaceRef.current = true
+
     try {
-      const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-      
+      const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+
       if (!container) {
-        console.warn('[AircallProvider] Cannot hide workspace - container not found');
-        return;
+        console.warn("[AircallProvider] Cannot hide workspace - container not found")
+        return
       }
-      
+
       // CHECK DOM STATE, NOT REACT STATE
-      const isActuallyVisible = container.classList.contains('aircall-visible');
-      
+      const isActuallyVisible = container.classList.contains("aircall-visible")
+
       if (!isActuallyVisible) {
-        console.log('[AircallProvider] 🙈 Workspace already hidden in DOM - skipping');
+        console.log("[AircallProvider] 🙈 Workspace already hidden in DOM - skipping")
         // Sync React state if needed
-        if (workspaceVisible) setWorkspaceVisible(false);
-        return;
+        if (workspaceVisible) setWorkspaceVisible(false)
+        return
       }
-      
+
       // Call the actual Aircall SDK to hide workspace
       if (aircallPhone.isWorkspaceCreated()) {
-        console.log('[AircallProvider] 🙈 Calling SDK hideWorkspace()');
-        aircallPhone.hideWorkspace();
+        console.log("[AircallProvider] 🙈 Calling SDK hideWorkspace()")
+        aircallPhone.hideWorkspace()
       }
-      
-      container.classList.remove('aircall-visible');
-      container.classList.add('aircall-hidden');
-      setWorkspaceVisible(false);
-      setWorkspaceVisiblePreference(false);
-      console.log('[AircallProvider] 🙈 Workspace hidden (user preference saved)');
+
+      container.classList.remove("aircall-visible")
+      container.classList.add("aircall-hidden")
+      setWorkspaceVisible(false)
+      setWorkspaceVisiblePreference(false)
+      console.log("[AircallProvider] 🙈 Workspace hidden (user preference saved)")
     } finally {
       setTimeout(() => {
-        isHidingWorkspaceRef.current = false;
-      }, 100);
+        isHidingWorkspaceRef.current = false
+      }, 100)
     }
-  }, [workspaceVisible, setWorkspaceVisiblePreference, aircallPhone]);
+  }, [workspaceVisible, setWorkspaceVisiblePreference])
 
   /**
    * Handles successful login - centralized logic to avoid duplication
    */
   const handleSuccessfulLogin = useCallback(() => {
-    console.log('[AircallProvider] ✅ Handling successful login');
-    
+    console.log("[AircallProvider] ✅ Handling successful login")
+
     // PHASE 3: Verify SDK actually reports logged in
-    const sdkLoginStatus = aircallPhone.getLoginStatus();
-    console.log('[AircallProvider] SDK login status:', sdkLoginStatus);
-    
+    const sdkLoginStatus = aircallPhone.getLoginStatus()
+    console.log("[AircallProvider] SDK login status:", sdkLoginStatus)
+
     if (!sdkLoginStatus) {
-      console.warn('[AircallProvider] ⚠️ handleSuccessfulLogin called but SDK reports not logged in - proceeding anyway');
+      console.warn(
+        "[AircallProvider] ⚠️ handleSuccessfulLogin called but SDK reports not logged in - proceeding anyway",
+      )
     }
-    
+
     // Clear polling
     if (loginPollingRef.current) {
-      clearInterval(loginPollingRef.current);
-      loginPollingRef.current = null;
+      clearInterval(loginPollingRef.current)
+      loginPollingRef.current = null
     }
-    
+
     // Clear other timers
     if (loginTimeoutWarningRef.current) {
-      clearTimeout(loginTimeoutWarningRef.current);
-      loginTimeoutWarningRef.current = null;
+      clearTimeout(loginTimeoutWarningRef.current)
+      loginTimeoutWarningRef.current = null
     }
-    
+
     if (blockingErrorListenerRef.current) {
-      window.removeEventListener('error', blockingErrorListenerRef.current, true);
-      blockingErrorListenerRef.current = null;
+      window.removeEventListener("error", blockingErrorListenerRef.current, true)
+      blockingErrorListenerRef.current = null
     }
-    
+
     // Update state
-    aircallPhone.setLoginStatus(true);
-    saveConnectionMetadata();
-    setIsConnected(true);
-    setIsWorkspaceReady(true);
-    setShowLoginModal(false);
-    setError(null);
-    setInitializationPhase('logged-in');
-    reconnectAttempts.current = 0;
-    
+    aircallPhone.setLoginStatus(true)
+    saveConnectionMetadata()
+    setIsConnected(true)
+    setIsWorkspaceReady(true)
+    setShowLoginModal(false)
+    setError(null)
+    setInitializationPhase("logged-in")
+    reconnectAttempts.current = 0
+
     // Show workspace
-    showAircallWorkspace();
-    
+    showAircallWorkspace()
+
     // Start grace period
     if (loginGracePeriodRef.current) {
-      clearTimeout(loginGracePeriodRef.current);
+      clearTimeout(loginGracePeriodRef.current)
     }
     loginGracePeriodRef.current = setTimeout(() => {
-      console.log('[AircallProvider] Grace period ended');
-      loginGracePeriodRef.current = null;
-    }, GRACE_PERIOD_MS);
-    
+      console.log("[AircallProvider] Grace period ended")
+      loginGracePeriodRef.current = null
+    }, GRACE_PERIOD_MS)
+
     // Show success toast
     toast({
-      title: '✅ Logged In Successfully',
-      description: 'You are now connected to Aircall',
-    });
-  }, [aircallPhone, saveConnectionMetadata, showAircallWorkspace, toast, GRACE_PERIOD_MS]);
+      title: "✅ Logged In Successfully",
+      description: "You are now connected to Aircall",
+    })
+  }, [saveConnectionMetadata, showAircallWorkspace, toast])
 
   /**
    * Manual initialization function for button-based approach
    */
   const initializePhone = useCallback(async () => {
     // Mark that user explicitly initiated setup
-    sessionStorage.setItem('aircall_user_initiated', 'true');
-    console.log('[AircallProvider] 🚀 User initiated phone setup');
-    
+    sessionStorage.setItem("aircall_user_initiated", "true")
+    console.log("[AircallProvider] 🚀 User initiated phone setup")
+
     // Check opt-out FIRST
-    const isOptedOut = sessionStorage.getItem('aircall_opted_out') === 'true';
+    const isOptedOut = sessionStorage.getItem("aircall_opted_out") === "true"
     if (isOptedOut) {
-      console.log('[AircallProvider] ⏭️ User opted out of phone integration');
+      console.log("[AircallProvider] ⏭️ User opted out of phone integration")
       toast({
-        title: 'Phone Integration Disabled',
-        description: 'Phone integration was previously disabled.',
-        variant: 'destructive'
-      });
-      return;
+        title: "Phone Integration Disabled",
+        description: "Phone integration was previously disabled.",
+        variant: "destructive",
+      })
+      return
     }
 
     // Allow retry if previous attempt failed
     if (initAttemptedRef.current && isInitialized) {
-      console.log('[AircallProvider] Already initialized successfully');
+      console.log("[AircallProvider] Already initialized successfully")
       // Still show workspace if not connected
       if (!isConnected) {
-        console.log('[AircallProvider] Initialized but not connected - showing for login');
-        showAircallWorkspace(true);
+        console.log("[AircallProvider] Initialized but not connected - showing for login")
+        showAircallWorkspace(true)
       }
-      return;
+      return
     }
 
     // If previously attempted but not initialized, allow retry
     if (initAttemptedRef.current && !isInitialized) {
-      console.log('[AircallProvider] Previous initialization failed - allowing retry');
-      initAttemptedRef.current = false; // Reset the guard
+      console.log("[AircallProvider] Previous initialization failed - allowing retry")
+      initAttemptedRef.current = false // Reset the guard
     }
 
     // Wait for integrations data to load
     if (integrationsLoading) {
-      console.log('[AircallProvider] Waiting for integrations data to load...');
+      console.log("[AircallProvider] Waiting for integrations data to load...")
       toast({
-        title: 'Loading Configuration',
-        description: 'Please wait while we load your Aircall settings...',
-      });
-      return;
+        title: "Loading Configuration",
+        description: "Please wait while we load your Aircall settings...",
+      })
+      return
     }
 
     // Get fresh configuration data (after loading is complete)
-    const aircallConfig = getIntegrationByProvider('aircall');
-    const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere;
+    const aircallConfig = getIntegrationByProvider("aircall")
+    const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere
 
-    console.log('[AircallProvider] Retrieved config:', { 
-      hasConfig: !!aircallConfig, 
+    console.log("[AircallProvider] Retrieved config:", {
+      hasConfig: !!aircallConfig,
       hasEverywhere: !!everywhereConfig,
-      enabled: everywhereConfig?.enabled 
-    });
+      enabled: everywhereConfig?.enabled,
+    })
 
     if (!everywhereConfig?.enabled) {
-      console.log('[AircallProvider] Aircall integration not enabled');
+      console.log("[AircallProvider] Aircall integration not enabled")
       toast({
-        title: 'Not Configured',
-        description: 'Aircall integration is not configured',
-        variant: 'destructive'
-      });
-      return;
+        title: "Not Configured",
+        description: "Aircall integration is not configured",
+        variant: "destructive",
+      })
+      return
     }
 
-    const apiId = everywhereConfig.apiId;
-    const apiToken = everywhereConfig.apiToken;
+    const apiId = everywhereConfig.apiId
+    const apiToken = everywhereConfig.apiToken
 
     if (!apiId || !apiToken) {
-      console.warn('[AircallProvider] Missing API credentials');
+      console.warn("[AircallProvider] Missing API credentials")
       toast({
-        title: 'Configuration Error',
-        description: 'Aircall API credentials are missing',
-        variant: 'destructive'
-      });
-      return;
+        title: "Configuration Error",
+        description: "Aircall API credentials are missing",
+        variant: "destructive",
+      })
+      return
     }
 
-    console.log('[AircallProvider] 🚀 Manual initialization triggered');
-    initAttemptedRef.current = true;
+    console.log("[AircallProvider] 🚀 Manual initialization triggered")
+    initAttemptedRef.current = true
 
     const initialize = async () => {
       // PHASE 5: Wrap entire initialization in try-catch
       try {
         // Phase 0a: Check third-party cookies FIRST (before any SDK calls)
-        console.log('[AircallProvider] 🍪 Checking third-party cookie support...');
-        const cookieCheck = await detectThirdPartyCookies();
-        console.log('[AircallProvider] Cookie detection result:', cookieCheck);
-        
+        console.log("[AircallProvider] 🍪 Checking third-party cookie support...")
+        const cookieCheck = await detectThirdPartyCookies()
+        console.log("[AircallProvider] Cookie detection result:", cookieCheck)
+
         if (!cookieCheck.supported) {
-          console.error('[AircallProvider] ❌ THIRD-PARTY COOKIES BLOCKED - STOPPING INITIALIZATION');
-          console.error('[AircallProvider] Method:', cookieCheck.method);
-          console.error('[AircallProvider] Details:', cookieCheck.details);
-          setDiagnosticIssues(['cookies_blocked', cookieCheck.browserType]);
-          setShowBlockedModal(true);
-          setInitializationPhase('failed');
-          
+          console.error(
+            "[AircallProvider] ❌ THIRD-PARTY COOKIES BLOCKED - STOPPING INITIALIZATION",
+          )
+          console.error("[AircallProvider] Method:", cookieCheck.method)
+          console.error("[AircallProvider] Details:", cookieCheck.details)
+          setDiagnosticIssues(["cookies_blocked", cookieCheck.browserType])
+          setShowBlockedModal(true)
+          setInitializationPhase("failed")
+
           toast({
-            title: `${cookieCheck.browserType === 'brave' ? 'Brave Shields is blocking Aircall' : 'Your browser is blocking Aircall'}`,
+            title: `${cookieCheck.browserType === "brave" ? "Brave Shields is blocking Aircall" : "Your browser is blocking Aircall"}`,
             description:
-              cookieCheck.browserType === 'brave'
+              cookieCheck.browserType === "brave"
                 ? 'Aircall loads its phone in an embedded window that needs third-party cookies. In Brave: click the Shields (lion) icon in the address bar → set Shields to "Down" for this site → reload. Full steps are in the dialog.'
-                : 'Aircall loads its phone in an embedded window that needs third-party cookies, which your browser blocks. Allow third-party cookies for this site (or use Chrome/Edge), then reload. Step-by-step instructions are in the dialog.',
-            variant: 'destructive',
+                : "Aircall loads its phone in an embedded window that needs third-party cookies, which your browser blocks. Allow third-party cookies for this site (or use Chrome/Edge), then reload. Step-by-step instructions are in the dialog.",
+            variant: "destructive",
             duration: 15000,
-          });
-          
-          initAttemptedRef.current = false; // Reset guard to allow retry
-          return; // DO NOT PROCEED
+          })
+
+          initAttemptedRef.current = false // Reset guard to allow retry
+          return // DO NOT PROCEED
         }
-        
-        console.log('[AircallProvider] ✅ Third-party cookies supported');
-        
+
+        console.log("[AircallProvider] ✅ Third-party cookies supported")
+
         // Phase 0b: Check browser compatibility
-        console.log('[AircallProvider] 🔍 Checking browser compatibility...');
-        const browserInfo = await detectBrowser();
-        console.log('[AircallProvider] Browser detected:', browserInfo.name, '| Supported:', browserInfo.isSupported, '| Requires config:', browserInfo.requiresConfiguration);
-        
+        console.log("[AircallProvider] 🔍 Checking browser compatibility...")
+        const browserInfo = await detectBrowser()
+        console.log(
+          "[AircallProvider] Browser detected:",
+          browserInfo.name,
+          "| Supported:",
+          browserInfo.isSupported,
+          "| Requires config:",
+          browserInfo.requiresConfiguration,
+        )
+
         if (!browserInfo.isSupported) {
-          console.error('[AircallProvider] ❌ UNSUPPORTED BROWSER - STOPPING INITIALIZATION');
-          console.error('[AircallProvider] Browser:', browserInfo.name);
-          console.error('[AircallProvider] Recommendation:', browserInfo.recommendation);
-          setDiagnosticIssues([`unsupported_browser_${browserInfo.type}`]);
-          setShowBlockedModal(true);
-          setInitializationPhase('failed');
-          
+          console.error("[AircallProvider] ❌ UNSUPPORTED BROWSER - STOPPING INITIALIZATION")
+          console.error("[AircallProvider] Browser:", browserInfo.name)
+          console.error("[AircallProvider] Recommendation:", browserInfo.recommendation)
+          setDiagnosticIssues([`unsupported_browser_${browserInfo.type}`])
+          setShowBlockedModal(true)
+          setInitializationPhase("failed")
+
           toast({
-            title: 'Browser Not Supported',
+            title: "Browser Not Supported",
             description: `Aircall requires Google Chrome. You're using ${browserInfo.name}.`,
-            variant: 'destructive',
+            variant: "destructive",
             duration: 15000,
-          });
-          
-          initAttemptedRef.current = false; // Reset guard to allow retry
-          return; // DO NOT PROCEED
+          })
+
+          initAttemptedRef.current = false // Reset guard to allow retry
+          return // DO NOT PROCEED
         }
-        
+
         if (browserInfo.requiresConfiguration) {
-          console.warn('[AircallProvider] ⚠️ Browser requires configuration:', browserInfo.name);
-          console.warn('[AircallProvider] Recommendation:', browserInfo.recommendation);
+          console.warn("[AircallProvider] ⚠️ Browser requires configuration:", browserInfo.name)
+          console.warn("[AircallProvider] Recommendation:", browserInfo.recommendation)
         }
-        
+
         // Phase 1: Create AbortController for short-circuit capability
-        abortControllerRef.current = new AbortController();
-        
+        abortControllerRef.current = new AbortController()
+
         // Phase 2: Setup error listener BEFORE initialization (including 401 detection)
         blockingErrorListenerRef.current = (e: ErrorEvent) => {
-          const errorMsg = e.message || '';
-          
+          const errorMsg = e.message || ""
+
           // Check for network blocking
-          if (errorMsg.includes('ERR_BLOCKED_BY_CLIENT') || errorMsg.includes('blocked by client')) {
-            console.error('[AircallProvider] ❌ Network blocking detected via error event');
-            setDiagnosticIssues(['network_blocked']);
-            setShowBlockedModal(true);
-            setInitializationPhase('failed');
-            
+          if (
+            errorMsg.includes("ERR_BLOCKED_BY_CLIENT") ||
+            errorMsg.includes("blocked by client")
+          ) {
+            console.error("[AircallProvider] ❌ Network blocking detected via error event")
+            setDiagnosticIssues(["network_blocked"])
+            setShowBlockedModal(true)
+            setInitializationPhase("failed")
+
             // Short-circuit initialization
-            abortControllerRef.current?.abort();
-            initAttemptedRef.current = false; // Reset guard to allow retry
-            
+            abortControllerRef.current?.abort()
+            initAttemptedRef.current = false // Reset guard to allow retry
+
             toast({
-              title: 'Aircall requests are being blocked',
-              description: 'Something in the browser is blocking phone.aircall.io — usually an ad blocker, privacy extension, or Brave Shields. Turn shields/blockers off for this site and click "Login to Aircall" again.',
-              variant: 'destructive',
+              title: "Aircall requests are being blocked",
+              description:
+                'Something in the browser is blocking phone.aircall.io — usually an ad blocker, privacy extension, or Brave Shields. Turn shields/blockers off for this site and click "Login to Aircall" again.',
+              variant: "destructive",
               duration: 10000,
-            });
+            })
           }
-          
+
           // Check for authentication failures (401) - normal during init
-          if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('authentication')) {
-            console.log('[AircallProvider] 🔐 Authentication needed - showing workspace for login');
-            setDiagnosticIssues(['authentication_failed']);
-            setInitializationPhase('needs-login');
-            showAircallWorkspace(true);
-            
+          if (
+            errorMsg.includes("401") ||
+            errorMsg.includes("Unauthorized") ||
+            errorMsg.includes("authentication")
+          ) {
+            console.log("[AircallProvider] 🔐 Authentication needed - showing workspace for login")
+            setDiagnosticIssues(["authentication_failed"])
+            setInitializationPhase("needs-login")
+            showAircallWorkspace(true)
+
             // Short-circuit initialization
-            abortControllerRef.current?.abort();
-            initAttemptedRef.current = false; // Reset guard to allow retry
-            
+            abortControllerRef.current?.abort()
+            initAttemptedRef.current = false // Reset guard to allow retry
+
             toast({
-              title: 'Aircall Login Required',
-              description: 'Please log in to Aircall again.',
-              variant: 'destructive',
+              title: "Aircall Login Required",
+              description: "Please log in to Aircall again.",
+              variant: "destructive",
               duration: 10000,
-            });
+            })
           }
-        };
-        
+        }
+
         // Attach error listener with capture phase
-        window.addEventListener('error', blockingErrorListenerRef.current, true);
-        
+        window.addEventListener("error", blockingErrorListenerRef.current, true)
+
         // Phase 1: BULLETPROOF - Make diagnostics non-blocking warnings
-        console.log('[AircallProvider] 🚀 Phase 1: Running diagnostics...');
-        setInitializationPhase('diagnostics');
-        
-        const diagnostic = await aircallPhone.diagnoseEnvironment();
-        console.log('[AircallProvider] Diagnostic result:', diagnostic);
-        setDiagnosticIssues(diagnostic.issues);
-        
+        console.log("[AircallProvider] 🚀 Phase 1: Running diagnostics...")
+        setInitializationPhase("diagnostics")
+
+        const diagnostic = await aircallPhone.diagnoseEnvironment()
+        console.log("[AircallProvider] Diagnostic result:", diagnostic)
+        setDiagnosticIssues(diagnostic.issues)
+
         // Phase 1: Make diagnostics non-blocking - show warnings but continue
         if (diagnostic.hasIssues) {
-          console.warn('[AircallProvider] ⚠️ Potential issues detected:', diagnostic.issues);
-          console.warn('[AircallProvider] Continuing initialization - will handle actual failures');
-          
+          console.warn("[AircallProvider] ⚠️ Potential issues detected:", diagnostic.issues)
+          console.warn("[AircallProvider] Continuing initialization - will handle actual failures")
+
           // Show a non-blocking toast
           toast({
-            title: 'Browser Extension Detected',
-            description: 'Aircall may be affected by browser extensions. If login fails, try disabling them.',
-            variant: 'default', // Not destructive
+            title: "Browser Extension Detected",
+            description:
+              "Aircall may be affected by browser extensions. If login fails, try disabling them.",
+            variant: "default", // Not destructive
             duration: 8000,
-          });
-          
+          })
+
           // DO NOT RETURN - let initialization continue
         }
-        
-        console.log('[AircallProvider] ✅ Proceeding with SDK initialization...');
-        
+
+        console.log("[AircallProvider] ✅ Proceeding with SDK initialization...")
+
         // Container is guaranteed to exist in HTML - direct check
-        let outerContainer = document.querySelector('#aircall-workspace-container') as HTMLElement;
-        
+        let outerContainer = document.querySelector("#aircall-workspace-container") as HTMLElement
+
         if (!outerContainer) {
           // Fallback: Create outer container imperatively if somehow missing
-          console.warn('[AircallProvider] Outer container missing - creating imperatively');
-          outerContainer = document.createElement('div');
-          outerContainer.id = 'aircall-workspace-container';
-          document.body.appendChild(outerContainer);
+          console.warn("[AircallProvider] Outer container missing - creating imperatively")
+          outerContainer = document.createElement("div")
+          outerContainer.id = "aircall-workspace-container"
+          document.body.appendChild(outerContainer)
         }
-        
+
         // CRITICAL FIX: Create inner workspace div if it doesn't exist
-        let innerWorkspace = outerContainer.querySelector('#aircall-workspace') as HTMLElement;
+        let innerWorkspace = outerContainer.querySelector("#aircall-workspace") as HTMLElement
         if (!innerWorkspace) {
-          console.log('[AircallProvider] Creating inner #aircall-workspace div');
-          innerWorkspace = document.createElement('div');
-          innerWorkspace.id = 'aircall-workspace';
-          outerContainer.appendChild(innerWorkspace);
+          console.log("[AircallProvider] Creating inner #aircall-workspace div")
+          innerWorkspace = document.createElement("div")
+          innerWorkspace.id = "aircall-workspace"
+          outerContainer.appendChild(innerWorkspace)
         }
-        
-        console.log('[AircallProvider] ✅ Container structure ready in DOM (outer + inner)');
-        
+
+        console.log("[AircallProvider] ✅ Container structure ready in DOM (outer + inner)")
+
         // PHASE 5: Immediately make container visible so SDK can inject iframe
-        console.log('[AircallProvider] 🎨 Making container visible for SDK initialization...');
-        outerContainer.classList.remove('aircall-hidden');
-        outerContainer.classList.add('aircall-visible');
-        outerContainer.style.display = 'block';
-        outerContainer.style.visibility = 'visible';
-        console.log('[AircallProvider] ✅ Container made visible for SDK');
-        
-        console.log('[AircallProvider] 🚀 Starting SDK initialization...');
-        setInitializationPhase('creating-workspace');
-        
+        console.log("[AircallProvider] 🎨 Making container visible for SDK initialization...")
+        outerContainer.classList.remove("aircall-hidden")
+        outerContainer.classList.add("aircall-visible")
+        outerContainer.style.display = "block"
+        outerContainer.style.visibility = "visible"
+        console.log("[AircallProvider] ✅ Container made visible for SDK")
+
+        console.log("[AircallProvider] 🚀 Starting SDK initialization...")
+        setInitializationPhase("creating-workspace")
+
         // Phase 1: Smart domain detection for dev vs production
         const getSmartDomain = () => {
           // 1. Always prefer explicit database configuration
-          if (everywhereConfig.domainName && everywhereConfig.domainName !== '') {
-            return everywhereConfig.domainName;
+          if (everywhereConfig.domainName && everywhereConfig.domainName !== "") {
+            return everywhereConfig.domainName
           }
-          
+
           // 2. Detect if we're in preview/dev environment
-          const currentHostname = window.location.hostname;
-          const isPreview = currentHostname.includes('lovableproject.com');
-          
+          const currentHostname = window.location.hostname
+          const isPreview = currentHostname.includes("lovableproject.com")
+
           // 3. In preview, use published domain; otherwise use current domain
           if (isPreview) {
-            return 'lovable-customer-support-hub.lovable.app';
+            return "lovable-customer-support-hub.lovable.app"
           }
-          
-          return currentHostname;
-        };
-        
-        const runtimeDomain = getSmartDomain();
-        console.group('[AircallProvider] 🌐 DOMAIN DEBUG');
-        console.log('📦 Raw DB Config:', {
+
+          return currentHostname
+        }
+
+        const runtimeDomain = getSmartDomain()
+        console.group("[AircallProvider] 🌐 DOMAIN DEBUG")
+        console.log("📦 Raw DB Config:", {
           fullConfig: everywhereConfig,
           domainField: everywhereConfig.domainName,
           fieldType: typeof everywhereConfig.domainName,
-          isEmpty: !everywhereConfig.domainName || everywhereConfig.domainName === '',
-        });
-        console.log('🌍 Runtime Environment:', {
+          isEmpty: !everywhereConfig.domainName || everywhereConfig.domainName === "",
+        })
+        console.log("🌍 Runtime Environment:", {
           hostname: window.location.hostname,
           href: window.location.href,
           protocol: window.location.protocol,
-        });
-        console.log('🎯 SDK Initialization:', {
+        })
+        console.log("🎯 SDK Initialization:", {
           domainToUse: runtimeDomain,
           isAutoDetect: !everywhereConfig.domainName,
-          isDomainMatch: !everywhereConfig.domainName || everywhereConfig.domainName === window.location.hostname,
-          apiId: apiId.substring(0, 8) + '***', // Security: Only show first 8 chars
+          isDomainMatch:
+            !everywhereConfig.domainName ||
+            everywhereConfig.domainName === window.location.hostname,
+          apiId: `${apiId.substring(0, 8)}***`, // Security: Only show first 8 chars
           hasToken: !!apiToken,
-        });
-        console.groupEnd();
-        
-        await aircallPhone.initialize({
-          apiId,
-          apiToken,
-          domainName: runtimeDomain,
-          onLogin: () => {
-            // PHASE 3: Enhanced logging for state synchronization debugging
-            console.group('[AircallProvider] ✅ LOGIN CALLBACK FIRED - User logged in!');
-            console.log('Timestamp:', new Date().toISOString());
-            console.log('Current initializationPhase:', initializationPhase);
-            console.log('Current isConnected:', isConnected);
-            console.groupEnd();
-            
-            // Prevent duplicate firing
-            if (isConnected) {
-              console.warn('[AircallProvider] Already connected, ignoring duplicate onLogin');
-              return;
-            }
-            
-            // The onLogin callback fires when user successfully logs in via iframe
-            handleSuccessfulLogin();
-            
-            // Clear error listener since login successful
-            if (blockingErrorListenerRef.current) {
-              window.removeEventListener('error', blockingErrorListenerRef.current, true);
-              blockingErrorListenerRef.current = null;
-            }
+        })
+        console.groupEnd()
+
+        await aircallPhone.initialize(
+          {
+            apiId,
+            apiToken,
+            domainName: runtimeDomain,
+            onLogin: () => {
+              // PHASE 3: Enhanced logging for state synchronization debugging
+              console.group("[AircallProvider] ✅ LOGIN CALLBACK FIRED - User logged in!")
+              console.log("Timestamp:", new Date().toISOString())
+              console.log("Current initializationPhase:", initializationPhase)
+              console.log("Current isConnected:", isConnected)
+              console.groupEnd()
+
+              // Prevent duplicate firing
+              if (isConnected) {
+                console.warn("[AircallProvider] Already connected, ignoring duplicate onLogin")
+                return
+              }
+
+              // The onLogin callback fires when user successfully logs in via iframe
+              handleSuccessfulLogin()
+
+              // Clear error listener since login successful
+              if (blockingErrorListenerRef.current) {
+                window.removeEventListener("error", blockingErrorListenerRef.current, true)
+                blockingErrorListenerRef.current = null
+              }
+            },
+            onLogout: () => {
+              console.group("[AircallProvider] 🚪 LOGOUT CALLBACK")
+              console.log("Timestamp:", new Date().toISOString())
+              console.groupEnd()
+
+              // If in grace period, likely network issue
+              if (loginGracePeriodRef.current) {
+                console.log("[AircallProvider] Ignoring logout during grace period")
+                return
+              }
+
+              // Phase 3: Mark workspace as not ready on logout
+              setIsWorkspaceReady(false)
+              console.log("[AircallProvider] ❌ Workspace marked as not ready after logout")
+
+              const wasLoggedIn = aircallPhone.getLoginStatus()
+
+              if (wasLoggedIn) {
+                console.log("[AircallProvider] Handling disconnection, keeping login state")
+                handleDisconnection()
+              } else {
+                console.log("[AircallProvider] Confirmed logout, showing workspace for re-login")
+                aircallPhone.clearLoginStatus()
+                setInitializationPhase("needs-login")
+
+                // Show workspace for re-login
+                showAircallWorkspace(true)
+
+                toast({
+                  title: "Logged Out",
+                  description: "Log in through the Aircall widget to continue",
+                  duration: 5000,
+                })
+
+                handleDisconnection()
+              }
+            },
           },
-          onLogout: () => {
-            console.group('[AircallProvider] 🚪 LOGOUT CALLBACK');
-            console.log('Timestamp:', new Date().toISOString());
-            console.groupEnd();
-            
-            // If in grace period, likely network issue
-            if (loginGracePeriodRef.current) {
-              console.log('[AircallProvider] Ignoring logout during grace period');
-              return;
-            }
-            
-            // Phase 3: Mark workspace as not ready on logout
-            setIsWorkspaceReady(false);
-            console.log('[AircallProvider] ❌ Workspace marked as not ready after logout');
-            
-            const wasLoggedIn = aircallPhone.getLoginStatus();
-            
-            if (wasLoggedIn) {
-              console.log('[AircallProvider] Handling disconnection, keeping login state');
-              handleDisconnection();
-            } else {
-              console.log('[AircallProvider] Confirmed logout, showing workspace for re-login');
-              aircallPhone.clearLoginStatus();
-              setInitializationPhase('needs-login');
-              
-              // Show workspace for re-login
-              showAircallWorkspace(true);
-              
-              toast({
-                title: 'Logged Out',
-                description: 'Log in through the Aircall widget to continue',
-                duration: 5000,
-              });
-              
-              handleDisconnection();
-            }
-          }
-        }, abortControllerRef.current.signal); // Phase 1: Pass AbortSignal
+          abortControllerRef.current.signal,
+        ) // Phase 1: Pass AbortSignal
 
         // Check if workspace was created (not if user is logged in yet)
-        const workspaceCreated = aircallPhone.isWorkspaceCreated();
-        console.group('[AircallProvider] 📋 POST-INIT CHECK');
-        console.log('Workspace created:', workspaceCreated);
-        console.log('Iframe exists:', !!document.querySelector('#aircall-workspace-container iframe'));
-        console.log('Container classes:', document.querySelector('#aircall-workspace-container')?.className);
-        console.groupEnd();
-        
-        // PHASE 4: DETAILED IFRAME INSPECTION
-        console.group('[AircallProvider] 🔍 DETAILED IFRAME INSPECTION');
-        const outerContainerCheck = document.querySelector('#aircall-workspace-container');
-        const innerWorkspaceCheck = document.querySelector('#aircall-workspace');
-        const iframeInner = innerWorkspaceCheck?.querySelector('iframe');
-        const iframeOuter = outerContainerCheck?.querySelector('iframe');
+        const workspaceCreated = aircallPhone.isWorkspaceCreated()
+        console.group("[AircallProvider] 📋 POST-INIT CHECK")
+        console.log("Workspace created:", workspaceCreated)
+        console.log(
+          "Iframe exists:",
+          !!document.querySelector("#aircall-workspace-container iframe"),
+        )
+        console.log(
+          "Container classes:",
+          document.querySelector("#aircall-workspace-container")?.className,
+        )
+        console.groupEnd()
 
-        console.log('Outer container exists:', !!outerContainerCheck);
-        console.log('Inner workspace exists:', !!innerWorkspaceCheck);
-        console.log('Iframe in inner div:', !!iframeInner);
-        console.log('Iframe in outer div:', !!iframeOuter);
+        // PHASE 4: DETAILED IFRAME INSPECTION
+        console.group("[AircallProvider] 🔍 DETAILED IFRAME INSPECTION")
+        const outerContainerCheck = document.querySelector("#aircall-workspace-container")
+        const innerWorkspaceCheck = document.querySelector("#aircall-workspace")
+        const iframeInner = innerWorkspaceCheck?.querySelector("iframe")
+        const iframeOuter = outerContainerCheck?.querySelector("iframe")
+
+        console.log("Outer container exists:", !!outerContainerCheck)
+        console.log("Inner workspace exists:", !!innerWorkspaceCheck)
+        console.log("Iframe in inner div:", !!iframeInner)
+        console.log("Iframe in outer div:", !!iframeOuter)
 
         if (iframeInner) {
-          console.log('Iframe src:', (iframeInner as HTMLIFrameElement).src);
-          console.log('Iframe allow attr:', (iframeInner as HTMLIFrameElement).getAttribute('allow'));
-          console.log('Iframe display:', window.getComputedStyle(iframeInner as HTMLElement).display);
-          console.log('Iframe visibility:', window.getComputedStyle(iframeInner as HTMLElement).visibility);
-          console.log('Iframe opacity:', window.getComputedStyle(iframeInner as HTMLElement).opacity);
+          console.log("Iframe src:", (iframeInner as HTMLIFrameElement).src)
+          console.log(
+            "Iframe allow attr:",
+            (iframeInner as HTMLIFrameElement).getAttribute("allow"),
+          )
+          console.log(
+            "Iframe display:",
+            window.getComputedStyle(iframeInner as HTMLElement).display,
+          )
+          console.log(
+            "Iframe visibility:",
+            window.getComputedStyle(iframeInner as HTMLElement).visibility,
+          )
+          console.log(
+            "Iframe opacity:",
+            window.getComputedStyle(iframeInner as HTMLElement).opacity,
+          )
         }
 
-        console.log('Inner workspace HTML:', innerWorkspaceCheck?.innerHTML?.substring(0, 200));
-        console.groupEnd();
-        
+        console.log("Inner workspace HTML:", innerWorkspaceCheck?.innerHTML?.substring(0, 200))
+        console.groupEnd()
+
         if (workspaceCreated) {
-          setIsInitialized(true);
-          setIsWorkspaceReady(true); // PHASE 2: Mark workspace as ready
-          setInitializationPhase('workspace-ready');
-          console.log('[AircallProvider] ✅ Aircall workspace initialized and ready');
-          
+          setIsInitialized(true)
+          setIsWorkspaceReady(true) // PHASE 2: Mark workspace as ready
+          setInitializationPhase("workspace-ready")
+          console.log("[AircallProvider] ✅ Aircall workspace initialized and ready")
+
           // Auto-show workspace for iframe-first login
-          console.log('[AircallProvider] 🔐 Workspace ready - showing for login');
-          setInitializationPhase('needs-login');
-          
+          console.log("[AircallProvider] 🔐 Workspace ready - showing for login")
+          setInitializationPhase("needs-login")
+
           // Show workspace automatically so users can log in directly
-          showAircallWorkspace(true);
-          
+          showAircallWorkspace(true)
+
           toast({
-            title: 'Aircall Widget Loaded',
-            description: 'Log in through the Aircall widget in the bottom-right corner',
+            title: "Aircall Widget Loaded",
+            description: "Log in through the Aircall widget in the bottom-right corner",
             duration: 8000,
-          });
+          })
         } else {
-          console.error('[AircallProvider] ❌ Workspace creation failed');
-          setIsInitialized(false);
-          setInitializationPhase('failed');
-          setError('Workspace creation failed');
-          
+          console.error("[AircallProvider] ❌ Workspace creation failed")
+          setIsInitialized(false)
+          setInitializationPhase("failed")
+          setError("Workspace creation failed")
+
           toast({
-            title: 'Initialization Failed',
-            description: 'Unable to create Aircall workspace. Check your API credentials.',
-            variant: 'destructive'
-          });
-          initAttemptedRef.current = false; // Reset guard to allow retry
-          return;
+            title: "Initialization Failed",
+            description: "Unable to create Aircall workspace. Check your API credentials.",
+            variant: "destructive",
+          })
+          initAttemptedRef.current = false // Reset guard to allow retry
+          return
         }
-        
-        console.log('[AircallProvider] ✅ Initialization complete');
-        
+
+        console.log("[AircallProvider] ✅ Initialization complete")
+
         // PHASE 4: Check if cached login is recent (within 24 hours)
-        const loginTimestamp = localStorage.getItem('aircall_connection_timestamp');
-        const isLoginRecent = loginTimestamp && 
-          (Date.now() - parseInt(loginTimestamp)) < 24 * 60 * 60 * 1000;
-        
+        const loginTimestamp = localStorage.getItem("aircall_connection_timestamp")
+        const isLoginRecent =
+          loginTimestamp && Date.now() - parseInt(loginTimestamp, 10) < 24 * 60 * 60 * 1000
+
         if (!isLoginRecent) {
-          console.log('[AircallProvider] 🔐 Login session expired');
-          
+          console.log("[AircallProvider] 🔐 Login session expired")
+
           // Clear our local tracking only (iframe session will persist)
-          aircallPhone.clearLoginStatus();
-          localStorage.removeItem('aircall_connection_timestamp');
-          localStorage.removeItem('aircall_connection_attempts');
-          
-          setIsConnected(false);
-          setInitializationPhase('needs-login');
-          showAircallWorkspace(true);
-          
+          aircallPhone.clearLoginStatus()
+          localStorage.removeItem("aircall_connection_timestamp")
+          localStorage.removeItem("aircall_connection_attempts")
+
+          setIsConnected(false)
+          setInitializationPhase("needs-login")
+          showAircallWorkspace(true)
+
           toast({
-            title: 'Aircall Login',
-            description: 'Please log in to Aircall. You may be automatically signed in if your session is still active.',
+            title: "Aircall Login",
+            description:
+              "Please log in to Aircall. You may be automatically signed in if your session is still active.",
             duration: 6000,
-          });
+          })
         } else {
-          console.log('[AircallProvider] ✅ Recent login found, attempting to restore session');
+          console.log("[AircallProvider] ✅ Recent login found, attempting to restore session")
           // Let the onLogin callback handle success, or show workspace if it doesn't fire within 5s
           setTimeout(() => {
             if (!aircallPhone.getLoginStatus()) {
-              console.log('[AircallProvider] Session restore failed, showing workspace for login');
-              setInitializationPhase('needs-login');
-              showAircallWorkspace(true);
-              
+              console.log("[AircallProvider] Session restore failed, showing workspace for login")
+              setInitializationPhase("needs-login")
+              showAircallWorkspace(true)
+
               toast({
-                title: 'Login Required',
-                description: 'Please log in through the Aircall widget',
+                title: "Login Required",
+                description: "Please log in through the Aircall widget",
                 duration: 5000,
-              });
+              })
             }
-          }, 5000);
+          }, 5000)
         }
       } catch (initError: any) {
-        console.group('[AircallProvider] ❌ INITIALIZATION ERROR');
-        console.error('Error:', initError);
-        console.error('Diagnostic issues detected earlier:', diagnosticIssues);
-        console.groupEnd();
-        
+        console.group("[AircallProvider] ❌ INITIALIZATION ERROR")
+        console.error("Error:", initError)
+        console.error("Diagnostic issues detected earlier:", diagnosticIssues)
+        console.groupEnd()
+
         // Phase 5: Cleanup error listener
         if (blockingErrorListenerRef.current) {
-          window.removeEventListener('error', blockingErrorListenerRef.current, true);
-          blockingErrorListenerRef.current = null;
+          window.removeEventListener("error", blockingErrorListenerRef.current, true)
+          blockingErrorListenerRef.current = null
         }
-        
-        const errorMessage = initError.message || initError.toString();
-        
+
+        const errorMessage = initError.message || initError.toString()
+
         // Phase 3: Determine if this is a blocking issue vs authentication issue
-        const isNetworkBlocked = errorMessage.includes('ERR_BLOCKED_BY_CLIENT') 
-          || errorMessage.includes('blocked by client')
-          || errorMessage.includes('net::')
-          || errorMessage.includes('timeout')
-          || diagnosticIssues.includes('iframe_blocked');
-        
-        const isAuthFailure = errorMessage.includes('401') 
-          || errorMessage.includes('Unauthorized')
-          || errorMessage.includes('authentication');
-        
+        const isNetworkBlocked =
+          errorMessage.includes("ERR_BLOCKED_BY_CLIENT") ||
+          errorMessage.includes("blocked by client") ||
+          errorMessage.includes("net::") ||
+          errorMessage.includes("timeout") ||
+          diagnosticIssues.includes("iframe_blocked")
+
+        const isAuthFailure =
+          errorMessage.includes("401") ||
+          errorMessage.includes("Unauthorized") ||
+          errorMessage.includes("authentication")
+
         if (isNetworkBlocked) {
           // TRUE BLOCKING - show blocked modal
-          setDiagnosticIssues(['network_blocked', 'iframe_blocked']);
-          setShowBlockedModal(true);
-          setInitializationPhase('failed');
-          
+          setDiagnosticIssues(["network_blocked", "iframe_blocked"])
+          setShowBlockedModal(true)
+          setInitializationPhase("failed")
+
           toast({
-            title: 'Aircall requests are being blocked',
-            description: 'phone.aircall.io could not load. Disable ad blockers / Brave Shields for this site, allow third-party cookies, then try logging in again.',
-            variant: 'destructive',
+            title: "Aircall requests are being blocked",
+            description:
+              "phone.aircall.io could not load. Disable ad blockers / Brave Shields for this site, allow third-party cookies, then try logging in again.",
+            variant: "destructive",
             duration: 15000,
-          });
+          })
         } else if (isAuthFailure) {
           // AUTHENTICATION ISSUE - show workspace for login
-          setDiagnosticIssues(['authentication_failed']);
-          setInitializationPhase('needs-login');
-          
+          setDiagnosticIssues(["authentication_failed"])
+          setInitializationPhase("needs-login")
+
           // Show workspace so user can log in
-          showAircallWorkspace(true);
-          
+          showAircallWorkspace(true)
+
           toast({
-            title: 'Aircall Login Required',
-            description: 'Log in through the Aircall widget in the bottom-right corner',
-            variant: 'default',
+            title: "Aircall Login Required",
+            description: "Log in through the Aircall widget in the bottom-right corner",
+            variant: "default",
             duration: 10000,
-          });
+          })
         } else {
           // UNKNOWN ERROR - show workspace to let user try logging in
-          setInitializationPhase('needs-login');
-          showAircallWorkspace(true);
-          setError(`Initialization failed: ${errorMessage}`);
-          
-          toast({
-            title: 'Phone Integration Failed',
-            description: 'Unable to initialize Aircall. You can try logging in or retry the connection.',
-            variant: 'destructive',
-            duration: 10000,
-          });
-        }
-        
-        setIsInitialized(false);
-        initAttemptedRef.current = false; // Reset guard to allow retry
-        return; // Exit permanently
-      }
-    };
+          setInitializationPhase("needs-login")
+          showAircallWorkspace(true)
+          setError(`Initialization failed: ${errorMessage}`)
 
-    await initialize();
-  }, [toast, handleSuccessfulLogin, handleDisconnection, showAircallWorkspace, aircallPhone, saveConnectionMetadata, getIntegrationByProvider, integrationsLoading]);
+          toast({
+            title: "Phone Integration Failed",
+            description:
+              "Unable to initialize Aircall. You can try logging in or retry the connection.",
+            variant: "destructive",
+            duration: 10000,
+          })
+        }
+
+        setIsInitialized(false)
+        initAttemptedRef.current = false // Reset guard to allow retry
+        return // Exit permanently
+      }
+    }
+
+    await initialize()
+  }, [
+    toast,
+    handleSuccessfulLogin,
+    handleDisconnection,
+    showAircallWorkspace,
+    getIntegrationByProvider,
+    integrationsLoading,
+    isConnected,
+    isInitialized,
+    initializationPhase,
+    diagnosticIssues.includes,
+    diagnosticIssues,
+  ])
 
   /**
    * Initialize on mount - Check for user-initiated setup
    */
   useEffect(() => {
     // Check if user initiated setup this session
-    const userInitiated = sessionStorage.getItem('aircall_user_initiated') === 'true';
-    
+    const userInitiated = sessionStorage.getItem("aircall_user_initiated") === "true"
+
     if (!userInitiated) {
-      console.log('[AircallProvider] 🧹 No user initiation detected - cleaning up stale SDK state');
-      
+      console.log("[AircallProvider] 🧹 No user initiation detected - cleaning up stale SDK state")
+
       // Clear any persisted Aircall workspace/iframe
-      const container = document.getElementById('aircall-workspace-container');
+      const container = document.getElementById("aircall-workspace-container")
       if (container) {
-        container.innerHTML = ''; // Clear any leftover iframes
+        container.innerHTML = "" // Clear any leftover iframes
       }
-      
+
       // Force SDK to clean state
-      aircallPhone.cleanup();
-      
+      aircallPhone.cleanup()
+
       // Ensure we start fresh
-      setIsInitialized(false);
-      setIsConnected(false);
-      setInitializationPhase('idle');
-      
-      console.log('[AircallProvider] ✅ Waiting for user to click Load Phone System');
-      return; // Exit early - don't auto-initialize
+      setIsInitialized(false)
+      setIsConnected(false)
+      setInitializationPhase("idle")
+
+      console.log("[AircallProvider] ✅ Waiting for user to click Load Phone System")
+      return // Exit early - don't auto-initialize
     }
-    
-    console.log('[AircallProvider] 🔄 User initiation detected - checking SDK state');
-    
+
+    console.log("[AircallProvider] 🔄 User initiation detected - checking SDK state")
+
     // Only check SDK state if user explicitly initialized
     if (aircallPhone.isWorkspaceCreated()) {
-      console.log('[AircallProvider] 🔄 Workspace exists - attempting to restore session');
-      setIsInitialized(true);
-      setInitializationPhase('workspace-ready');
-      
+      console.log("[AircallProvider] 🔄 Workspace exists - attempting to restore session")
+      setIsInitialized(true)
+      setInitializationPhase("workspace-ready")
+
       // Check login status
       aircallPhone.checkLoginStatus((isLoggedIn) => {
         if (isLoggedIn) {
-          console.log('[AircallProvider] ✅ Session restored - user is logged in');
-          setIsConnected(true);
-          setInitializationPhase('logged-in');
+          console.log("[AircallProvider] ✅ Session restored - user is logged in")
+          setIsConnected(true)
+          setInitializationPhase("logged-in")
         } else {
-          console.log('[AircallProvider] ⚠️ Workspace exists but user not logged in');
-          setInitializationPhase('needs-login');
+          console.log("[AircallProvider] ⚠️ Workspace exists but user not logged in")
+          setInitializationPhase("needs-login")
         }
-      });
+      })
     }
 
     // ONLY cleanup on actual app unmount (browser close)
     return () => {
-      console.log('[AircallProvider] 🛑 App unmounting, cleaning up Aircall');
-      
+      console.log("[AircallProvider] 🛑 App unmounting, cleaning up Aircall")
+
       // Phase 5: Cleanup error listener
       if (blockingErrorListenerRef.current) {
-        window.removeEventListener('error', blockingErrorListenerRef.current, true);
-        blockingErrorListenerRef.current = null;
+        window.removeEventListener("error", blockingErrorListenerRef.current, true)
+        blockingErrorListenerRef.current = null
       }
-      
+
       if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
+        clearTimeout(reconnectTimeout.current)
       }
       if (loginGracePeriodRef.current) {
-        clearTimeout(loginGracePeriodRef.current);
+        clearTimeout(loginGracePeriodRef.current)
       }
       if (loginPollingRef.current) {
-        clearInterval(loginPollingRef.current);
+        clearInterval(loginPollingRef.current)
       }
       if (loginTimeoutWarningRef.current) {
-        clearTimeout(loginTimeoutWarningRef.current);
+        clearTimeout(loginTimeoutWarningRef.current)
       }
       // Only disconnect when app actually unmounts
       if (aircallPhone.isReady()) {
-        aircallPhone.disconnect();
+        aircallPhone.disconnect()
       }
-    };
-  }, []);
+    }
+  }, [])
 
   /**
    * Register SDK event handlers
    */
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized) return
 
-    console.log('[AircallProvider] 📡 Registering event handlers');
-    console.log('[AircallProvider] SDK ready state:', aircallPhone.isReady());
-    console.log('[AircallProvider] Has profile:', !!profile, 'Has org_id:', !!profile?.organization_id);
+    console.log("[AircallProvider] 📡 Registering event handlers")
+    console.log("[AircallProvider] SDK ready state:", aircallPhone.isReady())
+    console.log(
+      "[AircallProvider] Has profile:",
+      !!profile,
+      "Has org_id:",
+      !!profile?.organization_id,
+    )
 
     const handleIncomingCall = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
-        type: 'incoming_call',
+        type: "incoming_call",
         call,
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+      })
 
       if (shouldProcess) {
-        console.log('[AircallProvider] 📞 Incoming call (SDK):', call);
-        console.log('[AircallProvider] Profile state:', { 
-          hasProfile: !!profile, 
+        console.log("[AircallProvider] 📞 Incoming call (SDK):", call)
+        console.log("[AircallProvider] Profile state:", {
+          hasProfile: !!profile,
           hasOrgId: !!profile?.organization_id,
-          orgId: profile?.organization_id 
-        });
-        setCurrentCall(call);
-        
+          orgId: profile?.organization_id,
+        })
+        setCurrentCall(call)
+
         // Sync to database to trigger IncomingCallModal
         if (!profile?.organization_id) {
-          console.error('[AircallProvider] ❌ Cannot sync call - missing profile or organization_id');
+          console.error(
+            "[AircallProvider] ❌ Cannot sync call - missing profile or organization_id",
+          )
           toast({
-            title: 'Call Sync Failed',
-            description: 'Unable to save call data. Please refresh the page.',
-            variant: 'destructive'
-          });
-          return;
+            title: "Call Sync Failed",
+            description: "Unable to save call data. Please refresh the page.",
+            variant: "destructive",
+          })
+          return
         }
-        
+
         try {
           const { data: existingCall } = await supabase
-              .from('calls')
-              .select('id')
-              .eq('external_id', String(call.call_id))
-              .maybeSingle();
-            
-            if (!existingCall) {
-              const { error } = await supabase
-                .from('calls')
-                .insert([{
-                  external_id: String(call.call_id),
-                  organization_id: profile.organization_id,
-                  direction: 'inbound' as const,
-                  status: 'ringing' as const,
-                  customer_phone: call.from || call.phone_number || '',
-                  agent_phone: call.to || '',
-                  started_at: new Date().toISOString(),
-                  metadata: call as any
-                }]);
-              
-              if (error) {
-                console.error('[AircallProvider] Failed to sync incoming call to DB:', error);
-              } else {
-                console.log('[AircallProvider] ✅ Incoming call synced to database');
-              }
+            .from("calls")
+            .select("id")
+            .eq("external_id", String(call.call_id))
+            .maybeSingle()
+
+          if (!existingCall) {
+            const { error } = await supabase.from("calls").insert([
+              {
+                external_id: String(call.call_id),
+                organization_id: profile.organization_id,
+                direction: "inbound" as const,
+                status: "ringing" as const,
+                customer_phone: call.from || call.phone_number || "",
+                agent_phone: call.to || "",
+                started_at: new Date().toISOString(),
+                metadata: call as any,
+              },
+            ])
+
+            if (error) {
+              console.error("[AircallProvider] Failed to sync incoming call to DB:", error)
+            } else {
+              console.log("[AircallProvider] ✅ Incoming call synced to database")
+            }
           }
         } catch (err) {
-          console.error('[AircallProvider] Error syncing incoming call:', err);
+          console.error("[AircallProvider] Error syncing incoming call:", err)
         }
       }
-    };
+    }
 
     const handleCallEnded = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
-        type: 'call_ended',
+        type: "call_ended",
         call,
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+      })
 
       if (shouldProcess) {
-        console.log('[AircallProvider] 🔚 Call ended (SDK):', call);
-        
+        console.log("[AircallProvider] 🔚 Call ended (SDK):", call)
+
         // Keep currentCall visible for 5 seconds so users can see the phone bar
         setTimeout(() => {
-          console.log('[AircallProvider] 🧹 Clearing currentCall after delay');
-          setCurrentCall(null);
-        }, 5000);
-        
+          console.log("[AircallProvider] 🧹 Clearing currentCall after delay")
+          setCurrentCall(null)
+        }, 5000)
+
         // Update database record immediately
         if (profile?.organization_id) {
           try {
             const { error } = await supabase
-              .from('calls')
+              .from("calls")
               .update({
-                status: 'completed',
+                status: "completed",
                 ended_at: new Date().toISOString(),
-                duration_seconds: call.duration
+                duration_seconds: call.duration,
               })
-              .eq('external_id', String(call.call_id));
-            
+              .eq("external_id", String(call.call_id))
+
             if (error) {
-              console.error('[AircallProvider] Failed to update call end in DB:', error);
+              console.error("[AircallProvider] Failed to update call end in DB:", error)
             } else {
-              console.log('[AircallProvider] ✅ Call end synced to database');
+              console.log("[AircallProvider] ✅ Call end synced to database")
             }
           } catch (err) {
-            console.error('[AircallProvider] Error updating call end:', err);
+            console.error("[AircallProvider] Error updating call end:", err)
           }
         }
       }
-    };
+    }
 
     const handleOutgoingCall = async (call: AircallCall) => {
       const shouldProcess = aircallEventBridge.processSDKEvent({
-        type: 'outgoing_call',
+        type: "outgoing_call",
         call,
-        timestamp: Date.now()
-      });
+        timestamp: Date.now(),
+      })
 
       if (shouldProcess) {
-        console.log('[AircallProvider] 📤 Outgoing call (SDK):', call);
-        setCurrentCall(call);
-        
+        console.log("[AircallProvider] 📤 Outgoing call (SDK):", call)
+        setCurrentCall(call)
+
         // Sync to database
         if (profile?.organization_id) {
           try {
             const { data: existingCall } = await supabase
-              .from('calls')
-              .select('id')
-              .eq('external_id', String(call.call_id))
-              .maybeSingle();
-            
+              .from("calls")
+              .select("id")
+              .eq("external_id", String(call.call_id))
+              .maybeSingle()
+
             if (!existingCall) {
-              const { error } = await supabase
-                .from('calls')
-                .insert([{
+              const { error } = await supabase.from("calls").insert([
+                {
                   external_id: String(call.call_id),
                   organization_id: profile.organization_id,
-                  direction: 'outbound' as const,
-                  status: 'ringing' as const,
-                  customer_phone: call.to || call.phone_number || '',
-                  agent_phone: call.from || '',
+                  direction: "outbound" as const,
+                  status: "ringing" as const,
+                  customer_phone: call.to || call.phone_number || "",
+                  agent_phone: call.from || "",
                   started_at: new Date().toISOString(),
-                  metadata: call as any
-                }]);
-              
+                  metadata: call as any,
+                },
+              ])
+
               if (error) {
-                console.error('[AircallProvider] Failed to sync outgoing call to DB:', error);
+                console.error("[AircallProvider] Failed to sync outgoing call to DB:", error)
               } else {
-                console.log('[AircallProvider] ✅ Outgoing call synced to database');
+                console.log("[AircallProvider] ✅ Outgoing call synced to database")
               }
             }
           } catch (err) {
-            console.error('[AircallProvider] Error syncing outgoing call:', err);
+            console.error("[AircallProvider] Error syncing outgoing call:", err)
           }
         }
       }
-    };
+    }
 
-    const unsubIncoming = aircallPhone.on('incoming_call', handleIncomingCall);
-    const unsubEnded = aircallPhone.on('call_ended', handleCallEnded);
-    const unsubOutgoing = aircallPhone.on('outgoing_call', handleOutgoingCall);
-    
-    console.log('[AircallProvider] ✅ Event handlers registered successfully');
+    const unsubIncoming = aircallPhone.on("incoming_call", handleIncomingCall)
+    const unsubEnded = aircallPhone.on("call_ended", handleCallEnded)
+    const unsubOutgoing = aircallPhone.on("outgoing_call", handleOutgoingCall)
+
+    console.log("[AircallProvider] ✅ Event handlers registered successfully")
 
     return () => {
-      console.log('[AircallProvider] 🧹 Unregistering event handlers');
-      unsubIncoming();
-      unsubEnded();
-      unsubOutgoing();
-    };
-  }, [isInitialized, profile]);
+      console.log("[AircallProvider] 🧹 Unregistering event handlers")
+      unsubIncoming()
+      unsubEnded()
+      unsubOutgoing()
+    }
+  }, [isInitialized, profile, toast])
 
   // Manage modal visibility with grace period
   useEffect(() => {
-    if (!isInitialized) return;
-    
+    if (!isInitialized) return
+
     const graceTimer = setTimeout(() => {
       if (!isConnected && !currentCall) {
-        const metadata = getConnectionMetadata();
-        const timeSinceLastConnection = metadata.timestamp 
-          ? Date.now() - metadata.timestamp 
-          : Infinity;
-        
-        const recentlyLoggedIn = timeSinceLastConnection < 5 * 60 * 1000;
-        
+        const metadata = getConnectionMetadata()
+        const timeSinceLastConnection = metadata.timestamp
+          ? Date.now() - metadata.timestamp
+          : Infinity
+
+        const recentlyLoggedIn = timeSinceLastConnection < 5 * 60 * 1000
+
         if (timeSinceLastConnection > 30000 && !recentlyLoggedIn) {
-          console.log('[AircallProvider] No connection after grace period, showing workspace for login');
-          setInitializationPhase('needs-login');
-          showAircallWorkspace(true);
-          
+          console.log(
+            "[AircallProvider] No connection after grace period, showing workspace for login",
+          )
+          setInitializationPhase("needs-login")
+          showAircallWorkspace(true)
+
           toast({
-            title: 'Connection Lost',
-            description: 'Please log in through the Aircall widget',
+            title: "Connection Lost",
+            description: "Please log in through the Aircall widget",
             duration: 5000,
-          });
+          })
         } else if (recentlyLoggedIn) {
-          console.log('[AircallProvider] User recently logged in, suppressing modal');
+          console.log("[AircallProvider] User recently logged in, suppressing modal")
         }
       }
-    }, 30000);
+    }, 30000)
 
-    return () => clearTimeout(graceTimer);
-  }, [isInitialized, isConnected, currentCall, getConnectionMetadata]);
+    return () => clearTimeout(graceTimer)
+  }, [isInitialized, isConnected, currentCall, getConnectionMetadata, toast, showAircallWorkspace])
 
   // Phase 4: REMOVED - no OAuth detection or complex reload logic
 
@@ -1287,137 +1400,142 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
    * Call control functions
    */
   const answerCall = useCallback(async () => {
-    console.log('[AircallProvider] Showing workspace for user to answer call');
+    console.log("[AircallProvider] Showing workspace for user to answer call")
     // SDK v2 doesn't support programmatic answer - show workspace instead
-    showAircallWorkspace();
+    showAircallWorkspace()
     toast({
-      title: 'Use Aircall Workspace to Answer',
-      description: 'Click the green Answer button in the Aircall phone',
-    });
-  }, [showAircallWorkspace, toast]);
+      title: "Use Aircall Workspace to Answer",
+      description: "Click the green Answer button in the Aircall phone",
+    })
+  }, [showAircallWorkspace, toast])
 
   const rejectCall = useCallback(async () => {
-    console.log('[AircallProvider] Showing workspace for user to reject call');
+    console.log("[AircallProvider] Showing workspace for user to reject call")
     // SDK v2 doesn't support programmatic reject - show workspace instead
-    showAircallWorkspace();
+    showAircallWorkspace()
     toast({
-      title: 'Use Aircall Workspace to Reject',
-      description: 'Click the red Reject button in the Aircall phone',
-    });
-  }, [showAircallWorkspace, toast]);
+      title: "Use Aircall Workspace to Reject",
+      description: "Click the red Reject button in the Aircall phone",
+    })
+  }, [showAircallWorkspace, toast])
 
   const hangUp = useCallback(async () => {
     try {
-      await aircallPhone.hangUp();
-      console.log('[AircallProvider] ℹ️  User must hang up via Aircall Workspace UI');
+      await aircallPhone.hangUp()
+      console.log("[AircallProvider] ℹ️  User must hang up via Aircall Workspace UI")
     } catch (err) {
       toast({
-        title: 'Use Aircall Workspace to End Call',
+        title: "Use Aircall Workspace to End Call",
         description: 'Click "Show Aircall" button to interact with the call',
-      });
+      })
     }
-  }, [toast]);
+  }, [toast])
 
-  const dialNumber = useCallback(async (phoneNumber: string) => {
-    try {
-      await aircallPhone.dialNumber(phoneNumber);
-      console.log('[AircallProvider] ✅ Dialing:', phoneNumber);
-    } catch (err) {
-      console.error('[AircallProvider] ❌ Failed to dial:', err);
-      toast({
-        title: 'Failed to Dial',
-        description: err instanceof Error ? err.message : 'Unknown error',
-        variant: 'destructive'
-      });
-      throw err;
-    }
-  }, [toast]);
+  const dialNumber = useCallback(
+    async (phoneNumber: string) => {
+      try {
+        await aircallPhone.dialNumber(phoneNumber)
+        console.log("[AircallProvider] ✅ Dialing:", phoneNumber)
+      } catch (err) {
+        console.error("[AircallProvider] ❌ Failed to dial:", err)
+        toast({
+          title: "Failed to Dial",
+          description: err instanceof Error ? err.message : "Unknown error",
+          variant: "destructive",
+        })
+        throw err
+      }
+    },
+    [toast],
+  )
 
   const openLoginModal = useCallback(() => {
-    console.log('[AircallProvider] 🔓 Showing workspace for login');
-    setInitializationPhase('needs-login');
-    showAircallWorkspace(true);
-    
+    console.log("[AircallProvider] 🔓 Showing workspace for login")
+    setInitializationPhase("needs-login")
+    showAircallWorkspace(true)
+
     toast({
-      title: 'Aircall Widget Ready',
-      description: 'Log in through the Aircall widget in the bottom-right corner',
+      title: "Aircall Widget Ready",
+      description: "Log in through the Aircall widget in the bottom-right corner",
       duration: 8000,
-    });
-  }, [showAircallWorkspace, toast]);
+    })
+  }, [showAircallWorkspace, toast])
 
   // Phase 5: Enhanced manual login confirmation handler with workspace reload
   const handleManualLoginConfirm = useCallback(async () => {
-    console.log('[AircallProvider] 🎯 Login confirmation received from modal');
-    
+    console.log("[AircallProvider] 🎯 Login confirmation received from modal")
+
     // CRITICAL FIX: Modal already verified login, just trigger success flow
     // Don't check login status again as it returns false positives
-    console.log('[AircallProvider] ✅ Triggering success flow (modal already verified login)');
-    
-    handleSuccessfulLogin();
-  }, [handleSuccessfulLogin]);
+    console.log("[AircallProvider] ✅ Triggering success flow (modal already verified login)")
+
+    handleSuccessfulLogin()
+  }, [handleSuccessfulLogin])
 
   const retryConnection = useCallback(() => {
-    console.log('[AircallProvider] 🔄 Retrying connection after fixing blocks');
-    initAttemptedRef.current = false; // Reset guard before retry
-    setShowBlockedModal(false);
-    setDiagnosticIssues([]);
-    setError(null);
-    window.location.reload();
-  }, []);
+    console.log("[AircallProvider] 🔄 Retrying connection after fixing blocks")
+    initAttemptedRef.current = false // Reset guard before retry
+    setShowBlockedModal(false)
+    setDiagnosticIssues([])
+    setError(null)
+    window.location.reload()
+  }, [])
 
   const openIncognito = useCallback(() => {
-    console.log('[AircallProvider] 🔓 Opening in incognito mode');
-    window.open(window.location.href, '_blank');
-  }, []);
+    console.log("[AircallProvider] 🔓 Opening in incognito mode")
+    window.open(window.location.href, "_blank")
+  }, [])
 
   const skipPhoneIntegration = useCallback(() => {
-    console.log('[AircallProvider] 🚪 User opted to skip phone integration');
-    
+    console.log("[AircallProvider] 🚪 User opted to skip phone integration")
+
     // Phase 5: Cleanup error listener when opting out
     if (blockingErrorListenerRef.current) {
-      window.removeEventListener('error', blockingErrorListenerRef.current, true);
-      blockingErrorListenerRef.current = null;
+      window.removeEventListener("error", blockingErrorListenerRef.current, true)
+      blockingErrorListenerRef.current = null
     }
-    
-    initAttemptedRef.current = false; // Reset guard in case user wants to retry later
-    sessionStorage.setItem('aircall_opted_out', 'true');
-    console.log('[AircallProvider] 🚫 Opt-out flag set - integration disabled until manually re-enabled');
-    setShowLoginModal(false);
-    setShowBlockedModal(false);
-    
+
+    initAttemptedRef.current = false // Reset guard in case user wants to retry later
+    sessionStorage.setItem("aircall_opted_out", "true")
+    console.log(
+      "[AircallProvider] 🚫 Opt-out flag set - integration disabled until manually re-enabled",
+    )
+    setShowLoginModal(false)
+    setShowBlockedModal(false)
+
     toast({
-      title: 'Phone Integration Disabled',
-      description: 'You can re-enable it in Admin → Voice settings',
-    });
-  }, [toast]);
+      title: "Phone Integration Disabled",
+      description: "You can re-enable it in Admin → Voice settings",
+    })
+  }, [toast])
 
   // Phase 6: Add force retry escape hatch
   const forceInitialization = useCallback(async () => {
-    console.log('[AircallProvider] 🚀 Force initialization requested by user');
-    
+    console.log("[AircallProvider] 🚀 Force initialization requested by user")
+
     // IMPORTANT: Reset all guards and state
-    initAttemptedRef.current = false; // Reset guard first
-    setIsInitialized(false);
-    setIsConnected(false);
-    
+    initAttemptedRef.current = false // Reset guard first
+    setIsInitialized(false)
+    setIsConnected(false)
+
     // Clear all diagnostic flags
-    setDiagnosticIssues([]);
-    setShowBlockedModal(false);
-    setShowLoginModal(false);
-    
+    setDiagnosticIssues([])
+    setShowBlockedModal(false)
+    setShowLoginModal(false)
+
     // Reset initialization state
-    setInitializationPhase('idle');
-    setError(null);
-    
+    setInitializationPhase("idle")
+    setError(null)
+
     // Clear opt-out if set
-    sessionStorage.removeItem('aircall_opted_out');
-    
+    sessionStorage.removeItem("aircall_opted_out")
+
     // Give browser a moment to clear state
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     // Reload page to start fresh
-    window.location.reload();
-  }, []);
+    window.location.reload()
+  }, [])
 
   // REMOVED: Event listeners that created the recursion loop
   // The SDK now calls show()/hide() directly instead of dispatching events
@@ -1429,7 +1547,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   // This prevented users from seeing/interacting with the Aircall login iframe
   // The workspace MUST be visible during login so users can authenticate through Aircall's interface
   // If z-index conflicts occur with other modals in future, use z-index management WITHOUT opacity/pointer-events
-  
+
   // Original code (lines 1367-1395) removed on 2025-10-14 to fix login visibility issue
 
   // ============================================================================
@@ -1437,58 +1555,58 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   // ============================================================================
   useEffect(() => {
     const checkWorkspace = () => {
-      const container = document.querySelector('#aircall-workspace-container');
-      const iframe = container?.querySelector('iframe');
-      
-      if (iframe) {
-        console.log('[AircallProvider] ✅ Workspace iframe detected and ready');
-      }
-    };
+      const container = document.querySelector("#aircall-workspace-container")
+      const iframe = container?.querySelector("iframe")
 
-    const observer = new MutationObserver(checkWorkspace);
-    const container = document.querySelector('#aircall-workspace-container');
-    
-    if (container) {
-      observer.observe(container, { childList: true, subtree: true });
-      checkWorkspace(); // Check immediately
+      if (iframe) {
+        console.log("[AircallProvider] ✅ Workspace iframe detected and ready")
+      }
     }
 
-    return () => observer.disconnect();
-  }, []);
+    const observer = new MutationObserver(checkWorkspace)
+    const container = document.querySelector("#aircall-workspace-container")
+
+    if (container) {
+      observer.observe(container, { childList: true, subtree: true })
+      checkWorkspace() // Check immediately
+    }
+
+    return () => observer.disconnect()
+  }, [])
 
   // ============================================================================
   // Auto-sync React state with DOM reality
   // ============================================================================
   useEffect(() => {
-    const container = document.querySelector('#aircall-workspace-container');
-    if (!container) return;
+    const container = document.querySelector("#aircall-workspace-container")
+    if (!container) return
 
     const syncStateWithDOM = () => {
-      const hasVisibleClass = container.classList.contains('aircall-visible');
-      const hasHiddenClass = container.classList.contains('aircall-hidden');
-      
+      const hasVisibleClass = container.classList.contains("aircall-visible")
+      const hasHiddenClass = container.classList.contains("aircall-hidden")
+
       // Update React state to match DOM reality
       if (hasVisibleClass && !workspaceVisible) {
-        console.log('[AircallProvider] 🔄 Syncing state: DOM visible but React state false');
-        setWorkspaceVisible(true);
+        console.log("[AircallProvider] 🔄 Syncing state: DOM visible but React state false")
+        setWorkspaceVisible(true)
       } else if (hasHiddenClass && workspaceVisible) {
-        console.log('[AircallProvider] 🔄 Syncing state: DOM hidden but React state true');
-        setWorkspaceVisible(false);
+        console.log("[AircallProvider] 🔄 Syncing state: DOM hidden but React state true")
+        setWorkspaceVisible(false)
       }
-    };
+    }
 
     // Check immediately on mount
-    syncStateWithDOM();
+    syncStateWithDOM()
 
     // Watch for class changes
-    const observer = new MutationObserver(syncStateWithDOM);
-    observer.observe(container, { 
-      attributes: true, 
-      attributeFilter: ['class'] 
-    });
+    const observer = new MutationObserver(syncStateWithDOM)
+    observer.observe(container, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
 
-    return () => observer.disconnect();
-  }, [workspaceVisible]);
+    return () => observer.disconnect()
+  }, [workspaceVisible])
 
   // ============================================================================
   // Check Login Status (for popup login polling)
@@ -1496,109 +1614,108 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const checkLoginStatus = useCallback(async (): Promise<boolean> => {
     return new Promise((resolve) => {
       if (!aircallPhone.isWorkspaceCreated()) {
-        resolve(false);
-        return;
+        resolve(false)
+        return
       }
-      
+
       aircallPhone.checkLoginStatus((isLoggedIn) => {
-        resolve(isLoggedIn);
-      });
-    });
-  }, []);
+        resolve(isLoggedIn)
+      })
+    })
+  }, [])
 
   // ============================================================================
   // Manual Logout Function
   // ============================================================================
   const logout = useCallback(() => {
-    console.log('[AircallProvider] 🚪 Manual logout requested');
-    
+    console.log("[AircallProvider] 🚪 Manual logout requested")
+
     // Clear the SDK login status
-    aircallPhone.clearLoginStatus();
-    
+    aircallPhone.clearLoginStatus()
+
     // Update state
-    setIsConnected(false);
-    setInitializationPhase('needs-login');
-    setIsWorkspaceReady(false);
-    
+    setIsConnected(false)
+    setInitializationPhase("needs-login")
+    setIsWorkspaceReady(false)
+
     // Hide the workspace
-    hideAircallWorkspace();
-    
-    console.log('[AircallProvider] ✅ Logged out successfully');
-  }, [hideAircallWorkspace]);
+    hideAircallWorkspace()
+
+    console.log("[AircallProvider] ✅ Logged out successfully")
+  }, [hideAircallWorkspace])
 
   // ============================================================================
   // PHASE 0: Memoize Context Value for Performance
   // ============================================================================
-  const value: AircallContextValue = useMemo(() => ({
-    isInitialized,
-    isConnected,
-    currentCall,
-    answerCall,
-    rejectCall,
-    hangUp,
-    dialNumber,
-    error,
-    isReconnecting,
-    showLoginModal: showLoginModal && !isPostOAuthSync,
-    showBlockedModal,
-    diagnosticIssues,
-    openLoginModal,
-    showWorkspace: () => aircallPhone.showWorkspace(),
-    hideWorkspace: () => aircallPhone.hideWorkspace(),
-    initializationPhase,
-    handleManualLoginConfirm,
-    retryConnection,
-    openIncognito,
-    skipPhoneIntegration,
-    forceInitialization,
-    workspaceVisible,
-    showAircallWorkspace,
-    hideAircallWorkspace,
-    workspace: null, // Workspace is private in SDK
-    isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
-    checkLoginStatus,
-    initializePhone,
-    logout,
-    // PHASE 4: Expose recursion guard states for debug panel
-    _debugRecursionGuards: {
-      isShowing: isShowingWorkspaceRef.current,
-      isHiding: isHidingWorkspaceRef.current,
-    },
-  }), [
-    isInitialized,
-    isConnected,
-    currentCall,
-    answerCall,
-    rejectCall,
-    hangUp,
-    dialNumber,
-    error,
-    isReconnecting,
-    showLoginModal,
-    isPostOAuthSync,
-    showBlockedModal,
-    diagnosticIssues,
-    openLoginModal,
-    initializationPhase,
-    handleManualLoginConfirm,
-    retryConnection,
-    openIncognito,
-    skipPhoneIntegration,
-    forceInitialization,
-    workspaceVisible,
-    showAircallWorkspace,
+  const value: AircallContextValue = useMemo(
+    () => ({
+      isInitialized,
+      isConnected,
+      currentCall,
+      answerCall,
+      rejectCall,
+      hangUp,
+      dialNumber,
+      error,
+      isReconnecting,
+      showLoginModal: showLoginModal && !isPostOAuthSync,
+      showBlockedModal,
+      diagnosticIssues,
+      openLoginModal,
+      showWorkspace: () => aircallPhone.showWorkspace(),
+      hideWorkspace: () => aircallPhone.hideWorkspace(),
+      initializationPhase,
+      handleManualLoginConfirm,
+      retryConnection,
+      openIncognito,
+      skipPhoneIntegration,
+      forceInitialization,
+      workspaceVisible,
+      showAircallWorkspace,
+      hideAircallWorkspace,
+      workspace: null, // Workspace is private in SDK
+      isWorkspaceReady, // PHASE 2: Expose workspace readiness from state
+      checkLoginStatus,
+      initializePhone,
+      logout,
+      // PHASE 4: Expose recursion guard states for debug panel
+      _debugRecursionGuards: {
+        isShowing: isShowingWorkspaceRef.current,
+        isHiding: isHidingWorkspaceRef.current,
+      },
+    }),
+    [
+      isInitialized,
+      isConnected,
+      currentCall,
+      answerCall,
+      rejectCall,
+      hangUp,
+      dialNumber,
+      error,
+      isReconnecting,
+      showLoginModal,
+      isPostOAuthSync,
+      showBlockedModal,
+      diagnosticIssues,
+      openLoginModal,
+      initializationPhase,
+      handleManualLoginConfirm,
+      retryConnection,
+      openIncognito,
+      skipPhoneIntegration,
+      forceInitialization,
+      workspaceVisible,
+      showAircallWorkspace,
       hideAircallWorkspace,
       isWorkspaceReady,
       checkLoginStatus,
       initializePhone,
       logout,
-    ]);
+    ],
+  )
 
-  return (
-    <AircallContext.Provider value={value}>
-      {children}
-    </AircallContext.Provider>
-  );
-};
+  return <AircallContext.Provider value={value}>{children}</AircallContext.Provider>
+}
 
-export { AircallContext };
+export { AircallContext }

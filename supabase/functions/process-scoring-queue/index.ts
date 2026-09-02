@@ -1,23 +1,23 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.53.0';
-import { scoreApplicant, type ScoringRubric, type ScoringInput } from '../_shared/llmScoring.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0"
+import { type ScoringInput, type ScoringRubric, scoreApplicant } from "../_shared/llmScoring.ts"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
 
-const BATCH_SIZE = 3; // small to avoid edge runtime walltime risk for slow gpt-5 calls
-const MAX_ATTEMPTS = 3;
-const BACKOFF_MINUTES = [1, 5, 15];
-const PER_ROW_TIMEOUT_MS = 90_000;
-const STUCK_PROCESSING_MINUTES = 3;
+const BATCH_SIZE = 3 // small to avoid edge runtime walltime risk for slow gpt-5 calls
+const MAX_ATTEMPTS = 3
+const BACKOFF_MINUTES = [1, 5, 15]
+const PER_ROW_TIMEOUT_MS = 90_000
+const STUCK_PROCESSING_MINUTES = 3
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders })
 
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   const results = {
     processed: 0,
@@ -25,229 +25,237 @@ Deno.serve(async (req) => {
     failed: 0,
     reclaimed: 0,
     errors: [] as string[],
-  };
+  }
 
   try {
     // 1. Reclaim rows stuck in 'processing' from a prior interrupted run.
-    const reclaimed = await reclaimStuckProcessing(admin);
-    results.reclaimed = reclaimed;
+    const reclaimed = await reclaimStuckProcessing(admin)
+    results.reclaimed = reclaimed
 
     // 2. Claim a small batch (atomic RPC if available, fallback otherwise).
-    let queueIds: string[] = [];
-    const { data: claimed, error: claimErr } = await admin.rpc('claim_scoring_queue_batch', {
+    let queueIds: string[] = []
+    const { data: claimed, error: claimErr } = await admin.rpc("claim_scoring_queue_batch", {
       p_batch_size: BATCH_SIZE,
-    });
+    })
 
     if (claimErr) {
       const { data: rows } = await admin
-        .from('application_scoring_queue')
-        .select('id')
-        .eq('status', 'pending')
+        .from("application_scoring_queue")
+        .select("id")
+        .eq("status", "pending")
         .or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`)
-        .order('created_at', { ascending: true })
-        .limit(BATCH_SIZE);
-      queueIds = (rows || []).map((r: any) => r.id);
+        .order("created_at", { ascending: true })
+        .limit(BATCH_SIZE)
+      queueIds = (rows || []).map((r: any) => r.id)
       if (queueIds.length > 0) {
         await admin
-          .from('application_scoring_queue')
-          .update({ status: 'processing' })
-          .in('id', queueIds);
+          .from("application_scoring_queue")
+          .update({ status: "processing" })
+          .in("id", queueIds)
       }
     } else {
-      queueIds = ((claimed as any[]) || []).map((r) => r.id);
+      queueIds = ((claimed as any[]) || []).map((r) => r.id)
     }
 
     for (const id of queueIds) {
-      await processOneSafe(admin, id, results);
+      await processOneSafe(admin, id, results)
     }
 
     return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (err: any) {
-    console.error('[process-scoring-queue] fatal', err);
-    return new Response(JSON.stringify({ error: err?.message || 'Internal error', ...results }), {
+    console.error("[process-scoring-queue] fatal", err)
+    return new Response(JSON.stringify({ error: err?.message || "Internal error", ...results }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   }
-});
+})
 
 async function reclaimStuckProcessing(admin: any): Promise<number> {
-  const cutoff = new Date(Date.now() - STUCK_PROCESSING_MINUTES * 60_000).toISOString();
+  const cutoff = new Date(Date.now() - STUCK_PROCESSING_MINUTES * 60_000).toISOString()
   const { data: stuck, error } = await admin
-    .from('application_scoring_queue')
-    .select('id, attempts')
-    .eq('status', 'processing')
-    .lt('updated_at', cutoff);
+    .from("application_scoring_queue")
+    .select("id, attempts")
+    .eq("status", "processing")
+    .lt("updated_at", cutoff)
   if (error) {
-    console.warn('[process-scoring-queue] reclaim query failed:', error.message);
-    return 0;
+    console.warn("[process-scoring-queue] reclaim query failed:", error.message)
+    return 0
   }
-  const rows = (stuck as any[]) || [];
-  if (rows.length === 0) return 0;
+  const rows = (stuck as any[]) || []
+  if (rows.length === 0) return 0
 
   for (const r of rows) {
     await admin
-      .from('application_scoring_queue')
+      .from("application_scoring_queue")
       .update({
-        status: 'pending',
+        status: "pending",
         attempts: (r.attempts ?? 0) + 1,
-        error_message: 'Auto-recovered from stuck processing',
+        error_message: "Auto-recovered from stuck processing",
         next_attempt_at: null,
       })
-      .eq('id', r.id);
+      .eq("id", r.id)
   }
-  console.log(`[process-scoring-queue] reclaimed ${rows.length} stuck rows`);
-  return rows.length;
+  console.log(`[process-scoring-queue] reclaimed ${rows.length} stuck rows`)
+  return rows.length
 }
 
 /** Wraps processOne with timeout + try/finally guarantee that the row never
  *  remains in 'processing' once this returns, regardless of how processOne exits. */
 async function processOneSafe(admin: any, queueId: string, results: any) {
-  const controller = new AbortController();
+  const controller = new AbortController()
   const timeoutId = setTimeout(() => {
-    controller.abort(new Error(`Per-row timeout after ${PER_ROW_TIMEOUT_MS}ms`));
-  }, PER_ROW_TIMEOUT_MS);
+    controller.abort(new Error(`Per-row timeout after ${PER_ROW_TIMEOUT_MS}ms`))
+  }, PER_ROW_TIMEOUT_MS)
 
   try {
-    await processOne(admin, queueId, results, controller.signal);
+    await processOne(admin, queueId, results, controller.signal)
   } catch (err: any) {
     // processOne handles its own errors; this is a final safety net.
-    console.error('[process-scoring-queue] uncaught processOne error', queueId, err);
-    results.failed++;
-    results.errors.push(`${queueId}: uncaught ${err?.message || err}`);
+    console.error("[process-scoring-queue] uncaught processOne error", queueId, err)
+    results.failed++
+    results.errors.push(`${queueId}: uncaught ${err?.message || err}`)
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timeoutId)
     // Final safety net: ensure no row remains in 'processing' regardless of code path.
-    await ensureNotProcessing(admin, queueId);
+    await ensureNotProcessing(admin, queueId)
   }
 }
 
 async function ensureNotProcessing(admin: any, queueId: string) {
   try {
     const { data: row } = await admin
-      .from('application_scoring_queue')
-      .select('id, status, attempts')
-      .eq('id', queueId)
-      .maybeSingle();
-    if (!row) return;
-    if (row.status !== 'processing') return;
+      .from("application_scoring_queue")
+      .select("id, status, attempts")
+      .eq("id", queueId)
+      .maybeSingle()
+    if (!row) return
+    if (row.status !== "processing") return
 
-    const attempts = (row.attempts ?? 0) + 1;
-    const willRetry = attempts < MAX_ATTEMPTS;
+    const attempts = (row.attempts ?? 0) + 1
+    const willRetry = attempts < MAX_ATTEMPTS
     const nextAttemptAt = willRetry
-      ? new Date(Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000).toISOString()
-      : null;
+      ? new Date(
+          Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000,
+        ).toISOString()
+      : null
     await admin
-      .from('application_scoring_queue')
+      .from("application_scoring_queue")
       .update({
-        status: willRetry ? 'pending' : 'failed',
+        status: willRetry ? "pending" : "failed",
         attempts,
         next_attempt_at: nextAttemptAt,
-        error_message: 'Recovered from stuck processing in finally guard',
+        error_message: "Recovered from stuck processing in finally guard",
       })
-      .eq('id', queueId);
+      .eq("id", queueId)
   } catch (e: any) {
-    console.warn('[process-scoring-queue] ensureNotProcessing failed', queueId, e?.message);
+    console.warn("[process-scoring-queue] ensureNotProcessing failed", queueId, e?.message)
   }
 }
 
 async function processOne(admin: any, queueId: string, results: any, signal: AbortSignal) {
-  results.processed++;
-  let queueRow: any;
+  results.processed++
+  let queueRow: any
   try {
     const { data } = await admin
-      .from('application_scoring_queue')
-      .select('*')
-      .eq('id', queueId)
-      .single();
-    queueRow = data;
-    if (!queueRow) return;
+      .from("application_scoring_queue")
+      .select("*")
+      .eq("id", queueId)
+      .single()
+    queueRow = data
+    if (!queueRow) return
 
     const { data: app } = await admin
-      .from('applications')
-      .select('id, organization_id, applicant_id, position_id, current_stage_id')
-      .eq('id', queueRow.application_id)
-      .single();
-    if (!app) throw new Error('Application gone');
+      .from("applications")
+      .select("id, organization_id, applicant_id, position_id, current_stage_id")
+      .eq("id", queueRow.application_id)
+      .single()
+    if (!app) throw new Error("Application gone")
 
     const { data: position } = await admin
-      .from('job_positions')
-      .select('id, title, description, scoring_enabled, scoring_rubric, scoring_global_baseline_id, pipeline_id')
-      .eq('id', app.position_id)
-      .single();
-    if (!position) throw new Error('Position not found');
+      .from("job_positions")
+      .select(
+        "id, title, description, scoring_enabled, scoring_rubric, scoring_global_baseline_id, pipeline_id",
+      )
+      .eq("id", app.position_id)
+      .single()
+    if (!position) throw new Error("Position not found")
 
     if (!position.scoring_enabled) {
-      await admin.from('applications').update({ score_status: 'disabled' }).eq('id', app.id);
-      await markDone(admin, queueId);
-      return;
+      await admin.from("applications").update({ score_status: "disabled" }).eq("id", app.id)
+      await markDone(admin, queueId)
+      return
     }
 
-    let rubric: ScoringRubric | null = position.scoring_rubric as ScoringRubric | null;
+    let rubric: ScoringRubric | null = position.scoring_rubric as ScoringRubric | null
     if (!rubric && position.scoring_global_baseline_id) {
       const { data: baseline } = await admin
-        .from('org_scoring_baselines')
-        .select('rubric')
-        .eq('id', position.scoring_global_baseline_id)
-        .maybeSingle();
-      rubric = (baseline?.rubric as ScoringRubric) || null;
+        .from("org_scoring_baselines")
+        .select("rubric")
+        .eq("id", position.scoring_global_baseline_id)
+        .maybeSingle()
+      rubric = (baseline?.rubric as ScoringRubric) || null
     }
     if (!rubric) {
       const { data: defaultBaseline } = await admin
-        .from('org_scoring_baselines')
-        .select('rubric')
-        .eq('organization_id', app.organization_id)
-        .eq('is_default', true)
-        .is('soft_deleted_at', null)
-        .maybeSingle();
-      rubric = (defaultBaseline?.rubric as ScoringRubric) || null;
+        .from("org_scoring_baselines")
+        .select("rubric")
+        .eq("organization_id", app.organization_id)
+        .eq("is_default", true)
+        .is("soft_deleted_at", null)
+        .maybeSingle()
+      rubric = (defaultBaseline?.rubric as ScoringRubric) || null
     }
-    if (!rubric || !rubric.criteria?.length) {
-      await admin.from('applications').update({ score_status: 'disabled' }).eq('id', app.id);
-      await markDone(admin, queueId);
-      return;
+    if (!rubric?.criteria?.length) {
+      await admin.from("applications").update({ score_status: "disabled" }).eq("id", app.id)
+      await markDone(admin, queueId)
+      return
     }
 
     const { data: applicant } = await admin
-      .from('applicants')
-      .select('first_name,last_name,email,phone,location,years_experience,certifications,drivers_license_classes,language_norwegian,work_permit_status,availability_date')
-      .eq('id', app.applicant_id)
-      .single();
-    if (!applicant) throw new Error('Applicant not found');
+      .from("applicants")
+      .select(
+        "first_name,last_name,email,phone,location,years_experience,certifications,drivers_license_classes,language_norwegian,work_permit_status,availability_date",
+      )
+      .eq("id", app.applicant_id)
+      .single()
+    if (!applicant) throw new Error("Applicant not found")
 
     const { data: fieldValues } = await admin
-      .from('recruitment_applicant_field_values')
-      .select('value, raw_value, field_id, recruitment_custom_fields!inner(display_name, type_id, recruitment_custom_field_types(key))')
-      .eq('applicant_id', app.applicant_id);
+      .from("recruitment_applicant_field_values")
+      .select(
+        "value, raw_value, field_id, recruitment_custom_fields!inner(display_name, type_id, recruitment_custom_field_types(key))",
+      )
+      .eq("applicant_id", app.applicant_id)
 
     const customFieldValues = (fieldValues || []).map((v: any) => ({
-      field_name: v.recruitment_custom_fields?.display_name || 'unknown',
-      field_type: v.recruitment_custom_fields?.recruitment_custom_field_types?.key || 'text',
+      field_name: v.recruitment_custom_fields?.display_name || "unknown",
+      field_type: v.recruitment_custom_fields?.recruitment_custom_field_types?.key || "text",
       value: v.value ?? v.raw_value,
-    }));
+    }))
 
     const { data: files } = await admin
-      .from('applicant_files')
-      .select('file_name, extracted_text, extraction_status')
-      .eq('applicant_id', app.applicant_id)
-      .eq('extraction_status', 'done')
-      .not('extracted_text', 'is', null);
+      .from("applicant_files")
+      .select("file_name, extracted_text, extraction_status")
+      .eq("applicant_id", app.applicant_id)
+      .eq("extraction_status", "done")
+      .not("extracted_text", "is", null)
 
     const filesInput = (files || []).map((f: any) => ({
       filename: f.file_name,
       extracted_text: f.extracted_text,
-    }));
+    }))
 
-    let stageInfo: { name: string; description?: string | null } | null = null;
+    let stageInfo: { name: string; description?: string | null } | null = null
     const { data: pipeline } = await admin
-      .from('recruitment_pipelines')
-      .select('stages')
-      .eq('id', position.pipeline_id)
-      .maybeSingle();
-    const stage = (pipeline?.stages as any[])?.find((s) => s.id === app.current_stage_id);
-    if (stage) stageInfo = { name: stage.name, description: stage.description };
+      .from("recruitment_pipelines")
+      .select("stages")
+      .eq("id", position.pipeline_id)
+      .maybeSingle()
+    const stage = (pipeline?.stages as any[])?.find((s) => s.id === app.current_stage_id)
+    if (stage) stageInfo = { name: stage.name, description: stage.description }
 
     const input: ScoringInput = {
       applicant: applicant as any,
@@ -256,13 +264,13 @@ async function processOne(admin: any, queueId: string, results: any, signal: Abo
       files: filesInput,
       rubric,
       stage: stageInfo,
-    };
+    }
 
-    if (signal.aborted) throw new Error('Aborted before LLM call');
-    const result = await scoreApplicant(input, { signal });
+    if (signal.aborted) throw new Error("Aborted before LLM call")
+    const result = await scoreApplicant(input, { signal })
 
     await admin
-      .from('applications')
+      .from("applications")
       .update({
         score: result.overall_score,
         score_breakdown: result.per_criterion,
@@ -272,11 +280,11 @@ async function processOne(admin: any, queueId: string, results: any, signal: Abo
         score_updated_at: new Date().toISOString(),
         score_stage_id: app.current_stage_id,
         score_model: result.model,
-        score_status: 'scored',
+        score_status: "scored",
       })
-      .eq('id', app.id);
+      .eq("id", app.id)
 
-    await admin.from('applicant_score_history').insert({
+    await admin.from("applicant_score_history").insert({
       application_id: app.id,
       organization_id: app.organization_id,
       score: result.overall_score,
@@ -288,63 +296,69 @@ async function processOne(admin: any, queueId: string, results: any, signal: Abo
       model: result.model,
       trigger_reason: queueRow.trigger_reason,
       triggered_by: queueRow.triggered_by,
-      input_snapshot: { custom_field_count: customFieldValues.length, file_count: filesInput.length },
+      input_snapshot: {
+        custom_field_count: customFieldValues.length,
+        file_count: filesInput.length,
+      },
       token_usage: result.token_usage,
-    });
+    })
 
-    await admin.from('recruitment_audit_events').insert({
+    await admin.from("recruitment_audit_events").insert({
       organization_id: app.organization_id,
-      event_type: 'application_scored',
-      event_category: 'write',
-      subject_table: 'applications',
+      event_type: "application_scored",
+      event_category: "write",
+      subject_table: "applications",
       subject_id: app.id,
       applicant_id: app.applicant_id,
       actor_profile_id: queueRow.triggered_by,
       new_values: { score: result.overall_score, model: result.model },
       context: { trigger_reason: queueRow.trigger_reason, token_usage: result.token_usage },
-    });
+    })
 
-    await markDone(admin, queueId);
-    results.succeeded++;
+    await markDone(admin, queueId)
+    results.succeeded++
   } catch (err: any) {
-    const isAbort = err?.name === 'AbortError' || /timeout|aborted/i.test(String(err?.message || ''));
-    console.error('[process-scoring-queue] item error', queueId, err?.message || err);
-    results.failed++;
-    results.errors.push(`${queueId}: ${err?.message}`);
-    const attempts = (queueRow?.attempts ?? 0) + 1;
-    const willRetry = attempts < MAX_ATTEMPTS;
+    const isAbort =
+      err?.name === "AbortError" || /timeout|aborted/i.test(String(err?.message || ""))
+    console.error("[process-scoring-queue] item error", queueId, err?.message || err)
+    results.failed++
+    results.errors.push(`${queueId}: ${err?.message}`)
+    const attempts = (queueRow?.attempts ?? 0) + 1
+    const willRetry = attempts < MAX_ATTEMPTS
     const nextAttemptAt = willRetry
-      ? new Date(Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000).toISOString()
-      : null;
+      ? new Date(
+          Date.now() + BACKOFF_MINUTES[Math.min(attempts - 1, BACKOFF_MINUTES.length - 1)] * 60_000,
+        ).toISOString()
+      : null
     await admin
-      .from('application_scoring_queue')
+      .from("application_scoring_queue")
       .update({
-        status: willRetry ? 'pending' : 'failed',
+        status: willRetry ? "pending" : "failed",
         attempts,
         next_attempt_at: nextAttemptAt,
-        error_message: (isAbort ? 'TIMEOUT: ' : '') + String(err?.message || err).slice(0, 1000),
+        error_message: (isAbort ? "TIMEOUT: " : "") + String(err?.message || err).slice(0, 1000),
       })
-      .eq('id', queueId);
+      .eq("id", queueId)
     if (!willRetry && queueRow?.application_id) {
       await admin
-        .from('applications')
-        .update({ score_status: 'failed' })
-        .eq('id', queueRow.application_id);
-      await admin.from('recruitment_audit_events').insert({
+        .from("applications")
+        .update({ score_status: "failed" })
+        .eq("id", queueRow.application_id)
+      await admin.from("recruitment_audit_events").insert({
         organization_id: queueRow.organization_id,
-        event_type: 'application_score_failed',
-        event_category: 'write',
-        subject_table: 'applications',
+        event_type: "application_score_failed",
+        event_category: "write",
+        subject_table: "applications",
         subject_id: queueRow.application_id,
         new_values: { error: String(err?.message || err).slice(0, 500) },
-      });
+      })
     }
   }
 }
 
 async function markDone(admin: any, queueId: string) {
   await admin
-    .from('application_scoring_queue')
-    .update({ status: 'done', error_message: null })
-    .eq('id', queueId);
+    .from("application_scoring_queue")
+    .update({ status: "done", error_message: null })
+    .eq("id", queueId)
 }

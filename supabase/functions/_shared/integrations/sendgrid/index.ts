@@ -3,4 +3,4 @@ export {
   type SendGridClient,
   type SendGridMailPayload,
   type SendGridSendResult,
-} from './client.ts';
+} from "./client.ts"

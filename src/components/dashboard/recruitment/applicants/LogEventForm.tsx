@@ -1,95 +1,96 @@
-import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useAddApplicantNote, useLogApplicantEvent } from './useApplicantProfile';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useAddApplicantNote, useLogApplicantEvent } from "./useApplicantProfile"
 
 interface Props {
-  applicantId: string;
-  applicationId: string | null;
-  onDone: () => void;
+  applicantId: string
+  applicationId: string | null
+  onDone: () => void
 }
 
-type EventType = 'phone_call' | 'interview_scheduled' | 'interview_completed' | 'other';
+type EventType = "phone_call" | "interview_scheduled" | "interview_completed" | "other"
 
 const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) => {
-  const [type, setType] = useState<EventType>('phone_call');
-  const [duration, setDuration] = useState('');
-  const [outcome, setOutcome] = useState('interested');
-  const [interviewType, setInterviewType] = useState('phone');
-  const [scheduledAt, setScheduledAt] = useState('');
-  const [location, setLocation] = useState('');
-  const [rating, setRating] = useState('');
-  const [notes, setNotes] = useState('');
+  const [type, setType] = useState<EventType>("phone_call")
+  const [duration, setDuration] = useState("")
+  const [outcome, setOutcome] = useState("interested")
+  const [interviewType, setInterviewType] = useState("phone")
+  const [scheduledAt, setScheduledAt] = useState("")
+  const [location, setLocation] = useState("")
+  const [rating, setRating] = useState("")
+  const [notes, setNotes] = useState("")
 
-  const logMut = useLogApplicantEvent();
-  const noteMut = useAddApplicantNote();
+  const logMut = useLogApplicantEvent()
+  const noteMut = useAddApplicantNote()
 
-  const pending = logMut.isPending || noteMut.isPending;
+  const pending = logMut.isPending || noteMut.isPending
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!applicationId && type !== 'other') {
+    e.preventDefault()
+    if (!applicationId && type !== "other") {
       // Need an application to attach to
-      return;
+      return
     }
     try {
-      if (type === 'other') {
-        if (!notes.trim()) return;
+      if (type === "other") {
+        if (!notes.trim()) return
         await noteMut.mutateAsync({
           applicantId,
           applicationId,
           content: notes.trim(),
-          note_type: 'internal',
-        });
-      } else if (type === 'phone_call') {
+          note_type: "internal",
+        })
+      } else if (type === "phone_call") {
         await logMut.mutateAsync({
           applicantId,
           applicationId: applicationId!,
-          event_type: 'phone_call',
+          event_type: "phone_call",
           event_data: {
             duration_minutes: duration ? Number(duration) : null,
             outcome,
           },
           notes: notes.trim() || null,
-        });
-      } else if (type === 'interview_scheduled') {
+        })
+      } else if (type === "interview_scheduled") {
         await logMut.mutateAsync({
           applicantId,
           applicationId: applicationId!,
-          event_type: 'interview_scheduled',
+          event_type: "interview_scheduled",
           event_data: {
             interview_type: interviewType,
             scheduled_at: scheduledAt || null,
             location: location.trim() || null,
           },
-        });
-      } else if (type === 'interview_completed') {
+        })
+      } else if (type === "interview_completed") {
         await logMut.mutateAsync({
           applicantId,
           applicationId: applicationId!,
-          event_type: 'interview_completed',
+          event_type: "interview_completed",
           event_data: {
             interview_type: interviewType,
             rating: rating ? Number(rating) : null,
           },
           notes: notes.trim() || null,
-        });
+        })
       }
-      onDone();
+      onDone()
     } catch {
       // toasts handled in hooks
     }
-  };
+  }
 
   return (
     <form onSubmit={submit} className="space-y-3 w-80">
@@ -108,7 +109,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
         </Select>
       </div>
 
-      {type === 'phone_call' && (
+      {type === "phone_call" && (
         <>
           <div className="space-y-1">
             <Label className="text-xs">Varighet (min)</Label>
@@ -136,7 +137,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
         </>
       )}
 
-      {type === 'interview_scheduled' && (
+      {type === "interview_scheduled" && (
         <>
           <div className="space-y-1">
             <Label className="text-xs">Type</Label>
@@ -166,7 +167,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
         </>
       )}
 
-      {type === 'interview_completed' && (
+      {type === "interview_completed" && (
         <>
           <div className="space-y-1">
             <Label className="text-xs">Type</Label>
@@ -203,7 +204,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
         </>
       )}
 
-      {type === 'other' && (
+      {type === "other" && (
         <div className="space-y-1">
           <Label className="text-xs">Notat</Label>
           <Textarea
@@ -226,7 +227,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
         </Button>
       </div>
     </form>
-  );
-};
+  )
+}
 
-export default LogEventForm;
+export default LogEventForm

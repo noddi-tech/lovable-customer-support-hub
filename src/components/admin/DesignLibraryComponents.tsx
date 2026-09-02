@@ -1,57 +1,63 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EmojiPicker } from '@/components/ui/emoji-picker';
-import { EmojiAutocompleteInput } from '@/components/ui/emoji-autocomplete-input';
-import { useToast } from '@/hooks/use-toast';
-import { 
+import {
+  AlertTriangle,
   Bell,
-  Home,
-  Search,
-  Plus,
+  Check,
+  Download,
   Edit,
   Eye,
-  Download,
-  Upload,
-  Check,
-  X,
-  AlertTriangle,
-  Info,
   HelpCircle,
+  Home,
+  Info,
+  Mail,
+  Plus,
+  Search,
+  Upload,
   User,
-  Mail
-} from 'lucide-react';
+  X,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { EmojiAutocompleteInput } from "@/components/ui/emoji-autocomplete-input"
+import { EmojiPicker } from "@/components/ui/emoji-picker"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 
 interface DesignLibraryComponentsProps {
-  demoInputValue: string;
-  setDemoInputValue: (value: string) => void;
-  demoTextareaValue: string;
-  setDemoTextareaValue: (value: string) => void;
-  demoSwitchValue: boolean;
-  setDemoSwitchValue: (value: boolean) => void;
-  demoSelectValue: string;
-  setDemoSelectValue: (value: string) => void;
-  demoSliderValue: number[];
-  setDemoSliderValue: (value: number[]) => void;
-  demoCheckboxValue: boolean;
-  setDemoCheckboxValue: (value: boolean) => void;
-  demoRadioValue: string;
-  setDemoRadioValue: (value: string) => void;
-  demoProgress: number;
-  showDemoToast: (type: 'default' | 'success' | 'destructive') => void;
+  demoInputValue: string
+  setDemoInputValue: (value: string) => void
+  demoTextareaValue: string
+  setDemoTextareaValue: (value: string) => void
+  demoSwitchValue: boolean
+  setDemoSwitchValue: (value: boolean) => void
+  demoSelectValue: string
+  setDemoSelectValue: (value: string) => void
+  demoSliderValue: number[]
+  setDemoSliderValue: (value: number[]) => void
+  demoCheckboxValue: boolean
+  setDemoCheckboxValue: (value: boolean) => void
+  demoRadioValue: string
+  setDemoRadioValue: (value: string) => void
+  demoProgress: number
+  showDemoToast: (type: "default" | "success" | "destructive") => void
 }
 
 export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = ({
@@ -70,9 +76,11 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
   demoRadioValue,
   setDemoRadioValue,
   demoProgress,
-  showDemoToast
+  showDemoToast,
 }) => {
-  const [emojiDemo, setEmojiDemo] = useState<string>(":smile: Try typing shortcodes here or use the picker below");
+  const [emojiDemo, setEmojiDemo] = useState<string>(
+    ":smile: Try typing shortcodes here or use the picker below",
+  )
   return (
     <div className="space-y-8">
       {/* Form Components Section */}
@@ -82,9 +90,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
             <Edit className="w-5 h-5" />
             Form Components
           </CardTitle>
-          <CardDescription>
-            Interactive form elements and inputs
-          </CardDescription>
+          <CardDescription>Interactive form elements and inputs</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -93,20 +99,20 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="demo-input">Email Address</Label>
-                  <Input 
+                  <Input
                     id="demo-input"
-                    type="email" 
+                    type="email"
                     placeholder="Enter your email"
                     value={demoInputValue}
                     onChange={(e) => setDemoInputValue(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="demo-input-disabled">Disabled Input</Label>
-                  <Input 
+                  <Input
                     id="demo-input-disabled"
-                    type="text" 
+                    type="text"
                     placeholder="This input is disabled"
                     disabled
                   />
@@ -114,9 +120,9 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
 
                 <div className="space-y-2">
                   <Label htmlFor="demo-input-error">Input with Error</Label>
-                  <Input 
+                  <Input
                     id="demo-input-error"
-                    type="text" 
+                    type="text"
                     placeholder="This has an error"
                     className="border-destructive focus-visible:ring-destructive"
                   />
@@ -130,7 +136,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="demo-textarea">Description</Label>
-                  <Textarea 
+                  <Textarea
                     id="demo-textarea"
                     placeholder="Type your message here... (try :smile: :shipit: :woman_technologist:)"
                     value={demoTextareaValue}
@@ -155,8 +161,14 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 <div className="space-y-2">
                   <Label>Emoji Components</Label>
                   <div className="flex items-center gap-3">
-                    <EmojiPicker onEmojiSelect={(emoji) => setDemoTextareaValue((demoTextareaValue || '') + emoji)} />
-                    <span className="text-xs text-muted-foreground">Use the picker or type :shortcodes in the textarea above.</span>
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) =>
+                        setDemoTextareaValue((demoTextareaValue || "") + emoji)
+                      }
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Use the picker or type :shortcodes in the textarea above.
+                    </span>
                   </div>
                   <EmojiAutocompleteInput
                     value={emojiDemo}
@@ -176,7 +188,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
               <h4 className="text-sm font-medium">Toggle Controls</h4>
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
-                  <Switch 
+                  <Switch
                     id="demo-switch"
                     checked={demoSwitchValue}
                     onCheckedChange={setDemoSwitchValue}
@@ -185,7 +197,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
+                  <Checkbox
                     id="demo-checkbox"
                     checked={demoCheckboxValue}
                     onCheckedChange={setDemoCheckboxValue}
@@ -268,17 +280,17 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 </AlertDescription>
               </Alert>
 
-              <Alert 
+              <Alert
                 className="border-warning bg-warning"
-                style={{ 
-                  backgroundColor: 'hsl(var(--warning) / 0.1)',
-                  borderColor: 'hsl(var(--warning))',
-                  color: 'hsl(var(--foreground))'
+                style={{
+                  backgroundColor: "hsl(var(--warning) / 0.1)",
+                  borderColor: "hsl(var(--warning))",
+                  color: "hsl(var(--foreground))",
                 }}
               >
-                <AlertTriangle className="h-4 w-4" style={{ color: 'hsl(var(--warning))' }} />
-                <AlertTitle style={{ color: 'hsl(0 0% 0%)' }}>Warning</AlertTitle>
-                <AlertDescription style={{ color: 'hsl(0 0% 0%)' }}>
+                <AlertTriangle className="h-4 w-4" style={{ color: "hsl(var(--warning))" }} />
+                <AlertTitle style={{ color: "hsl(0 0% 0%)" }}>Warning</AlertTitle>
+                <AlertDescription style={{ color: "hsl(0 0% 0%)" }}>
                   This is a warning alert. Please pay attention to this message.
                 </AlertDescription>
               </Alert>
@@ -291,17 +303,17 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
                 </AlertDescription>
               </Alert>
 
-              <Alert 
+              <Alert
                 className="border-success bg-success"
-                style={{ 
-                  backgroundColor: 'hsl(var(--success))',
-                  borderColor: 'hsl(var(--success))',
-                  color: 'hsl(var(--success-foreground))'
+                style={{
+                  backgroundColor: "hsl(var(--success))",
+                  borderColor: "hsl(var(--success))",
+                  color: "hsl(var(--success-foreground))",
                 }}
               >
-                <Check className="h-4 w-4" style={{ color: 'white' }} />
-                <AlertTitle style={{ color: 'white' }}>Success</AlertTitle>
-                <AlertDescription style={{ color: 'white' }}>
+                <Check className="h-4 w-4" style={{ color: "white" }} />
+                <AlertTitle style={{ color: "white" }}>Success</AlertTitle>
+                <AlertDescription style={{ color: "white" }}>
                   This is a success alert. The operation completed successfully.
                 </AlertDescription>
               </Alert>
@@ -313,22 +325,13 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Toast Messages</h4>
             <div className="flex flex-wrap gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => showDemoToast('default')}
-              >
+              <Button variant="outline" onClick={() => showDemoToast("default")}>
                 Show Default Toast
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => showDemoToast('success')}
-              >
+              <Button variant="outline" onClick={() => showDemoToast("success")}>
                 Show Success Toast
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => showDemoToast('destructive')}
-              >
+              <Button variant="outline" onClick={() => showDemoToast("destructive")}>
                 Show Error Toast
               </Button>
             </div>
@@ -343,9 +346,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
             <User className="w-5 h-5" />
             Avatars & User Components
           </CardTitle>
-          <CardDescription>
-            User representation and profile components
-          </CardDescription>
+          <CardDescription>User representation and profile components</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -412,9 +413,7 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
             <Home className="w-5 h-5" />
             Navigation & Actions
           </CardTitle>
-          <CardDescription>
-            Navigation elements and action buttons
-          </CardDescription>
+          <CardDescription>Navigation elements and action buttons</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -460,15 +459,21 @@ export const DesignLibraryComponents: React.FC<DesignLibraryComponentsProps> = (
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Button Groups</h4>
             <div className="flex gap-1 border rounded-md p-1 w-fit">
-              <Button variant="ghost" size="sm">Left</Button>
-              <Button variant="ghost" size="sm">Center</Button>
-              <Button variant="ghost" size="sm">Right</Button>
+              <Button variant="ghost" size="sm">
+                Left
+              </Button>
+              <Button variant="ghost" size="sm">
+                Center
+              </Button>
+              <Button variant="ghost" size="sm">
+                Right
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default DesignLibraryComponents;
+export default DesignLibraryComponents

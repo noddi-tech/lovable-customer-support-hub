@@ -1,25 +1,25 @@
-import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, ChevronDown, BookOpen, Code, Share2 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { WidgetDeployPanel } from './WidgetDeployPanel';
+import { BookOpen, Check, ChevronDown, Code, Copy, ExternalLink, Share2 } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { WidgetDeployPanel } from "./WidgetDeployPanel"
 
 interface WidgetEmbedCodeProps {
-  widgetKey: string;
+  widgetKey: string
 }
 
 export const WidgetEmbedCode: React.FC<WidgetEmbedCodeProps> = ({ widgetKey }) => {
-  const [copied, setCopied] = useState(false);
-  const [apiRefOpen, setApiRefOpen] = useState(false);
-  const [examplesOpen, setExamplesOpen] = useState(false);
-  const [copiedExample, setCopiedExample] = useState<string | null>(null);
-  const [copiedDocs, setCopiedDocs] = useState(false);
-
+  const [copied, setCopied] = useState(false)
+  const [apiRefOpen, setApiRefOpen] = useState(false)
+  const [examplesOpen, setExamplesOpen] = useState(false)
+  const [copiedExample, setCopiedExample] = useState<string | null>(null)
+  const [copiedDocs, setCopiedDocs] = useState(false)
 
   // Use the production Supabase URL
-  const supabaseUrl = 'https://qgfaycwsangsqzpveoup.supabase.co';
+  const supabaseUrl = "https://qgfaycwsangsqzpveoup.supabase.co"
 
   const customButtonExample = `// Hide default button, use your own trigger
 noddi('init', {
@@ -31,28 +31,28 @@ noddi('init', {
 // Open widget from your custom button
 document.querySelector('#my-help-btn').addEventListener('click', () => {
   noddi('open');
-});`;
+});`
 
   const positionExample = `noddi('init', {
   widgetKey: '${widgetKey}',
   apiUrl: '${supabaseUrl}/functions/v1',
   position: 'bottom-left'
-});`;
+});`
 
   const handleCopyExample = async (code: string, name: string) => {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopiedExample(name);
-      toast.success('Code copied to clipboard');
-      setTimeout(() => setCopiedExample(null), 2000);
+      await navigator.clipboard.writeText(code)
+      setCopiedExample(name)
+      toast.success("Code copied to clipboard")
+      setTimeout(() => setCopiedExample(null), 2000)
     } catch (err) {
-      toast.error('Failed to copy code');
+      toast.error("Failed to copy code")
     }
-  };
-  
+  }
+
   // Widget hosted on Supabase Storage
-  const widgetScriptUrl = `${supabaseUrl}/storage/v1/object/public/widget/widget.js`;
-  
+  const widgetScriptUrl = `${supabaseUrl}/storage/v1/object/public/widget/widget.js`
+
   // Fixed embed code pattern that correctly queues to NoddiWidget.q
   const embedCode = `<!-- Noddi Contact Widget -->
 <script>
@@ -63,20 +63,18 @@ document.querySelector('#my-help-btn').addEventListener('click', () => {
     apiUrl: '${supabaseUrl}/functions/v1'
   });
 </script>
-<script src="${widgetScriptUrl}" async></script>`;
+<script src="${widgetScriptUrl}" async></script>`
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(embedCode);
-      setCopied(true);
-      toast.success('Embed code copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(embedCode)
+      setCopied(true)
+      toast.success("Embed code copied to clipboard")
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      toast.error('Failed to copy code');
+      toast.error("Failed to copy code")
     }
-  };
-
-
+  }
 
   const generateSlackFormattedDocs = () => {
     return `*Noddi Contact Widget - Setup Guide*
@@ -113,19 +111,19 @@ ${positionExample}
 \`\`\`
 
 *Testing*
-Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
-  };
+Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`
+  }
 
   const handleCopyDocs = async () => {
     try {
-      await navigator.clipboard.writeText(generateSlackFormattedDocs());
-      setCopiedDocs(true);
-      toast.success('Documentation copied for Slack');
-      setTimeout(() => setCopiedDocs(false), 2000);
+      await navigator.clipboard.writeText(generateSlackFormattedDocs())
+      setCopiedDocs(true)
+      toast.success("Documentation copied for Slack")
+      setTimeout(() => setCopiedDocs(false), 2000)
     } catch (err) {
-      toast.error('Failed to copy documentation');
+      toast.error("Failed to copy documentation")
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -141,11 +139,7 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button
-              onClick={handleCopyDocs}
-              variant="outline"
-              className="gap-2"
-            >
+            <Button onClick={handleCopyDocs} variant="outline" className="gap-2">
               {copiedDocs ? (
                 <>
                   <Check className="h-4 w-4" />
@@ -163,7 +157,6 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
       </div>
 
       <WidgetDeployPanel variant="full" />
-
 
       <Card>
         <CardHeader>
@@ -202,9 +195,7 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Widget Key</CardTitle>
-          <CardDescription>
-            Your unique widget identifier
-          </CardDescription>
+          <CardDescription>Your unique widget identifier</CardDescription>
         </CardHeader>
         <CardContent className="overflow-hidden">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -215,8 +206,8 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
               size="sm"
               variant="outline"
               onClick={() => {
-                navigator.clipboard.writeText(widgetKey);
-                toast.success('Widget key copied');
+                navigator.clipboard.writeText(widgetKey)
+                toast.success("Widget key copied")
               }}
             >
               <Copy className="h-4 w-4" />
@@ -235,11 +226,11 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
                   <BookOpen className="h-4 w-4" />
                   <CardTitle className="text-base">API Reference</CardTitle>
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${apiRefOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${apiRefOpen ? "rotate-180" : ""}`}
+                />
               </div>
-              <CardDescription>
-                Configuration options and programmatic commands
-              </CardDescription>
+              <CardDescription>Configuration options and programmatic commands</CardDescription>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -274,13 +265,19 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
                         <td className="p-2 font-mono text-xs">showButton</td>
                         <td className="p-2 text-muted-foreground">boolean</td>
                         <td className="p-2 font-mono text-xs">true</td>
-                        <td className="p-2">Set to <code className="bg-muted px-1 rounded">false</code> to hide the floating button</td>
+                        <td className="p-2">
+                          Set to <code className="bg-muted px-1 rounded">false</code> to hide the
+                          floating button
+                        </td>
                       </tr>
                       <tr className="border-t">
                         <td className="p-2 font-mono text-xs">position</td>
                         <td className="p-2 text-muted-foreground">string</td>
                         <td className="p-2 font-mono text-xs">'bottom-right'</td>
-                        <td className="p-2"><code className="bg-muted px-1 rounded">'bottom-right'</code> or <code className="bg-muted px-1 rounded">'bottom-left'</code></td>
+                        <td className="p-2">
+                          <code className="bg-muted px-1 rounded">'bottom-right'</code> or{" "}
+                          <code className="bg-muted px-1 rounded">'bottom-left'</code>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -330,11 +327,11 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
                   <Code className="h-4 w-4" />
                   <CardTitle className="text-base">Code Examples</CardTitle>
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${examplesOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${examplesOpen ? "rotate-180" : ""}`}
+                />
               </div>
-              <CardDescription>
-                Ready-to-use code snippets for common integrations
-              </CardDescription>
+              <CardDescription>Ready-to-use code snippets for common integrations</CardDescription>
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -347,9 +344,9 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
                     size="sm"
                     variant="ghost"
                     className="gap-2"
-                    onClick={() => handleCopyExample(customButtonExample, 'custom')}
+                    onClick={() => handleCopyExample(customButtonExample, "custom")}
                   >
-                    {copiedExample === 'custom' ? (
+                    {copiedExample === "custom" ? (
                       <>
                         <Check className="h-3 w-3" />
                         Copied
@@ -375,9 +372,9 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
                     size="sm"
                     variant="ghost"
                     className="gap-2"
-                    onClick={() => handleCopyExample(positionExample, 'position')}
+                    onClick={() => handleCopyExample(positionExample, "position")}
                   >
-                    {copiedExample === 'position' ? (
+                    {copiedExample === "position" ? (
                       <>
                         <Check className="h-3 w-3" />
                         Copied
@@ -402,19 +399,14 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Testing</CardTitle>
-          <CardDescription>
-            Test the widget configuration endpoint
-          </CardDescription>
+          <CardDescription>Test the widget configuration endpoint</CardDescription>
         </CardHeader>
         <CardContent>
           <Button
             variant="outline"
             className="gap-2"
             onClick={() => {
-              window.open(
-                `${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`,
-                '_blank'
-              );
+              window.open(`${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`, "_blank")
             }}
           >
             <ExternalLink className="h-4 w-4" />
@@ -435,5 +427,5 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`;
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

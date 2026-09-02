@@ -1,6 +1,6 @@
-import { defineTool } from "@lovable.dev/mcp-js";
-import { z } from "zod";
-import { supabaseForUser } from "../supabase";
+import { defineTool } from "@lovable.dev/mcp-js"
+import { z } from "zod"
+import { supabaseForUser } from "../supabase"
 
 export default defineTool({
   name: "add_internal_note",
@@ -14,10 +14,10 @@ export default defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ conversation_id, note }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
 
-    const supabase = supabaseForUser(ctx);
+    const supabase = supabaseForUser(ctx)
 
     // Confirm the caller can actually see this conversation before writing.
     const { data: conversation, error: convError } = await supabase
@@ -25,16 +25,16 @@ export default defineTool({
       .select("id")
       .eq("id", conversation_id)
       .is("deleted_at", null)
-      .maybeSingle();
+      .maybeSingle()
 
     if (convError) {
-      return { content: [{ type: "text", text: convError.message }], isError: true };
+      return { content: [{ type: "text", text: convError.message }], isError: true }
     }
     if (!conversation) {
       return {
         content: [{ type: "text", text: `No conversation found with id ${conversation_id}` }],
         isError: true,
-      };
+      }
     }
 
     // messages.sender_id stores the auth user id (not the ProfileId).
@@ -49,15 +49,15 @@ export default defineTool({
         content_type: "text",
       })
       .select("id, created_at")
-      .maybeSingle();
+      .maybeSingle()
 
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      return { content: [{ type: "text", text: error.message }], isError: true }
     }
 
     return {
       content: [{ type: "text", text: `Internal note added (id ${data?.id}).` }],
       structuredContent: { message_id: data?.id, created_at: data?.created_at },
-    };
+    }
   },
-});
+})

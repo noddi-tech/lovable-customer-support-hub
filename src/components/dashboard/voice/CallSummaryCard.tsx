@@ -1,69 +1,77 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Phone, Clock, User, TrendingUp, TrendingDown, Minus, FileText, Download } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { format, formatDistanceToNow } from "date-fns"
+import {
+  Clock,
+  Download,
+  FileText,
+  Minus,
+  Phone,
+  TrendingDown,
+  TrendingUp,
+  User,
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface CallSummaryCardProps {
   call: {
-    id: string;
-    customer_phone?: string;
-    direction: 'inbound' | 'outbound';
-    started_at: string;
-    ended_at?: string;
-    duration_seconds?: number;
-    status: string;
+    id: string
+    customer_phone?: string
+    direction: "inbound" | "outbound"
+    started_at: string
+    ended_at?: string
+    duration_seconds?: number
+    status: string
     customer?: {
-      full_name?: string;
-      email?: string;
-    };
-  };
-  onViewDetails?: () => void;
-  onExport?: () => void;
+      full_name?: string
+      email?: string
+    }
+  }
+  onViewDetails?: () => void
+  onExport?: () => void
 }
 
 export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCardProps) => {
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-  };
+    if (!seconds) return "N/A"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}m ${remainingSeconds}s`
+  }
 
   const getSentiment = () => {
     // This would ideally come from AI analysis
     // For now, we'll use duration as a proxy
-    if (!call.duration_seconds) return null;
-    if (call.duration_seconds < 60) return 'negative';
-    if (call.duration_seconds > 300) return 'positive';
-    return 'neutral';
-  };
+    if (!call.duration_seconds) return null
+    if (call.duration_seconds < 60) return "negative"
+    if (call.duration_seconds > 300) return "positive"
+    return "neutral"
+  }
 
-  const sentiment = getSentiment();
+  const sentiment = getSentiment()
 
   const getSentimentIcon = () => {
     switch (sentiment) {
-      case 'positive':
-        return <TrendingUp className="h-4 w-4 text-success" />;
-      case 'negative':
-        return <TrendingDown className="h-4 w-4 text-destructive" />;
+      case "positive":
+        return <TrendingUp className="h-4 w-4 text-success" />
+      case "negative":
+        return <TrendingDown className="h-4 w-4 text-destructive" />
       default:
-        return <Minus className="h-4 w-4 text-muted-foreground" />;
+        return <Minus className="h-4 w-4 text-muted-foreground" />
     }
-  };
+  }
 
   const getSentimentLabel = () => {
     switch (sentiment) {
-      case 'positive':
-        return 'Positive';
-      case 'negative':
-        return 'Brief';
+      case "positive":
+        return "Positive"
+      case "negative":
+        return "Brief"
       default:
-        return 'Neutral';
+        return "Neutral"
     }
-  };
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -75,7 +83,7 @@ export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCa
             </div>
             <div>
               <CardTitle className="text-base">
-                {call.customer?.full_name || call.customer_phone || 'Unknown'}
+                {call.customer?.full_name || call.customer_phone || "Unknown"}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
@@ -97,12 +105,14 @@ export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCa
         {/* Key Metrics */}
         <div className="grid grid-cols-3 gap-3">
           <div className="flex items-center gap-2 text-sm">
-            <Phone className={cn(
-              "h-4 w-4",
-              call.direction === 'inbound' ? 'text-blue-500' : 'text-green-500'
-            )} />
+            <Phone
+              className={cn(
+                "h-4 w-4",
+                call.direction === "inbound" ? "text-blue-500" : "text-green-500",
+              )}
+            />
             <span className="text-muted-foreground">
-              {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
+              {call.direction === "inbound" ? "Incoming" : "Outgoing"}
             </span>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -110,7 +120,12 @@ export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCa
             <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
           </div>
           <div>
-            <Badge variant="secondary" className={call.status === 'completed' ? 'bg-success/10 text-success border-success/20' : ''}>
+            <Badge
+              variant="secondary"
+              className={
+                call.status === "completed" ? "bg-success/10 text-success border-success/20" : ""
+              }
+            >
               {call.status}
             </Badge>
           </div>
@@ -124,8 +139,8 @@ export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCa
           </p>
           <ul className="text-xs text-muted-foreground space-y-1 ml-6">
             <li>• Call handled efficiently</li>
-            <li>• Customer {sentiment === 'positive' ? 'satisfied' : 'needs follow-up'}</li>
-            <li>• {call.ended_at ? format(new Date(call.ended_at), 'PPp') : 'In progress'}</li>
+            <li>• Customer {sentiment === "positive" ? "satisfied" : "needs follow-up"}</li>
+            <li>• {call.ended_at ? format(new Date(call.ended_at), "PPp") : "In progress"}</li>
           </ul>
         </div>
 
@@ -142,5 +157,5 @@ export const CallSummaryCard = ({ call, onViewDetails, onExport }: CallSummaryCa
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

@@ -1,9 +1,10 @@
-import React, { memo, useMemo } from 'react';
-import { useUserLanguage } from '@/hooks/useUserLanguage';
+import type React from "react"
+import { memo, useMemo } from "react"
+import { useUserLanguage } from "@/hooks/useUserLanguage"
 
 interface I18nWrapperProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+  children: React.ReactNode
+  fallback?: React.ReactNode
 }
 
 const LoadingFallback = memo(() => (
@@ -13,31 +14,28 @@ const LoadingFallback = memo(() => (
       <p className="text-muted-foreground">Loading translations...</p>
     </div>
   </div>
-));
+))
 
-LoadingFallback.displayName = 'LoadingFallback';
+LoadingFallback.displayName = "LoadingFallback"
 
-export const I18nWrapper: React.FC<I18nWrapperProps> = memo(({ 
-  children, 
-  fallback
-}) => {
-  const { isReady, debug } = useUserLanguage();
+export const I18nWrapper: React.FC<I18nWrapperProps> = memo(({ children, fallback }) => {
+  const { isReady, debug } = useUserLanguage()
 
   // Memoize the loading decision to prevent re-renders
   const shouldShowApp = useMemo(() => {
-    return isReady || debug.initialized || debug.hasResources;
-  }, [isReady, debug.initialized, debug.hasResources]);
+    return isReady || debug.initialized || debug.hasResources
+  }, [isReady, debug.initialized, debug.hasResources])
 
   // Memoize the fallback component
   const memoizedFallback = useMemo(() => {
-    return fallback || <LoadingFallback />;
-  }, [fallback]);
+    return fallback || <LoadingFallback />
+  }, [fallback])
 
   if (!shouldShowApp) {
-    return <>{memoizedFallback}</>;
+    return <>{memoizedFallback}</>
   }
 
-  return <>{children}</>;
-});
+  return <>{children}</>
+})
 
-I18nWrapper.displayName = 'I18nWrapper';
+I18nWrapper.displayName = "I18nWrapper"

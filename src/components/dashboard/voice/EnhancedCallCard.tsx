@@ -1,18 +1,9 @@
-import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Clock, History, MessageSquare, Trash2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
-import { Call } from '@/hooks/useCalls';
-import { SidebarCounter } from '@/components/ui/sidebar-counter';
-import { CallCustomerInfo } from './CallCustomerInfo';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
-import { getConversationBrand } from '@/lib/conversationBrand';
-import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
-import { TagBadgeList } from '@/components/tags/TagBadge';
-import { useEntityTags } from '@/hooks/useEntityTags';
-import { CallBrandContextMenu } from './CallBrandContextMenu';
+import { formatDistanceToNow } from "date-fns"
+import { ArrowDownLeft, ArrowUpRight, Clock } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { BrandBadge } from "@/components/dashboard/conversation-list/BrandBadge"
+import { TagBadgeList } from "@/components/tags/TagBadge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,16 +13,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { SidebarCounter } from "@/components/ui/sidebar-counter"
+import type { Call } from "@/hooks/useCalls"
+import { useEntityTags } from "@/hooks/useEntityTags"
+import { getConversationBrand } from "@/lib/conversationBrand"
+import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
+import { CallBrandContextMenu } from "./CallBrandContextMenu"
+import { CallCustomerInfo } from "./CallCustomerInfo"
 
 interface EnhancedCallCardProps {
-  call: Call;
-  isSelected?: boolean;
-  onSelect?: (call: Call) => void;
-  onViewDetails?: (call: Call) => void;
-  onNavigateToEvents?: (callId: string) => void;
-  onRemoveCall?: (callId: string) => void;
-  notesCount?: number;
+  call: Call
+  isSelected?: boolean
+  onSelect?: (call: Call) => void
+  onViewDetails?: (call: Call) => void
+  onNavigateToEvents?: (callId: string) => void
+  onRemoveCall?: (callId: string) => void
+  notesCount?: number
 }
 
 export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
@@ -43,168 +43,169 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
   onRemoveCall,
   notesCount = 0,
 }) => {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const brand = getConversationBrand((call as any).metadata, 'voice');
-  const { getTags: getCallTags } = useEntityTags('call');
-  const cardTags = getCallTags(call.id);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const brand = getConversationBrand((call as any).metadata, "voice")
+  const { getTags: getCallTags } = useEntityTags("call")
+  const cardTags = getCallTags(call.id)
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!seconds) return "0:00"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-      case 'answered':
-        return 'success';
-      case 'ringing':
-      case 'on_hold':
-        return 'warning';
-      case 'missed':
-      case 'busy':
-      case 'failed':
-        return 'destructive';
+      case "completed":
+      case "answered":
+        return "success"
+      case "ringing":
+      case "on_hold":
+        return "warning"
+      case "missed":
+      case "busy":
+      case "failed":
+        return "destructive"
       default:
-        return 'secondary';
+        return "secondary"
     }
-  };
+  }
 
   const getBorderColor = () => {
-    if (call.status === 'missed' || call.end_reason === 'not_answered') return 'border-l-destructive';
-    if (call.status === 'completed' || call.status === 'answered') return 'border-l-success';
-    if (call.status === 'ringing' || call.status === 'on_hold') return 'border-l-warning';
-    return 'border-l-muted';
-  };
+    if (call.status === "missed" || call.end_reason === "not_answered")
+      return "border-l-destructive"
+    if (call.status === "completed" || call.status === "answered") return "border-l-success"
+    if (call.status === "ringing" || call.status === "on_hold") return "border-l-warning"
+    return "border-l-muted"
+  }
 
   const getCallAge = () => {
-    const now = new Date();
-    const callDate = new Date(call.started_at);
-    const diffHours = (now.getTime() - callDate.getTime()) / (1000 * 60 * 60);
-    
-    if (diffHours > 24) return 'opacity-60';
-    if (diffHours > 12) return 'opacity-75';
-    if (diffHours > 6) return 'opacity-85';
-    return 'opacity-100';
-  };
+    const now = new Date()
+    const callDate = new Date(call.started_at)
+    const diffHours = (now.getTime() - callDate.getTime()) / (1000 * 60 * 60)
+
+    if (diffHours > 24) return "opacity-60"
+    if (diffHours > 12) return "opacity-75"
+    if (diffHours > 6) return "opacity-85"
+    return "opacity-100"
+  }
 
   const getDirectionIcon = () => {
-    return call.direction === 'inbound' ? 
-      <ArrowDownLeft className="h-4 w-4" /> : 
-      <ArrowUpRight className="h-4 w-4" />;
-  };
+    return call.direction === "inbound" ? (
+      <ArrowDownLeft className="h-4 w-4" />
+    ) : (
+      <ArrowUpRight className="h-4 w-4" />
+    )
+  }
 
   const getStatusLabel = () => {
-    if (call.end_reason === 'completed_normally') return 'Completed';
-    if (call.end_reason === 'not_answered') return 'Missed';
-    if (call.end_reason === 'abandoned_in_ivr') return 'Abandoned';
-    return call.status?.charAt(0).toUpperCase() + call.status?.slice(1);
-  };
+    if (call.end_reason === "completed_normally") return "Completed"
+    if (call.end_reason === "not_answered") return "Missed"
+    if (call.end_reason === "abandoned_in_ivr") return "Abandoned"
+    return call.status?.charAt(0).toUpperCase() + call.status?.slice(1)
+  }
 
   const getStatusDescription = () => {
-    const enrichedDetails = call.enriched_details || {};
-    if (call.end_reason === 'completed_normally' && enrichedDetails.user_name) {
-      return `Handled by ${enrichedDetails.user_name}`;
+    const enrichedDetails = call.enriched_details || {}
+    if (call.end_reason === "completed_normally" && enrichedDetails.user_name) {
+      return `Handled by ${enrichedDetails.user_name}`
     }
-    if (call.availability_status === 'closed') {
-      return 'Outside business hours';
+    if (call.availability_status === "closed") {
+      return "Outside business hours"
     }
-    return null;
-  };
+    return null
+  }
 
   return (
     <CallBrandContextMenu callId={call.id} metadata={(call as any).metadata}>
-    <Card 
-      className={`group cursor-pointer border-l-4 ${getBorderColor()} ${getCallAge()} ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-      }`}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest('button')) return;
-        onViewDetails?.(call);
-      }}
-    >
-      <CardContent className="p-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            {/* Direction Icon */}
-            <div className="flex-shrink-0 mt-0.5 p-1 rounded-full bg-muted">
-              {getDirectionIcon()}
-            </div>
-            
-            {/* Call Details */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-semibold text-sm truncate font-mono">
-                  {formatPhoneNumber(call.customer_phone)}
-                </span>
-                <Badge 
-                  variant={getStatusColor(call.status) as any} 
-                  className="text-xs shrink-0"
-                >
-                  {getStatusLabel()}
-                </Badge>
+      <Card
+        className={`group cursor-pointer border-l-4 ${getBorderColor()} ${getCallAge()} ${
+          isSelected ? "ring-2 ring-primary ring-offset-2" : ""
+        }`}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("button")) return
+          onViewDetails?.(call)
+        }}
+      >
+        <CardContent className="p-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              {/* Direction Icon */}
+              <div className="flex-shrink-0 mt-0.5 p-1 rounded-full bg-muted">
+                {getDirectionIcon()}
               </div>
-              
-              {/* Customer Info with Noddi Data */}
-              <CallCustomerInfo call={call} />
-              
-              {/* Status Description */}
-              {getStatusDescription() && (
-                <div className="text-xs text-muted-foreground mb-1.5">
-                  {getStatusDescription()}
+
+              {/* Call Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-semibold text-sm truncate font-mono">
+                    {formatPhoneNumber(call.customer_phone)}
+                  </span>
+                  <Badge variant={getStatusColor(call.status) as any} className="text-xs shrink-0">
+                    {getStatusLabel()}
+                  </Badge>
                 </div>
-              )}
-              
-              {/* Metadata Row */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                <div className="flex items-center gap-0.5">
-                  <Clock className="h-3 w-3" />
-                  <span>{formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}</span>
-                </div>
-                {call.duration_seconds && call.duration_seconds > 0 && (
-                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-muted">
-                    <Clock className="h-3 w-3" />
-                    <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
+
+                {/* Customer Info with Noddi Data */}
+                <CallCustomerInfo call={call} />
+
+                {/* Status Description */}
+                {getStatusDescription() && (
+                  <div className="text-xs text-muted-foreground mb-1.5">
+                    {getStatusDescription()}
                   </div>
                 )}
-                {notesCount > 0 && (
-                  <SidebarCounter count={notesCount} variant="default" />
-                )}
-                {brand && <BrandBadge brand={brand} compact />}
-                <TagBadgeList tags={cardTags} compact max={2} />
+
+                {/* Metadata Row */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                  <div className="flex items-center gap-0.5">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  {call.duration_seconds && call.duration_seconds > 0 && (
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-muted">
+                      <Clock className="h-3 w-3" />
+                      <span className="font-medium">{formatDuration(call.duration_seconds)}</span>
+                    </div>
+                  )}
+                  {notesCount > 0 && <SidebarCounter count={notesCount} variant="default" />}
+                  {brand && <BrandBadge brand={brand} compact />}
+                  <TagBadgeList tags={cardTags} compact max={2} />
+                </div>
               </div>
             </div>
+
+            {/* No hover actions - card is fully clickable */}
           </div>
+        </CardContent>
 
-          {/* No hover actions - card is fully clickable */}
-        </div>
-      </CardContent>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Call</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this call from your history? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onRemoveCall?.(call.id);
-                setShowDeleteDialog(false);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Call</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove this call from your history? This action cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onRemoveCall?.(call.id)
+                  setShowDeleteDialog(false)
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Card>
     </CallBrandContextMenu>
-  );
-};
+  )
+}

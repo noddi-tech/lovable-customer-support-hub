@@ -1,21 +1,16 @@
-import React from 'react';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns"
+import { RefreshCw, Wifi, WifiOff } from "lucide-react"
+import type React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 interface LiveDataIndicatorProps {
-  isLive: boolean;
-  lastUpdated?: Date;
-  onRefresh?: () => void;
-  className?: string;
+  isLive: boolean
+  lastUpdated?: Date
+  onRefresh?: () => void
+  className?: string
 }
 
 export const LiveDataIndicator: React.FC<LiveDataIndicatorProps> = ({
@@ -25,21 +20,18 @@ export const LiveDataIndicator: React.FC<LiveDataIndicatorProps> = ({
   className,
 }) => {
   const getTimeAgo = () => {
-    if (!lastUpdated) return 'Never';
-    return formatDistanceToNow(lastUpdated, { addSuffix: true });
-  };
+    if (!lastUpdated) return "Never"
+    return formatDistanceToNow(lastUpdated, { addSuffix: true })
+  }
 
   return (
     <TooltipProvider>
-      <div className={cn('flex items-center gap-2', className)}>
+      <div className={cn("flex items-center gap-2", className)}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge
-              variant={isLive ? 'default' : 'secondary'}
-              className={cn(
-                'h-6 px-2 text-xs gap-1.5',
-                isLive && 'bg-success hover:bg-success/90'
-              )}
+              variant={isLive ? "default" : "secondary"}
+              className={cn("h-6 px-2 text-xs gap-1.5", isLive && "bg-success hover:bg-success/90")}
             >
               {isLive ? (
                 <>
@@ -60,14 +52,10 @@ export const LiveDataIndicator: React.FC<LiveDataIndicatorProps> = ({
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">
-              {isLive
-                ? 'Real-time updates active'
-                : 'Real-time updates disconnected'}
+              {isLive ? "Real-time updates active" : "Real-time updates disconnected"}
             </p>
             {lastUpdated && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Last updated: {getTimeAgo()}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">Last updated: {getTimeAgo()}</p>
             )}
           </TooltipContent>
         </Tooltip>
@@ -75,12 +63,7 @@ export const LiveDataIndicator: React.FC<LiveDataIndicatorProps> = ({
         {onRefresh && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRefresh}
-                className="h-6 w-6 p-0"
-              >
+              <Button variant="ghost" size="sm" onClick={onRefresh} className="h-6 w-6 p-0">
                 <RefreshCw className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
@@ -91,5 +74,5 @@ export const LiveDataIndicator: React.FC<LiveDataIndicatorProps> = ({
         )}
       </div>
     </TooltipProvider>
-  );
-};
+  )
+}

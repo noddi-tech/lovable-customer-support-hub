@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from "react"
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,18 +9,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useInitiateGdprErasure } from '@/hooks/recruitment/useGdprRequests';
+} from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useInitiateGdprErasure } from "@/hooks/recruitment/useGdprRequests"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  applicantId: string;
-  applicantName: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  applicantId: string
+  applicantName: string
 }
 
 const InitiateGdprErasureDialog: React.FC<Props> = ({
@@ -28,41 +29,41 @@ const InitiateGdprErasureDialog: React.FC<Props> = ({
   applicantId,
   applicantName,
 }) => {
-  const [nameInput, setNameInput] = useState('');
-  const [reason, setReason] = useState('');
-  const [acknowledged, setAcknowledged] = useState(false);
-  const mutation = useInitiateGdprErasure();
+  const [nameInput, setNameInput] = useState("")
+  const [reason, setReason] = useState("")
+  const [acknowledged, setAcknowledged] = useState(false)
+  const mutation = useInitiateGdprErasure()
 
-  const normalized = applicantName.trim();
-  const nameMatches = nameInput.trim().toLowerCase() === normalized.toLowerCase() && !!normalized;
+  const normalized = applicantName.trim()
+  const nameMatches = nameInput.trim().toLowerCase() === normalized.toLowerCase() && !!normalized
 
   const reset = () => {
-    setNameInput('');
-    setReason('');
-    setAcknowledged(false);
-  };
+    setNameInput("")
+    setReason("")
+    setAcknowledged(false)
+  }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next && !mutation.isPending) reset();
-    onOpenChange(next);
-  };
+    if (!next && !mutation.isPending) reset()
+    onOpenChange(next)
+  }
 
-  const canConfirm = nameMatches && acknowledged && !mutation.isPending;
+  const canConfirm = nameMatches && acknowledged && !mutation.isPending
 
   const handleConfirm = async () => {
-    if (!canConfirm) return;
+    if (!canConfirm) return
     try {
       await mutation.mutateAsync({
         applicant_id: applicantId,
         confirm: true,
         reason: reason.trim() || undefined,
-      });
-      reset();
-      onOpenChange(false);
+      })
+      reset()
+      onOpenChange(false)
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
@@ -73,23 +74,21 @@ const InitiateGdprErasureDialog: React.FC<Props> = ({
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
             <span className="block">
-              Du er i ferd med å utføre en GDPR artikkel 17-sletting av{' '}
-              <strong className="text-foreground">{normalized}</strong>. Dette anonymiserer
-              alle personopplysninger umiddelbart og kan <strong>ikke</strong> reverseres.
+              Du er i ferd med å utføre en GDPR artikkel 17-sletting av{" "}
+              <strong className="text-foreground">{normalized}</strong>. Dette anonymiserer alle
+              personopplysninger umiddelbart og kan <strong>ikke</strong> reverseres.
             </span>
             <span className="block text-xs text-muted-foreground">
-              Revisjonslogg, hendelser, scoring-historikk og aggregerte data bevares uten
-              kobling til personnavn. Inngående meldinger fra kandidaten anonymiseres.
-              Filer fjernes fra lagring.
+              Revisjonslogg, hendelser, scoring-historikk og aggregerte data bevares uten kobling
+              til personnavn. Inngående meldinger fra kandidaten anonymiseres. Filer fjernes fra
+              lagring.
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="gdpr-erase-name">
-              Skriv kandidatens fulle navn for å bekrefte:
-            </Label>
+            <Label htmlFor="gdpr-erase-name">Skriv kandidatens fulle navn for å bekrefte:</Label>
             <Input
               id="gdpr-erase-name"
               value={nameInput}
@@ -117,9 +116,7 @@ const InitiateGdprErasureDialog: React.FC<Props> = ({
               onCheckedChange={(v) => setAcknowledged(v === true)}
               className="mt-0.5"
             />
-            <span>
-              Jeg bekrefter at sletting er nødvendig og at handlingen ikke kan angres.
-            </span>
+            <span>Jeg bekrefter at sletting er nødvendig og at handlingen ikke kan angres.</span>
           </label>
         </div>
 
@@ -128,17 +125,17 @@ const InitiateGdprErasureDialog: React.FC<Props> = ({
           <AlertDialogAction
             disabled={!canConfirm}
             onClick={(e) => {
-              e.preventDefault();
-              void handleConfirm();
+              e.preventDefault()
+              void handleConfirm()
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {mutation.isPending ? 'Sletter…' : 'Slett permanent'}
+            {mutation.isPending ? "Sletter…" : "Slett permanent"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default InitiateGdprErasureDialog;
+export default InitiateGdprErasureDialog

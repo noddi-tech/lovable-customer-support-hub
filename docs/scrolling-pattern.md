@@ -33,16 +33,17 @@ This application uses a full-screen layout pattern where the page itself never s
 ## Final Working Pattern
 
 **ConversationView Structure (WORKING):**
+
 ```tsx
 <div className="h-full w-full flex flex-col bg-gradient-surface">
   {/* Header - Fixed Height */}
   <div className="h-16 flex-shrink-0">
     <ConversationHeader />
   </div>
-  
+
   {/* Messages - Explicit Calculated Height */}
   <div className="flex-1 h-0">
-    <div style={{ height: 'calc(100vh - 180px)', overflow: 'auto' }}>
+    <div style={{ height: "calc(100vh - 180px)", overflow: "auto" }}>
       <MessageList />
     </div>
   </div>
@@ -62,10 +63,11 @@ import { FullScreenLayout } from "@/components/ui/full-screen-layout";
 
 <FullScreenLayout header={navigationComponent}>
   <YourPageContent />
-</FullScreenLayout>
+</FullScreenLayout>;
 ```
 
 **Props:**
+
 - `header` (optional): Fixed header content that never scrolls
 - `children`: Main content area with `flex-1 overflow-hidden`
 - `className` (optional): Additional CSS classes
@@ -79,10 +81,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 <ScrollArea className="flex-1 h-0 min-h-0">
   <YourScrollableContent />
-</ScrollArea>
+</ScrollArea>;
 ```
 
 **Key Classes:**
+
 - `flex-1`: Takes remaining height in flex container
 - `h-0`: Prevents content from expanding parent
 - `min-h-0`: Allows flex item to shrink below content size
@@ -92,13 +95,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 ### ✅ Correct Patterns (IMPLEMENTED)
 
 **ConversationView Structure (FIXED):**
+
 ```tsx
 <div className="flex-1 flex flex-col bg-gradient-surface min-h-0">
   {/* Header - Fixed */}
   <div className="flex-shrink-0">
     <ConversationHeader />
   </div>
-  
+
   {/* Messages - Scrollable */}
   <ScrollArea className="flex-1 h-0 min-h-0">
     <MessageList />
@@ -107,6 +111,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 ```
 
 **Dashboard Structure (WORKING):**
+
 ```tsx
 <FullScreenLayout header={<Header />}>
   <div className="flex-1 flex overflow-hidden min-h-0">
@@ -121,6 +126,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 ### ❌ Incorrect Patterns
 
 **Don't use `overflow-auto` on main containers:**
+
 ```tsx
 // ❌ Wrong - causes page scrolling
 <div className="h-screen overflow-auto">
@@ -129,6 +135,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 ```
 
 **Don't forget `h-0 min-h-0` on flex ScrollArea:**
+
 ```tsx
 // ❌ Wrong - ScrollArea won't constrain height
 <ScrollArea className="flex-1">
@@ -137,6 +144,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 ```
 
 **Don't nest ScrollArea unnecessarily:**
+
 ```tsx
 // ❌ Wrong - creates nested scroll containers
 <ScrollArea>
@@ -151,7 +159,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 The global CSS disables page-level scrolling:
 
 ```css
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   overflow: hidden;
 }
@@ -162,18 +172,22 @@ This ensures the viewport is always exactly the browser window height and preven
 ## Troubleshooting - SOLVED ISSUES
 
 ### ✅ FIXED: ConversationView Scrolling
+
 **Problem**: Messages area was not scrollable due to broken HTML structure and conflicting overflow containers.
 
 **Solution Applied**:
+
 1. **Clean HTML Structure**: Rebuilt ConversationView with proper div nesting
 2. **Header Fixed**: Made conversation header `flex-shrink-0` (never scrolls)
 3. **Messages Scrollable**: Applied `ScrollArea` with `flex-1 h-0 min-h-0` to messages area
 4. **Removed Conflicts**: Eliminated all `overflow-auto` containers that competed with ScrollArea
 
-### ✅ FIXED: Height Constraint Chain  
+### ✅ FIXED: Height Constraint Chain
+
 **Problem**: Height constraints weren't propagating properly through the component hierarchy.
 
 **Solution Applied**:
+
 1. **Dashboard Container**: Added `overflow-hidden` to main conversation container
 2. **ConversationView**: Used `flex-1 flex flex-col min-h-0` pattern
 3. **ScrollArea**: Applied `flex-1 h-0 min-h-0` for proper height constraint
@@ -181,7 +195,7 @@ This ensures the viewport is always exactly the browser window height and preven
 ## Current Status: ✅ WORKING
 
 - ✅ ConversationView messages scroll properly within their container
-- ✅ No page-level scrolling occurs 
+- ✅ No page-level scrolling occurs
 - ✅ Clean, maintainable HTML structure
 - ✅ Follows design system scrolling patterns
 - ✅ Mobile responsive layout maintained
@@ -196,6 +210,7 @@ This ensures the viewport is always exactly the browser window height and preven
 ## Browser Compatibility
 
 This pattern works in all modern browsers that support:
+
 - CSS Flexbox
 - CSS Grid (optional)
 - `overflow: hidden`
@@ -215,6 +230,7 @@ When converting existing components to this pattern:
 ## Examples
 
 See these components for reference implementations:
+
 - `src/pages/MainApp.tsx` - FullScreenLayout usage
 - `src/components/dashboard/ConversationList.tsx` - ScrollArea in list
 - `src/components/dashboard/ConversationView.tsx` - ScrollArea in messages

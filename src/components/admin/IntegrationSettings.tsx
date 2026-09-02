@@ -1,102 +1,114 @@
-import { useState } from "react";
-import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
-import { Separator } from '@/components/ui/separator';
-import { Mail, MessageSquare, Instagram, Phone, Plus, Inbox, Bell, MailCheck } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { VoiceIntegrationsList } from '@/components/admin/VoiceIntegrationsList';
-import { EmailIntegrationWizard } from './EmailIntegrationWizard';
-import { SlackIntegrationSettings } from './SlackIntegrationSettings';
-import { IntegrationSection } from './integrations/IntegrationSection';
-import { IntegrationStatusBadge } from './IntegrationStatusBadge';
-import { InboundRoutesContent } from './integrations/InboundRoutesContent';
-import { SendgridSetupWizard } from './SendgridSetupWizard';
-import { Globe } from 'lucide-react';
-import { ConnectedEmailAccountsContent } from '@/components/dashboard/ConnectedEmailAccounts';
-import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
+import { useQuery } from "@tanstack/react-query"
+import {
+  Bell,
+  Globe,
+  Inbox,
+  Instagram,
+  Mail,
+  MailCheck,
+  MessageSquare,
+  Phone,
+  Plus,
+} from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/admin/design/components/layouts"
+import { VoiceIntegrationsList } from "@/components/admin/VoiceIntegrationsList"
+import { ConnectedEmailAccountsContent } from "@/components/dashboard/ConnectedEmailAccounts"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { useVoiceIntegrations } from "@/hooks/useVoiceIntegrations"
+import { supabase } from "@/integrations/supabase/client"
+import { EmailIntegrationWizard } from "./EmailIntegrationWizard"
+import { IntegrationStatusBadge } from "./IntegrationStatusBadge"
+import { InboundRoutesContent } from "./integrations/InboundRoutesContent"
+import { IntegrationSection } from "./integrations/IntegrationSection"
+import { SendgridSetupWizard } from "./SendgridSetupWizard"
+import { SlackIntegrationSettings } from "./SlackIntegrationSettings"
 
 export const IntegrationSettings = () => {
-  const { t } = useTranslation();
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  
+  const { t } = useTranslation()
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
+
   // Fetch email accounts for status badges
   const { data: emailAccounts = [] } = useQuery({
-    queryKey: ['email-accounts-status'],
+    queryKey: ["email-accounts-status"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('email_accounts')
-        .select('id, provider, is_active');
-      if (error) throw error;
-      return data || [];
-    }
-  });
+        .from("email_accounts")
+        .select("id, provider, is_active")
+      if (error) throw error
+      return data || []
+    },
+  })
 
   // Fetch inbound routes for Google Group status
   const { data: inboundRoutes = [] } = useQuery({
-    queryKey: ['inbound-routes-status'],
+    queryKey: ["inbound-routes-status"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inbound_routes')
-        .select('id, is_active');
-      if (error) throw error;
-      return data || [];
-    }
-  });
+      const { data, error } = await supabase.from("inbound_routes").select("id, is_active")
+      if (error) throw error
+      return data || []
+    },
+  })
 
   // Get voice integration status
-  const { integrations: voiceIntegrations } = useVoiceIntegrations();
+  const { integrations: voiceIntegrations } = useVoiceIntegrations()
 
   // Calculate counts
-  const activeAccountCount = emailAccounts.filter(acc => acc.is_active).length;
-  const activeRoutesCount = inboundRoutes.filter(r => r.is_active).length;
-  const hasActiveVoice = voiceIntegrations?.some(i => i.is_active);
+  const activeAccountCount = emailAccounts.filter((acc) => acc.is_active).length
+  const activeRoutesCount = inboundRoutes.filter((r) => r.is_active).length
+  const hasActiveVoice = voiceIntegrations?.some((i) => i.is_active)
 
   // Determine statuses
-  const getGmailStatus = (): 'active' | 'inactive' | 'not-configured' => {
-    if (activeAccountCount > 0) return 'active';
-    if (emailAccounts.length > 0) return 'inactive';
-    return 'not-configured';
-  };
+  const getGmailStatus = (): "active" | "inactive" | "not-configured" => {
+    if (activeAccountCount > 0) return "active"
+    if (emailAccounts.length > 0) return "inactive"
+    return "not-configured"
+  }
 
-  const getForwardingStatus = (): 'active' | 'inactive' | 'not-configured' => {
-    if (activeRoutesCount > 0) return 'active';
-    if (inboundRoutes.length > 0) return 'inactive';
-    return 'not-configured';
-  };
+  const getForwardingStatus = (): "active" | "inactive" | "not-configured" => {
+    if (activeRoutesCount > 0) return "active"
+    if (inboundRoutes.length > 0) return "inactive"
+    return "not-configured"
+  }
 
-  const getVoiceStatus = (): 'active' | 'inactive' | 'not-configured' => {
-    if (hasActiveVoice) return 'active';
-    if (voiceIntegrations && voiceIntegrations.length > 0) return 'inactive';
-    return 'not-configured';
-  };
-  
+  const getVoiceStatus = (): "active" | "inactive" | "not-configured" => {
+    if (hasActiveVoice) return "active"
+    if (voiceIntegrations && voiceIntegrations.length > 0) return "inactive"
+    return "not-configured"
+  }
+
   return (
     <div className="space-y-6 px-5">
       <EmailIntegrationWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
 
-      <ResponsiveTabs 
-        defaultValue="email" 
-        variant="pills" 
-        size="md" 
-        equalWidth 
+      <ResponsiveTabs
+        defaultValue="email"
+        variant="pills"
+        size="md"
+        equalWidth
         className="space-y-6"
       >
         <ResponsiveTabsList className="flex flex-wrap items-center gap-2 min-w-0 bg-card/50 backdrop-blur-sm shadow-surface">
           <ResponsiveTabsTrigger value="email">
             <Mail className="w-4 h-4" aria-hidden />
-            <span>{t('admin.email')}</span>
+            <span>{t("admin.email")}</span>
           </ResponsiveTabsTrigger>
           <ResponsiveTabsTrigger value="sms">
             <MessageSquare className="w-4 h-4" aria-hidden />
-            <span>{t('admin.sms')}</span>
+            <span>{t("admin.sms")}</span>
           </ResponsiveTabsTrigger>
           <ResponsiveTabsTrigger value="voice">
             <Phone className="w-4 h-4" aria-hidden />
-            <span>{t('admin.voice')}</span>
+            <span>{t("admin.voice")}</span>
           </ResponsiveTabsTrigger>
           <ResponsiveTabsTrigger value="notifications">
             <Bell className="w-4 h-4" aria-hidden />
@@ -131,9 +143,7 @@ export const IntegrationSettings = () => {
             title="Email Channels (SendGrid)"
             description="Send and receive emails via SendGrid – bidirectional email routing"
             defaultOpen={true}
-            statusBadge={
-              <IntegrationStatusBadge status={getForwardingStatus()} />
-            }
+            statusBadge={<IntegrationStatusBadge status={getForwardingStatus()} />}
           >
             <InboundRoutesContent />
           </IntegrationSection>
@@ -154,9 +164,7 @@ export const IntegrationSettings = () => {
             title="Gmail Direct Sync"
             description="Connect Gmail accounts via OAuth for direct email sync"
             defaultOpen={false}
-            statusBadge={
-              <IntegrationStatusBadge status={getGmailStatus()} />
-            }
+            statusBadge={<IntegrationStatusBadge status={getGmailStatus()} />}
           >
             <ConnectedEmailAccountsContent />
           </IntegrationSection>
@@ -173,8 +181,10 @@ export const IntegrationSettings = () => {
                 <div className="flex items-center gap-3">
                   <Mail className="w-5 h-5 text-channel-email" />
                   <div>
-                    <Label htmlFor="email-channel" className="text-sm font-medium">{t('admin.emailSupport')}</Label>
-                    <p className="text-xs text-muted-foreground">{t('admin.receiveAndRespond')}</p>
+                    <Label htmlFor="email-channel" className="text-sm font-medium">
+                      {t("admin.emailSupport")}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{t("admin.receiveAndRespond")}</p>
                   </div>
                 </div>
                 <Switch id="email-channel" defaultChecked />
@@ -186,8 +196,10 @@ export const IntegrationSettings = () => {
                 <div className="flex items-center gap-3">
                   <MessageSquare className="w-5 h-5 text-channel-facebook" />
                   <div>
-                    <Label htmlFor="messenger-channel" className="text-sm font-medium">{t('admin.facebookMessenger')}</Label>
-                    <p className="text-xs text-muted-foreground">{t('admin.connectCustomers')}</p>
+                    <Label htmlFor="messenger-channel" className="text-sm font-medium">
+                      {t("admin.facebookMessenger")}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{t("admin.connectCustomers")}</p>
                   </div>
                 </div>
                 <Switch id="messenger-channel" />
@@ -199,8 +211,10 @@ export const IntegrationSettings = () => {
                 <div className="flex items-center gap-3">
                   <Instagram className="w-5 h-5 text-channel-instagram" />
                   <div>
-                    <Label htmlFor="instagram-channel" className="text-sm font-medium">{t('admin.instagramDMs')}</Label>
-                    <p className="text-xs text-muted-foreground">{t('admin.manageInstagram')}</p>
+                    <Label htmlFor="instagram-channel" className="text-sm font-medium">
+                      {t("admin.instagramDMs")}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{t("admin.manageInstagram")}</p>
                   </div>
                 </div>
                 <Switch id="instagram-channel" />
@@ -213,12 +227,10 @@ export const IntegrationSettings = () => {
         <ResponsiveTabsContent value="sms" className="space-y-4">
           <IntegrationSection
             icon={MessageSquare}
-            title={t('admin.smsIntegration')}
-            description={t('admin.smsConfiguration')}
+            title={t("admin.smsIntegration")}
+            description={t("admin.smsConfiguration")}
             defaultOpen={false}
-            statusBadge={
-              <IntegrationStatusBadge status="not-configured" />
-            }
+            statusBadge={<IntegrationStatusBadge status="not-configured" />}
           >
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -232,12 +244,10 @@ export const IntegrationSettings = () => {
         <ResponsiveTabsContent value="voice" className="space-y-4">
           <IntegrationSection
             icon={Phone}
-            title={t('admin.voiceIntegration')}
+            title={t("admin.voiceIntegration")}
             description="Configure voice communication providers and telephony integrations"
             defaultOpen={false}
-            statusBadge={
-              <IntegrationStatusBadge status={getVoiceStatus()} />
-            }
+            statusBadge={<IntegrationStatusBadge status={getVoiceStatus()} />}
           >
             <VoiceIntegrationsList />
           </IntegrationSection>
@@ -249,5 +259,5 @@ export const IntegrationSettings = () => {
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
-  );
-};
+  )
+}

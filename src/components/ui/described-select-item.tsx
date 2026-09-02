@@ -1,14 +1,14 @@
-import * as React from "react";
+import * as React from "react"
 
-import { SelectItem } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SelectItem } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface DescribedSelectItemProps
   extends Omit<React.ComponentPropsWithoutRef<typeof SelectItem>, "title"> {
   /** Detailed explanation of what this value means and what it causes. */
-  description?: React.ReactNode;
+  description?: React.ReactNode
   /** Optional bold title shown above the description. */
-  title?: React.ReactNode;
+  title?: React.ReactNode
 }
 
 /**
@@ -24,7 +24,7 @@ export const DescribedSelectItem = React.forwardRef<
       <SelectItem ref={ref} {...props}>
         {children}
       </SelectItem>
-    );
+    )
   }
 
   return (
@@ -45,6 +45,6 @@ export const DescribedSelectItem = React.forwardRef<
         <p className="text-muted-foreground">{description}</p>
       </TooltipContent>
     </Tooltip>
-  );
-});
-DescribedSelectItem.displayName = "DescribedSelectItem";
+  )
+})
+DescribedSelectItem.displayName = "DescribedSelectItem"

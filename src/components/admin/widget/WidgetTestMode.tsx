@@ -1,78 +1,83 @@
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { 
-  PlayCircle, 
-  StopCircle, 
-  Info,
-  Bot,
-  Sparkles,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { AiChat } from '@/widget/components/AiChat';
-import '@/widget/styles/widget.css';
+import { Bot, Info, PlayCircle, Sparkles, StopCircle } from "lucide-react"
+import type React from "react"
+import { useCallback, useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { AiChat } from "@/widget/components/AiChat"
+import "@/widget/styles/widget.css"
 
 interface WidgetConfig {
-  id: string;
-  widget_key: string;
-  primary_color: string;
-  position: string;
-  greeting_text: string;
-  response_time_text: string;
-  enable_chat: boolean;
-  enable_contact_form: boolean;
-  enable_knowledge_search: boolean;
-  logo_url: string | null;
-  company_name: string | null;
-  language?: string;
+  id: string
+  widget_key: string
+  primary_color: string
+  position: string
+  greeting_text: string
+  response_time_text: string
+  enable_chat: boolean
+  enable_contact_form: boolean
+  enable_knowledge_search: boolean
+  logo_url: string | null
+  company_name: string | null
+  language?: string
 }
 
 interface WidgetTestModeProps {
-  config: WidgetConfig;
+  config: WidgetConfig
 }
 
 interface TestLogEntry {
-  id: string;
-  event: string;
-  timestamp: Date;
-  details?: string;
-  type?: 'info' | 'tool' | 'error' | 'success';
+  id: string
+  event: string
+  timestamp: Date
+  details?: string
+  type?: "info" | "tool" | "error" | "success"
 }
 
 export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
-  const [isTestActive, setIsTestActive] = useState(false);
-  const [testLog, setTestLog] = useState<TestLogEntry[]>([]);
+  const [isTestActive, setIsTestActive] = useState(false)
+  const [testLog, setTestLog] = useState<TestLogEntry[]>([])
 
-  const addLogEntry = useCallback((event: string, details?: string, type: 'info' | 'tool' | 'error' | 'success' = 'info') => {
-    setTestLog(prev => [...prev, {
-      id: crypto.randomUUID(),
-      event,
-      timestamp: new Date(),
-      details,
-      type,
-    }]);
-  }, []);
+  const addLogEntry = useCallback(
+    (event: string, details?: string, type: "info" | "tool" | "error" | "success" = "info") => {
+      setTestLog((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          event,
+          timestamp: new Date(),
+          details,
+          type,
+        },
+      ])
+    },
+    [],
+  )
 
   const startTestSession = () => {
-    setIsTestActive(true);
-    setTestLog([]);
-    addLogEntry('Test session started', `Widget: ${config.company_name || 'Widget'} (${config.widget_key})`, 'success');
-  };
+    setIsTestActive(true)
+    setTestLog([])
+    addLogEntry(
+      "Test session started",
+      `Widget: ${config.company_name || "Widget"} (${config.widget_key})`,
+      "success",
+    )
+  }
 
   const endTestSession = () => {
-    setIsTestActive(false);
-    addLogEntry('Test session ended', undefined, 'info');
-    toast.info('Test session ended');
-  };
+    setIsTestActive(false)
+    addLogEntry("Test session ended", undefined, "info")
+    toast.info("Test session ended")
+  }
 
   const logTypeStyles: Record<string, string> = {
-    info: 'bg-muted/50 border',
-    tool: 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
-    error: 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
-    success: 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
-  };
+    info: "bg-muted/50 border",
+    tool: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
+    error: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
+    success: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
+  }
 
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
@@ -80,8 +85,8 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         <Sparkles className="h-4 w-4" />
         <AlertTitle>AI Bot Test Mode</AlertTitle>
         <AlertDescription>
-          Test the AI assistant with the production widget — identical to what end-users see.
-          Phone verification, OTP, and all features work exactly like in production.
+          Test the AI assistant with the production widget — identical to what end-users see. Phone
+          verification, OTP, and all features work exactly like in production.
         </AlertDescription>
       </Alert>
 
@@ -97,13 +102,21 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
               <StopCircle className="h-4 w-4 mr-2" />
               End Test
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => {
-              localStorage.removeItem('noddi_ai_chat_messages');
-              localStorage.removeItem('noddi_ai_conversation_id');
-              localStorage.removeItem('noddi_ai_verified_phone');
-              addLogEntry('Session cleared', 'All widget state reset (messages, phone, conversation)', 'info');
-              toast.info('Widget session cleared — reload the test to start fresh');
-            }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                localStorage.removeItem("noddi_ai_chat_messages")
+                localStorage.removeItem("noddi_ai_conversation_id")
+                localStorage.removeItem("noddi_ai_verified_phone")
+                addLogEntry(
+                  "Session cleared",
+                  "All widget state reset (messages, phone, conversation)",
+                  "info",
+                )
+                toast.info("Widget session cleared — reload the test to start fresh")
+              }}
+            >
               Clear Session
             </Button>
           </>
@@ -123,15 +136,17 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
             .widget-test-preview .noddi-chat-messages { min-height: 0 !important; flex: 1 !important; overflow-y: auto !important; }
           `}</style>
           {isTestActive ? (
-            <div style={{ position: 'relative', width: '380px', height: '100%', maxHeight: '100%' }}>
+            <div
+              style={{ position: "relative", width: "380px", height: "100%", maxHeight: "100%" }}
+            >
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "16px",
+                  overflow: "hidden",
                   boxShadow: `0 25px 60px -15px ${config.primary_color}50`,
                 }}
               >
@@ -140,29 +155,44 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                   style={{
                     backgroundColor: config.primary_color,
                     flexShrink: 0,
-                    padding: '16px 20px',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    padding: "16px 20px",
+                    color: "white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>{config.company_name || 'AI Assistant'}</h3>
-                  <Badge variant="outline" className="bg-white/20 border-white/30 text-white text-xs">TEST</Badge>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
+                    {config.company_name || "AI Assistant"}
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className="bg-white/20 border-white/30 text-white text-xs"
+                  >
+                    TEST
+                  </Badge>
                 </div>
 
                 {/* Real AiChat component */}
-                <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: 0 }}>
+                <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: 0 }}>
                   <AiChat
                     widgetKey={config.widget_key}
                     primaryColor={config.primary_color}
-                    language={config.language || 'no'}
+                    language={config.language || "no"}
                     agentsOnline={false}
                     enableChat={false}
                     enableContactForm={false}
-                    onTalkToHuman={() => addLogEntry('Escalation: Talk to human', undefined, 'tool')}
-                    onEmailConversation={(transcript) => addLogEntry('Escalation: Email conversation', `${transcript.length} chars`, 'tool')}
-                    onBack={() => addLogEntry('Back button clicked', undefined, 'info')}
+                    onTalkToHuman={() =>
+                      addLogEntry("Escalation: Talk to human", undefined, "tool")
+                    }
+                    onEmailConversation={(transcript) =>
+                      addLogEntry(
+                        "Escalation: Email conversation",
+                        `${transcript.length} chars`,
+                        "tool",
+                      )
+                    }
+                    onBack={() => addLogEntry("Back button clicked", undefined, "info")}
                     onLogEvent={(event, details, type) => addLogEntry(event, details, type)}
                   />
                 </div>
@@ -188,7 +218,7 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                 {testLog.map((entry) => (
                   <div
                     key={entry.id}
-                    className={`text-sm p-2 rounded ${logTypeStyles[entry.type || 'info']}`}
+                    className={`text-sm p-2 rounded ${logTypeStyles[entry.type || "info"]}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{entry.event}</span>
@@ -213,5 +243,5 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}

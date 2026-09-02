@@ -1,8 +1,33 @@
-import React from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  ArrowLeft,
+  Bot,
+  Brain,
+  Briefcase,
+  Building,
+  Crown,
+  Download,
+  Flag,
+  Inbox,
+  LayoutDashboard,
+  MessageCircle,
+  Palette,
+  Plug2,
+  ScrollText,
+  Settings,
+  Shield,
+  Users,
+} from "lucide-react"
+import type React from "react"
+import { useTranslation } from "react-i18next"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { PaneColumn, PaneScroll } from "@/components/layout"
+import { Button } from "@/components/ui/button"
+import { Heading } from "@/components/ui/heading"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -11,169 +36,144 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-  SidebarFooter,
   useSidebar,
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { PaneColumn, PaneScroll } from '@/components/layout';
-import { 
-  Users, 
-  Settings, 
-  Plug2, 
-  Palette, 
-  Inbox, 
-  Building,
-  Shield,
-  Brain,
-  Bot,
-  Crown,
-  Download,
-  Activity,
-  LayoutDashboard,
-  ArrowLeft,
-  ScrollText,
-  MessageCircle,
-  Briefcase,
-  Flag
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useTranslation } from 'react-i18next';
-import { Heading } from '@/components/ui/heading';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/sidebar"
+import { useAuth } from "@/hooks/useAuth"
+import { cn } from "@/lib/utils"
 
 interface AdminPortalLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 const AdminSidebar = () => {
-  const { t } = useTranslation();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { state } = useSidebar();
-  const { isSuperAdmin } = useAuth();
+  const { t } = useTranslation()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { state } = useSidebar()
+  const { isSuperAdmin } = useAuth()
 
   const organizationItems = [
     {
-      title: 'Overview',
-      url: '/admin',
+      title: "Overview",
+      url: "/admin",
       icon: LayoutDashboard,
-      exact: true
+      exact: true,
     },
     {
-      title: t('admin.userManagement'),
-      url: '/admin/users',
-      icon: Users
+      title: t("admin.userManagement"),
+      url: "/admin/users",
+      icon: Users,
     },
     {
-      title: t('admin.inboxes'),
-      url: '/admin/inboxes',
-      icon: Inbox
+      title: t("admin.inboxes"),
+      url: "/admin/inboxes",
+      icon: Inbox,
     },
     {
-      title: t('admin.general'),
-      url: '/admin/general',
-      icon: Settings
+      title: t("admin.general"),
+      url: "/admin/general",
+      icon: Settings,
     },
     {
-      title: 'Feature Flags',
-      url: '/admin/feature-flags',
-      icon: Flag
+      title: "Feature Flags",
+      url: "/admin/feature-flags",
+      icon: Flag,
     },
     {
-      title: 'System Health',
-      url: '/admin/health',
-      icon: Activity
-    }
-  ];
+      title: "System Health",
+      url: "/admin/health",
+      icon: Activity,
+    },
+  ]
 
   const integrationItems = [
     {
-      title: 'Integrations & Routing',
-      url: '/admin/integrations',
-      icon: Plug2
-    }
-  ];
+      title: "Integrations & Routing",
+      url: "/admin/integrations",
+      icon: Plug2,
+    },
+  ]
 
   const customizationItems = [
     {
-      title: t('admin.design'),
-      url: '/admin/design',
-      icon: Palette
-    }
-  ];
+      title: t("admin.design"),
+      url: "/admin/design",
+      icon: Palette,
+    },
+  ]
 
   const intelligenceItems = [
     {
-      title: 'Knowledge Management',
-      url: '/admin/knowledge',
-      icon: Brain
+      title: "Knowledge Management",
+      url: "/admin/knowledge",
+      icon: Brain,
     },
     {
-      title: 'AI Chatbot',
-      url: '/admin/ai-chatbot',
-      icon: Bot
+      title: "AI Chatbot",
+      url: "/admin/ai-chatbot",
+      icon: Bot,
     },
     {
-      title: 'Contact Widget',
-      url: '/admin/widget',
-      icon: MessageCircle
-    }
-  ];
+      title: "Contact Widget",
+      url: "/admin/widget",
+      icon: MessageCircle,
+    },
+  ]
 
   const recruitmentItems = [
     {
-      title: 'Recruitment',
-      url: '/admin/recruitment',
-      icon: Briefcase
-    }
-  ];
+      title: "Recruitment",
+      url: "/admin/recruitment",
+      icon: Briefcase,
+    },
+  ]
 
   const superAdminItems = [
     {
-      title: 'Dashboard',
-      url: '/super-admin/dashboard',
-      icon: Crown
+      title: "Dashboard",
+      url: "/super-admin/dashboard",
+      icon: Crown,
     },
     {
-      title: 'Service Organizations',
-      url: '/super-admin/organizations',
-      icon: Building
+      title: "Service Organizations",
+      url: "/super-admin/organizations",
+      icon: Building,
     },
     {
-      title: 'All Users',
-      url: '/super-admin/users',
-      icon: Users
+      title: "All Users",
+      url: "/super-admin/users",
+      icon: Users,
     },
     {
-      title: 'Import Data',
-      url: '/super-admin/import',
-      icon: Download
+      title: "Import Data",
+      url: "/super-admin/import",
+      icon: Download,
     },
     {
-      title: 'Audit Logs',
-      url: '/super-admin/audit-logs',
-      icon: ScrollText
+      title: "Audit Logs",
+      url: "/super-admin/audit-logs",
+      icon: ScrollText,
     },
     {
-      title: 'Rekruttering: feltyper',
-      url: '/super-admin/recruitment/field-types',
-      icon: Briefcase
+      title: "Rekruttering: feltyper",
+      url: "/super-admin/recruitment/field-types",
+      icon: Briefcase,
     },
     {
-      title: 'Rekruttering: maler',
-      url: '/super-admin/recruitment/templates',
-      icon: ScrollText
-    }
-  ];
+      title: "Rekruttering: maler",
+      url: "/super-admin/recruitment/templates",
+      icon: ScrollText,
+    },
+  ]
 
   const isActive = (url: string, exact?: boolean) => {
-    if (exact) return location.pathname === url;
-    return location.pathname === url || location.pathname.startsWith(url + '/');
-  };
+    if (exact) return location.pathname === url
+    return location.pathname === url || location.pathname.startsWith(`${url}/`)
+  }
 
   const handleBackToApp = () => {
-    navigate('/interactions/text');
-  };
+    navigate("/interactions/text")
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -182,21 +182,19 @@ const AdminSidebar = () => {
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-sidebar-primary shrink-0" />
-            {state === 'expanded' && (
+            {state === "expanded" && (
               <div className="flex-1 min-w-0">
                 <Heading level={3} className="text-lg text-sidebar-foreground font-semibold">
-                  {t('admin.title')}
+                  {t("admin.title")}
                 </Heading>
-                <p className="text-xs text-sidebar-foreground/70 mt-1">
-                  {t('admin.description')}
-                </p>
+                <p className="text-xs text-sidebar-foreground/70 mt-1">{t("admin.description")}</p>
               </div>
             )}
           </div>
-          {state === 'expanded' && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+          {state === "expanded" && (
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleBackToApp}
               className="w-full mt-3 gap-2 justify-start text-muted-foreground hover:text-foreground"
             >
@@ -205,11 +203,9 @@ const AdminSidebar = () => {
             </Button>
           )}
         </div>
-        
+
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">
-            Organization
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">Organization</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {organizationItems.map((item) => (
@@ -287,9 +283,7 @@ const AdminSidebar = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/70">
-            Recruitment
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">Recruitment</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {recruitmentItems.map((item) => (
@@ -331,58 +325,62 @@ const AdminSidebar = () => {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <Button 
-          variant="outline" 
-          onClick={handleBackToApp}
-          className="w-full gap-2"
-        >
+        <Button variant="outline" onClick={handleBackToApp} className="w-full gap-2">
           <ArrowLeft className="h-4 w-4" />
-          {state === 'expanded' && <span>Back to App</span>}
+          {state === "expanded" && <span>Back to App</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
-  );
-};
+  )
+}
 
 const LayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const isFullHeight = location.pathname === '/admin/ai-chatbot';
+  const location = useLocation()
+  const isFullHeight = location.pathname === "/admin/ai-chatbot"
   return (
-    <div className={cn(isFullHeight ? "px-4 py-2 h-full flex flex-col" : "py-4 px-4 sm:py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto")}>
+    <div
+      className={cn(
+        isFullHeight
+          ? "px-4 py-2 h-full flex flex-col"
+          : "py-4 px-4 sm:py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto",
+      )}
+    >
       {children}
     </div>
-  );
-};
+  )
+}
 
 export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate()
+  const location = useLocation()
 
   return (
     <SidebarProvider defaultOpen>
       <div className="flex h-screen w-full bg-background">
         <AdminSidebar />
-        
+
         <main className="flex-1 flex flex-col min-w-0">
           {/* Header with mobile trigger and back button */}
           <header className="flex items-center gap-4 p-4 border-b border-border bg-primary/5 backdrop-blur-sm lg:hidden">
             <SidebarTrigger className="lg:hidden" />
-            
+
             {/* Back to App button - visible on mobile/tablet */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/interactions/text')}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/interactions/text")}
               className="gap-2 lg:hidden"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to App</span>
             </Button>
-            
+
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div className="lg:hidden">
-                  <Heading level={2} className="text-lg">Admin Portal</Heading>
+                  <Heading level={2} className="text-lg">
+                    Admin Portal
+                  </Heading>
                 </div>
               </div>
             </div>
@@ -390,7 +388,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
 
           {/* Content area with proper pane scrolling */}
           <PaneColumn className="flex-1 min-h-0">
-            {location.pathname === '/admin/ai-chatbot' ? (
+            {location.pathname === "/admin/ai-chatbot" ? (
               <div className="h-full overflow-hidden">
                 <LayoutContent>{children}</LayoutContent>
               </div>
@@ -403,5 +401,5 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
         </main>
       </div>
     </SidebarProvider>
-  );
-};
+  )
+}

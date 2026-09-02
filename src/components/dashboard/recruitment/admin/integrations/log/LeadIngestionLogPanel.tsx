@@ -1,4 +1,9 @@
-import { Card, CardDescription, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { format, formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -6,47 +11,49 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { useLeadIngestionLog } from '../hooks/useLeadIngestionLog';
-import { formatDistanceToNow, format } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { LeadIngestionStatus } from '../types';
+} from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useLeadIngestionLog } from "../hooks/useLeadIngestionLog"
+import type { LeadIngestionStatus } from "../types"
 
-const PAGE = 50;
+const PAGE = 50
 
 const SOURCE_LABEL: Record<string, string> = {
-  meta_lead_ad: 'Meta Lead Ads',
-  csv_import: 'CSV-import',
-  finn: 'Finn.no',
-  manual: 'Manuell',
-  website: 'Nettsted',
-  referral: 'Henvist',
-  other: 'Annet',
-};
+  meta_lead_ad: "Meta Lead Ads",
+  csv_import: "CSV-import",
+  finn: "Finn.no",
+  manual: "Manuell",
+  website: "Nettsted",
+  referral: "Henvist",
+  other: "Annet",
+}
 
 const STATUS_CONFIG: Record<LeadIngestionStatus, { label: string; className: string }> = {
-  success: { label: 'Vellykket', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' },
-  duplicate: { label: 'Duplikat', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
-  failed: { label: 'Feilet', className: 'bg-destructive/10 text-destructive border-destructive/30' },
-  invalid: { label: 'Ugyldig', className: 'bg-muted text-muted-foreground' },
-};
+  success: {
+    label: "Vellykket",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+  },
+  duplicate: { label: "Duplikat", className: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
+  failed: {
+    label: "Feilet",
+    className: "bg-destructive/10 text-destructive border-destructive/30",
+  },
+  invalid: { label: "Ugyldig", className: "bg-muted text-muted-foreground" },
+}
 
 export function LeadIngestionLogPanel() {
-  const [offset, setOffset] = useState(0);
-  const { data, isLoading } = useLeadIngestionLog({ limit: PAGE, offset });
-  const rows = data?.rows ?? [];
-  const total = data?.totalCount ?? 0;
+  const [offset, setOffset] = useState(0)
+  const { data, isLoading } = useLeadIngestionLog({ limit: PAGE, offset })
+  const rows = data?.rows ?? []
+  const total = data?.totalCount ?? 0
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Lead-mottakslogg</CardTitle>
         <CardDescription>
-          Observabilitet for innkommende søknader fra alle kilder. Brukes til feilsøking når Meta Lead Ads er aktivt.
+          Observabilitet for innkommende søknader fra alle kilder. Brukes til feilsøking når Meta
+          Lead Ads er aktivt.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -71,7 +78,7 @@ export function LeadIngestionLogPanel() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => {
-                    const status = STATUS_CONFIG[r.status];
+                    const status = STATUS_CONFIG[r.status]
                     return (
                       <TableRow key={r.id}>
                         <TableCell>
@@ -88,7 +95,7 @@ export function LeadIngestionLogPanel() {
                               href={`/recruitment/applicants/${r.applicant_id}`}
                               className="text-primary hover:underline"
                             >
-                              {r.applicant_name ?? '—'}
+                              {r.applicant_name ?? "—"}
                             </a>
                           ) : (
                             <span className="text-muted-foreground">—</span>
@@ -105,7 +112,7 @@ export function LeadIngestionLogPanel() {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {format(new Date(r.created_at), 'PPpp', { locale: nb })}
+                              {format(new Date(r.created_at), "PPpp", { locale: nb })}
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
@@ -126,7 +133,7 @@ export function LeadIngestionLogPanel() {
                           )}
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })}
                 </TableBody>
               </Table>
@@ -161,5 +168,5 @@ export function LeadIngestionLogPanel() {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,84 +1,85 @@
-import React, { useState } from 'react';
-import { MessageSquare, Plus, Edit, Trash2, Save, X, Lock } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useCallNotes, CallNote } from '@/hooks/useCallNotes';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns"
+import { Edit, Lock, MessageSquare, Plus, Save, Trash2, X } from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { type CallNote, useCallNotes } from "@/hooks/useCallNotes"
 
 interface CallNotesSectionProps {
-  callId: string;
+  callId: string
 }
 
 export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
-  const { t } = useTranslation();
-  const { notes, isLoading, createNote, updateNote, deleteNote, isCreating, canEditNote } = useCallNotes(callId);
-  
-  const [isAddingNote, setIsAddingNote] = useState(false);
-  const [newNoteContent, setNewNoteContent] = useState('');
-  const [newNoteIsPrivate, setNewNoteIsPrivate] = useState(false);
-  const [editingNote, setEditingNote] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState('');
-  const [editIsPrivate, setEditIsPrivate] = useState(false);
+  const { t } = useTranslation()
+  const { notes, isLoading, createNote, updateNote, deleteNote, isCreating, canEditNote } =
+    useCallNotes(callId)
+
+  const [isAddingNote, setIsAddingNote] = useState(false)
+  const [newNoteContent, setNewNoteContent] = useState("")
+  const [newNoteIsPrivate, setNewNoteIsPrivate] = useState(false)
+  const [editingNote, setEditingNote] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
+  const [editIsPrivate, setEditIsPrivate] = useState(false)
 
   const handleCreateNote = () => {
-    if (!newNoteContent.trim()) return;
-    
+    if (!newNoteContent.trim()) return
+
     createNote(
       { callId, content: newNoteContent, isPrivate: newNoteIsPrivate },
       {
         onSuccess: () => {
-          setNewNoteContent('');
-          setNewNoteIsPrivate(false);
-          setIsAddingNote(false);
-        }
-      }
-    );
-  };
+          setNewNoteContent("")
+          setNewNoteIsPrivate(false)
+          setIsAddingNote(false)
+        },
+      },
+    )
+  }
 
   const handleUpdateNote = (noteId: string) => {
-    if (!editContent.trim()) return;
-    
+    if (!editContent.trim()) return
+
     updateNote(
       { noteId, content: editContent, isPrivate: editIsPrivate },
       {
         onSuccess: () => {
-          setEditingNote(null);
-          setEditContent('');
-        }
-      }
-    );
-  };
+          setEditingNote(null)
+          setEditContent("")
+        },
+      },
+    )
+  }
 
   const startEditing = (note: CallNote) => {
-    setEditingNote(note.id);
-    setEditContent(note.content);
-    setEditIsPrivate(note.is_private);
-  };
+    setEditingNote(note.id)
+    setEditContent(note.content)
+    setEditIsPrivate(note.is_private)
+  }
 
   const cancelEditing = () => {
-    setEditingNote(null);
-    setEditContent('');
-    setEditIsPrivate(false);
-  };
+    setEditingNote(null)
+    setEditContent("")
+    setEditIsPrivate(false)
+  }
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+  }
 
   const checkCanEditNote = (note: CallNote) => {
-    return canEditNote(note);
-  };
+    return canEditNote(note)
+  }
 
   return (
     <div className="space-y-4">
@@ -88,9 +89,7 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
             <MessageSquare className="h-5 w-5" />
             Call Notes
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Add notes and comments about this call
-          </p>
+          <p className="text-sm text-muted-foreground">Add notes and comments about this call</p>
         </div>
         {!isAddingNote && (
           <Button
@@ -133,9 +132,9 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setIsAddingNote(false);
-                    setNewNoteContent('');
-                    setNewNoteIsPrivate(false);
+                    setIsAddingNote(false)
+                    setNewNoteContent("")
+                    setNewNoteIsPrivate(false)
                   }}
                 >
                   Cancel
@@ -145,7 +144,7 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                   onClick={handleCreateNote}
                   disabled={!newNoteContent.trim() || isCreating}
                 >
-                  {isCreating ? 'Adding...' : 'Add Note'}
+                  {isCreating ? "Adding..." : "Add Note"}
                 </Button>
               </div>
             </div>
@@ -187,14 +186,14 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                   <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={note.profiles?.avatar_url} />
                     <AvatarFallback className="text-xs">
-                      {getInitials(note.profiles?.full_name || 'Unknown')}
+                      {getInitials(note.profiles?.full_name || "Unknown")}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-medium text-sm">
-                        {note.profiles?.full_name || 'Unknown User'}
+                        {note.profiles?.full_name || "Unknown User"}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
@@ -206,7 +205,7 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                         </Badge>
                       )}
                     </div>
-                    
+
                     {editingNote === note.id ? (
                       <div className="space-y-3">
                         <Textarea
@@ -222,17 +221,16 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                               checked={editIsPrivate}
                               onCheckedChange={setEditIsPrivate}
                             />
-                            <Label htmlFor={`edit-private-${note.id}`} className="text-sm flex items-center gap-1">
+                            <Label
+                              htmlFor={`edit-private-${note.id}`}
+                              className="text-sm flex items-center gap-1"
+                            >
                               <Lock className="h-3 w-3" />
                               Private note
                             </Label>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={cancelEditing}
-                            >
+                            <Button variant="ghost" size="sm" onClick={cancelEditing}>
                               <X className="h-3 w-3" />
                             </Button>
                             <Button
@@ -247,9 +245,7 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
                       </div>
                     ) : (
                       <div className="group">
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {note.content}
-                        </p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{note.content}</p>
                         {checkCanEditNote(note) && (
                           <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
@@ -280,5 +276,5 @@ export const CallNotesSection = ({ callId }: CallNotesSectionProps) => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}

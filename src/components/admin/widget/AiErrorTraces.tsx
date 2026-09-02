@@ -1,141 +1,159 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, ChevronDown, ChevronRight, Bug, BookOpen, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { useQuery } from "@tanstack/react-query"
+import { format } from "date-fns"
+import { AlertTriangle, BookOpen, Bug, ChevronDown, ChevronRight, RefreshCw } from "lucide-react"
+import React, { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { supabase } from "@/integrations/supabase/client"
 
 interface ErrorConversation {
-  id: string;
-  visitor_phone: string | null;
-  visitor_email: string | null;
-  tools_used: string[] | null;
-  created_at: string;
-  primary_intent: string | null;
-  summary: string | null;
-  status: string;
-  error_details: string | null;
-  last_message?: string;
-  messages?: Array<{ role: string; content: string; created_at: string }>;
+  id: string
+  visitor_phone: string | null
+  visitor_email: string | null
+  tools_used: string[] | null
+  created_at: string
+  primary_intent: string | null
+  summary: string | null
+  status: string
+  error_details: string | null
+  last_message?: string
+  messages?: Array<{ role: string; content: string; created_at: string }>
 }
 
 interface AiErrorTracesProps {
-  organizationId: string;
+  organizationId: string
 }
 
 const RUNBOOK_ENTRIES = [
   {
-    title: 'Recovery call returns 400',
+    title: "Recovery call returns 400",
     symptom: 'ReferenceError: marker is not defined / "tool_choice" error',
     fix: 'Ensure `tools` array is included alongside `tool_choice: "none"` in the forced-text recovery call.',
   },
   {
-    title: 'patchBookingEdit silent failure',
-    symptom: 'Booking edit JSON never patched — placeholder IDs remain',
-    fix: 'Verify `const marker = \'[BOOKING_EDIT]\';` is declared at the top of the function.',
+    title: "patchBookingEdit silent failure",
+    symptom: "Booking edit JSON never patched — placeholder IDs remain",
+    fix: "Verify `const marker = '[BOOKING_EDIT]';` is declared at the top of the function.",
   },
   {
-    title: 'Loop exhaustion (safety break)',
-    symptom: 'AI loops through tool calls without producing a final text response',
-    fix: 'Check if the recovery call succeeds. If still failing, increase MAX_TOOL_ROUNDS or check tool response format.',
+    title: "Loop exhaustion (safety break)",
+    symptom: "AI loops through tool calls without producing a final text response",
+    fix: "Check if the recovery call succeeds. If still failing, increase MAX_TOOL_ROUNDS or check tool response format.",
   },
   {
-    title: 'YES/NO rendered as plain text',
-    symptom: 'Confirmation question appears without interactive buttons',
-    fix: 'Ensure patchYesNo post-processor is applied. Add new patterns for unrecognized question formats.',
+    title: "YES/NO rendered as plain text",
+    symptom: "Confirmation question appears without interactive buttons",
+    fix: "Ensure patchYesNo post-processor is applied. Add new patterns for unrecognized question formats.",
   },
   {
-    title: 'Time slot selection crash',
+    title: "Time slot selection crash",
     symptom: '"Beklager" message after selecting a delivery window',
-    fix: 'Usually caused by recovery call 400. Verify the fix above. Also check that delivery_window_id is correctly passed.',
+    fix: "Usually caused by recovery call 400. Verify the fix above. Also check that delivery_window_id is correctly passed.",
   },
-];
+]
 
 export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) => {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const { data: errorConversations = [], isLoading, refetch } = useQuery({
-    queryKey: ['ai-error-traces', organizationId],
+  const {
+    data: errorConversations = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["ai-error-traces", organizationId],
     queryFn: async () => {
       // Get conversations that likely had errors
       const { data: conversations, error } = await supabase
-        .from('widget_ai_conversations')
-        .select('id, visitor_phone, visitor_email, tools_used, created_at, primary_intent, summary, status, error_details')
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .from("widget_ai_conversations")
+        .select(
+          "id, visitor_phone, visitor_email, tools_used, created_at, primary_intent, summary, status, error_details",
+        )
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
+        .limit(200)
 
-      if (error) throw error;
-      if (!conversations?.length) return [];
+      if (error) throw error
+      if (!conversations?.length) return []
 
       // For each conversation, get the last assistant message to check for fallback
-      const conversationIds = conversations.map(c => c.id);
+      const conversationIds = conversations.map((c) => c.id)
       const { data: messages, error: msgError } = await supabase
-        .from('widget_ai_messages')
-        .select('conversation_id, role, content, created_at')
-        .in('conversation_id', conversationIds)
-        .eq('role', 'assistant')
-        .order('created_at', { ascending: false });
+        .from("widget_ai_messages")
+        .select("conversation_id, role, content, created_at")
+        .in("conversation_id", conversationIds)
+        .eq("role", "assistant")
+        .order("created_at", { ascending: false })
 
-      if (msgError) throw msgError;
+      if (msgError) throw msgError
 
       // Group messages by conversation
-      const msgMap = new Map<string, typeof messages>();
+      const msgMap = new Map<string, typeof messages>()
       for (const msg of messages || []) {
-        if (!msgMap.has(msg.conversation_id)) msgMap.set(msg.conversation_id, []);
-        msgMap.get(msg.conversation_id)!.push(msg);
+        if (!msgMap.has(msg.conversation_id)) msgMap.set(msg.conversation_id, [])
+        msgMap.get(msg.conversation_id)!.push(msg)
       }
 
       // Filter to only conversations with error indicators
-      const fallbackPhrases = ['Beklager', 'noe gikk galt', 'prøv igjen', 'kontakt oss direkte'];
-      const bookingTools = ['get_delivery_windows', 'update_booking', 'get_booking_details', 'lookup_customer'];
+      const fallbackPhrases = ["Beklager", "noe gikk galt", "prøv igjen", "kontakt oss direkte"]
+      const bookingTools = [
+        "get_delivery_windows",
+        "update_booking",
+        "get_booking_details",
+        "lookup_customer",
+      ]
 
       return conversations
-        .filter(conv => {
+        .filter((conv) => {
           // Match if error_details exists
-          if (conv.error_details) return true;
+          if (conv.error_details) return true
           // Or if fallback phrases found in messages
-          const msgs = msgMap.get(conv.id);
-          if (!msgs?.length) return false;
-          const lastMsg = msgs[0].content;
-          const hasFallback = fallbackPhrases.some(p => lastMsg?.includes(p));
-          const hasBookingTools = conv.tools_used?.some((t: string) => bookingTools.includes(t));
-          return hasFallback && hasBookingTools;
+          const msgs = msgMap.get(conv.id)
+          if (!msgs?.length) return false
+          const lastMsg = msgs[0].content
+          const hasFallback = fallbackPhrases.some((p) => lastMsg?.includes(p))
+          const hasBookingTools = conv.tools_used?.some((t: string) => bookingTools.includes(t))
+          return hasFallback && hasBookingTools
         })
-        .map(conv => ({
+        .map((conv) => ({
           ...conv,
-          last_message: msgMap.get(conv.id)?.[0]?.content || '',
-        }));
+          last_message: msgMap.get(conv.id)?.[0]?.content || "",
+        }))
     },
     enabled: !!organizationId,
-  });
+  })
 
   const loadMessages = async (conversationId: string) => {
     if (expandedId === conversationId) {
-      setExpandedId(null);
-      return;
+      setExpandedId(null)
+      return
     }
-    setExpandedId(conversationId);
-  };
+    setExpandedId(conversationId)
+  }
 
   const { data: expandedMessages = [] } = useQuery({
-    queryKey: ['ai-error-messages', expandedId],
+    queryKey: ["ai-error-messages", expandedId],
     queryFn: async () => {
-      if (!expandedId) return [];
+      if (!expandedId) return []
       const { data, error } = await supabase
-        .from('widget_ai_messages')
-        .select('role, content, created_at')
-        .eq('conversation_id', expandedId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data || [];
+        .from("widget_ai_messages")
+        .select("role, content, created_at")
+        .eq("conversation_id", expandedId)
+        .order("created_at", { ascending: true })
+      if (error) throw error
+      return data || []
     },
     enabled: !!expandedId,
-  });
+  })
 
   return (
     <ScrollArea className="h-full">
@@ -196,14 +214,14 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                           )}
                         </TableCell>
                         <TableCell className="py-2 text-xs whitespace-nowrap">
-                          {format(new Date(conv.created_at), 'dd.MM HH:mm')}
+                          {format(new Date(conv.created_at), "dd.MM HH:mm")}
                         </TableCell>
                         <TableCell className="py-2 text-xs">
-                          {conv.visitor_phone || conv.visitor_email || '—'}
+                          {conv.visitor_phone || conv.visitor_email || "—"}
                         </TableCell>
                         <TableCell className="py-2">
                           <Badge variant="outline" className="text-xs">
-                            {conv.primary_intent || 'unknown'}
+                            {conv.primary_intent || "unknown"}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2">
@@ -227,38 +245,54 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                       {expandedId === conv.id && (
                         <TableRow>
                           <TableCell colSpan={6} className="bg-muted/30 p-4">
-                            {conv.error_details && (() => {
-                              let errors: any[] = [];
-                              try { errors = JSON.parse(conv.error_details!); } catch { /* ignore */ }
-                              return errors.length > 0 ? (
-                                <div className="mb-3 space-y-1.5">
-                                  <p className="text-xs font-semibold text-destructive">Error Details:</p>
-                                  {errors.map((e: any, i: number) => (
-                                    <div key={i} className="text-xs rounded bg-destructive/10 border border-destructive/20 p-2">
-                                      <Badge variant="destructive" className="text-[10px] mr-2">{e.type}</Badge>
-                                      <span className="text-muted-foreground">{e.ts ? format(new Date(e.ts), 'HH:mm:ss') : ''}</span>
-                                      <p className="mt-1 whitespace-pre-wrap break-words">{e.detail}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : null;
-                            })()}
+                            {conv.error_details &&
+                              (() => {
+                                let errors: any[] = []
+                                try {
+                                  errors = JSON.parse(conv.error_details!)
+                                } catch {
+                                  /* ignore */
+                                }
+                                return errors.length > 0 ? (
+                                  <div className="mb-3 space-y-1.5">
+                                    <p className="text-xs font-semibold text-destructive">
+                                      Error Details:
+                                    </p>
+                                    {errors.map((e: any, i: number) => (
+                                      <div
+                                        key={i}
+                                        className="text-xs rounded bg-destructive/10 border border-destructive/20 p-2"
+                                      >
+                                        <Badge variant="destructive" className="text-[10px] mr-2">
+                                          {e.type}
+                                        </Badge>
+                                        <span className="text-muted-foreground">
+                                          {e.ts ? format(new Date(e.ts), "HH:mm:ss") : ""}
+                                        </span>
+                                        <p className="mt-1 whitespace-pre-wrap break-words">
+                                          {e.detail}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null
+                              })()}
                             <div className="space-y-2 max-h-[300px] overflow-y-auto">
                               {expandedMessages.map((msg, i) => (
                                 <div
                                   key={i}
                                   className={`text-xs rounded-lg p-2 ${
-                                    msg.role === 'assistant'
-                                      ? 'bg-primary/10 border border-primary/20'
-                                      : msg.role === 'user'
-                                      ? 'bg-muted border'
-                                      : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'
+                                    msg.role === "assistant"
+                                      ? "bg-primary/10 border border-primary/20"
+                                      : msg.role === "user"
+                                        ? "bg-muted border"
+                                        : "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
                                   }`}
                                 >
                                   <span className="font-semibold capitalize">{msg.role}: </span>
                                   <span className="whitespace-pre-wrap break-words">
                                     {msg.content?.substring(0, 500)}
-                                    {(msg.content?.length || 0) > 500 && '...'}
+                                    {(msg.content?.length || 0) > 500 && "..."}
                                   </span>
                                 </div>
                               ))}
@@ -303,5 +337,5 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
         </Card>
       </div>
     </ScrollArea>
-  );
-};
+  )
+}

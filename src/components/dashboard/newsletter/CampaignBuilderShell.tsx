@@ -1,25 +1,25 @@
-import React from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Menu, Settings, Layers } from 'lucide-react';
-import { useIsMobile, useIsTablet } from '@/hooks/use-responsive';
-import { PaneColumn, PaneScroll } from '@/components/layout';
+import { Layers, Menu, Settings } from "lucide-react"
+import type React from "react"
+import { PaneColumn, PaneScroll } from "@/components/layout"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useIsMobile, useIsTablet } from "@/hooks/use-responsive"
 
 interface CampaignBuilderShellProps {
-  toolbar?: React.ReactNode;
-  left: React.ReactNode;
-  center: React.ReactNode;
-  right: React.ReactNode;
+  toolbar?: React.ReactNode
+  left: React.ReactNode
+  center: React.ReactNode
+  right: React.ReactNode
 }
 
 export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
   toolbar,
   left,
   center,
-  right
+  right,
 }) => {
-  const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
+  const isMobile = useIsMobile()
+  const isTablet = useIsTablet()
 
   if (isMobile) {
     // Mobile: Single pane with drawers
@@ -27,9 +27,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       <div className="flex h-full min-h-0 flex-col">
         {/* Sticky toolbar */}
         {toolbar && (
-          <div className="sticky top-0 z-10 border-b border-border bg-background">
-            {toolbar}
-          </div>
+          <div className="sticky top-0 z-10 border-b border-border bg-background">{toolbar}</div>
         )}
 
         {/* Mobile actions bar */}
@@ -61,12 +59,10 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
 
         {/* Center content only */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="h-full w-full overflow-auto">
-            {center}
-          </div>
+          <div className="h-full w-full overflow-auto">{center}</div>
         </div>
       </div>
-    );
+    )
   }
 
   if (isTablet) {
@@ -75,9 +71,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       <div className="flex h-full min-h-0 flex-col">
         {/* Sticky toolbar */}
         {toolbar && (
-          <div className="sticky top-0 z-10 border-b border-border bg-background">
-            {toolbar}
-          </div>
+          <div className="sticky top-0 z-10 border-b border-border bg-background">{toolbar}</div>
         )}
 
         {/* Tablet actions bar */}
@@ -102,22 +96,18 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
         >
           {/* CENTER: Preview/Canvas */}
           <PaneColumn>
-            <PaneScroll>
-              {center}
-            </PaneScroll>
+            <PaneScroll>{center}</PaneScroll>
           </PaneColumn>
 
           {/* RIGHT: Inspector/Properties */}
           <PaneColumn className="border-l border-border bg-card" asChild>
             <aside>
-              <PaneScroll>
-                {right}
-              </PaneScroll>
+              <PaneScroll>{right}</PaneScroll>
             </aside>
           </PaneColumn>
         </div>
       </div>
-    );
+    )
   }
 
   // Desktop: Full three panes
@@ -125,9 +115,7 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
     <div className="flex h-full min-h-0 flex-col">
       {/* Sticky toolbar */}
       {toolbar && (
-        <div className="sticky top-0 z-10 border-b border-border bg-background">
-          {toolbar}
-        </div>
+        <div className="sticky top-0 z-10 border-b border-border bg-background">{toolbar}</div>
       )}
 
       {/* Three-pane content */}
@@ -137,27 +125,21 @@ export const CampaignBuilderShell: React.FC<CampaignBuilderShellProps> = ({
       >
         {/* LEFT: Blocks & Templates */}
         <PaneColumn className="border-r border-border bg-card">
-          <PaneScroll>
-            {left}
-          </PaneScroll>
+          <PaneScroll>{left}</PaneScroll>
         </PaneColumn>
 
         {/* CENTER: Preview/Canvas */}
         <PaneColumn>
-          <PaneScroll>
-            {center}
-          </PaneScroll>
+          <PaneScroll>{center}</PaneScroll>
         </PaneColumn>
 
-          {/* RIGHT: Inspector/Properties */}
-          <PaneColumn className="border-l border-border bg-card" asChild>
-            <aside>
-              <PaneScroll>
-                {right}
-              </PaneScroll>
-            </aside>
-          </PaneColumn>
+        {/* RIGHT: Inspector/Properties */}
+        <PaneColumn className="border-l border-border bg-card" asChild>
+          <aside>
+            <PaneScroll>{right}</PaneScroll>
+          </aside>
+        </PaneColumn>
       </div>
     </div>
-  );
-};
+  )
+}

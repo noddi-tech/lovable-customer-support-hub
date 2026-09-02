@@ -1,49 +1,51 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import type { WidgetConfig, WidgetView, ChatSession } from '../types';
-import { ContactForm } from './ContactForm';
-import { KnowledgeSearch } from './KnowledgeSearch';
-import { LiveChat } from './LiveChat';
-import { AiChat } from './AiChat';
+import type React from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
-  startChat,
+  type ChatEscalation,
   getChatSession,
-  storeChatSession,
-  readStoredChatSession,
+  getSupportedLocales,
+  getWidgetContext,
   isIdentified,
+  isKnowledgeSearchEnabled,
+  readStoredChatSession,
   readStoredSubmissions,
   type StoredSubmission,
+  startChat,
+  storeChatSession,
   type WidgetIdentity,
-  type ChatEscalation,
-} from '../api';
-import { PreChatForm } from './PreChatForm';
-import { formatBuildStamp } from '../version';
+} from "../api"
 import {
-  getWidgetTranslations,
+  DEFAULT_WIDGET_LANGUAGE,
   getLocalizedGreeting,
   getLocalizedResponseTime,
-  DEFAULT_WIDGET_LANGUAGE,
+  getWidgetTranslations,
   normalizeWidgetLanguage,
   resolveWidgetLanguages,
-} from '../translations';
-import { getWidgetContext, getSupportedLocales, isKnowledgeSearchEnabled } from '../api';
-
+} from "../translations"
+import type { ChatSession, WidgetConfig, WidgetView } from "../types"
+import { formatBuildStamp } from "../version"
+import { AiChat } from "./AiChat"
+import { ContactForm } from "./ContactForm"
+import { KnowledgeSearch } from "./KnowledgeSearch"
+import { LiveChat } from "./LiveChat"
+import { PreChatForm } from "./PreChatForm"
 
 interface WidgetPanelProps {
-  config: WidgetConfig;
-  onClose: () => void;
-  positionOverride?: 'bottom-right' | 'bottom-left';
+  config: WidgetConfig
+  onClose: () => void
+  positionOverride?: "bottom-right" | "bottom-left"
   /** Visitor identified by the host app via NoddiWidget('identify', ...). */
-  identity?: WidgetIdentity;
+  identity?: WidgetIdentity
 }
 
 // Generate a unique visitor ID
 function getVisitorId(): string {
-  let visitorId = localStorage.getItem('noddi_visitor_id');
+  let visitorId = localStorage.getItem("noddi_visitor_id")
   if (!visitorId) {
-    visitorId = 'v_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    localStorage.setItem('noddi_visitor_id', visitorId);
+    visitorId = `v_${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`
+    localStorage.setItem("noddi_visitor_id", visitorId)
   }
-  return visitorId;
+  return visitorId
 }
 
 /**
@@ -53,223 +55,242 @@ function getVisitorId(): string {
  */
 function getCustomerLanguage(configLanguage: string): string {
   // Only languages the host allows (supportedLocales) may be selected.
-  const available = resolveWidgetLanguages(getSupportedLocales());
+  const available = resolveWidgetLanguages(getSupportedLocales())
   const allow = (code: string | null) =>
-    code && available.some(l => l.code === code) ? code : null;
+    code && available.some((l) => l.code === code) ? code : null
 
-  const hostLocale = allow(normalizeWidgetLanguage(getWidgetContext()?.locale));
-  if (hostLocale) return hostLocale;
+  const hostLocale = allow(normalizeWidgetLanguage(getWidgetContext()?.locale))
+  if (hostLocale) return hostLocale
 
-  const savedLanguage = allow(localStorage.getItem('noddi_widget_language'));
-  if (savedLanguage) return savedLanguage;
+  const savedLanguage = allow(localStorage.getItem("noddi_widget_language"))
+  if (savedLanguage) return savedLanguage
 
   return (
     allow(normalizeWidgetLanguage(configLanguage)) ||
     allow(DEFAULT_WIDGET_LANGUAGE) ||
     available[0].code
-  );
+  )
 }
 
-export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, positionOverride, identity }) => {
-  const [view, setView] = useState<WidgetView>('home');
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [submissions, setSubmissions] = useState<StoredSubmission[]>(() => readStoredSubmissions());
-  const [activeSubmission, setActiveSubmission] = useState<StoredSubmission | null>(null);
-  const [chatSession, setChatSession] = useState<ChatSession | null>(null);
-  const [isStartingChat, setIsStartingChat] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState(() => getCustomerLanguage(config.language));
+export const WidgetPanel: React.FC<WidgetPanelProps> = ({
+  config,
+  onClose,
+  positionOverride,
+  identity,
+}) => {
+  const [view, setView] = useState<WidgetView>("home")
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [submissions, setSubmissions] = useState<StoredSubmission[]>(() => readStoredSubmissions())
+  const [activeSubmission, setActiveSubmission] = useState<StoredSubmission | null>(null)
+  const [chatSession, setChatSession] = useState<ChatSession | null>(null)
+  const [isStartingChat, setIsStartingChat] = useState(false)
+  const [chatError, setChatError] = useState<string | null>(null)
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false)
+  const [currentLanguage, setCurrentLanguage] = useState(() => getCustomerLanguage(config.language))
 
   // Host can change locale mid-session via NoddiWidget('update', { locale }).
-  const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale);
+  const hostLocale = normalizeWidgetLanguage(getWidgetContext()?.locale)
   // Host can also narrow the picker via supportedLocales on init/update.
-  const availableLanguages = resolveWidgetLanguages(getSupportedLocales());
-  const availableCodes = availableLanguages.map(l => l.code).join(',');
+  const availableLanguages = resolveWidgetLanguages(getSupportedLocales())
+  const availableCodes = availableLanguages.map((l) => l.code).join(",")
   useEffect(() => {
-    if (hostLocale && hostLocale !== currentLanguage && availableLanguages.some(l => l.code === hostLocale)) {
-      setCurrentLanguage(hostLocale);
+    if (
+      hostLocale &&
+      hostLocale !== currentLanguage &&
+      availableLanguages.some((l) => l.code === hostLocale)
+    ) {
+      setCurrentLanguage(hostLocale)
     }
-  }, [hostLocale]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hostLocale, availableLanguages.some, currentLanguage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Help centre: admin flag AND the host gate (enableKnowledgeSearch).
-  const knowledgeSearchEnabled = isKnowledgeSearchEnabled(config.enableKnowledgeSearch);
+  const knowledgeSearchEnabled = isKnowledgeSearchEnabled(config.enableKnowledgeSearch)
   useEffect(() => {
-    if (!knowledgeSearchEnabled && view === 'search') setView('home');
-  }, [knowledgeSearchEnabled, view]);
+    if (!knowledgeSearchEnabled && view === "search") setView("home")
+  }, [knowledgeSearchEnabled, view])
 
   // The current language may no longer be offered after an update.
   useEffect(() => {
-    if (!availableLanguages.some(l => l.code === currentLanguage)) {
-      setCurrentLanguage(availableLanguages[0].code);
+    if (!availableLanguages.some((l) => l.code === currentLanguage)) {
+      setCurrentLanguage(availableLanguages[0].code)
     }
-  }, [availableCodes, currentLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentLanguage, availableLanguages[0].code, availableLanguages.some]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const t = getWidgetTranslations(currentLanguage);
-
+  const t = getWidgetTranslations(currentLanguage)
 
   const handleLanguageChange = (langCode: string) => {
-    setCurrentLanguage(langCode);
-    localStorage.setItem('noddi_widget_language', langCode);
-    setShowLanguageMenu(false);
-  };
+    setCurrentLanguage(langCode)
+    localStorage.setItem("noddi_widget_language", langCode)
+    setShowLanguageMenu(false)
+  }
 
   // Show the confirmation until the visitor navigates away — no auto reset to an
   // empty home view, and the sent message stays available after reopening.
   const handleContactSuccess = (submission: StoredSubmission) => {
-    setSubmissions(readStoredSubmissions());
-    setActiveSubmission(submission);
-    setShowSuccess(true);
-  };
+    setSubmissions(readStoredSubmissions())
+    setActiveSubmission(submission)
+    setShowSuccess(true)
+  }
 
-  const beginChat = useCallback(async (visitor?: { name?: string; email?: string; message?: string }, escalation?: ChatEscalation) => {
-    setIsStartingChat(true);
-    setChatError(null);
+  const beginChat = useCallback(
+    async (
+      visitor?: { name?: string; email?: string; message?: string },
+      escalation?: ChatEscalation,
+    ) => {
+      setIsStartingChat(true)
+      setChatError(null)
 
-    const session = await startChat({
-      widgetKey: config.widgetKey,
-      visitorId: getVisitorId(),
-      pageUrl: window.location.href,
-      visitorName: visitor?.name,
-      visitorEmail: visitor?.email,
-      escalation,
-    });
+      const session = await startChat({
+        widgetKey: config.widgetKey,
+        visitorId: getVisitorId(),
+        pageUrl: window.location.href,
+        visitorName: visitor?.name,
+        visitorEmail: visitor?.email,
+        escalation,
+      })
 
-    if (session) {
-      setChatSession(session);
-      // Persist so a reload / SPA navigation resumes the same chat.
-      storeChatSession({
-        sessionId: session.id,
-        conversationId: session.conversationId,
-        lastSeenAt: new Date().toISOString(),
-      });
-      setView('chat');
-    } else {
-      setChatError('Unable to start chat. Please try again.');
-    }
+      if (session) {
+        setChatSession(session)
+        // Persist so a reload / SPA navigation resumes the same chat.
+        storeChatSession({
+          sessionId: session.id,
+          conversationId: session.conversationId,
+          lastSeenAt: new Date().toISOString(),
+        })
+        setView("chat")
+      } else {
+        setChatError("Unable to start chat. Please try again.")
+      }
 
-    setIsStartingChat(false);
-    return session;
-  }, [config.widgetKey]);
+      setIsStartingChat(false)
+      return session
+    },
+    [config.widgetKey],
+  )
 
   // Entry point from the home screen: collect name/email first when the host
   // app has not identified the visitor.
   const handleStartChat = useCallback(async () => {
     if (isIdentified()) {
-      await beginChat();
+      await beginChat()
     } else {
-      setChatError(null);
-      setView('prechat');
+      setChatError(null)
+      setView("prechat")
     }
-  }, [beginChat]);
+  }, [beginChat])
 
   // Resume an open session left behind by an earlier page view.
   useEffect(() => {
-    let cancelled = false;
-    const stored = readStoredChatSession();
-    if (!stored) return;
+    let cancelled = false
+    const stored = readStoredChatSession()
+    if (!stored) return
 
-    (async () => {
-      const live = await getChatSession(stored.sessionId);
-      if (cancelled) return;
-      if (!live || live.status === 'ended' || live.status === 'abandoned') {
-        storeChatSession(null);
-        return;
+    ;(async () => {
+      const live = await getChatSession(stored.sessionId)
+      if (cancelled) return
+      if (!live || live.status === "ended" || live.status === "abandoned") {
+        storeChatSession(null)
+        return
       }
       setChatSession({
         id: stored.sessionId,
         conversationId: stored.conversationId,
-        status: live.status as ChatSession['status'],
+        status: live.status as ChatSession["status"],
         assignedAgentName: live.assignedAgentName || undefined,
         startedAt: live.messages[0]?.createdAt || new Date().toISOString(),
-      });
-      setView('chat');
-    })();
+      })
+      setView("chat")
+    })()
 
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleEndChat = () => {
-    storeChatSession(null);
-    setChatSession(null);
-    setView('home');
-  };
+    storeChatSession(null)
+    setChatSession(null)
+    setView("home")
+  }
 
   const handleBackFromChat = () => {
     // If chat hasn't started or ended, just go back
-    if (!chatSession || chatSession.status === 'ended') {
-      setChatSession(null);
+    if (!chatSession || chatSession.status === "ended") {
+      setChatSession(null)
     }
-    setView('home');
-  };
+    setView("home")
+  }
 
   // Escalation: start live chat from AI, carrying the AI transcript over so the
   // agent does not ask the visitor to repeat themselves.
-  const handleTalkToHuman = useCallback(async (transcript?: string) => {
-    if (!config.enableChat || !config.agentsOnline) return;
-    const escalation: ChatEscalation | undefined = transcript
-      ? { from: 'ai', transcript }
-      : undefined;
-    if (isIdentified()) {
-      await beginChat(undefined, escalation);
-    } else {
-      setPendingEscalation(escalation ?? null);
-      setChatError(null);
-      setView('prechat');
-    }
-  }, [config.enableChat, config.agentsOnline, beginChat]);
+  const handleTalkToHuman = useCallback(
+    async (transcript?: string) => {
+      if (!config.enableChat || !config.agentsOnline) return
+      const escalation: ChatEscalation | undefined = transcript
+        ? { from: "ai", transcript }
+        : undefined
+      if (isIdentified()) {
+        await beginChat(undefined, escalation)
+      } else {
+        setPendingEscalation(escalation ?? null)
+        setChatError(null)
+        setView("prechat")
+      }
+    },
+    [config.enableChat, config.agentsOnline, beginChat],
+  )
 
-  const [pendingEscalation, setPendingEscalation] = useState<ChatEscalation | null>(null);
+  const [pendingEscalation, setPendingEscalation] = useState<ChatEscalation | null>(null)
 
   // Escalation: email conversation transcript from AI
-  const [aiTranscript, setAiTranscript] = useState<string | null>(null);
+  const [aiTranscript, setAiTranscript] = useState<string | null>(null)
   const handleEmailConversation = useCallback((transcript: string) => {
-    setAiTranscript(transcript);
-    setView('contact');
-  }, []);
+    setAiTranscript(transcript)
+    setView("contact")
+  }, [])
 
   // Use position override if provided, otherwise fall back to config
-  const effectivePosition = positionOverride ?? config.position;
-  const positionStyles = effectivePosition === 'bottom-right' 
-    ? { right: '20px' } 
-    : { left: '20px' };
+  const effectivePosition = positionOverride ?? config.position
+  const positionStyles = effectivePosition === "bottom-right" ? { right: "20px" } : { left: "20px" }
 
-  const currentLang = availableLanguages.find(l => l.code === currentLanguage);
-  const currentLangName = currentLang?.name || 'English';
-  const currentLangFlag = currentLang?.flag || '🌐';
+  const currentLang = availableLanguages.find((l) => l.code === currentLanguage)
+  const currentLangName = currentLang?.name || "English"
+  const currentLangFlag = currentLang?.flag || "🌐"
 
   // Get localized greeting and response time with per-language overrides
   const localizedGreeting = getLocalizedGreeting(
     config.greetingText,
     currentLanguage,
-    config.greetingTranslations
-  );
+    config.greetingTranslations,
+  )
   const localizedResponseTime = getLocalizedResponseTime(
     config.responseTimeText,
     currentLanguage,
-    config.responseTimeTranslations
-  );
+    config.responseTimeTranslations,
+  )
 
   return (
     <div className="noddi-widget-panel" style={positionStyles}>
       {/* Header */}
-      <div 
-        className="noddi-widget-header"
-        style={{ backgroundColor: config.primaryColor }}
-      >
+      <div className="noddi-widget-header" style={{ backgroundColor: config.primaryColor }}>
         <div className="noddi-widget-header-content">
-          {config.logoUrl && (
-            <img src={config.logoUrl} alt="" className="noddi-widget-logo" />
-          )}
+          {config.logoUrl && <img src={config.logoUrl} alt="" className="noddi-widget-logo" />}
           <div>
-            <h3 className="noddi-widget-title">
-              {config.companyName || 'Chat with us'}
-            </h3>
+            <h3 className="noddi-widget-title">{config.companyName || "Chat with us"}</h3>
             <p className="noddi-widget-subtitle">{localizedResponseTime}</p>
           </div>
         </div>
         <button onClick={onClose} className="noddi-widget-close" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -280,7 +301,17 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
       <div className="noddi-widget-content">
         {showSuccess && activeSubmission ? (
           <div className="noddi-widget-success">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: config.primaryColor }}>
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: config.primaryColor }}
+            >
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
@@ -298,36 +329,32 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               <button
                 className="noddi-widget-action"
                 onClick={() => {
-                  setShowSuccess(false);
-                  setActiveSubmission(null);
-                  setView('contact');
+                  setShowSuccess(false)
+                  setActiveSubmission(null)
+                  setView("contact")
                 }}
               >
-                {t.sendAnother || 'Send another message'}
+                {t.sendAnother || "Send another message"}
               </button>
               <button
                 className="noddi-widget-back"
                 onClick={() => {
-                  setShowSuccess(false);
-                  setActiveSubmission(null);
-                  setView('home');
+                  setShowSuccess(false)
+                  setActiveSubmission(null)
+                  setView("home")
                 }}
               >
-                {t.backToHome || 'Back'}
+                {t.backToHome || "Back"}
               </button>
             </div>
           </div>
-        ) : view === 'home' ? (
+        ) : view === "home" ? (
           <div className="noddi-widget-home">
             <p className="noddi-widget-greeting">{localizedGreeting}</p>
-            
-            {chatError && (
-              <div className="noddi-widget-error">
-                {chatError}
-              </div>
-            )}
-            
-          <div className="noddi-widget-actions">
+
+            {chatError && <div className="noddi-widget-error">{chatError}</div>}
+
+            <div className="noddi-widget-actions">
               {/* Show live chat only when agents are online */}
               {config.enableChat && config.agentsOnline && (
                 <button
@@ -336,7 +363,16 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
                   disabled={isStartingChat}
                   style={{ borderColor: config.primaryColor }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                   </svg>
                   <span>{isStartingChat ? t.startingChat : t.startLiveChat}</span>
@@ -347,7 +383,16 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               {/* Show offline notice when chat is enabled but no agents online */}
               {config.enableChat && !config.agentsOnline && (
                 <div className="noddi-widget-offline-notice">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M12 6v6l4 2"></path>
                   </svg>
@@ -359,22 +404,39 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               )}
 
               {config.enableContactForm && (
-                <button
-                  className="noddi-widget-action"
-                  onClick={() => setView('contact')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <button className="noddi-widget-action" onClick={() => setView("contact")}>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  <span>{config.enableChat && !config.agentsOnline ? t.leaveMessage : t.sendMessage}</span>
+                  <span>
+                    {config.enableChat && !config.agentsOnline ? t.leaveMessage : t.sendMessage}
+                  </span>
                 </button>
               )}
-              
+
               {/* Help centre: opt-in per widget (admin flag) and host-gated via enableKnowledgeSearch */}
               {knowledgeSearchEnabled && (
-                <button className="noddi-widget-action" onClick={() => setView('search')}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <button className="noddi-widget-action" onClick={() => setView("search")}>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
@@ -385,29 +447,39 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
 
             {submissions.length > 0 && (
               <div className="noddi-widget-history">
-                <p className="noddi-widget-history-title">{t.yourMessages || 'Your messages'}</p>
+                <p className="noddi-widget-history-title">{t.yourMessages || "Your messages"}</p>
                 {submissions.map((s) => (
                   <button
                     key={`${s.conversationId || s.sentAt}`}
                     className="noddi-widget-history-item"
-                    onClick={() => { setActiveSubmission(s); setShowSuccess(true); }}
+                    onClick={() => {
+                      setActiveSubmission(s)
+                      setShowSuccess(true)
+                    }}
                   >
                     <span className="noddi-widget-history-body">{s.message}</span>
                     <span className="noddi-widget-history-meta">
-                      {new Date(s.sentAt).toLocaleString()} · {t.awaitingReply || "We'll reply by email"}
+                      {new Date(s.sentAt).toLocaleString()} ·{" "}
+                      {t.awaitingReply || "We'll reply by email"}
                     </span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-        ) : view === 'contact' ? (
+        ) : view === "contact" ? (
           <div className="noddi-widget-view">
-            <button 
-              className="noddi-widget-back" 
-              onClick={() => setView('home')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button className="noddi-widget-back" onClick={() => setView("home")}>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
               {t.back}
@@ -415,32 +487,47 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             <ContactForm
               widgetKey={config.widgetKey}
               primaryColor={config.primaryColor}
-              onSuccess={(submission) => { setAiTranscript(null); handleContactSuccess(submission); }}
+              onSuccess={(submission) => {
+                setAiTranscript(null)
+                handleContactSuccess(submission)
+              }}
               language={currentLanguage}
               initialMessage={aiTranscript || undefined}
             />
           </div>
-        ) : view === 'prechat' ? (
+        ) : view === "prechat" ? (
           <PreChatForm
             primaryColor={config.primaryColor}
             language={currentLanguage}
             isStarting={isStartingChat}
             error={chatError}
-            onBack={() => { setPendingEscalation(null); setView('home'); }}
+            onBack={() => {
+              setPendingEscalation(null)
+              setView("home")
+            }}
             onSubmit={async (visitor) => {
-              const escalation = pendingEscalation ?? (visitor.message
-                ? { from: 'ai' as const, transcript: visitor.message }
-                : undefined);
-              setPendingEscalation(null);
-              await beginChat(visitor, escalation);
+              const escalation =
+                pendingEscalation ??
+                (visitor.message ? { from: "ai" as const, transcript: visitor.message } : undefined)
+              setPendingEscalation(null)
+              await beginChat(visitor, escalation)
             }}
           />
-        ) : view === 'search' ? (
+        ) : view === "search" ? (
           /* Help centre stays behind the admin flag and the host gate. */
           knowledgeSearchEnabled ? (
             <div className="noddi-widget-view">
-              <button className="noddi-widget-back" onClick={() => setView('home')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <button className="noddi-widget-back" onClick={() => setView("home")}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
                 {t.back}
@@ -452,7 +539,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               />
             </div>
           ) : null
-        ) : view === 'chat' && chatSession ? (
+        ) : view === "chat" && chatSession ? (
           <LiveChat
             session={chatSession}
             primaryColor={config.primaryColor}
@@ -460,7 +547,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             onBack={handleBackFromChat}
             language={currentLanguage}
           />
-        ) : view === 'ai' ? (
+        ) : view === "ai" ? (
           <AiChat
             widgetKey={config.widgetKey}
             primaryColor={config.primaryColor}
@@ -470,7 +557,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
             enableContactForm={config.enableContactForm}
             onTalkToHuman={handleTalkToHuman}
             onEmailConversation={handleEmailConversation}
-            onBack={() => setView('home')}
+            onBack={() => setView("home")}
           />
         ) : null}
       </div>
@@ -480,7 +567,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
         <div className="noddi-widget-footer-content">
           <span>{t.poweredBy}</span>
           <div className="noddi-widget-language-selector">
-            <button 
+            <button
               className="noddi-widget-language-btn"
               onClick={() => setShowLanguageMenu(!showLanguageMenu)}
               aria-label={t.changeLanguage}
@@ -488,13 +575,13 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
               <span className="noddi-widget-flag">{currentLangFlag}</span>
               <span>{currentLangName}</span>
             </button>
-            
+
             {showLanguageMenu && (
               <div className="noddi-widget-language-menu">
                 {availableLanguages.map((lang) => (
                   <button
                     key={lang.code}
-                    className={`noddi-widget-language-option ${currentLanguage === lang.code ? 'active' : ''}`}
+                    className={`noddi-widget-language-option ${currentLanguage === lang.code ? "active" : ""}`}
                     onClick={() => handleLanguageChange(lang.code)}
                   >
                     <span className="noddi-widget-flag">{lang.flag}</span>
@@ -508,5 +595,5 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({ config, onClose, posit
         <div className="noddi-widget-build-stamp">{formatBuildStamp()}</div>
       </div>
     </div>
-  );
-};
+  )
+}

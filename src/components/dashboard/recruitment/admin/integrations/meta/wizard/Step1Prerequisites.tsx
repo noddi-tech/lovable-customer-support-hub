@@ -1,35 +1,35 @@
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, ShieldCheck, Briefcase, UserCog } from 'lucide-react';
+import { Briefcase, CheckCircle2, ShieldCheck, UserCog } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface Props {
-  onNext: () => void;
-  onCancel: () => void;
+  onNext: () => void
+  onCancel: () => void
 }
 
 export function Step1Prerequisites({ onNext, onCancel }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Før vi starter, sjekk at du har følgende på plass. Du logger inn med din egen
-        Facebook-konto i neste steg.
+        Før vi starter, sjekk at du har følgende på plass. Du logger inn med din egen Facebook-konto
+        i neste steg.
       </p>
 
       <ul className="space-y-2">
         {[
           {
             icon: UserCog,
-            title: 'Du er administrator av Facebook-siden',
-            desc: 'Du må ha full admin-rolle på Meta-siden i Meta Business Suite.',
+            title: "Du er administrator av Facebook-siden",
+            desc: "Du må ha full admin-rolle på Meta-siden i Meta Business Suite.",
           },
           {
             icon: Briefcase,
-            title: 'Lead Ads er aktivert på siden',
-            desc: 'Sidens annonsekonto må kunne kjøre Lead Ad-kampanjer.',
+            title: "Lead Ads er aktivert på siden",
+            desc: "Sidens annonsekonto må kunne kjøre Lead Ad-kampanjer.",
           },
           {
             icon: ShieldCheck,
-            title: 'Du er klar til å gi tilgang',
-            desc: 'Vi ber om 5 tilganger som lar oss motta søkere automatisk via webhook.',
+            title: "Du er klar til å gi tilgang",
+            desc: "Vi ber om 5 tilganger som lar oss motta søkere automatisk via webhook.",
           },
         ].map(({ icon: Icon, title, desc }) => (
           <li key={title} className="flex items-start gap-3 rounded-md border p-3">
@@ -52,5 +52,5 @@ export function Step1Prerequisites({ onNext, onCancel }: Props) {
         <Button onClick={onNext}>Fortsett</Button>
       </div>
     </div>
-  );
+  )
 }

@@ -1,16 +1,15 @@
-import React from 'react';
-import { NewsletterBlock } from '../NewsletterBuilder';
-import { SortableNewsletterBlock } from './SortableNewsletterBlock';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import type React from "react"
+import { cn } from "@/lib/utils"
+import type { NewsletterBlock } from "../NewsletterBuilder"
+import { SortableNewsletterBlock } from "./SortableNewsletterBlock"
 
 interface NewsletterCanvasProps {
-  blocks: NewsletterBlock[];
-  selectedBlockId: string | null;
-  onSelectBlock: (id: string | null) => void;
-  previewDevice: 'desktop' | 'mobile';
-  isDarkMode: boolean;
-  globalStyles: any;
+  blocks: NewsletterBlock[]
+  selectedBlockId: string | null
+  onSelectBlock: (id: string | null) => void
+  previewDevice: "desktop" | "mobile"
+  isDarkMode: boolean
+  globalStyles: any
 }
 
 export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
@@ -19,9 +18,9 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
   onSelectBlock,
   previewDevice,
   isDarkMode,
-  globalStyles
+  globalStyles,
 }) => {
-  const canvasMaxWidth = previewDevice === 'mobile' ? '375px' : globalStyles.maxWidth || '600px';
+  const canvasMaxWidth = previewDevice === "mobile" ? "375px" : globalStyles.maxWidth || "600px"
 
   return (
     <div className="flex-1 min-h-0">
@@ -31,12 +30,12 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
             <div
               className={cn(
                 "bg-background border rounded-lg shadow-sm min-h-96",
-                isDarkMode && "bg-gray-900 text-white"
+                isDarkMode && "bg-gray-900 text-white",
               )}
               style={{
-                backgroundColor: isDarkMode ? '#1a1a1a' : globalStyles.backgroundColor,
+                backgroundColor: isDarkMode ? "#1a1a1a" : globalStyles.backgroundColor,
                 fontFamily: globalStyles.fontFamily,
-                fontSize: globalStyles.fontSize
+                fontSize: globalStyles.fontSize,
               }}
             >
               {blocks.length === 0 ? (
@@ -63,5 +62,5 @@ export const NewsletterCanvas: React.FC<NewsletterCanvasProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

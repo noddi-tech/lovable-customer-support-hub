@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronsUpDown, Loader2, Search, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown, Loader2, Search, X } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -11,38 +9,39 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from "@/components/ui/command"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { TRIGGER_LABELS } from '../types';
-import { useApplicantsSearch } from './hooks/useApplicantsSearch';
-import { useRuleCountByTrigger } from './hooks/useRuleCountByTrigger';
-import { useStages } from './hooks/useStages';
-import type { ApplicantSearchResult, DryRunTriggerType } from './types';
-import { getApplicantDisplayName } from './types';
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { TRIGGER_LABELS } from "../types"
+import { useApplicantsSearch } from "./hooks/useApplicantsSearch"
+import { useRuleCountByTrigger } from "./hooks/useRuleCountByTrigger"
+import { useStages } from "./hooks/useStages"
+import type { ApplicantSearchResult, DryRunTriggerType } from "./types"
+import { getApplicantDisplayName } from "./types"
 
 interface Props {
-  triggerType: DryRunTriggerType;
-  stageId: string | null;
-  applicant: ApplicantSearchResult | null;
-  isPending: boolean;
-  onTriggerTypeChange: (value: DryRunTriggerType) => void;
-  onStageChange: (value: string | null) => void;
-  onApplicantChange: (value: ApplicantSearchResult | null) => void;
-  onRun: () => void;
-  onClear: () => void;
+  triggerType: DryRunTriggerType
+  stageId: string | null
+  applicant: ApplicantSearchResult | null
+  isPending: boolean
+  onTriggerTypeChange: (value: DryRunTriggerType) => void
+  onStageChange: (value: string | null) => void
+  onApplicantChange: (value: ApplicantSearchResult | null) => void
+  onRun: () => void
+  onClear: () => void
 }
 
 function StagePill({ name, color }: { name: string | null; color: string | null }) {
   if (!name) {
-    return <span className="text-xs text-muted-foreground">Uten fase</span>;
+    return <span className="text-xs text-muted-foreground">Uten fase</span>
   }
 
   return (
@@ -53,7 +52,7 @@ function StagePill({ name, color }: { name: string | null; color: string | null 
       />
       {name}
     </span>
-  );
+  )
 }
 
 export function DryRunForm({
@@ -67,53 +66,56 @@ export function DryRunForm({
   onRun,
   onClear,
 }: Props) {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { data: stages, isLoading: stagesLoading } = useStages();
-  const { data: applicants, isLoading: applicantsLoading } = useApplicantsSearch(searchQuery);
-  const { data: ruleCounts = {} } = useRuleCountByTrigger();
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const { data: stages, isLoading: stagesLoading } = useStages()
+  const { data: applicants, isLoading: applicantsLoading } = useApplicantsSearch(searchQuery)
+  const { data: ruleCounts = {} } = useRuleCountByTrigger()
 
   useEffect(() => {
     if (!searchOpen) {
-      setSearchQuery('');
+      setSearchQuery("")
     }
-  }, [searchOpen]);
+  }, [searchOpen])
 
   const selectedApplicantLabel = useMemo(() => {
-    if (!applicant) return 'Søk etter søker...';
+    if (!applicant) return "Søk etter søker..."
     return applicant.email
       ? `${getApplicantDisplayName(applicant)} · ${applicant.email}`
-      : getApplicantDisplayName(applicant);
-  }, [applicant]);
+      : getApplicantDisplayName(applicant)
+  }, [applicant])
 
-  const isRunDisabled = isPending || !applicant?.id || (triggerType === 'stage_entered' && !stageId);
+  const isRunDisabled = isPending || !applicant?.id || (triggerType === "stage_entered" && !stageId)
 
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="dry-run-trigger-type">Type utløser</Label>
-          <Select value={triggerType} onValueChange={(value) => onTriggerTypeChange(value as DryRunTriggerType)}>
+          <Select
+            value={triggerType}
+            onValueChange={(value) => onTriggerTypeChange(value as DryRunTriggerType)}
+          >
             <SelectTrigger id="dry-run-trigger-type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {(Object.keys(TRIGGER_LABELS) as DryRunTriggerType[]).map((key) => {
-                const count = ruleCounts[key] ?? 0;
+                const count = ruleCounts[key] ?? 0
                 return (
                   <SelectItem key={key} value={key}>
                     {TRIGGER_LABELS[key]}
                     <span className="ml-2 text-sm text-muted-foreground">
-                      ({count} {count === 1 ? 'regel' : 'regler'})
+                      ({count} {count === 1 ? "regel" : "regler"})
                     </span>
                   </SelectItem>
-                );
+                )
               })}
             </SelectContent>
           </Select>
         </div>
 
-        {triggerType === 'stage_entered' ? (
+        {triggerType === "stage_entered" ? (
           <div className="space-y-1.5">
             <Label htmlFor="dry-run-stage">Hvilken fase</Label>
             {stagesLoading ? (
@@ -122,7 +124,7 @@ export function DryRunForm({
                 Laster faser...
               </div>
             ) : (
-              <Select value={stageId ?? ''} onValueChange={onStageChange}>
+              <Select value={stageId ?? ""} onValueChange={onStageChange}>
                 <SelectTrigger id="dry-run-stage">
                   <SelectValue placeholder="Velg fase..." />
                 </SelectTrigger>
@@ -186,28 +188,40 @@ export function DryRunForm({
                     <CommandEmpty>Ingen søkere funnet.</CommandEmpty>
                     <CommandGroup>
                       {(applicants ?? []).map((item) => {
-                        const isSelected = applicant?.id === item.id;
+                        const isSelected = applicant?.id === item.id
 
                         return (
                           <CommandItem
                             key={item.id}
-                            value={`${getApplicantDisplayName(item)} ${item.email ?? ''}`}
+                            value={`${getApplicantDisplayName(item)} ${item.email ?? ""}`}
                             onSelect={() => {
-                              onApplicantChange(item);
-                              setSearchOpen(false);
+                              onApplicantChange(item)
+                              setSearchOpen(false)
                             }}
                             className="items-start gap-2 py-3"
                           >
-                            <Check className={cn('mt-0.5 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />
+                            <Check
+                              className={cn(
+                                "mt-0.5 h-4 w-4",
+                                isSelected ? "opacity-100" : "opacity-0",
+                              )}
+                            />
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="truncate font-medium">{getApplicantDisplayName(item)}</span>
-                                <StagePill name={item.current_stage_name} color={item.current_stage_color} />
+                                <span className="truncate font-medium">
+                                  {getApplicantDisplayName(item)}
+                                </span>
+                                <StagePill
+                                  name={item.current_stage_name}
+                                  color={item.current_stage_color}
+                                />
                               </div>
-                              <div className="truncate text-xs text-muted-foreground">{item.email ?? 'Ingen e-post'}</div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {item.email ?? "Ingen e-post"}
+                              </div>
                             </div>
                           </CommandItem>
-                        );
+                        )
                       })}
                     </CommandGroup>
                   </>
@@ -245,5 +259,5 @@ export function DryRunForm({
         </Button>
       </div>
     </div>
-  );
+  )
 }

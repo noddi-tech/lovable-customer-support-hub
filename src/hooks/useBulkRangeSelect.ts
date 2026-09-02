@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef } from "react"
 
 /**
  * Shift-click range selection for conversation lists.
@@ -11,24 +11,24 @@ export function useBulkRangeSelect(
   orderedIds: string[],
   setSelection: (ids: string[], selected: boolean) => void,
 ) {
-  const anchorRef = useRef<string | null>(null);
+  const anchorRef = useRef<string | null>(null)
 
   return useCallback(
     (id: string, selected: boolean, shiftKey = false) => {
-      const anchor = anchorRef.current;
+      const anchor = anchorRef.current
       if (shiftKey && anchor && anchor !== id) {
-        const start = orderedIds.indexOf(anchor);
-        const end = orderedIds.indexOf(id);
+        const start = orderedIds.indexOf(anchor)
+        const end = orderedIds.indexOf(id)
         if (start !== -1 && end !== -1) {
-          const [from, to] = start < end ? [start, end] : [end, start];
-          setSelection(orderedIds.slice(from, to + 1), selected);
-          anchorRef.current = id;
-          return;
+          const [from, to] = start < end ? [start, end] : [end, start]
+          setSelection(orderedIds.slice(from, to + 1), selected)
+          anchorRef.current = id
+          return
         }
       }
-      anchorRef.current = id;
-      setSelection([id], selected);
+      anchorRef.current = id
+      setSelection([id], selected)
     },
     [orderedIds, setSelection],
-  );
+  )
 }

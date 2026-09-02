@@ -1,11 +1,16 @@
-import React, { useMemo } from 'react';
+import { AlertTriangle } from "lucide-react"
+import type React from "react"
+import { useMemo } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -13,40 +18,31 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
-import {
-  TARGET_FIELD_LABELS,
-  mapRow,
-  isValidEmail,
-  type TargetField,
-} from './parseFile';
+} from "@/components/ui/table"
+import { isValidEmail, mapRow, TARGET_FIELD_LABELS, type TargetField } from "./parseFile"
 
 interface Props {
-  headers: string[];
-  rows: Record<string, string>[];
-  mapping: Record<string, TargetField>;
-  onMappingChange: (m: Record<string, TargetField>) => void;
-  onBack: () => void;
-  onNext: () => void;
+  headers: string[]
+  rows: Record<string, string>[]
+  mapping: Record<string, TargetField>
+  onMappingChange: (m: Record<string, TargetField>) => void
+  onBack: () => void
+  onNext: () => void
 }
 
 const ORDER: TargetField[] = [
-  'ignore',
-  'first_name',
-  'last_name',
-  'full_name',
-  'email',
-  'phone',
-  'location',
-  'drivers_license_classes',
-  'years_experience',
-  'note',
-  'metadata',
-];
+  "ignore",
+  "first_name",
+  "last_name",
+  "full_name",
+  "email",
+  "phone",
+  "location",
+  "drivers_license_classes",
+  "years_experience",
+  "note",
+  "metadata",
+]
 
 const ImportMappingStep: React.FC<Props> = ({
   headers,
@@ -56,32 +52,29 @@ const ImportMappingStep: React.FC<Props> = ({
   onBack,
   onNext,
 }) => {
-  const hasEmail = useMemo(() => Object.values(mapping).includes('email'), [mapping]);
+  const hasEmail = useMemo(() => Object.values(mapping).includes("email"), [mapping])
 
-  const preview = useMemo(
-    () => rows.slice(0, 5).map((r) => mapRow(r, mapping)),
-    [rows, mapping]
-  );
+  const preview = useMemo(() => rows.slice(0, 5).map((r) => mapRow(r, mapping)), [rows, mapping])
 
   const invalidRows = useMemo(() => {
-    const out: { rowNum: number; reason: string; name: string }[] = [];
+    const out: { rowNum: number; reason: string; name: string }[] = []
     rows.forEach((r, i) => {
-      const m = mapRow(r, mapping);
-      const name = [m.first_name, m.last_name].filter(Boolean).join(' ');
+      const m = mapRow(r, mapping)
+      const name = [m.first_name, m.last_name].filter(Boolean).join(" ")
       if (!m.email) {
-        out.push({ rowNum: i + 1, reason: 'Mangler e-post', name });
+        out.push({ rowNum: i + 1, reason: "Mangler e-post", name })
       } else if (!isValidEmail(m.email)) {
         out.push({
           rowNum: i + 1,
           reason: `Ugyldig e-post format '${m.email}'`,
           name,
-        });
+        })
       }
-    });
-    return out;
-  }, [rows, mapping]);
+    })
+    return out
+  }, [rows, mapping])
 
-  const validCount = rows.length - invalidRows.length;
+  const validCount = rows.length - invalidRows.length
 
   return (
     <div className="space-y-6">
@@ -111,10 +104,8 @@ const ImportMappingStep: React.FC<Props> = ({
                 <TableCell className="font-medium">{h}</TableCell>
                 <TableCell>
                   <Select
-                    value={mapping[h] ?? 'ignore'}
-                    onValueChange={(v) =>
-                      onMappingChange({ ...mapping, [h]: v as TargetField })
-                    }
+                    value={mapping[h] ?? "ignore"}
+                    onValueChange={(v) => onMappingChange({ ...mapping, [h]: v as TargetField })}
                   >
                     <SelectTrigger className="h-9">
                       <SelectValue />
@@ -148,17 +139,17 @@ const ImportMappingStep: React.FC<Props> = ({
             </TableHeader>
             <TableBody>
               {preview.map((p, i) => {
-                const invalid = !isValidEmail(p.email);
+                const invalid = !isValidEmail(p.email)
                 return (
-                  <TableRow key={i} className={invalid ? 'bg-destructive/10' : ''}>
-                    <TableCell>{p.first_name || '—'}</TableCell>
-                    <TableCell>{p.last_name || '—'}</TableCell>
-                    <TableCell className={invalid ? 'text-destructive' : ''}>
-                      {p.email || 'Mangler e-post'}
+                  <TableRow key={i} className={invalid ? "bg-destructive/10" : ""}>
+                    <TableCell>{p.first_name || "—"}</TableCell>
+                    <TableCell>{p.last_name || "—"}</TableCell>
+                    <TableCell className={invalid ? "text-destructive" : ""}>
+                      {p.email || "Mangler e-post"}
                     </TableCell>
-                    <TableCell>{p.phone || '—'}</TableCell>
+                    <TableCell>{p.phone || "—"}</TableCell>
                   </TableRow>
-                );
+                )
               })}
             </TableBody>
           </Table>
@@ -171,14 +162,13 @@ const ImportMappingStep: React.FC<Props> = ({
             <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
             <div className="flex-1 space-y-2">
               <p className="text-sm font-medium">
-                {invalidRows.length} rader har ugyldig eller manglende e-post og vil bli hoppet
-                over ved import.
+                {invalidRows.length} rader har ugyldig eller manglende e-post og vil bli hoppet over
+                ved import.
               </p>
               <ul className="text-sm text-muted-foreground space-y-1">
                 {invalidRows.slice(0, 5).map((r) => (
                   <li key={r.rowNum}>
-                    <span className="font-medium text-foreground">Rad {r.rowNum}:</span>{' '}
-                    {r.reason}
+                    <span className="font-medium text-foreground">Rad {r.rowNum}:</span> {r.reason}
                     {r.name && ` (${r.name})`}
                   </li>
                 ))}
@@ -205,7 +195,7 @@ const ImportMappingStep: React.FC<Props> = ({
         </p>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default ImportMappingStep;
+export default ImportMappingStep

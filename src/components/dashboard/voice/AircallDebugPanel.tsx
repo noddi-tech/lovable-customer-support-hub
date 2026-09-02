@@ -1,74 +1,74 @@
 /**
  * Phase 7: Aircall Debug Panel
- * 
+ *
  * Development-only debug panel to help diagnose Aircall issues
  * Shows initialization phase, diagnostic results, and connection status
  */
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Copy, Bug } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAircallPhone } from '@/hooks/useAircallPhone';
+import { Bug, Copy } from "lucide-react"
+import React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { useAircallPhone } from "@/hooks/useAircallPhone"
 
 export const AircallDebugPanel: React.FC = () => {
-  const { toast } = useToast();
-  const context = useAircallPhone();
-  
+  const { toast } = useToast()
+  const context = useAircallPhone()
+
   // Minimize state
   const [isMinimized, setIsMinimized] = React.useState(() => {
-    return localStorage.getItem('aircall_debug_minimized') === 'true';
-  });
+    return localStorage.getItem("aircall_debug_minimized") === "true"
+  })
 
   const toggleMinimize = () => {
-    const newState = !isMinimized;
-    setIsMinimized(newState);
-    localStorage.setItem('aircall_debug_minimized', String(newState));
-  };
-  
+    const newState = !isMinimized
+    setIsMinimized(newState)
+    localStorage.setItem("aircall_debug_minimized", String(newState))
+  }
+
   // PHASE 4: Force re-render every 100ms to show live recursion guard state
-  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0)
   React.useEffect(() => {
-    const interval = setInterval(forceUpdate, 100);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(forceUpdate, 100)
+    return () => clearInterval(interval)
+  }, [])
 
   // Get real-time workspace container info
-  const container = document.querySelector('#aircall-workspace-container') as HTMLElement;
-  const computedStyle = container ? window.getComputedStyle(container) : null;
+  const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+  const computedStyle = container ? window.getComputedStyle(container) : null
 
   // PHASE 3: Monitor dialog pointer-events
-  const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]') as HTMLElement;
-  const dialogContent = document.querySelector('[data-radix-dialog-content]') as HTMLElement;
-  const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null;
-  const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null;
+  const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]") as HTMLElement
+  const dialogContent = document.querySelector("[data-radix-dialog-content]") as HTMLElement
+  const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null
+  const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null
 
   // PHASE 5: Enhanced diagnostics
-  const aircallIframe = document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null;
-  const iframeAllow = aircallIframe?.getAttribute('allow') || '';
-  const hasHidPermission = iframeAllow.includes('hid');
-  
+  const aircallIframe = document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null
+  const iframeAllow = aircallIframe?.getAttribute("allow") || ""
+  const hasHidPermission = iframeAllow.includes("hid")
+
   // Check third-party cookies
-  const canAccessThirdPartyCookies = navigator.cookieEnabled;
-  
+  const canAccessThirdPartyCookies = navigator.cookieEnabled
+
   // Get CSP violations from console
-  const cspViolations: string[] = [];
-  const originalConsoleError = console.error;
+  const cspViolations: string[] = []
+  const originalConsoleError = console.error
   console.error = (...args: any[]) => {
-    const message = args.join(' ');
-    if (message.includes('Content-Security-Policy') || message.includes('CSP')) {
-      cspViolations.push(message);
+    const message = args.join(" ")
+    if (message.includes("Content-Security-Policy") || message.includes("CSP")) {
+      cspViolations.push(message)
     }
-    originalConsoleError.apply(console, args);
-  };
+    originalConsoleError.apply(console, args)
+  }
 
   // Check current origin vs expected
-  const currentOrigin = window.location.origin;
-  const isLocalhost = currentOrigin.includes('localhost');
-  const isPreviewDomain = currentOrigin.includes('lovableproject.com');
-  const needsDomainWhitelist = isLocalhost || isPreviewDomain;
+  const currentOrigin = window.location.origin
+  const isLocalhost = currentOrigin.includes("localhost")
+  const isPreviewDomain = currentOrigin.includes("lovableproject.com")
+  const needsDomainWhitelist = isLocalhost || isPreviewDomain
 
   const debugInfo = {
     timestamp: new Date().toISOString(),
@@ -82,7 +82,7 @@ export const AircallDebugPanel: React.FC = () => {
     diagnosticIssues: context.diagnosticIssues,
     showLoginModal: context.showLoginModal,
     showBlockedModal: context.showBlockedModal,
-    localStorageLoginStatus: localStorage.getItem('aircall_login_status'),
+    localStorageLoginStatus: localStorage.getItem("aircall_login_status"),
     // PHASE 5: Origin & OAuth diagnostics
     currentOrigin,
     isLocalhost,
@@ -90,16 +90,16 @@ export const AircallDebugPanel: React.FC = () => {
     needsDomainWhitelist,
     // Workspace container diagnostics
     containerExists: !!container,
-    containerClasses: container?.className || 'N/A',
-    pointerEvents: computedStyle?.pointerEvents || 'N/A',
-    inlinePointerEvents: container?.style.pointerEvents || 'N/A',
-    zIndex: computedStyle?.zIndex || 'N/A',
-    iframeExists: !!container?.querySelector('iframe'),
+    containerClasses: container?.className || "N/A",
+    pointerEvents: computedStyle?.pointerEvents || "N/A",
+    inlinePointerEvents: container?.style.pointerEvents || "N/A",
+    zIndex: computedStyle?.zIndex || "N/A",
+    iframeExists: !!container?.querySelector("iframe"),
     iframeInfo: {
       exists: !!aircallIframe,
-      src: aircallIframe?.getAttribute('src') || 'N/A',
-      visible: aircallIframe?.style?.display !== 'none',
-      allowAttribute: iframeAllow || 'N/A',
+      src: aircallIframe?.getAttribute("src") || "N/A",
+      visible: aircallIframe?.style?.display !== "none",
+      allowAttribute: iframeAllow || "N/A",
       hasHidPermission,
     },
     // Security diagnostics
@@ -107,80 +107,80 @@ export const AircallDebugPanel: React.FC = () => {
     cspViolations,
     // PHASE 3: Dialog diagnostics
     dialogOverlayExists: !!dialogOverlay,
-    dialogOverlayPointerEvents: dialogOverlayStyle?.pointerEvents || 'N/A',
+    dialogOverlayPointerEvents: dialogOverlayStyle?.pointerEvents || "N/A",
     dialogContentExists: !!dialogContent,
-    dialogContentPointerEvents: dialogContentStyle?.pointerEvents || 'N/A',
-  };
+    dialogContentPointerEvents: dialogContentStyle?.pointerEvents || "N/A",
+  }
 
   const copyDebugInfo = () => {
-    const text = JSON.stringify(debugInfo, null, 2);
-    navigator.clipboard.writeText(text);
+    const text = JSON.stringify(debugInfo, null, 2)
+    navigator.clipboard.writeText(text)
     toast({
-      title: 'Debug Info Copied',
-      description: 'Debug information copied to clipboard',
-    });
-  };
+      title: "Debug Info Copied",
+      description: "Debug information copied to clipboard",
+    })
+  }
 
   // PHASE 3: Force fix function to remove all pointer-events: none
   const forceFix = () => {
-    let fixed = 0;
-    
+    let fixed = 0
+
     // Fix workspace container
     if (container) {
-      container.style.pointerEvents = 'auto';
-      container.classList.remove('aircall-hidden');
-      container.classList.add('aircall-visible');
-      fixed++;
+      container.style.pointerEvents = "auto"
+      container.classList.remove("aircall-hidden")
+      container.classList.add("aircall-visible")
+      fixed++
     }
-    
+
     // Fix dialog overlay
     if (dialogOverlay) {
-      dialogOverlay.style.pointerEvents = 'auto';
-      fixed++;
+      dialogOverlay.style.pointerEvents = "auto"
+      fixed++
     }
-    
+
     // Fix dialog content
     if (dialogContent) {
-      dialogContent.style.pointerEvents = 'auto';
-      fixed++;
+      dialogContent.style.pointerEvents = "auto"
+      fixed++
     }
-    
+
     toast({
-      title: 'Force Fix Applied',
+      title: "Force Fix Applied",
       description: `Fixed ${fixed} elements to have pointer-events: auto`,
-    });
-  };
+    })
+  }
 
   // PHASE 7: Force reinitialize function
   const forceReinitialize = () => {
     // Clear all Aircall-related localStorage
     const keysToRemove = [
-      'aircall_login_status',
-      'aircall_connection_timestamp',
-      'aircall_connection_attempts',
-      'last_reconnect_attempt',
-      'aircall_workspace_visible'
-    ];
-    
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-    
+      "aircall_login_status",
+      "aircall_connection_timestamp",
+      "aircall_connection_attempts",
+      "last_reconnect_attempt",
+      "aircall_workspace_visible",
+    ]
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key))
+
     toast({
-      title: 'Reinitializing Aircall',
-      description: 'Cleared cache and reloading page...',
-    });
-    
+      title: "Reinitializing Aircall",
+      description: "Cleared cache and reloading page...",
+    })
+
     // Reload page after a short delay
     setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
+      window.location.reload()
+    }, 500)
+  }
 
   // Only show debug panel in development or with explicit debug URL param
-  const shouldShow = 
-    process.env.NODE_ENV === 'development' || 
-    new URLSearchParams(window.location.search).get('debug') === 'aircall';
+  const shouldShow =
+    process.env.NODE_ENV === "development" ||
+    new URLSearchParams(window.location.search).get("debug") === "aircall"
 
-  if (!shouldShow) return null;
+  if (!shouldShow) return null
 
   // Render minimized version
   if (isMinimized) {
@@ -194,7 +194,7 @@ export const AircallDebugPanel: React.FC = () => {
       >
         <Bug className="h-5 w-5" />
       </Button>
-    );
+    )
   }
 
   // Render full panel
@@ -237,20 +237,15 @@ export const AircallDebugPanel: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={() => {
-              console.log('[AircallDebug] Forcing showWorkspace() call');
-              context.showAircallWorkspace?.(true);
+              console.log("[AircallDebug] Forcing showWorkspace() call")
+              context.showAircallWorkspace?.(true)
             }}
             className="h-7 px-2 text-xs"
             title="Force show workspace (for login)"
           >
             Show
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={copyDebugInfo}
-            className="h-7 w-7 p-0"
-          >
+          <Button size="sm" variant="ghost" onClick={copyDebugInfo} className="h-7 w-7 p-0">
             <Copy className="h-3 w-3" />
           </Button>
         </div>
@@ -263,7 +258,7 @@ export const AircallDebugPanel: React.FC = () => {
             {context.initializationPhase}
           </Badge>
         </div>
-        
+
         <div className="pt-2 border-t border-border">
           <span className="text-muted-foreground block mb-1 text-xs">SDK Method Detection:</span>
           <div className="text-xs text-muted-foreground">
@@ -273,29 +268,29 @@ export const AircallDebugPanel: React.FC = () => {
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Initialized:</span>
-          <Badge variant={context.isInitialized ? 'default' : 'secondary'} className="text-xs">
-            {context.isInitialized ? 'Yes' : 'No'}
+          <Badge variant={context.isInitialized ? "default" : "secondary"} className="text-xs">
+            {context.isInitialized ? "Yes" : "No"}
           </Badge>
         </div>
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Connected:</span>
-          <Badge variant={context.isConnected ? 'default' : 'destructive'} className="text-xs">
-            {context.isConnected ? 'Yes' : 'No'}
+          <Badge variant={context.isConnected ? "default" : "destructive"} className="text-xs">
+            {context.isConnected ? "Yes" : "No"}
           </Badge>
         </div>
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Workspace Ready:</span>
-          <Badge variant={context.isWorkspaceReady ? 'default' : 'secondary'} className="text-xs">
-            {context.isWorkspaceReady ? 'Yes' : 'No'}
+          <Badge variant={context.isWorkspaceReady ? "default" : "secondary"} className="text-xs">
+            {context.isWorkspaceReady ? "Yes" : "No"}
           </Badge>
         </div>
 
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Workspace Visible:</span>
-          <Badge variant={context.workspaceVisible ? 'default' : 'secondary'} className="text-xs">
-            {context.workspaceVisible ? 'Yes' : 'No'}
+          <Badge variant={context.workspaceVisible ? "default" : "secondary"} className="text-xs">
+            {context.workspaceVisible ? "Yes" : "No"}
           </Badge>
         </div>
 
@@ -305,17 +300,24 @@ export const AircallDebugPanel: React.FC = () => {
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Cached (localStorage):</span>
-              <Badge variant={localStorage.getItem('aircall_login_status') === 'true' ? 'default' : 'secondary'} className="text-xs">
-                {localStorage.getItem('aircall_login_status') === 'true' ? 'Logged In' : 'Not Logged In'}
+              <Badge
+                variant={
+                  localStorage.getItem("aircall_login_status") === "true" ? "default" : "secondary"
+                }
+                className="text-xs"
+              >
+                {localStorage.getItem("aircall_login_status") === "true"
+                  ? "Logged In"
+                  : "Not Logged In"}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Actual (context):</span>
-              <Badge variant={context.isConnected ? 'default' : 'secondary'} className="text-xs">
-                {context.isConnected ? 'Connected' : 'Not Connected'}
+              <Badge variant={context.isConnected ? "default" : "secondary"} className="text-xs">
+                {context.isConnected ? "Connected" : "Not Connected"}
               </Badge>
             </div>
-            {localStorage.getItem('aircall_login_status') === 'true' && !context.isConnected && (
+            {localStorage.getItem("aircall_login_status") === "true" && !context.isConnected && (
               <div className="text-xs text-destructive mt-1">
                 ⚠️ Mismatch: Cached as logged in but not connected
               </div>
@@ -329,11 +331,14 @@ export const AircallDebugPanel: React.FC = () => {
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Current Origin:</span>
-              <span className="font-mono text-xs truncate max-w-[200px]">{debugInfo.currentOrigin}</span>
+              <span className="font-mono text-xs truncate max-w-[200px]">
+                {debugInfo.currentOrigin}
+              </span>
             </div>
             {debugInfo.needsDomainWhitelist && (
               <div className="text-xs text-destructive mt-1">
-                ⚠️ {debugInfo.isLocalhost ? 'Localhost' : 'Preview domain'} detected - Google OAuth will fail. Deploy to production domain and whitelist in Aircall admin.
+                ⚠️ {debugInfo.isLocalhost ? "Localhost" : "Preview domain"} detected - Google OAuth
+                will fail. Deploy to production domain and whitelist in Aircall admin.
               </div>
             )}
           </div>
@@ -345,8 +350,11 @@ export const AircallDebugPanel: React.FC = () => {
           <div className="text-xs space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Third-Party Cookies:</span>
-              <Badge variant={debugInfo.thirdPartyCookiesEnabled ? 'default' : 'destructive'} className="text-xs">
-                {debugInfo.thirdPartyCookiesEnabled ? 'Enabled' : 'Disabled'}
+              <Badge
+                variant={debugInfo.thirdPartyCookiesEnabled ? "default" : "destructive"}
+                className="text-xs"
+              >
+                {debugInfo.thirdPartyCookiesEnabled ? "Enabled" : "Disabled"}
               </Badge>
             </div>
             {!debugInfo.thirdPartyCookiesEnabled && (
@@ -369,18 +377,26 @@ export const AircallDebugPanel: React.FC = () => {
             <div className="text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Exists:</span>
-                <Badge variant="default" className="text-xs">Yes</Badge>
+                <Badge variant="default" className="text-xs">
+                  Yes
+                </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Visible:</span>
-                <Badge variant={debugInfo.iframeInfo.visible ? 'default' : 'secondary'} className="text-xs">
-                  {debugInfo.iframeInfo.visible ? 'Yes' : 'No'}
+                <Badge
+                  variant={debugInfo.iframeInfo.visible ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {debugInfo.iframeInfo.visible ? "Yes" : "No"}
                 </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">HID Permission:</span>
-                <Badge variant={debugInfo.iframeInfo.hasHidPermission ? 'default' : 'destructive'} className="text-xs">
-                  {debugInfo.iframeInfo.hasHidPermission ? '✅ Present' : '❌ Missing'}
+                <Badge
+                  variant={debugInfo.iframeInfo.hasHidPermission ? "default" : "destructive"}
+                  className="text-xs"
+                >
+                  {debugInfo.iframeInfo.hasHidPermission ? "✅ Present" : "❌ Missing"}
                 </Badge>
               </div>
               {!debugInfo.iframeInfo.hasHidPermission && (
@@ -388,12 +404,12 @@ export const AircallDebugPanel: React.FC = () => {
                   ⚠️ iframe missing 'hid' permission - WebHID API required for hardware integration
                 </div>
               )}
-              {debugInfo.iframeInfo.src !== 'N/A' && (
+              {debugInfo.iframeInfo.src !== "N/A" && (
                 <div className="text-xs text-muted-foreground truncate">
                   Src: {debugInfo.iframeInfo.src.substring(0, 50)}...
                 </div>
               )}
-              {debugInfo.iframeInfo.allowAttribute !== 'N/A' && (
+              {debugInfo.iframeInfo.allowAttribute !== "N/A" && (
                 <div className="text-xs text-muted-foreground truncate">
                   Allow: {debugInfo.iframeInfo.allowAttribute.substring(0, 50)}...
                 </div>
@@ -409,13 +425,13 @@ export const AircallDebugPanel: React.FC = () => {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Showing (locked):</span>
               <Badge variant="outline" className="text-xs">
-                {context._debugRecursionGuards?.isShowing ? '🔒' : '✅'}
+                {context._debugRecursionGuards?.isShowing ? "🔒" : "✅"}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Hiding (locked):</span>
               <Badge variant="outline" className="text-xs">
-                {context._debugRecursionGuards?.isHiding ? '🔒' : '✅'}
+                {context._debugRecursionGuards?.isHiding ? "🔒" : "✅"}
               </Badge>
             </div>
           </div>
@@ -431,7 +447,7 @@ export const AircallDebugPanel: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Inline Style:</span>
-                <span className="font-mono">{container.style.pointerEvents || 'none'}</span>
+                <span className="font-mono">{container.style.pointerEvents || "none"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Classes:</span>
@@ -439,8 +455,11 @@ export const AircallDebugPanel: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">iFrame:</span>
-                <Badge variant={container.querySelector('iframe') ? 'default' : 'secondary'} className="text-xs">
-                  {container.querySelector('iframe') ? 'Loaded' : 'Missing'}
+                <Badge
+                  variant={container.querySelector("iframe") ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {container.querySelector("iframe") ? "Loaded" : "Missing"}
                 </Badge>
               </div>
             </div>
@@ -455,7 +474,9 @@ export const AircallDebugPanel: React.FC = () => {
               {dialogOverlay && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Overlay Pointer:</span>
-                  <span className={`font-mono ${dialogOverlayStyle?.pointerEvents === 'none' ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-mono ${dialogOverlayStyle?.pointerEvents === "none" ? "text-destructive" : ""}`}
+                  >
                     {dialogOverlayStyle?.pointerEvents}
                   </span>
                 </div>
@@ -463,7 +484,9 @@ export const AircallDebugPanel: React.FC = () => {
               {dialogContent && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Content Pointer:</span>
-                  <span className={`font-mono ${dialogContentStyle?.pointerEvents === 'none' ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-mono ${dialogContentStyle?.pointerEvents === "none" ? "text-destructive" : ""}`}
+                  >
                     {dialogContentStyle?.pointerEvents}
                   </span>
                 </div>
@@ -496,10 +519,14 @@ export const AircallDebugPanel: React.FC = () => {
           <span className="text-muted-foreground block mb-1">Modals:</span>
           <div className="flex gap-1">
             {context.showLoginModal && (
-              <Badge variant="outline" className="text-xs">Login</Badge>
+              <Badge variant="outline" className="text-xs">
+                Login
+              </Badge>
             )}
             {context.showBlockedModal && (
-              <Badge variant="outline" className="text-xs">Blocked</Badge>
+              <Badge variant="outline" className="text-xs">
+                Blocked
+              </Badge>
             )}
             {!context.showLoginModal && !context.showBlockedModal && (
               <span className="text-xs text-muted-foreground">None</span>
@@ -508,5 +535,5 @@ export const AircallDebugPanel: React.FC = () => {
         </div>
       </div>
     </Card>
-  );
-};
+  )
+}

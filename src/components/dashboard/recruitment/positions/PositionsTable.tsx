@@ -1,8 +1,9 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
+import { Briefcase } from "lucide-react"
+import type React from "react"
+import { useNavigate } from "react-router-dom"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -10,14 +11,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import PositionStatusBadge from './PositionStatusBadge';
-import { useJobPositions } from './usePositions';
+} from "@/components/ui/table"
+import PositionStatusBadge from "./PositionStatusBadge"
+import { useJobPositions } from "./usePositions"
 
 const PositionsTable: React.FC = () => {
-  const { data, isLoading } = useJobPositions();
-  const navigate = useNavigate();
+  const { data, isLoading } = useJobPositions()
+  const navigate = useNavigate()
 
   if (isLoading) {
     return (
@@ -46,7 +46,7 @@ const PositionsTable: React.FC = () => {
           </TableBody>
         </Table>
       </div>
-    );
+    )
   }
 
   if (!data || data.length === 0) {
@@ -59,7 +59,7 @@ const PositionsTable: React.FC = () => {
           Ingen stillinger opprettet ennå. Klikk "Opprett stilling" for å komme i gang.
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -77,7 +77,7 @@ const PositionsTable: React.FC = () => {
         </TableHeader>
         <TableBody>
           {data.map((p) => {
-            const count = p.applications?.[0]?.count ?? 0;
+            const count = p.applications?.[0]?.count ?? 0
             return (
               <TableRow
                 key={p.id}
@@ -101,12 +101,12 @@ const PositionsTable: React.FC = () => {
                   {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: nb })}
                 </TableCell>
               </TableRow>
-            );
+            )
           })}
         </TableBody>
       </Table>
     </div>
-  );
-};
+  )
+}
 
-export default PositionsTable;
+export default PositionsTable

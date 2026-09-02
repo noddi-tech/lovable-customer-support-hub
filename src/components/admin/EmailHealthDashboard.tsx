@@ -1,64 +1,98 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Clock, Mail, RefreshCw, Settings, Shield, Eye, EyeOff, Copy, ExternalLink, AlertTriangle, Check, X } from "lucide-react";
-import { toast } from "sonner";
-import { formatDistanceToNow, format, subDays } from "date-fns";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { format, formatDistanceToNow, subDays } from "date-fns"
+import {
+  AlertCircle,
+  AlertTriangle,
+  Check,
+  CheckCircle,
+  Clock,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Mail,
+  RefreshCw,
+  Settings,
+  Shield,
+  X,
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { supabase } from "@/integrations/supabase/client"
 
 interface EmailHealthDashboardProps {
-  organizationId: string;
-  organizationName: string;
+  organizationId: string
+  organizationName: string
 }
 
 interface EmailIngestionLog {
-  id: string;
-  source: string;
-  status: string;
-  from_email: string | null;
-  to_email: string | null;
-  subject: string | null;
-  external_id: string | null;
-  conversation_id: string | null;
-  error_message: string | null;
-  metadata: any;
-  created_at: string;
+  id: string
+  source: string
+  status: string
+  from_email: string | null
+  to_email: string | null
+  subject: string | null
+  external_id: string | null
+  conversation_id: string | null
+  error_message: string | null
+  metadata: any
+  created_at: string
 }
 
 interface EmailStats {
-  total_today: number;
-  total_7_days: number;
-  sendgrid_count: number;
-  gmail_count: number;
-  failed_count: number;
-  last_email_at: string | null;
+  total_today: number
+  total_7_days: number
+  sendgrid_count: number
+  gmail_count: number
+  failed_count: number
+  last_email_at: string | null
 }
 
 interface TokenConfig {
-  webhookBaseUrl: string;
-  envToken: string | null;
-  envTokenPreview: string | null;
-  dbToken: string | null;
-  tokensMatch: boolean;
-  fullWebhookUrl: string;
-  routes: { id: string; address: string; hasToken: boolean }[];
+  webhookBaseUrl: string
+  envToken: string | null
+  envTokenPreview: string | null
+  dbToken: string | null
+  tokensMatch: boolean
+  fullWebhookUrl: string
+  routes: { id: string; address: string; hasToken: boolean }[]
 }
 
-export function EmailHealthDashboard({ organizationId, organizationName }: EmailHealthDashboardProps) {
-  const queryClient = useQueryClient();
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showToken, setShowToken] = useState(false);
-  const [newToken, setNewToken] = useState("");
-  const [isUpdatingToken, setIsUpdatingToken] = useState(false);
-  const [tokenTestResult, setTokenTestResult] = useState<{ match: boolean; message: string } | null>(null);
+export function EmailHealthDashboard({
+  organizationId,
+  organizationName,
+}: EmailHealthDashboardProps) {
+  const queryClient = useQueryClient()
+  const [sourceFilter, setSourceFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [showToken, setShowToken] = useState(false)
+  const [newToken, setNewToken] = useState("")
+  const [isUpdatingToken, setIsUpdatingToken] = useState(false)
+  const [tokenTestResult, setTokenTestResult] = useState<{
+    match: boolean
+    message: string
+  } | null>(null)
 
   // Fetch org inbound route addresses for email matching
   const { data: routeAddresses } = useQuery({
@@ -67,11 +101,11 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
       const { data, error } = await supabase
         .from("inbound_routes")
         .select("address")
-        .eq("organization_id", organizationId);
-      if (error) throw error;
-      return data?.map(r => r.address) || [];
+        .eq("organization_id", organizationId)
+      if (error) throw error
+      return data?.map((r) => r.address) || []
     },
-  });
+  })
 
   // Fetch org-scoped email stats using inbound route addresses
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -85,12 +119,12 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
           gmail_count: 0,
           failed_count: 0,
           last_email_at: null,
-        };
+        }
       }
 
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const sevenDaysAgo = subDays(now, 7).toISOString();
+      const now = new Date()
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+      const sevenDaysAgo = subDays(now, 7).toISOString()
 
       // Query logs by matching to_email with org's inbound routes
       const [todayResult, weekResult, lastEmailResult] = await Promise.all([
@@ -111,29 +145,31 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
-      ]);
+      ])
 
-      const weekLogs = weekResult.data || [];
+      const weekLogs = weekResult.data || []
 
       return {
         total_today: todayResult.count || 0,
         total_7_days: weekResult.count || 0,
         sendgrid_count: weekLogs.filter((l: any) => l.source === "sendgrid").length,
         gmail_count: weekLogs.filter((l: any) => l.source === "gmail_sync").length,
-        failed_count: weekLogs.filter((l: any) => l.status === "failed" || l.status === "auth_failed").length,
+        failed_count: weekLogs.filter(
+          (l: any) => l.status === "failed" || l.status === "auth_failed",
+        ).length,
         last_email_at: lastEmailResult?.data?.created_at || null,
-      };
+      }
     },
     enabled: !!routeAddresses,
     refetchInterval: 10000,
-  });
+  })
 
   // Fetch org-scoped recent logs using inbound route addresses
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ["email-ingestion-logs", organizationId, sourceFilter, statusFilter, routeAddresses],
     queryFn: async (): Promise<EmailIngestionLog[]> => {
       if (!routeAddresses || routeAddresses.length === 0) {
-        return [];
+        return []
       }
 
       let query = supabase
@@ -141,37 +177,41 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
         .select("*")
         .in("to_email", routeAddresses)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(50)
 
       if (sourceFilter !== "all") {
-        query = query.eq("source", sourceFilter);
+        query = query.eq("source", sourceFilter)
       }
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
+        query = query.eq("status", statusFilter)
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as EmailIngestionLog[];
+      const { data, error } = await query
+      if (error) throw error
+      return data as EmailIngestionLog[]
     },
     enabled: !!routeAddresses,
     refetchInterval: 10000,
-  });
+  })
 
   // Fetch org-scoped token configuration
-  const { data: tokenConfig, isLoading: tokenConfigLoading, refetch: refetchTokenConfig } = useQuery({
+  const {
+    data: tokenConfig,
+    isLoading: tokenConfigLoading,
+    refetch: refetchTokenConfig,
+  } = useQuery({
     queryKey: ["sendgrid-token-config", organizationId],
     queryFn: async (): Promise<TokenConfig | null> => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
         body: { action: "get-config", organizationId },
-      });
+      })
       if (error) {
-        console.error("Failed to fetch token config:", error);
-        return null;
+        console.error("Failed to fetch token config:", error)
+        return null
       }
-      return data?.config || null;
+      return data?.config || null
     },
-  });
+  })
 
   // Fetch org-scoped inbound routes for fallback token display
   const { data: inboundRoutes } = useQuery({
@@ -181,115 +221,122 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
         .from("inbound_routes")
         .select("id, address, secret_token")
         .eq("organization_id", organizationId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+        .order("created_at", { ascending: false })
+      if (error) throw error
+      return data
     },
-  });
+  })
 
   // Test webhook mutation
   const testWebhookMutation = useMutation({
     mutationFn: async () => {
       const response = await supabase.functions.invoke("sendgrid-inbound", {
         method: "GET",
-      });
-      return response;
+      })
+      return response
     },
     onSuccess: (response) => {
       if (response.data?.status === "alive") {
         toast.success("Webhook is online and responding", {
           description: `Token configured: ${response.data.environment?.hasInboundToken ? "Yes" : "No"}`,
-        });
+        })
       } else {
-        toast.error("Webhook test failed", { description: response.error?.message });
+        toast.error("Webhook test failed", { description: response.error?.message })
       }
     },
     onError: (error) => {
-      toast.error("Webhook test failed", { description: String(error) });
+      toast.error("Webhook test failed", { description: String(error) })
     },
-  });
+  })
 
   // Test token match mutation
   const testTokenMatchMutation = useMutation({
     mutationFn: async (testToken: string) => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
         body: { action: "test-token", testToken, organizationId },
-      });
-      if (error) throw error;
-      return data;
+      })
+      if (error) throw error
+      return data
     },
     onSuccess: (data) => {
       setTokenTestResult({
         match: data.tokenMatch,
         message: data.message,
-      });
+      })
       if (data.tokenMatch) {
-        toast.success("Token verified successfully!");
+        toast.success("Token verified successfully!")
       } else {
-        toast.error("Token mismatch detected");
+        toast.error("Token mismatch detected")
       }
     },
     onError: (error) => {
-      toast.error("Token test failed", { description: String(error) });
+      toast.error("Token test failed", { description: String(error) })
     },
-  });
+  })
 
   // Update token mutation
   const updateTokenMutation = useMutation({
     mutationFn: async (token: string) => {
       const { data, error } = await supabase.functions.invoke("update-sendgrid-token", {
         body: { action: "update-token", token, organizationId },
-      });
-      if (error) throw error;
-      return data;
+      })
+      if (error) throw error
+      return data
     },
     onSuccess: (data) => {
       toast.success("Token updated in database", {
         description: data.nextStep,
-      });
-      setNewToken("");
-      setIsUpdatingToken(false);
-      setTokenTestResult(null);
-      queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens", organizationId] });
-      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config", organizationId] });
+      })
+      setNewToken("")
+      setIsUpdatingToken(false)
+      setTokenTestResult(null)
+      queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens", organizationId] })
+      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config", organizationId] })
     },
     onError: (error) => {
-      toast.error("Failed to update token", { description: String(error) });
+      toast.error("Failed to update token", { description: String(error) })
     },
-  });
+  })
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "processed":
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Processed</Badge>;
+        return (
+          <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Processed</Badge>
+        )
       case "received":
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Received</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Received</Badge>
       case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">Failed</Badge>
       case "auth_failed":
-        return <Badge variant="destructive">Auth Failed</Badge>;
+        return <Badge variant="destructive">Auth Failed</Badge>
       case "duplicate":
-        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Duplicate</Badge>;
+        return (
+          <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">Duplicate</Badge>
+        )
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary">{status}</Badge>
     }
-  };
+  }
 
   const getHealthStatus = () => {
-    if (!stats?.last_email_at) return { status: "unknown", color: "text-muted-foreground", icon: Clock };
-    
-    const lastEmail = new Date(stats.last_email_at);
-    const hoursSince = (Date.now() - lastEmail.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursSince < 2) return { status: "healthy", color: "text-green-500", icon: CheckCircle };
-    if (hoursSince < 6) return { status: "warning", color: "text-yellow-500", icon: AlertCircle };
-    return { status: "critical", color: "text-destructive", icon: AlertCircle };
-  };
+    if (!stats?.last_email_at)
+      return { status: "unknown", color: "text-muted-foreground", icon: Clock }
 
-  const health = getHealthStatus();
-  const HealthIcon = health.icon;
-  const currentToken = tokenConfig?.dbToken || inboundRoutes?.[0]?.secret_token || "";
-  const fullWebhookUrl = tokenConfig?.fullWebhookUrl || `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound${currentToken ? `?token=${currentToken}` : ""}`;
+    const lastEmail = new Date(stats.last_email_at)
+    const hoursSince = (Date.now() - lastEmail.getTime()) / (1000 * 60 * 60)
+
+    if (hoursSince < 2) return { status: "healthy", color: "text-green-500", icon: CheckCircle }
+    if (hoursSince < 6) return { status: "warning", color: "text-yellow-500", icon: AlertCircle }
+    return { status: "critical", color: "text-destructive", icon: AlertCircle }
+  }
+
+  const health = getHealthStatus()
+  const HealthIcon = health.icon
+  const currentToken = tokenConfig?.dbToken || inboundRoutes?.[0]?.secret_token || ""
+  const fullWebhookUrl =
+    tokenConfig?.fullWebhookUrl ||
+    `https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/sendgrid-inbound${currentToken ? `?token=${currentToken}` : ""}`
 
   return (
     <div className="space-y-6">
@@ -297,7 +344,9 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Email Health</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Email Health
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -308,7 +357,8 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
             </div>
             {stats?.last_email_at && (
               <p className="text-xs text-muted-foreground mt-1">
-                Last email: {formatDistanceToNow(new Date(stats.last_email_at), { addSuffix: true })}
+                Last email:{" "}
+                {formatDistanceToNow(new Date(stats.last_email_at), { addSuffix: true })}
               </p>
             )}
           </CardContent>
@@ -350,8 +400,12 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <AlertCircle className={`h-5 w-5 ${(stats?.failed_count || 0) > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
-              <span className={`text-2xl font-bold ${(stats?.failed_count || 0) > 0 ? 'text-destructive' : ''}`}>
+              <AlertCircle
+                className={`h-5 w-5 ${(stats?.failed_count || 0) > 0 ? "text-destructive" : "text-muted-foreground"}`}
+              />
+              <span
+                className={`text-2xl font-bold ${(stats?.failed_count || 0) > 0 ? "text-destructive" : ""}`}
+              >
                 {stats?.failed_count || 0}
               </span>
             </div>
@@ -377,12 +431,13 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Token mismatch detected!</strong> The database token does not match SENDGRID_INBOUND_TOKEN in Supabase secrets. 
-                Emails will be rejected until tokens match.
+                <strong>Token mismatch detected!</strong> The database token does not match
+                SENDGRID_INBOUND_TOKEN in Supabase secrets. Emails will be rejected until tokens
+                match.
               </AlertDescription>
             </Alert>
           )}
-          
+
           {tokenConfig && !tokenConfig.envToken && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -413,20 +468,18 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               Complete Webhook URL
-              <Badge variant="outline" className="text-xs">Copy this to SendGrid</Badge>
+              <Badge variant="outline" className="text-xs">
+                Copy this to SendGrid
+              </Badge>
             </Label>
             <div className="flex gap-2">
-              <Input 
-                value={fullWebhookUrl} 
-                readOnly 
-                className="font-mono text-sm bg-muted" 
-              />
+              <Input value={fullWebhookUrl} readOnly className="font-mono text-sm bg-muted" />
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => {
-                  navigator.clipboard.writeText(fullWebhookUrl);
-                  toast.success("Copied complete webhook URL");
+                  navigator.clipboard.writeText(fullWebhookUrl)
+                  toast.success("Copied complete webhook URL")
                 }}
                 title="Copy URL"
               >
@@ -462,7 +515,7 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
               <Button
                 variant="outline"
                 onClick={() => {
-                  testTokenMatchMutation.mutate(currentToken);
+                  testTokenMatchMutation.mutate(currentToken)
                 }}
                 disabled={!currentToken || testTokenMatchMutation.isPending}
                 title="Verify token matches Supabase secret"
@@ -470,16 +523,15 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
                 <Shield className="h-4 w-4 mr-1" />
                 Verify
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsUpdatingToken(!isUpdatingToken)}
-              >
+              <Button variant="outline" onClick={() => setIsUpdatingToken(!isUpdatingToken)}>
                 Update
               </Button>
             </div>
-            
+
             {tokenTestResult && (
-              <div className={`flex items-center gap-2 text-sm ${tokenTestResult.match ? 'text-green-600' : 'text-destructive'}`}>
+              <div
+                className={`flex items-center gap-2 text-sm ${tokenTestResult.match ? "text-green-600" : "text-destructive"}`}
+              >
                 {tokenTestResult.match ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                 {tokenTestResult.message}
               </div>
@@ -499,8 +551,8 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
                 <Button
                   variant="outline"
                   onClick={() => {
-                    const generated = crypto.randomUUID().replace(/-/g, "");
-                    setNewToken(generated);
+                    const generated = crypto.randomUUID().replace(/-/g, "")
+                    setNewToken(generated)
                   }}
                 >
                   Generate
@@ -515,7 +567,8 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
-                  After saving, you must also update <code className="bg-muted px-1 rounded">SENDGRID_INBOUND_TOKEN</code> in{" "}
+                  After saving, you must also update{" "}
+                  <code className="bg-muted px-1 rounded">SENDGRID_INBOUND_TOKEN</code> in{" "}
                   <a
                     href="https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/settings/functions"
                     target="_blank"
@@ -523,8 +576,8 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
                     className="text-primary underline inline-flex items-center gap-1"
                   >
                     Supabase Secrets <ExternalLink className="h-3 w-3" />
-                  </a>
-                  {" "}to match, then click "Verify" to confirm they match.
+                  </a>{" "}
+                  to match, then click "Verify" to confirm they match.
                 </AlertDescription>
               </Alert>
             </div>
@@ -542,10 +595,12 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
             <Button
               variant="outline"
               onClick={() => {
-                refetchTokenConfig();
-                queryClient.invalidateQueries({ queryKey: ["email-health-stats", organizationId] });
-                queryClient.invalidateQueries({ queryKey: ["email-ingestion-logs", organizationId] });
-                setTokenTestResult(null);
+                refetchTokenConfig()
+                queryClient.invalidateQueries({ queryKey: ["email-health-stats", organizationId] })
+                queryClient.invalidateQueries({
+                  queryKey: ["email-ingestion-logs", organizationId],
+                })
+                setTokenTestResult(null)
               }}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -592,7 +647,8 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
             <div className="text-center py-8 text-muted-foreground">Loading logs...</div>
           ) : logs?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No email ingestion logs for {organizationName}. Logs will appear here when emails are received.
+              No email ingestion logs for {organizationName}. Logs will appear here when emails are
+              received.
             </div>
           ) : (
             <Table>
@@ -624,7 +680,10 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
                     <TableCell className="max-w-48 truncate" title={log.subject || ""}>
                       {log.subject || "-"}
                     </TableCell>
-                    <TableCell className="max-w-32 truncate text-destructive text-xs" title={log.error_message || ""}>
+                    <TableCell
+                      className="max-w-32 truncate text-destructive text-xs"
+                      title={log.error_message || ""}
+                    >
                       {log.error_message || "-"}
                     </TableCell>
                   </TableRow>
@@ -635,5 +694,5 @@ export function EmailHealthDashboard({ organizationId, organizationName }: Email
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

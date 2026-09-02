@@ -1,116 +1,116 @@
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useOrganizationStore } from "@/stores/organizationStore";
-import { useRealtimeConnection } from "@/contexts/RealtimeProvider";
-import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  Inbox, 
-  Plug2, 
-  Palette, 
-  Brain, 
-  Settings,
+import { useQuery } from "@tanstack/react-query"
+import {
   Activity,
-  Mail,
-  ArrowRight,
-  CheckCircle2,
   AlertCircle,
+  ArrowRight,
+  Brain,
+  CheckCircle2,
+  FunctionSquare,
+  Inbox,
+  Mail,
+  Palette,
+  Plug2,
   RefreshCw,
-  FunctionSquare
-} from "lucide-react";
-import { EDGE_FUNCTIONS } from "@/data/edge-functions.generated";
+  Settings,
+  Users,
+} from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRealtimeConnection } from "@/contexts/RealtimeProvider"
+import { EDGE_FUNCTIONS } from "@/data/edge-functions.generated"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface NavigationCard {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  path: string;
-  badge?: string;
-  badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+  title: string
+  description: string
+  icon: React.ElementType
+  path: string
+  badge?: string
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline"
 }
 
 export function AdminDashboard() {
-  const navigate = useNavigate();
-  const { currentOrganizationId } = useOrganizationStore();
-  const { connectionStatus, forceReconnect } = useRealtimeConnection();
+  const navigate = useNavigate()
+  const { currentOrganizationId } = useOrganizationStore()
+  const { connectionStatus, forceReconnect } = useRealtimeConnection()
 
   // Fetch user count
   const { data: userCount } = useQuery({
-    queryKey: ['admin-user-count', currentOrganizationId],
+    queryKey: ["admin-user-count", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return 0;
+      if (!currentOrganizationId) return 0
       const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganizationId);
-      return count || 0;
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrganizationId)
+      return count || 0
     },
-    enabled: !!currentOrganizationId
-  });
+    enabled: !!currentOrganizationId,
+  })
 
   // Fetch inbox count
   const { data: inboxCount } = useQuery({
-    queryKey: ['admin-inbox-count', currentOrganizationId],
+    queryKey: ["admin-inbox-count", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return 0;
+      if (!currentOrganizationId) return 0
       const { count } = await supabase
-        .from('inboxes')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganizationId)
-        .eq('is_active', true);
-      return count || 0;
+        .from("inboxes")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrganizationId)
+        .eq("is_active", true)
+      return count || 0
     },
-    enabled: !!currentOrganizationId
-  });
+    enabled: !!currentOrganizationId,
+  })
 
   // Fetch active integrations count
   const { data: integrationCount } = useQuery({
-    queryKey: ['admin-integration-count', currentOrganizationId],
+    queryKey: ["admin-integration-count", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return 0;
+      if (!currentOrganizationId) return 0
       const { count } = await supabase
-        .from('email_accounts')
-        .select('*', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganizationId)
-        .eq('is_active', true);
-      return count || 0;
+        .from("email_accounts")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", currentOrganizationId)
+        .eq("is_active", true)
+      return count || 0
     },
-    enabled: !!currentOrganizationId
-  });
+    enabled: !!currentOrganizationId,
+  })
 
   // Fetch email stats for health summary
   const { data: emailStats } = useQuery({
-    queryKey: ['admin-email-stats', currentOrganizationId],
+    queryKey: ["admin-email-stats", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return null;
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
+      if (!currentOrganizationId) return null
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
       const { data: todayEmails } = await supabase
-        .from('email_ingestion_logs')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString())
-        .eq('status', 'processed');
+        .from("email_ingestion_logs")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", today.toISOString())
+        .eq("status", "processed")
 
       const { data: lastEmail } = await supabase
-        .from('email_ingestion_logs')
-        .select('created_at')
-        .eq('status', 'processed')
-        .order('created_at', { ascending: false })
+        .from("email_ingestion_logs")
+        .select("created_at")
+        .eq("status", "processed")
+        .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .single()
 
       return {
         todayCount: todayEmails?.length || 0,
-        lastEmailAt: lastEmail?.created_at
-      };
+        lastEmailAt: lastEmail?.created_at,
+      }
     },
-    enabled: !!currentOrganizationId
-  });
+    enabled: !!currentOrganizationId,
+  })
 
   const navigationCards: NavigationCard[] = [
     {
@@ -118,80 +118,84 @@ export function AdminDashboard() {
       description: "Manage team members and departments",
       icon: Users,
       path: "/admin/users",
-      badge: userCount ? `${userCount} users` : undefined
+      badge: userCount ? `${userCount} users` : undefined,
     },
     {
       title: "Inboxes",
       description: "Configure inbox routing and settings",
       icon: Inbox,
       path: "/admin/inboxes",
-      badge: inboxCount ? `${inboxCount} active` : undefined
+      badge: inboxCount ? `${inboxCount} active` : undefined,
     },
     {
       title: "Integrations & Routing",
       description: "Email, voice, and notification integrations",
       icon: Plug2,
       path: "/admin/integrations",
-      badge: integrationCount ? `${integrationCount} connected` : undefined
+      badge: integrationCount ? `${integrationCount} connected` : undefined,
     },
     {
       title: "Design & Branding",
       description: "Customize appearance and templates",
       icon: Palette,
-      path: "/admin/design"
+      path: "/admin/design",
     },
     {
       title: "Knowledge Management",
       description: "AI training and response templates",
       icon: Brain,
-      path: "/admin/knowledge"
+      path: "/admin/knowledge",
     },
     {
       title: "Edge Functions",
       description: "All backend functions, auth mode and secrets",
       icon: FunctionSquare,
       path: "/admin/edge-functions",
-      badge: `${EDGE_FUNCTIONS.length} functions`
+      badge: `${EDGE_FUNCTIONS.length} functions`,
     },
     {
       title: "General Settings",
       description: "Organization preferences and config",
       icon: Settings,
-      path: "/admin/general"
-    }
-  ];
+      path: "/admin/general",
+    },
+  ]
 
   const getConnectionStatusDisplay = () => {
     switch (connectionStatus) {
-      case 'connected':
-        return { icon: CheckCircle2, text: 'Connected', color: 'text-green-500' };
-      case 'connecting':
-        return { icon: Activity, text: 'Connecting...', color: 'text-yellow-500' };
-      case 'disconnected':
-        return { icon: AlertCircle, text: 'Reconnecting...', color: 'text-yellow-500' };
-      case 'error':
-        return { icon: AlertCircle, text: 'Using backup sync (10s refresh)', color: 'text-yellow-500' };
+      case "connected":
+        return { icon: CheckCircle2, text: "Connected", color: "text-green-500" }
+      case "connecting":
+        return { icon: Activity, text: "Connecting...", color: "text-yellow-500" }
+      case "disconnected":
+        return { icon: AlertCircle, text: "Reconnecting...", color: "text-yellow-500" }
+      case "error":
+        return {
+          icon: AlertCircle,
+          text: "Using backup sync (10s refresh)",
+          color: "text-yellow-500",
+        }
       default:
-        return { icon: AlertCircle, text: 'Disconnected', color: 'text-destructive' };
+        return { icon: AlertCircle, text: "Disconnected", color: "text-destructive" }
     }
-  };
+  }
 
-  const connectionDisplay = getConnectionStatusDisplay();
-  const ConnectionIcon = connectionDisplay.icon;
+  const connectionDisplay = getConnectionStatusDisplay()
+  const ConnectionIcon = connectionDisplay.icon
 
   const formatLastEmail = (timestamp: string | undefined) => {
-    if (!timestamp) return 'No emails yet';
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
-  };
+    if (!timestamp) return "No emails yet"
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return "Just now"
+    if (diffMins < 60) return `${diffMins}m ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${Math.floor(diffHours / 24)}d ago`
+  }
 
   return (
     <div className="space-y-8">
@@ -206,9 +210,9 @@ export function AdminDashboard() {
       {/* Navigation Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {navigationCards.map((card) => {
-          const Icon = card.icon;
+          const Icon = card.icon
           return (
-            <Card 
+            <Card
               key={card.path}
               className="cursor-pointer hover:border-primary/50 transition-colors group"
               onClick={() => navigate(card.path)}
@@ -231,7 +235,7 @@ export function AdminDashboard() {
                 <CardDescription>{card.description}</CardDescription>
               </CardHeader>
             </Card>
-          );
+          )
         })}
       </div>
 
@@ -244,7 +248,7 @@ export function AdminDashboard() {
               <CardTitle className="text-lg">System Health</CardTitle>
             </div>
             <button
-              onClick={() => navigate('/admin/health')}
+              onClick={() => navigate("/admin/health")}
               className="text-sm text-primary hover:underline flex items-center gap-1"
             >
               View Details <ArrowRight className="w-3 h-3" />
@@ -257,8 +261,13 @@ export function AdminDashboard() {
             <div className="flex items-center gap-2">
               <ConnectionIcon className={`w-4 h-4 ${connectionDisplay.color}`} />
               <span className="text-sm font-medium">{connectionDisplay.text}</span>
-              {(connectionStatus === 'error' || connectionStatus === 'disconnected') && (
-                <Button variant="ghost" size="sm" onClick={forceReconnect} className="h-6 px-2 text-xs">
+              {(connectionStatus === "error" || connectionStatus === "disconnected") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={forceReconnect}
+                  className="h-6 px-2 text-xs"
+                >
                   <RefreshCw className="w-3 h-3 mr-1" />
                   Reconnect
                 </Button>
@@ -269,7 +278,8 @@ export function AdminDashboard() {
             <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">
-                Last email: <span className="font-medium">{formatLastEmail(emailStats?.lastEmailAt)}</span>
+                Last email:{" "}
+                <span className="font-medium">{formatLastEmail(emailStats?.lastEmailAt)}</span>
               </span>
             </div>
 
@@ -284,5 +294,5 @@ export function AdminDashboard() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

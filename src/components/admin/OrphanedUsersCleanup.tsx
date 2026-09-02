@@ -1,11 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Trash2, RefreshCw, UserX } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { AlertTriangle, RefreshCw, Trash2, UserX } from "lucide-react"
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,79 +10,85 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 interface OrphanedUser {
-  id: string;
-  email: string;
-  created_at: string;
+  id: string
+  email: string
+  created_at: string
 }
 
 export function OrphanedUsersCleanup() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['orphaned-users'],
+    queryKey: ["orphaned-users"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('admin-cleanup-users', {
-        method: 'GET',
-      });
+      const { data, error } = await supabase.functions.invoke("admin-cleanup-users", {
+        method: "GET",
+      })
 
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message)
       return data as {
-        orphaned_users: OrphanedUser[];
-        total_auth_users: number;
-        total_profiles: number;
-      };
+        orphaned_users: OrphanedUser[]
+        total_auth_users: number
+        total_profiles: number
+      }
     },
     staleTime: 0, // Never use stale data for this sensitive operation
-    refetchOnMount: 'always', // Always fetch fresh data when component mounts
-  });
+    refetchOnMount: "always", // Always fetch fresh data when component mounts
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async (userIds: string[]) => {
-      const { data, error } = await supabase.functions.invoke('admin-cleanup-users', {
-        method: 'POST',
-        body: { action: 'delete', user_ids: userIds },
-      });
+      const { data, error } = await supabase.functions.invoke("admin-cleanup-users", {
+        method: "POST",
+        body: { action: "delete", user_ids: userIds },
+      })
 
-      if (error) throw new Error(error.message);
-      return data;
+      if (error) throw new Error(error.message)
+      return data
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['orphaned-users'] });
-      queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["orphaned-users"] })
+      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+
       // Build descriptive message
-      const parts: string[] = [];
-      if (result.deleted_count > 0) parts.push(`${result.deleted_count} deleted`);
-      if (result.already_deleted_count > 0) parts.push(`${result.already_deleted_count} already removed`);
-      if (result.error_count > 0) parts.push(`${result.error_count} errors`);
-      
+      const parts: string[] = []
+      if (result.deleted_count > 0) parts.push(`${result.deleted_count} deleted`)
+      if (result.already_deleted_count > 0)
+        parts.push(`${result.already_deleted_count} already removed`)
+      if (result.error_count > 0) parts.push(`${result.error_count} errors`)
+
       toast({
-        title: 'Cleanup complete',
-        description: parts.length > 0 ? parts.join(', ') : 'No changes needed',
-      });
+        title: "Cleanup complete",
+        description: parts.length > 0 ? parts.join(", ") : "No changes needed",
+      })
     },
     onError: (error: any) => {
       toast({
-        title: 'Cleanup failed',
+        title: "Cleanup failed",
         description: error.message,
-        variant: 'destructive',
-      });
+        variant: "destructive",
+      })
     },
-  });
+  })
 
-  const orphanedUsers = data?.orphaned_users || [];
+  const orphanedUsers = data?.orphaned_users || []
 
   const handleDeleteAll = () => {
     if (orphanedUsers.length > 0) {
-      deleteMutation.mutate(orphanedUsers.map(u => u.id));
+      deleteMutation.mutate(orphanedUsers.map((u) => u.id))
     }
-    setShowConfirmDialog(false);
-  };
+    setShowConfirmDialog(false)
+  }
 
   if (isLoading) {
     return (
@@ -96,12 +97,16 @@ export function OrphanedUsersCleanup() {
           <p className="text-muted-foreground text-sm">Loading orphaned users...</p>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
     <>
-      <Card className={orphanedUsers.length > 0 ? 'border-destructive/50 bg-destructive/5' : 'border-muted'}>
+      <Card
+        className={
+          orphanedUsers.length > 0 ? "border-destructive/50 bg-destructive/5" : "border-muted"
+        }
+      >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -118,9 +123,13 @@ export function OrphanedUsersCleanup() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-4 text-sm">
-            <span>Total auth users: <strong>{data?.total_auth_users || 0}</strong></span>
-            <span>Total profiles: <strong>{data?.total_profiles || 0}</strong></span>
-            <Badge variant={orphanedUsers.length > 0 ? 'destructive' : 'secondary'}>
+            <span>
+              Total auth users: <strong>{data?.total_auth_users || 0}</strong>
+            </span>
+            <span>
+              Total profiles: <strong>{data?.total_profiles || 0}</strong>
+            </span>
+            <Badge variant={orphanedUsers.length > 0 ? "destructive" : "secondary"}>
               {orphanedUsers.length} orphaned
             </Badge>
           </div>
@@ -144,11 +153,13 @@ export function OrphanedUsersCleanup() {
                 disabled={deleteMutation.isPending}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {deleteMutation.isPending ? 'Deleting...' : `Delete All (${orphanedUsers.length})`}
+                {deleteMutation.isPending ? "Deleting..." : `Delete All (${orphanedUsers.length})`}
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No orphaned users found. All auth users have profiles.</p>
+            <p className="text-sm text-muted-foreground">
+              No orphaned users found. All auth users have profiles.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -167,12 +178,15 @@ export function OrphanedUsersCleanup() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

@@ -1,350 +1,362 @@
-import React, { useState, useEffect } from 'react';
-import { Phone, Plus, X, Shield, Settings, CheckCircle, AlertCircle, TestTube, PhoneCall, Globe, AlertTriangle, RefreshCw, Users } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useTranslation } from 'react-i18next';
-import { useToast } from '@/hooks/use-toast';
-import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
-import { formatRelativeTime } from '@/utils/dateFormatting';
-import { useAircallContactSync } from '@/hooks/useAircallContactSync';
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  Globe,
+  Phone,
+  PhoneCall,
+  Plus,
+  RefreshCw,
+  Settings,
+  Shield,
+  TestTube,
+  Users,
+  X,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
+import { useAircallContactSync } from "@/hooks/useAircallContactSync"
+import { useVoiceIntegrations } from "@/hooks/useVoiceIntegrations"
+import { supabase } from "@/integrations/supabase/client"
+import { formatRelativeTime } from "@/utils/dateFormatting"
 
 interface CallEventConfig {
-  eventType: string;
-  label: string;
-  description: string;
-  enabled: boolean;
+  eventType: string
+  label: string
+  description: string
+  enabled: boolean
 }
 
 interface PhoneNumber {
-  id: string;
-  number: string;
-  label: string;
+  id: string
+  number: string
+  label: string
 }
 
 export const AircallSettings = () => {
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  const { 
-    getIntegrationByProvider, 
-    saveIntegration, 
-    isSaving, 
+  const { t } = useTranslation()
+  const { toast } = useToast()
+  const {
+    getIntegrationByProvider,
+    saveIntegration,
+    isSaving,
     isLoading: isLoadingIntegrations,
-    lastEventTimestamp
-  } = useVoiceIntegrations();
-  
+    lastEventTimestamp,
+  } = useVoiceIntegrations()
+
   // Get existing Aircall configuration
-  const existingConfig = getIntegrationByProvider('aircall');
-  
-  const [webhookToken, setWebhookToken] = useState('');
-  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
-  const [newPhoneNumber, setNewPhoneNumber] = useState('');
-  const [newPhoneLabel, setNewPhoneLabel] = useState('');
-  const [isAddingPhone, setIsAddingPhone] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
-  
+  const existingConfig = getIntegrationByProvider("aircall")
+
+  const [webhookToken, setWebhookToken] = useState("")
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([])
+  const [newPhoneNumber, setNewPhoneNumber] = useState("")
+  const [newPhoneLabel, setNewPhoneLabel] = useState("")
+  const [isAddingPhone, setIsAddingPhone] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false)
+
   // Aircall Everywhere settings
-  const [everywhereEnabled, setEverywhereEnabled] = useState(false);
-  const [everywhereApiId, setEverywhereApiId] = useState('');
-  const [everywhereApiToken, setEverywhereApiToken] = useState('');
-  const [everywhereDomain, setEverywhereDomain] = useState('');
-  const [syncContacts, setSyncContacts] = useState(false);
-  
+  const [everywhereEnabled, setEverywhereEnabled] = useState(false)
+  const [everywhereApiId, setEverywhereApiId] = useState("")
+  const [everywhereApiToken, setEverywhereApiToken] = useState("")
+  const [everywhereDomain, setEverywhereDomain] = useState("")
+  const [syncContacts, setSyncContacts] = useState(false)
+
   // Credential testing
-  const [isTestingCredentials, setIsTestingCredentials] = useState(false);
+  const [isTestingCredentials, setIsTestingCredentials] = useState(false)
   const [credentialTestResult, setCredentialTestResult] = useState<{
-    valid: boolean;
-    companyName?: string;
-    error?: string;
-    timestamp?: Date;
-  } | null>(null);
+    valid: boolean
+    companyName?: string
+    error?: string
+    timestamp?: Date
+  } | null>(null)
 
   // Customer → Aircall contact sync
   const contactSync = useAircallContactSync(
-    Boolean(existingConfig?.configuration?.aircallEverywhere?.syncContacts)
-  );
+    Boolean(existingConfig?.configuration?.aircallEverywhere?.syncContacts),
+  )
 
   // Load existing configuration when it changes
   useEffect(() => {
     if (existingConfig) {
-      setWebhookToken(existingConfig.webhook_token || '');
-      setPhoneNumbers(existingConfig.configuration.phoneNumbers || []);
-      
+      setWebhookToken(existingConfig.webhook_token || "")
+      setPhoneNumbers(existingConfig.configuration.phoneNumbers || [])
+
       // Update call events with saved configuration
-      const savedEvents = existingConfig.configuration.callEvents;
+      const savedEvents = existingConfig.configuration.callEvents
       if (savedEvents) {
-        setCallEvents(savedEvents);
+        setCallEvents(savedEvents)
       }
-      
+
       // Load Aircall Everywhere settings
-      const everywhereConfig = existingConfig.configuration.aircallEverywhere;
+      const everywhereConfig = existingConfig.configuration.aircallEverywhere
       if (everywhereConfig) {
-        setEverywhereEnabled(everywhereConfig.enabled || false);
-        setEverywhereApiId(everywhereConfig.apiId || '');
-        setEverywhereApiToken(everywhereConfig.apiToken || '');
-        setEverywhereDomain(everywhereConfig.domainName || '');
-        setSyncContacts(everywhereConfig.syncContacts || false);
+        setEverywhereEnabled(everywhereConfig.enabled || false)
+        setEverywhereApiId(everywhereConfig.apiId || "")
+        setEverywhereApiToken(everywhereConfig.apiToken || "")
+        setEverywhereDomain(everywhereConfig.domainName || "")
+        setSyncContacts(everywhereConfig.syncContacts || false)
       }
     } else {
       // Set default phone number if no config exists
-      setPhoneNumbers([{ id: '1', number: '+1234567890', label: 'Main Line' }]);
+      setPhoneNumbers([{ id: "1", number: "+1234567890", label: "Main Line" }])
     }
-  }, [existingConfig]);
-  
+  }, [existingConfig])
+
   const [callEvents, setCallEvents] = useState<CallEventConfig[]>([
     {
-      eventType: 'call_started',
-      label: 'Call Started',
-      description: 'When a new call is initiated',
-      enabled: true
+      eventType: "call_started",
+      label: "Call Started",
+      description: "When a new call is initiated",
+      enabled: true,
     },
     {
-      eventType: 'call_answered',
-      label: 'Call Answered',
-      description: 'When a call is answered by an agent',
-      enabled: true
+      eventType: "call_answered",
+      label: "Call Answered",
+      description: "When a call is answered by an agent",
+      enabled: true,
     },
     {
-      eventType: 'call_ended',
-      label: 'Call Ended',
-      description: 'When a call is terminated',
-      enabled: true
+      eventType: "call_ended",
+      label: "Call Ended",
+      description: "When a call is terminated",
+      enabled: true,
     },
     {
-      eventType: 'call_missed',
-      label: 'Call Missed',
-      description: 'When an incoming call is not answered',
-      enabled: true
+      eventType: "call_missed",
+      label: "Call Missed",
+      description: "When an incoming call is not answered",
+      enabled: true,
     },
     {
-      eventType: 'voicemail_left',
-      label: 'Voicemail Left',
-      description: 'When a caller leaves a voicemail',
-      enabled: true
+      eventType: "voicemail_left",
+      label: "Voicemail Left",
+      description: "When a caller leaves a voicemail",
+      enabled: true,
     },
     {
-      eventType: 'callback_requested',
-      label: 'Callback Requested',
-      description: 'When a caller requests a callback through IVR',
-      enabled: true
+      eventType: "callback_requested",
+      label: "Callback Requested",
+      description: "When a caller requests a callback through IVR",
+      enabled: true,
     },
     {
-      eventType: 'call_transferred',
-      label: 'Call Transferred',
-      description: 'When a call is transferred to another agent',
-      enabled: false
+      eventType: "call_transferred",
+      label: "Call Transferred",
+      description: "When a call is transferred to another agent",
+      enabled: false,
     },
     {
-      eventType: 'call_on_hold',
-      label: 'Call On Hold',
-      description: 'When a call is put on hold',
-      enabled: false
-    }
-  ]);
+      eventType: "call_on_hold",
+      label: "Call On Hold",
+      description: "When a call is put on hold",
+      enabled: false,
+    },
+  ])
 
   const handleEventToggle = (eventType: string) => {
-    setCallEvents(prev => 
-      prev.map(event => 
-        event.eventType === eventType 
-          ? { ...event, enabled: !event.enabled }
-          : event
-      )
-    );
-  };
+    setCallEvents((prev) =>
+      prev.map((event) =>
+        event.eventType === eventType ? { ...event, enabled: !event.enabled } : event,
+      ),
+    )
+  }
 
   const handleAddPhoneNumber = () => {
     if (newPhoneNumber && newPhoneLabel) {
       const newPhone: PhoneNumber = {
         id: Date.now().toString(),
         number: newPhoneNumber,
-        label: newPhoneLabel
-      };
-      setPhoneNumbers(prev => [...prev, newPhone]);
-      setNewPhoneNumber('');
-      setNewPhoneLabel('');
-      setIsAddingPhone(false);
+        label: newPhoneLabel,
+      }
+      setPhoneNumbers((prev) => [...prev, newPhone])
+      setNewPhoneNumber("")
+      setNewPhoneLabel("")
+      setIsAddingPhone(false)
       toast({
         title: "Phone number added",
         description: `${newPhoneLabel} (${newPhoneNumber}) has been added to monitoring`,
-      });
+      })
     }
-  };
+  }
 
   const handleRemovePhoneNumber = (id: string) => {
-    setPhoneNumbers(prev => prev.filter(phone => phone.id !== id));
+    setPhoneNumbers((prev) => prev.filter((phone) => phone.id !== id))
     toast({
       title: "Phone number removed",
       description: "Phone number has been removed from monitoring",
-    });
-  };
+    })
+  }
 
   const handleSaveSettings = () => {
     const configuration = {
       phoneNumbers,
       callEvents,
-      enabledEvents: callEvents.filter(event => event.enabled).map(event => event.eventType),
+      enabledEvents: callEvents.filter((event) => event.enabled).map((event) => event.eventType),
       aircallEverywhere: {
         enabled: everywhereEnabled,
         apiId: everywhereApiId,
         apiToken: everywhereApiToken,
         domainName: everywhereDomain.trim() || undefined, // Only store if explicitly provided
-        syncContacts
-      }
-    };
+        syncContacts,
+      },
+    }
 
     saveIntegration({
-      provider: 'aircall',
+      provider: "aircall",
       is_active: true,
       webhook_token: webhookToken,
-      configuration
-    });
+      configuration,
+    })
 
     // Clear opt-out flag when saving new configuration
-    sessionStorage.removeItem('aircall_opted_out');
-    console.log('[AircallSettings] 🔄 Cleared opt-out flag after configuration save');
-  };
+    sessionStorage.removeItem("aircall_opted_out")
+    console.log("[AircallSettings] 🔄 Cleared opt-out flag after configuration save")
+  }
 
   const handleReEnableIntegration = () => {
-    sessionStorage.removeItem('aircall_opted_out');
+    sessionStorage.removeItem("aircall_opted_out")
     toast({
       title: "Phone integration re-enabled",
       description: "Refresh the page to reconnect Aircall",
-    });
-    console.log('[AircallSettings] ✅ User manually re-enabled integration');
-  };
+    })
+    console.log("[AircallSettings] ✅ User manually re-enabled integration")
+  }
 
   const testCredentials = async () => {
     if (!everywhereApiId || !everywhereApiToken) {
       toast({
         title: "Missing credentials",
         description: "Please enter both API ID and API Token",
-        variant: "destructive"
-      });
-      return;
+        variant: "destructive",
+      })
+      return
     }
 
-    setIsTestingCredentials(true);
-    setCredentialTestResult(null);
+    setIsTestingCredentials(true)
+    setCredentialTestResult(null)
 
     try {
-      const { data, error } = await supabase.functions.invoke('test-aircall-credentials', {
+      const { data, error } = await supabase.functions.invoke("test-aircall-credentials", {
         body: {
           apiId: everywhereApiId,
-          apiToken: everywhereApiToken
-        }
-      });
+          apiToken: everywhereApiToken,
+        },
+      })
 
       if (error) {
-        throw error;
+        throw error
       }
 
       setCredentialTestResult({
         valid: data.valid,
         companyName: data.company?.name,
         error: data.error,
-        timestamp: new Date()
-      });
+        timestamp: new Date(),
+      })
 
       if (data.valid) {
         toast({
           title: "Credentials valid",
           description: `Successfully connected to ${data.company.name}`,
-        });
+        })
       } else {
         toast({
           title: "Credentials invalid",
           description: data.error || "Unable to authenticate with Aircall",
-          variant: "destructive"
-        });
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error('Credential test error:', error);
+      console.error("Credential test error:", error)
       setCredentialTestResult({
         valid: false,
         error: error.message,
-        timestamp: new Date()
-      });
+        timestamp: new Date(),
+      })
       toast({
         title: "Test failed",
         description: error.message,
-        variant: "destructive"
-      });
+        variant: "destructive",
+      })
     } finally {
-      setIsTestingCredentials(false);
+      setIsTestingCredentials(false)
     }
-  };
+  }
 
   const testWebhook = async () => {
-    setIsTestingWebhook(true);
-    setTestResult(null);
+    setIsTestingWebhook(true)
+    setTestResult(null)
 
     try {
       // Create a sample Aircall webhook payload
       const testPayload = {
-        event: 'call.created',
+        event: "call.created",
         timestamp: new Date().toISOString(),
         data: {
-          id: 'test-call-' + Date.now(),
-          status: 'ringing',
-          direction: 'inbound',
-          from: { phone_number: '+1234567890' },
-          to: { phone_number: '+0987654321' },
+          id: `test-call-${Date.now()}`,
+          status: "ringing",
+          direction: "inbound",
+          from: { phone_number: "+1234567890" },
+          to: { phone_number: "+0987654321" },
           started_at: new Date().toISOString(),
-          raw_digits: '+1234567890'
-        }
-      };
+          raw_digits: "+1234567890",
+        },
+      }
 
-      console.log('Testing webhook with payload:', testPayload);
+      console.log("Testing webhook with payload:", testPayload)
 
       // Test direct webhook call
-      const webhookUrl = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall';
-      
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload)
-      });
+      const webhookUrl =
+        "https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall"
 
-      const result = await response.text();
-      console.log('Webhook response:', result);
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(testPayload),
+      })
+
+      const result = await response.text()
+      console.log("Webhook response:", result)
 
       if (response.ok) {
         setTestResult({
           success: true,
-          message: `Webhook test successful! Response: ${result}`
-        });
+          message: `Webhook test successful! Response: ${result}`,
+        })
         toast({
           title: "Webhook test successful",
           description: "Your webhook endpoint is working correctly",
-        });
+        })
       } else {
         setTestResult({
           success: false,
-          message: `Webhook failed with status ${response.status}: ${result}`
-        });
+          message: `Webhook failed with status ${response.status}: ${result}`,
+        })
       }
-
     } catch (error) {
-      console.error('Webhook test error:', error);
+      console.error("Webhook test error:", error)
       setTestResult({
         success: false,
-        message: `Error testing webhook: ${error.message}`
-      });
+        message: `Error testing webhook: ${error.message}`,
+      })
     } finally {
-      setIsTestingWebhook(false);
+      setIsTestingWebhook(false)
     }
-  };
+  }
 
-  const enabledEventsCount = callEvents.filter(event => event.enabled).length;
+  const enabledEventsCount = callEvents.filter((event) => event.enabled).length
 
   if (isLoadingIntegrations) {
     return (
@@ -356,7 +368,7 @@ export const AircallSettings = () => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -368,9 +380,7 @@ export const AircallSettings = () => {
             <Phone className="w-5 h-5" />
             Aircall Integration Status
           </CardTitle>
-          <CardDescription>
-            Monitor the connection status and configuration health
-          </CardDescription>
+          <CardDescription>Monitor the connection status and configuration health</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
@@ -379,32 +389,33 @@ export const AircallSettings = () => {
               Connected
             </Badge>
             <span className="text-sm text-muted-foreground">
-              {lastEventTimestamp 
+              {lastEventTimestamp
                 ? `Last event: ${formatRelativeTime(lastEventTimestamp)}`
-                : 'No events received yet'
-              }
+                : "No events received yet"}
             </span>
           </div>
 
-          {typeof window !== 'undefined' && sessionStorage.getItem('aircall_opted_out') === 'true' && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>
-                  <strong>Phone integration disabled</strong> - You clicked "Skip for Now" and Aircall is currently disabled.
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleReEnableIntegration}
-                  className="ml-4 flex items-center gap-2"
-                >
-                  <RefreshCw className="h-3 w-3" />
-                  Re-enable & Refresh
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+          {typeof window !== "undefined" &&
+            sessionStorage.getItem("aircall_opted_out") === "true" && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    <strong>Phone integration disabled</strong> - You clicked "Skip for Now" and
+                    Aircall is currently disabled.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReEnableIntegration}
+                    className="ml-4 flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Re-enable & Refresh
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
         </CardContent>
       </Card>
 
@@ -433,11 +444,12 @@ export const AircallSettings = () => {
               This token is provided by Aircall and used to verify incoming webhook events
             </p>
           </div>
-          
+
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              Keep this token secure. It's used to verify that webhook calls are coming from Aircall.
+              Keep this token secure. It's used to verify that webhook calls are coming from
+              Aircall.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -457,7 +469,10 @@ export const AircallSettings = () => {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             {phoneNumbers.map((phone) => (
-              <div key={phone.id} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+              <div
+                key={phone.id}
+                className="flex items-center justify-between p-3 rounded-lg border bg-card/50"
+              >
                 <div>
                   <p className="font-medium">{phone.label}</p>
                   <p className="text-sm text-muted-foreground">{phone.number}</p>
@@ -527,7 +542,8 @@ export const AircallSettings = () => {
             Aircall Everywhere - Embedded Phone
           </CardTitle>
           <CardDescription>
-            Enable embedded calling directly in the browser for agents. Requires Aircall Everywhere API credentials.
+            Enable embedded calling directly in the browser for agents. Requires Aircall Everywhere
+            API credentials.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -550,7 +566,7 @@ export const AircallSettings = () => {
           {everywhereEnabled && (
             <>
               <Separator />
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="everywhere-api-id">API ID</Label>
@@ -581,9 +597,7 @@ export const AircallSettings = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="everywhere-domain">
-                    Domain Name (Optional)
-                  </Label>
+                  <Label htmlFor="everywhere-domain">Domain Name (Optional)</Label>
                   <div className="space-y-2">
                     <Input
                       id="everywhere-domain"
@@ -598,32 +612,47 @@ export const AircallSettings = () => {
                         {everywhereDomain.trim() || window.location.hostname}
                       </Badge>
                       <span className="text-muted-foreground text-xs">
-                        {everywhereDomain.trim() ? '← Custom domain' : '← Auto-detected (recommended)'}
+                        {everywhereDomain.trim()
+                          ? "← Custom domain"
+                          : "← Auto-detected (recommended)"}
                       </span>
                     </div>
-                    {everywhereDomain.trim() && everywhereDomain.trim() !== window.location.hostname && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                          <strong>Domain mismatch:</strong> Configured domain doesn't match current domain ({window.location.hostname}). This will prevent Aircall from loading.
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                    {everywhereDomain.trim() &&
+                      everywhereDomain.trim() !== window.location.hostname && (
+                        <Alert variant="destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            <strong>Domain mismatch:</strong> Configured domain doesn't match
+                            current domain ({window.location.hostname}). This will prevent Aircall
+                            from loading.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     <p className="text-xs text-muted-foreground">
-                      Leave blank to automatically use the current domain. Only set a custom domain for production deployments with a fixed hostname.
+                      Leave blank to automatically use the current domain. Only set a custom domain
+                      for production deployments with a fixed hostname.
                     </p>
                   </div>
-                  
+
                   <Alert>
                     <Globe className="h-4 w-4" />
                     <AlertDescription className="text-xs">
-                      <strong>Important:</strong> You must whitelist your domain in Aircall Dashboard:
+                      <strong>Important:</strong> You must whitelist your domain in Aircall
+                      Dashboard:
                       <ol className="mt-2 ml-4 list-decimal space-y-1">
                         <li>Go to Aircall Dashboard → Integrations → Aircall Everywhere</li>
-                        <li>Add <code className="px-1 py-0.5 bg-muted rounded text-xs">{window.location.hostname}</code> to "Authorized domains"</li>
+                        <li>
+                          Add{" "}
+                          <code className="px-1 py-0.5 bg-muted rounded text-xs">
+                            {window.location.hostname}
+                          </code>{" "}
+                          to "Authorized domains"
+                        </li>
                         <li>Save and wait 1-2 minutes for OAuth changes to propagate</li>
                       </ol>
-                      <p className="mt-2">Without this, you'll see "origin is not allowed" errors and login will fail.</p>
+                      <p className="mt-2">
+                        Without this, you'll see "origin is not allowed" errors and login will fail.
+                      </p>
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -636,7 +665,9 @@ export const AircallSettings = () => {
                     className="w-full"
                   >
                     <TestTube className="h-4 w-4 mr-2" />
-                    {isTestingCredentials ? t('settings.aircall.testingCredentials') : t('settings.aircall.testCredentials')}
+                    {isTestingCredentials
+                      ? t("settings.aircall.testingCredentials")
+                      : t("settings.aircall.testCredentials")}
                   </Button>
 
                   {credentialTestResult && (
@@ -649,16 +680,18 @@ export const AircallSettings = () => {
                       <AlertDescription>
                         {credentialTestResult.valid ? (
                           <>
-                            {t('settings.aircall.credentialsValid')} <strong>{credentialTestResult.companyName}</strong>
+                            {t("settings.aircall.credentialsValid")}{" "}
+                            <strong>{credentialTestResult.companyName}</strong>
                           </>
                         ) : (
                           <>
-                            {t('settings.aircall.credentialsInvalid')}: {credentialTestResult.error}
+                            {t("settings.aircall.credentialsInvalid")}: {credentialTestResult.error}
                           </>
                         )}
                         {credentialTestResult.timestamp && (
                           <div className="text-xs mt-1 opacity-70">
-                            {t('settings.aircall.lastTested')}: {credentialTestResult.timestamp.toLocaleTimeString()}
+                            {t("settings.aircall.lastTested")}:{" "}
+                            {credentialTestResult.timestamp.toLocaleTimeString()}
                           </div>
                         )}
                       </AlertDescription>
@@ -670,8 +703,8 @@ export const AircallSettings = () => {
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  Aircall Everywhere enables in-app calling with full agent controls. 
-                  Make sure your API credentials are configured correctly in Aircall Dashboard.
+                  Aircall Everywhere enables in-app calling with full agent controls. Make sure your
+                  API credentials are configured correctly in Aircall Dashboard.
                 </AlertDescription>
               </Alert>
             </>
@@ -752,8 +785,10 @@ export const AircallSettings = () => {
                       variant="outline"
                       className="flex-1"
                     >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${contactSync.isSyncing ? 'animate-spin' : ''}`} />
-                      {contactSync.isSyncing ? 'Syncing…' : 'Sync now'}
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${contactSync.isSyncing ? "animate-spin" : ""}`}
+                      />
+                      {contactSync.isSyncing ? "Syncing…" : "Sync now"}
                     </Button>
                     <Button
                       onClick={() => contactSync.refetchPreview()}
@@ -765,17 +800,22 @@ export const AircallSettings = () => {
                   </div>
 
                   {contactSync.lastResult && (
-                    <Alert variant={contactSync.lastResult.failed ? 'destructive' : 'default'}>
+                    <Alert variant={contactSync.lastResult.failed ? "destructive" : "default"}>
                       {contactSync.lastResult.failed ? (
                         <AlertCircle className="h-4 w-4" />
                       ) : (
                         <CheckCircle className="h-4 w-4" />
                       )}
                       <AlertDescription className="text-xs">
-                        {contactSync.lastResult.created} created, {contactSync.lastResult.updated} updated,{' '}
-                        {contactSync.lastResult.skipped} unchanged, {contactSync.lastResult.failed} failed.
+                        {contactSync.lastResult.created} created, {contactSync.lastResult.updated}{" "}
+                        updated, {contactSync.lastResult.skipped} unchanged,{" "}
+                        {contactSync.lastResult.failed} failed.
                         {contactSync.lastResult.remaining > 0 && (
-                          <> {contactSync.lastResult.remaining} customers remain — run again to continue.</>
+                          <>
+                            {" "}
+                            {contactSync.lastResult.remaining} customers remain — run again to
+                            continue.
+                          </>
                         )}
                         {contactSync.lastResult.errors?.length ? (
                           <ul className="mt-2 ml-4 list-disc">
@@ -791,8 +831,9 @@ export const AircallSettings = () => {
                   <Alert>
                     <Shield className="h-4 w-4" />
                     <AlertDescription className="text-xs">
-                      Contacts are shared across your whole Aircall workspace. Aircall limits us to 60 API
-                      calls per minute, so large batches are paced and continue on the next run.
+                      Contacts are shared across your whole Aircall workspace. Aircall limits us to
+                      60 API calls per minute, so large batches are paced and continue on the next
+                      run.
                     </AlertDescription>
                   </Alert>
                 </>
@@ -810,7 +851,8 @@ export const AircallSettings = () => {
             Call Event Types
           </CardTitle>
           <CardDescription>
-            Choose which call events to receive and process ({enabledEventsCount} of {callEvents.length} enabled)
+            Choose which call events to receive and process ({enabledEventsCount} of{" "}
+            {callEvents.length} enabled)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -828,9 +870,7 @@ export const AircallSettings = () => {
                       <Label htmlFor={event.eventType} className="text-sm font-medium">
                         {event.label}
                       </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {event.description}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{event.description}</p>
                     </div>
                   </div>
                   {event.enabled && (
@@ -847,7 +887,8 @@ export const AircallSettings = () => {
           <Alert>
             <Settings className="h-4 w-4" />
             <AlertDescription>
-              Disabling event types will prevent them from being processed, but they may still be received from Aircall.
+              Disabling event types will prevent them from being processed, but they may still be
+              received from Aircall.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -869,34 +910,38 @@ export const AircallSettings = () => {
             <p className="text-sm text-muted-foreground mb-3">
               Test if the webhook endpoint is reachable and processing events correctly
             </p>
-            <Button 
-              onClick={testWebhook} 
+            <Button
+              onClick={testWebhook}
               disabled={isTestingWebhook}
               className="flex items-center gap-2"
             >
               <TestTube className="h-4 w-4" />
-              {isTestingWebhook ? 'Testing...' : 'Test Webhook'}
+              {isTestingWebhook ? "Testing..." : "Test Webhook"}
             </Button>
           </div>
 
           {testResult && (
-            <div className={`flex items-start gap-3 p-3 rounded-lg ${
-              testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-            }`}>
+            <div
+              className={`flex items-start gap-3 p-3 rounded-lg ${
+                testResult.success
+                  ? "bg-green-50 border border-green-200"
+                  : "bg-red-50 border border-red-200"
+              }`}
+            >
               {testResult.success ? (
                 <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
               ) : (
                 <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
               )}
               <div>
-                <p className={`text-sm font-medium ${
-                  testResult.success ? 'text-green-800' : 'text-red-800'
-                }`}>
-                  {testResult.success ? 'Test Successful' : 'Test Failed'}
+                <p
+                  className={`text-sm font-medium ${
+                    testResult.success ? "text-green-800" : "text-red-800"
+                  }`}
+                >
+                  {testResult.success ? "Test Successful" : "Test Failed"}
                 </p>
-                <p className={`text-xs ${
-                  testResult.success ? 'text-green-700' : 'text-red-700'
-                }`}>
+                <p className={`text-xs ${testResult.success ? "text-green-700" : "text-red-700"}`}>
                   {testResult.message}
                 </p>
               </div>
@@ -914,7 +959,9 @@ export const AircallSettings = () => {
               </div>
               <div>
                 <Label className="text-xs font-medium text-muted-foreground">Required Events</Label>
-                <p className="text-xs">call.created, call.answered, call.hungup, call.missed, voicemail.left</p>
+                <p className="text-xs">
+                  call.created, call.answered, call.hungup, call.missed, voicemail.left
+                </p>
               </div>
               <div>
                 <Label className="text-xs font-medium text-muted-foreground">Method</Label>
@@ -929,23 +976,23 @@ export const AircallSettings = () => {
       <Alert>
         <Globe className="h-4 w-4" />
         <AlertDescription>
-          <strong>Browser Requirements:</strong> Aircall Everywhere requires Google Chrome or Edge. 
-          Third-party cookies must be enabled. Safari and Firefox are not supported.
-          Make sure to save your configuration and test credentials before enabling.
+          <strong>Browser Requirements:</strong> Aircall Everywhere requires Google Chrome or Edge.
+          Third-party cookies must be enabled. Safari and Firefox are not supported. Make sure to
+          save your configuration and test credentials before enabling.
         </AlertDescription>
       </Alert>
 
       {/* Save Settings */}
       <div className="flex justify-end">
-        <Button 
-          onClick={handleSaveSettings} 
+        <Button
+          onClick={handleSaveSettings}
           disabled={isSaving}
           className="flex items-center gap-2"
         >
           <CheckCircle className="h-4 w-4" />
-          {isSaving ? 'Saving...' : 'Save Configuration'}
+          {isSaving ? "Saving..." : "Save Configuration"}
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}

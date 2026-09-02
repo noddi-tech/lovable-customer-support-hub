@@ -1,101 +1,110 @@
-import React, { useState } from 'react';
-import { Phone, Settings, ChevronDown, ChevronRight, CheckCircle, AlertCircle, Plug } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AircallSettings } from './AircallSettings';
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Phone,
+  Plug,
+  Settings,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { AircallSettings } from "./AircallSettings"
 
 interface VoiceIntegration {
-  id: string;
-  name: string;
-  provider: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  status: 'connected' | 'disconnected' | 'configured';
-  isSupported: boolean;
+  id: string
+  name: string
+  provider: string
+  description: string
+  icon: React.ComponentType<any>
+  status: "connected" | "disconnected" | "configured"
+  isSupported: boolean
 }
 
 export const VoiceIntegrationsList = () => {
-  const [expandedIntegrations, setExpandedIntegrations] = useState<Record<string, boolean>>({});
+  const [expandedIntegrations, setExpandedIntegrations] = useState<Record<string, boolean>>({})
 
   const voiceIntegrations: VoiceIntegration[] = [
     {
-      id: 'aircall',
-      name: 'Aircall',
-      provider: 'Aircall',
-      description: 'Cloud-based phone system with call analytics and CRM integrations',
+      id: "aircall",
+      name: "Aircall",
+      provider: "Aircall",
+      description: "Cloud-based phone system with call analytics and CRM integrations",
       icon: Phone,
-      status: 'connected',
-      isSupported: true
+      status: "connected",
+      isSupported: true,
     },
     {
-      id: 'twilio',
-      name: 'Twilio Voice',
-      provider: 'Twilio',
-      description: 'Programmable voice communications platform for custom telephony solutions',
+      id: "twilio",
+      name: "Twilio Voice",
+      provider: "Twilio",
+      description: "Programmable voice communications platform for custom telephony solutions",
       icon: Phone,
-      status: 'disconnected',
-      isSupported: false
+      status: "disconnected",
+      isSupported: false,
     },
     {
-      id: 'aws-connect',
-      name: 'AWS Connect',
-      provider: 'Amazon',
-      description: 'Cloud contact center service with omnichannel customer service',
+      id: "aws-connect",
+      name: "AWS Connect",
+      provider: "Amazon",
+      description: "Cloud contact center service with omnichannel customer service",
       icon: Phone,
-      status: 'disconnected',
-      isSupported: false
+      status: "disconnected",
+      isSupported: false,
     },
     {
-      id: 'microsoft-teams',
-      name: 'Microsoft Teams Calling',
-      provider: 'Microsoft',
-      description: 'Enterprise calling solution integrated with Microsoft 365',
+      id: "microsoft-teams",
+      name: "Microsoft Teams Calling",
+      provider: "Microsoft",
+      description: "Enterprise calling solution integrated with Microsoft 365",
       icon: Phone,
-      status: 'disconnected',
-      isSupported: false
-    }
-  ];
+      status: "disconnected",
+      isSupported: false,
+    },
+  ]
 
   const toggleIntegration = (integrationId: string) => {
-    setExpandedIntegrations(prev => ({
+    setExpandedIntegrations((prev) => ({
       ...prev,
-      [integrationId]: !prev[integrationId]
-    }));
-  };
+      [integrationId]: !prev[integrationId],
+    }))
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'connected':
+      case "connected":
         return (
           <Badge variant="default" className="flex items-center gap-1">
             <CheckCircle className="h-3 w-3" />
             Connected
           </Badge>
-        );
-      case 'configured':
+        )
+      case "configured":
         return (
           <Badge variant="secondary" className="flex items-center gap-1">
             <Settings className="h-3 w-3" />
             Configured
           </Badge>
-        );
+        )
       default:
         return (
           <Badge variant="outline" className="flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Not Connected
           </Badge>
-        );
+        )
     }
-  };
+  }
 
   const renderIntegrationContent = (integration: VoiceIntegration) => {
-    if (integration.id === 'aircall') {
-      return <AircallSettings />;
+    if (integration.id === "aircall") {
+      return <AircallSettings />
     }
-    
+
     // Placeholder for other integrations
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -104,8 +113,8 @@ export const VoiceIntegrationsList = () => {
         <p className="text-sm">Configuration for {integration.name} will be available soon</p>
         <p className="text-xs mt-2">Contact support if you need this integration urgently</p>
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -120,15 +129,15 @@ export const VoiceIntegrationsList = () => {
 
       <div className="space-y-3">
         {voiceIntegrations.map((integration) => {
-          const Icon = integration.icon;
-          const isExpanded = expandedIntegrations[integration.id];
-          
+          const Icon = integration.icon
+          const isExpanded = expandedIntegrations[integration.id]
+
           return (
-            <Card key={integration.id} className="bg-gradient-surface border-border/50 shadow-surface">
-              <Collapsible 
-                open={isExpanded}
-                onOpenChange={() => toggleIntegration(integration.id)}
-              >
+            <Card
+              key={integration.id}
+              className="bg-gradient-surface border-border/50 shadow-surface"
+            >
+              <Collapsible open={isExpanded} onOpenChange={() => toggleIntegration(integration.id)}>
                 <CollapsibleTrigger asChild>
                   <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
                     <div className="flex items-center justify-between">
@@ -146,7 +155,7 @@ export const VoiceIntegrationsList = () => {
                           </CardDescription>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {!integration.isSupported && (
                           <Badge variant="outline" className="text-xs">
@@ -185,19 +194,17 @@ export const VoiceIntegrationsList = () => {
                     </div>
                   </CardHeader>
                 </CollapsibleTrigger>
-                
+
                 <CollapsibleContent>
                   <CardContent className="pt-0">
-                    <div className="border-t pt-6">
-                      {renderIntegrationContent(integration)}
-                    </div>
+                    <div className="border-t pt-6">{renderIntegrationContent(integration)}</div>
                   </CardContent>
                 </CollapsibleContent>
               </Collapsible>
             </Card>
-          );
+          )
         })}
       </div>
     </div>
-  );
-};
+  )
+}

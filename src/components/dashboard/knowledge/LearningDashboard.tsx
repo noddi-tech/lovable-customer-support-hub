@@ -1,40 +1,68 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  LineChart, Line, ReferenceLine, ResponsiveContainer,
-} from "recharts";
+  AlertTriangle,
+  Eye,
+  GitCompare,
+  HelpCircle,
+  MessageSquare,
+  Percent,
+  Target,
+  ThumbsDown,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react"
+import { useMemo, useState } from "react"
 import {
-  MessageSquare, Percent, GitCompare, Target,
-  TrendingUp, TrendingDown, AlertTriangle, ThumbsDown, HelpCircle, Eye, X,
-} from "lucide-react";
-import { formatRelativeTime } from "@/utils/dateFormatting";
-import { useToast } from "@/hooks/use-toast";
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { formatRelativeTime } from "@/utils/dateFormatting"
 
 interface Props {
-  organizationId: string;
+  organizationId: string
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
-const sevenDaysAgo = () => new Date(Date.now() - 7 * 86400000).toISOString();
-const fourteenDaysAgo = () => new Date(Date.now() - 14 * 86400000).toISOString();
-const thirtyDaysAgo = () => new Date(Date.now() - 30 * 86400000).toISOString();
+const sevenDaysAgo = () => new Date(Date.now() - 7 * 86400000).toISOString()
+const fourteenDaysAgo = () => new Date(Date.now() - 14 * 86400000).toISOString()
+const thirtyDaysAgo = () => new Date(Date.now() - 30 * 86400000).toISOString()
 
 function trendPercent(current: number, previous: number) {
-  if (previous === 0) return current > 0 ? 100 : 0;
-  return Math.round(((current - previous) / previous) * 100);
+  if (previous === 0) return current > 0 ? 100 : 0
+  return Math.round(((current - previous) / previous) * 100)
 }
 
 function TrendArrow({ value }: { value: number }) {
-  if (value === 0) return null;
+  if (value === 0) return null
   return value > 0 ? (
     <span className="inline-flex items-center gap-0.5 text-xs text-green-600">
       <TrendingUp className="w-3 h-3" /> +{value}%
@@ -43,7 +71,7 @@ function TrendArrow({ value }: { value: number }) {
     <span className="inline-flex items-center gap-0.5 text-xs text-red-500">
       <TrendingDown className="w-3 h-3" /> {value}%
     </span>
-  );
+  )
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,75 +80,108 @@ const CATEGORY_COLORS: Record<string, string> = {
   policy: "hsl(35 90% 55%)",
   completeness: "hsl(150 60% 45%)",
   format: "hsl(280 60% 55%)",
-};
+}
 
 const REASON_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  quality_flag: { label: "Quality Flag", icon: AlertTriangle, color: "bg-yellow-100 text-yellow-800" },
-  low_eval_score: { label: "Low Score", icon: TrendingDown, color: "bg-orange-100 text-orange-800" },
-  negative_feedback: { label: "Negative Feedback", icon: ThumbsDown, color: "bg-red-100 text-red-800" },
+  quality_flag: {
+    label: "Quality Flag",
+    icon: AlertTriangle,
+    color: "bg-yellow-100 text-yellow-800",
+  },
+  low_eval_score: {
+    label: "Low Score",
+    icon: TrendingDown,
+    color: "bg-orange-100 text-orange-800",
+  },
+  negative_feedback: {
+    label: "Negative Feedback",
+    icon: ThumbsDown,
+    color: "bg-red-100 text-red-800",
+  },
   knowledge_gap: { label: "Knowledge Gap", icon: HelpCircle, color: "bg-blue-100 text-blue-800" },
-};
+}
 
 function priorityBadge(p: number | null) {
-  if (p === 1) return <Badge variant="destructive">Critical</Badge>;
-  if (p === 2) return <Badge className="bg-orange-500 text-white hover:bg-orange-600">High</Badge>;
-  if (p === 3) return <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500">Medium</Badge>;
-  return <Badge variant="secondary">Low</Badge>;
+  if (p === 1) return <Badge variant="destructive">Critical</Badge>
+  if (p === 2) return <Badge className="bg-orange-500 text-white hover:bg-orange-600">High</Badge>
+  if (p === 3)
+    return <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500">Medium</Badge>
+  return <Badge variant="secondary">Low</Badge>
 }
 
 // ── component ────────────────────────────────────────────────────────
 export function LearningDashboard({ organizationId }: Props) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
+  const { toast } = useToast()
+  const qc = useQueryClient()
 
   // ── Section 1: stat cards ──────────────────────────────────────────
   const { data: feedbackStats } = useQuery({
     queryKey: ["learning-feedback-stats", organizationId],
     staleTime: 60_000,
     queryFn: async () => {
-      const now7 = sevenDaysAgo();
-      const now14 = fourteenDaysAgo();
+      const now7 = sevenDaysAgo()
+      const now14 = fourteenDaysAgo()
 
       // total feedback by source (last 7 + prev 7)
       // Use `as any` to avoid TS2589 deep instantiation with chained Supabase filters
-      const feedbackQ = (org: string) => supabase.from("widget_ai_feedback").select("source").eq("organization_id", org) as any;
+      const feedbackQ = (org: string) =>
+        supabase.from("widget_ai_feedback").select("source").eq("organization_id", org) as any
       const [{ data: cur }, { data: prev }] = await Promise.all([
         feedbackQ(organizationId).gte("created_at", now7),
         feedbackQ(organizationId).gte("created_at", now14).lt("created_at", now7),
-      ]);
+      ])
 
-      const bySource: Record<string, number> = {};
-      ((cur ?? []) as Array<{ source: string | null }>).forEach((r) => { bySource[r.source ?? "unknown"] = (bySource[r.source ?? "unknown"] || 0) + 1; });
+      const bySource: Record<string, number> = {}
+      ;((cur ?? []) as Array<{ source: string | null }>).forEach((r) => {
+        bySource[r.source ?? "unknown"] = (bySource[r.source ?? "unknown"] || 0) + 1
+      })
 
       // assistant message counts for rate
-      const msgQ = (org: string) => (supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }) as any).eq("organization_id", org).eq("role", "assistant");
+      const msgQ = (org: string) =>
+        (supabase.from("widget_ai_messages").select("*", { count: "exact", head: true }) as any)
+          .eq("organization_id", org)
+          .eq("role", "assistant")
       const [{ count: msgCur }, { count: msgPrev }] = await Promise.all([
         msgQ(organizationId).gte("created_at", now7),
         msgQ(organizationId).gte("created_at", now14).lt("created_at", now7),
-      ]);
+      ])
 
-      const totalCur = ((cur ?? []) as any[]).length;
-      const totalPrev = ((prev ?? []) as any[]).length;
-      const rateCur = (msgCur ?? 0) > 0 ? (totalCur / (msgCur ?? 1)) * 100 : 0;
-      const ratePrev = (msgPrev ?? 0) > 0 ? (totalPrev / (msgPrev ?? 1)) * 100 : 0;
+      const totalCur = ((cur ?? []) as any[]).length
+      const totalPrev = ((prev ?? []) as any[]).length
+      const rateCur = (msgCur ?? 0) > 0 ? (totalCur / (msgCur ?? 1)) * 100 : 0
+      const ratePrev = (msgPrev ?? 0) > 0 ? (totalPrev / (msgPrev ?? 1)) * 100 : 0
 
       // preference pairs
-      const ppQ = (org: string) => (supabase.from("preference_pairs").select("*", { count: "exact", head: true }) as any).eq("organization_id", org);
+      const ppQ = (org: string) =>
+        (supabase.from("preference_pairs").select("*", { count: "exact", head: true }) as any).eq(
+          "organization_id",
+          org,
+        )
       const [{ count: ppCur }, { count: ppPrev }] = await Promise.all([
         ppQ(organizationId).gte("created_at", now7),
         ppQ(organizationId).gte("created_at", now14).lt("created_at", now7),
-      ]);
+      ])
 
       // avg eval score
-      const evalQ = (org: string) => (supabase.from("conversation_evaluations").select("composite_score") as any).eq("organization_id", org);
+      const evalQ = (org: string) =>
+        (supabase.from("conversation_evaluations").select("composite_score") as any).eq(
+          "organization_id",
+          org,
+        )
       const [{ data: evalCur }, { data: evalPrev }] = await Promise.all([
         evalQ(organizationId).gte("created_at", now7),
         evalQ(organizationId).gte("created_at", now14).lt("created_at", now7),
-      ]);
-      const evalCurArr = (evalCur ?? []) as Array<{ composite_score: number | null }>;
-      const evalPrevArr = (evalPrev ?? []) as Array<{ composite_score: number | null }>;
-      const avgCur = evalCurArr.length > 0 ? evalCurArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalCurArr.length : 0;
-      const avgPrev = evalPrevArr.length > 0 ? evalPrevArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalPrevArr.length : 0;
+      ])
+      const evalCurArr = (evalCur ?? []) as Array<{ composite_score: number | null }>
+      const evalPrevArr = (evalPrev ?? []) as Array<{ composite_score: number | null }>
+      const avgCur =
+        evalCurArr.length > 0
+          ? evalCurArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalCurArr.length
+          : 0
+      const avgPrev =
+        evalPrevArr.length > 0
+          ? evalPrevArr.reduce((s, r) => s + (r.composite_score ?? 0), 0) / evalPrevArr.length
+          : 0
 
       return {
         totalFeedback: totalCur,
@@ -132,9 +193,9 @@ export function LearningDashboard({ organizationId }: Props) {
         ppTrend: trendPercent(ppCur ?? 0, ppPrev ?? 0),
         avgEval: avgCur,
         evalTrend: trendPercent(avgCur, avgPrev),
-      };
+      }
     },
-  });
+  })
 
   // ── Section 2: edit category distribution ──────────────────────────
   const { data: categoryData } = useQuery({
@@ -145,18 +206,18 @@ export function LearningDashboard({ organizationId }: Props) {
         .from("preference_pairs")
         .select("edit_category")
         .eq("organization_id", organizationId)
-        .not("edit_category", "is", null);
+        .not("edit_category", "is", null)
 
-      const counts: Record<string, number> = {};
-      (data ?? []).forEach((r) => {
-        const cat = r.edit_category ?? "unknown";
-        counts[cat] = (counts[cat] || 0) + 1;
-      });
+      const counts: Record<string, number> = {}
+      ;(data ?? []).forEach((r) => {
+        const cat = r.edit_category ?? "unknown"
+        counts[cat] = (counts[cat] || 0) + 1
+      })
       return Object.entries(counts)
         .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => b.count - a.count)
     },
-  });
+  })
 
   // ── Section 3: eval score trend ────────────────────────────────────
   const { data: evalTrend } = useQuery({
@@ -168,24 +229,24 @@ export function LearningDashboard({ organizationId }: Props) {
         .select("created_at, composite_score")
         .eq("organization_id", organizationId)
         .gte("created_at", thirtyDaysAgo())
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
 
-      const byDate: Record<string, { sum: number; count: number }> = {};
-      (data ?? []).forEach((r) => {
-        const d = r.created_at?.split("T")[0] ?? "";
-        if (!byDate[d]) byDate[d] = { sum: 0, count: 0 };
-        byDate[d].sum += (r.composite_score ?? 0) * 100;
-        byDate[d].count += 1;
-      });
+      const byDate: Record<string, { sum: number; count: number }> = {}
+      ;(data ?? []).forEach((r) => {
+        const d = r.created_at?.split("T")[0] ?? ""
+        if (!byDate[d]) byDate[d] = { sum: 0, count: 0 }
+        byDate[d].sum += (r.composite_score ?? 0) * 100
+        byDate[d].count += 1
+      })
       return Object.entries(byDate)
         .map(([date, v]) => ({ date, score: Math.round(v.sum / v.count) }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+        .sort((a, b) => a.date.localeCompare(b.date))
     },
-  });
+  })
 
   // ── Section 4: review queue ────────────────────────────────────────
-  const [reasonFilter, setReasonFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [reasonFilter, setReasonFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("pending")
 
   const { data: reviewItems, isLoading: reviewLoading } = useQuery({
     queryKey: ["learning-review-queue", organizationId, statusFilter],
@@ -193,50 +254,54 @@ export function LearningDashboard({ organizationId }: Props) {
     queryFn: async () => {
       const { data } = await supabase.functions.invoke("review-queue", {
         body: { action: "list", organizationId, status: statusFilter },
-      });
+      })
       return (data?.items ?? data ?? []) as Array<{
-        id: string;
-        conversation_id: string;
-        priority: number | null;
-        reason: string;
-        details: string | null;
-        created_at: string | null;
-        status: string | null;
-      }>;
+        id: string
+        conversation_id: string
+        priority: number | null
+        reason: string
+        details: string | null
+        created_at: string | null
+        status: string | null
+      }>
     },
-  });
+  })
 
   const filteredReview = useMemo(() => {
-    if (!reviewItems) return [];
-    const items = reasonFilter === "all" ? reviewItems : reviewItems.filter((r) => r.reason === reasonFilter);
-    return items.sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5));
-  }, [reviewItems, reasonFilter]);
+    if (!reviewItems) return []
+    const items =
+      reasonFilter === "all" ? reviewItems : reviewItems.filter((r) => r.reason === reasonFilter)
+    return items.sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))
+  }, [reviewItems, reasonFilter])
 
   const updateReview = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       await supabase.functions.invoke("review-queue", {
         body: { action: "update", id, status },
-      });
+      })
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["learning-review-queue"] });
-      toast({ title: "Review queue updated" });
+      qc.invalidateQueries({ queryKey: ["learning-review-queue"] })
+      toast({ title: "Review queue updated" })
     },
-  });
+  })
 
   // ── chart configs ──────────────────────────────────────────────────
   const barConfig = useMemo(() => {
-    const cfg: Record<string, { label: string; color: string }> = {};
-    (categoryData ?? []).forEach((c) => {
-      cfg[c.name] = { label: c.name, color: CATEGORY_COLORS[c.name] ?? "hsl(var(--muted-foreground))" };
-    });
-    return cfg;
-  }, [categoryData]);
+    const cfg: Record<string, { label: string; color: string }> = {}
+    ;(categoryData ?? []).forEach((c) => {
+      cfg[c.name] = {
+        label: c.name,
+        color: CATEGORY_COLORS[c.name] ?? "hsl(var(--muted-foreground))",
+      }
+    })
+    return cfg
+  }, [categoryData])
 
-  const lineConfig = { score: { label: "Quality Score", color: "hsl(210 80% 55%)" } };
+  const lineConfig = { score: { label: "Quality Score", color: "hsl(210 80% 55%)" } }
 
   // ── stats shorthand ────────────────────────────────────────────────
-  const s = feedbackStats;
+  const s = feedbackStats
 
   return (
     <div className="space-y-6">
@@ -254,7 +319,9 @@ export function LearningDashboard({ organizationId }: Props) {
             </div>
             {s?.bySource && Object.keys(s.bySource).length > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
-                {Object.entries(s.bySource).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                {Object.entries(s.bySource)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(" · ")}
               </p>
             )}
           </CardContent>
@@ -309,10 +376,16 @@ export function LearningDashboard({ organizationId }: Props) {
           </CardHeader>
           <CardContent>
             {(categoryData ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No preference pairs recorded yet</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No preference pairs recorded yet
+              </p>
             ) : (
               <ChartContainer config={barConfig} className="h-[260px] w-full">
-                <BarChart data={categoryData} layout="vertical" margin={{ left: 80, right: 16, top: 8, bottom: 8 }}>
+                <BarChart
+                  data={categoryData}
+                  layout="vertical"
+                  margin={{ left: 80, right: 16, top: 8, bottom: 8 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={72} tick={{ fontSize: 12 }} />
@@ -331,16 +404,33 @@ export function LearningDashboard({ organizationId }: Props) {
           </CardHeader>
           <CardContent>
             {(evalTrend ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No evaluation data yet</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                No evaluation data yet
+              </p>
             ) : (
               <ChartContainer config={lineConfig} className="h-[260px] w-full">
                 <LineChart data={evalTrend} margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v: string) => v.slice(5)} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: string) => v.slice(5)}
+                  />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                  <ReferenceLine y={50} stroke="hsl(var(--destructive))" strokeDasharray="6 4" label={{ value: "50%", position: "insideTopLeft", fontSize: 11 }} />
+                  <ReferenceLine
+                    y={50}
+                    stroke="hsl(var(--destructive))"
+                    strokeDasharray="6 4"
+                    label={{ value: "50%", position: "insideTopLeft", fontSize: 11 }}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line type="monotone" dataKey="score" stroke="hsl(210 80% 55%)" strokeWidth={2} dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="hsl(210 80% 55%)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ChartContainer>
             )}
@@ -398,16 +488,22 @@ export function LearningDashboard({ organizationId }: Props) {
                 </TableHeader>
                 <TableBody>
                   {filteredReview.map((item) => {
-                    const rc = REASON_CONFIG[item.reason] ?? { label: item.reason, icon: HelpCircle, color: "bg-muted text-muted-foreground" };
-                    const Icon = rc.icon;
-                    const details = item.details ?? "";
-                    const truncated = details.length > 100 ? details.slice(0, 100) + "…" : details;
+                    const rc = REASON_CONFIG[item.reason] ?? {
+                      label: item.reason,
+                      icon: HelpCircle,
+                      color: "bg-muted text-muted-foreground",
+                    }
+                    const Icon = rc.icon
+                    const details = item.details ?? ""
+                    const truncated = details.length > 100 ? `${details.slice(0, 100)}…` : details
 
                     return (
                       <TableRow key={item.id}>
                         <TableCell>{priorityBadge(item.priority)}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${rc.color}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${rc.color}`}
+                          >
                             <Icon className="w-3 h-3" /> {rc.label}
                           </span>
                         </TableCell>
@@ -417,7 +513,10 @@ export function LearningDashboard({ organizationId }: Props) {
                               <TooltipTrigger asChild>
                                 <span className="cursor-default">{truncated}</span>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-sm whitespace-pre-wrap text-xs">
+                              <TooltipContent
+                                side="top"
+                                className="max-w-sm whitespace-pre-wrap text-xs"
+                              >
                                 {details}
                               </TooltipContent>
                             </Tooltip>
@@ -436,8 +535,11 @@ export function LearningDashboard({ organizationId }: Props) {
                               className="h-7 text-xs"
                               disabled={updateReview.isPending}
                               onClick={() => {
-                                updateReview.mutate({ id: item.id, status: "reviewed" });
-                                window.open(`/ai-analytics?conversation=${item.conversation_id}`, "_blank");
+                                updateReview.mutate({ id: item.id, status: "reviewed" })
+                                window.open(
+                                  `/ai-analytics?conversation=${item.conversation_id}`,
+                                  "_blank",
+                                )
                               }}
                             >
                               <Eye className="w-3 h-3 mr-1" /> Review
@@ -447,14 +549,16 @@ export function LearningDashboard({ organizationId }: Props) {
                               variant="ghost"
                               className="h-7 text-xs"
                               disabled={updateReview.isPending}
-                              onClick={() => updateReview.mutate({ id: item.id, status: "dismissed" })}
+                              onClick={() =>
+                                updateReview.mutate({ id: item.id, status: "dismissed" })
+                              }
                             >
                               <X className="w-3 h-3 mr-1" /> Dismiss
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })}
                 </TableBody>
               </Table>
@@ -463,5 +567,5 @@ export function LearningDashboard({ organizationId }: Props) {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

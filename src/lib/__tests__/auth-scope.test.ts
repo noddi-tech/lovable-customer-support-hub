@@ -1,5 +1,5 @@
-import type { NavioClaims } from "@navio/nidp";
-import { describe, expect, it } from "vitest";
+import type { NavioClaims } from "@navio/nidp"
+import { describe, expect, it } from "vitest"
 import {
   canAccessDepartmentId,
   canAccessOrganizationId,
@@ -12,7 +12,7 @@ import {
   pickDefaultOrgId,
   resolveApiDepartmentIds,
   summarizeClaimScope,
-} from "@/lib/auth-scope";
+} from "@/lib/auth-scope"
 
 const claimsWithMemberships = {
   navio_active_organization: { id: "1", slug: "tronderdekk", name: "Trønderdekk" },
@@ -45,20 +45,20 @@ const claimsWithMemberships = {
     { id: "1", slug: "tronderdekk", name: "Trønderdekk" },
     { id: "2", slug: "dekkpro", name: "Dekkpro" },
   ],
-} as unknown as Partial<NavioClaims>;
+} as unknown as Partial<NavioClaims>
 
 describe("auth-scope", () => {
   it("lists all service departments from memberships", () => {
-    const opts = getAccessibleServiceDepartments(claimsWithMemberships);
-    expect(opts.map((o) => o.navioId).sort((a, b) => a - b)).toEqual([10, 11, 20]);
-    expect(opts.find((o) => o.navioId === 20)?.name).toBe("Bergen");
-  });
+    const opts = getAccessibleServiceDepartments(claimsWithMemberships)
+    expect(opts.map((o) => o.navioId).sort((a, b) => a - b)).toEqual([10, 11, 20])
+    expect(opts.find((o) => o.navioId === 20)?.name).toBe("Bergen")
+  })
 
   it("lists organizations from memberships", () => {
-    const orgs = getAccessibleOrganizations(claimsWithMemberships);
-    expect(orgs.map((o) => o.navioId).sort((a, b) => a - b)).toEqual([1, 2]);
-    expect(orgs.find((o) => o.navioId === 2)?.name).toBe("Dekkpro");
-  });
+    const orgs = getAccessibleOrganizations(claimsWithMemberships)
+    expect(orgs.map((o) => o.navioId).sort((a, b) => a - b)).toEqual([1, 2])
+    expect(orgs.find((o) => o.navioId === 2)?.name).toBe("Dekkpro")
+  })
 
   it("joins local departments via navio_department_id", () => {
     const opts = getAccessibleServiceDepartments(
@@ -72,10 +72,10 @@ describe("auth-scope", () => {
           navio_department_id: 10,
         },
       ],
-      []
-    );
-    expect(opts.find((o) => o.navioId === 10)?.localId).toBe("uuid-10");
-  });
+      [],
+    )
+    expect(opts.find((o) => o.navioId === 10)?.localId).toBe("uuid-10")
+  })
 
   it("canAccessDepartmentId accepts navio integer ids and local UUIDs", () => {
     const local = [
@@ -86,7 +86,7 @@ describe("auth-scope", () => {
         slug: "oslo",
         navio_department_id: 10,
       },
-    ];
+    ]
     expect(
       canAccessDepartmentId({
         deptId: "10",
@@ -94,8 +94,8 @@ describe("auth-scope", () => {
         localDepartments: local,
         localAccess: [],
         isSuperuser: false,
-      })
-    ).toBe(true);
+      }),
+    ).toBe(true)
     expect(
       canAccessDepartmentId({
         deptId: "uuid-10",
@@ -103,8 +103,8 @@ describe("auth-scope", () => {
         localDepartments: local,
         localAccess: [],
         isSuperuser: false,
-      })
-    ).toBe(true);
+      }),
+    ).toBe(true)
     expect(
       canAccessDepartmentId({
         deptId: "999",
@@ -112,8 +112,8 @@ describe("auth-scope", () => {
         localDepartments: local,
         localAccess: [],
         isSuperuser: false,
-      })
-    ).toBe(false);
+      }),
+    ).toBe(false)
     expect(
       canAccessDepartmentId({
         deptId: "999",
@@ -121,46 +121,46 @@ describe("auth-scope", () => {
         localDepartments: local,
         localAccess: [],
         isSuperuser: true,
-      })
-    ).toBe(true);
-  });
+      }),
+    ).toBe(true)
+  })
 
   it("getClaimDepartments falls back to memberships when flat list missing", () => {
     const slim = {
       navio_memberships: claimsWithMemberships.navio_memberships,
-    } as Partial<NavioClaims>;
-    expect(getClaimDepartments(slim)).toHaveLength(3);
-  });
+    } as Partial<NavioClaims>
+    expect(getClaimDepartments(slim)).toHaveLength(3)
+  })
 
   it("summarizeClaimScope exposes membership graph for diagnostics", () => {
-    const s = summarizeClaimScope(claimsWithMemberships);
-    expect(s.membershipCount).toBe(2);
-    expect(s.departmentCount).toBe(3);
-    expect(s.memberships[0]?.departments).toHaveLength(2);
-  });
+    const s = summarizeClaimScope(claimsWithMemberships)
+    expect(s.membershipCount).toBe(2)
+    expect(s.departmentCount).toBe(3)
+    expect(s.memberships[0]?.departments).toHaveLength(2)
+  })
 
   it("getEffectiveScope builds org+dept lists and isEmpty", () => {
-    const scope = getEffectiveScope({ claims: claimsWithMemberships });
-    expect(scope.isSuperuser).toBe(false);
-    expect(scope.isEmpty).toBe(false);
-    expect(scope.organizations.map((o) => o.navioId).sort()).toEqual([1, 2]);
-    expect(scope.departments.map((d) => d.navioId).sort()).toEqual([10, 11, 20]);
-  });
+    const scope = getEffectiveScope({ claims: claimsWithMemberships })
+    expect(scope.isSuperuser).toBe(false)
+    expect(scope.isEmpty).toBe(false)
+    expect(scope.organizations.map((o) => o.navioId).sort()).toEqual([1, 2])
+    expect(scope.departments.map((d) => d.navioId).sort()).toEqual([10, 11, 20])
+  })
 
   it("resolveApiDepartmentIds expands empty selection for non-superuser", () => {
-    const scope = getEffectiveScope({ claims: claimsWithMemberships });
-    expect(resolveApiDepartmentIds([], scope).sort((a, b) => a - b)).toEqual([10, 11, 20]);
-    expect(resolveApiDepartmentIds([10, 999], scope)).toEqual([10]);
-  });
+    const scope = getEffectiveScope({ claims: claimsWithMemberships })
+    expect(resolveApiDepartmentIds([], scope).sort((a, b) => a - b)).toEqual([10, 11, 20])
+    expect(resolveApiDepartmentIds([10, 999], scope)).toEqual([10])
+  })
 
   it("resolveApiDepartmentIds leaves empty for superuser", () => {
     const scope = getEffectiveScope({
       claims: { navio_active_roles: ["owner_superuser"] },
       localRoles: [{ organization_id: null, role: "owner_superuser" }],
-    });
-    expect(scope.isSuperuser).toBe(true);
-    expect(resolveApiDepartmentIds([], scope)).toEqual([]);
-  });
+    })
+    expect(scope.isSuperuser).toBe(true)
+    expect(resolveApiDepartmentIds([], scope)).toEqual([])
+  })
 
   it("supporthub.admin permission is network superuser", () => {
     const scope = getEffectiveScope({
@@ -168,17 +168,17 @@ describe("auth-scope", () => {
         navio_permissions: ["supporthub.admin"],
         navio_roles: ["roles/supporthub.admin"],
       },
-    });
-    expect(scope.isSuperuser).toBe(true);
-    expect(resolveApiDepartmentIds([], scope)).toEqual([]);
-  });
+    })
+    expect(scope.isSuperuser).toBe(true)
+    expect(resolveApiDepartmentIds([], scope)).toEqual([])
+  })
 
   it("roles/superuser is network superuser without forceSuperuser", () => {
     const scope = getEffectiveScope({
       claims: { navio_roles: ["roles/superuser"] },
-    });
-    expect(scope.isSuperuser).toBe(true);
-  });
+    })
+    expect(scope.isSuperuser).toBe(true)
+  })
 
   it("does not treat leftover owner_superuser as superuser when IAM graph exists", () => {
     const scope = getEffectiveScope({
@@ -187,32 +187,32 @@ describe("auth-scope", () => {
         navio_active_roles: ["owner_superuser"],
       },
       localRoles: [{ organization_id: null, role: "super_admin" }],
-    });
-    expect(scope.isSuperuser).toBe(false);
-  });
+    })
+    expect(scope.isSuperuser).toBe(false)
+  })
 
   it("forceSuperuser (e.g. Google employee) is unrestricted", () => {
     const scope = getEffectiveScope({
       claims: {},
       forceSuperuser: true,
-    });
-    expect(scope.isSuperuser).toBe(true);
-    expect(resolveApiDepartmentIds([], scope)).toEqual([]);
-    expect(resolveApiDepartmentIds([1, 2, 3], scope)).toEqual([1, 2, 3]);
-  });
+    })
+    expect(scope.isSuperuser).toBe(true)
+    expect(resolveApiDepartmentIds([], scope)).toEqual([])
+    expect(resolveApiDepartmentIds([1, 2, 3], scope)).toEqual([1, 2, 3])
+  })
 
   it("clampDepartmentIds drops out-of-scope ids", () => {
-    const scope = getEffectiveScope({ claims: claimsWithMemberships });
-    expect(clampDepartmentIds([10, 999, 20], scope).sort((a, b) => a - b)).toEqual([10, 20]);
-  });
+    const scope = getEffectiveScope({ claims: claimsWithMemberships })
+    expect(clampDepartmentIds([10, 999, 20], scope).sort((a, b) => a - b)).toEqual([10, 20])
+  })
 
   it("clampOrgId and pickDefaultOrgId", () => {
-    const scope = getEffectiveScope({ claims: claimsWithMemberships });
-    expect(clampOrgId("1", scope)).toBe(1);
-    expect(clampOrgId(2, scope)).toBe(2);
-    expect(clampOrgId("999", scope)).toBeNull();
-    expect(pickDefaultOrgId(scope, claimsWithMemberships)).toBe(1);
-  });
+    const scope = getEffectiveScope({ claims: claimsWithMemberships })
+    expect(clampOrgId("1", scope)).toBe(1)
+    expect(clampOrgId(2, scope)).toBe(2)
+    expect(clampOrgId("999", scope)).toBeNull()
+    expect(pickDefaultOrgId(scope, claimsWithMemberships)).toBe(1)
+  })
 
   it("canAccessOrganizationId from memberships", () => {
     expect(
@@ -222,8 +222,8 @@ describe("auth-scope", () => {
         localOrganizations: [],
         localRoles: [],
         isSuperuser: false,
-      })
-    ).toBe(true);
+      }),
+    ).toBe(true)
     expect(
       canAccessOrganizationId({
         orgId: "tronderdekk",
@@ -231,8 +231,8 @@ describe("auth-scope", () => {
         localOrganizations: [],
         localRoles: [],
         isSuperuser: false,
-      })
-    ).toBe(true);
+      }),
+    ).toBe(true)
     expect(
       canAccessOrganizationId({
         orgId: "nope",
@@ -240,9 +240,9 @@ describe("auth-scope", () => {
         localOrganizations: [],
         localRoles: [],
         isSuperuser: false,
-      })
-    ).toBe(false);
-  });
+      }),
+    ).toBe(false)
+  })
 
   it("local org role without claims grants org UUID access", () => {
     expect(
@@ -259,7 +259,7 @@ describe("auth-scope", () => {
         ],
         localRoles: [{ organization_id: "org-uuid", role: "org_user" }],
         isSuperuser: false,
-      })
-    ).toBe(true);
-  });
-});
+      }),
+    ).toBe(true)
+  })
+})

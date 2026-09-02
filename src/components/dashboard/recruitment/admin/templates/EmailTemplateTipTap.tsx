@@ -1,55 +1,57 @@
-import { useEffect, useState } from 'react';
-import { useEditor, EditorContent, type Editor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
+import Link from "@tiptap/extension-link"
+import { type Editor, EditorContent, useEditor } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import { useEffect, useState } from "react"
+
 const StyledLink = Link.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
       style: {
         default: null,
-        parseHTML: (el) => el.getAttribute('style'),
+        parseHTML: (el) => el.getAttribute("style"),
         renderHTML: (attrs) => (attrs.style ? { style: attrs.style } : {}),
       },
       target: {
         default: null,
-        parseHTML: (el) => el.getAttribute('target'),
+        parseHTML: (el) => el.getAttribute("target"),
         renderHTML: (attrs) => (attrs.target ? { target: attrs.target } : {}),
       },
       rel: {
         default: null,
-        parseHTML: (el) => el.getAttribute('rel'),
+        parseHTML: (el) => el.getAttribute("rel"),
         renderHTML: (attrs) => (attrs.rel ? { rel: attrs.rel } : {}),
       },
-    };
+    }
   },
-});
-import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
+})
+
+import Placeholder from "@tiptap/extension-placeholder"
+import Underline from "@tiptap/extension-underline"
 import {
   Bold,
-  Italic,
-  Underline as UnderlineIcon,
   Heading1,
   Heading2,
   Heading3,
+  Italic,
+  Link as LinkIcon,
   List,
   ListOrdered,
-  Link as LinkIcon,
   Minus,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import { MergeFieldDropdown } from './MergeFieldDropdown';
-import { cn } from '@/lib/utils';
+  Underline as UnderlineIcon,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+import { MergeFieldDropdown } from "./MergeFieldDropdown"
 
 interface Props {
-  value: string;
-  onChange: (html: string) => void;
-  placeholder?: string;
-  className?: string;
+  value: string
+  onChange: (html: string) => void
+  placeholder?: string
+  className?: string
 }
 
 export function EmailTemplateTipTap({ value, onChange, placeholder, className }: Props) {
@@ -61,74 +63,79 @@ export function EmailTemplateTipTap({ value, onChange, placeholder, className }:
       Underline,
       StyledLink.configure({
         openOnClick: false,
-        HTMLAttributes: { class: 'text-primary underline' },
+        HTMLAttributes: { class: "text-primary underline" },
       }),
       Placeholder.configure({
         placeholder:
           placeholder ||
-          'Skriv e-postinnholdet her. Bruk Sett inn flettefelt-knappen til å legge inn personlig informasjon.',
+          "Skriv e-postinnholdet her. Bruk Sett inn flettefelt-knappen til å legge inn personlig informasjon.",
       }),
     ],
-    content: value || '<p></p>',
+    content: value || "<p></p>",
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange(editor.getHTML())
     },
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm max-w-none focus:outline-none min-h-[20rem] px-4 py-3 [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child]:before:text-muted-foreground [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:h-0',
+          "prose prose-sm max-w-none focus:outline-none min-h-[20rem] px-4 py-3 [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)] [&_p.is-editor-empty:first-child]:before:text-muted-foreground [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:h-0",
       },
     },
-  });
+  })
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor) return
     if (editor.getHTML() !== value) {
-      editor.commands.setContent(value || '<p></p>', { emitUpdate: false });
+      editor.commands.setContent(value || "<p></p>", { emitUpdate: false })
     }
-  }, [value, editor]);
+  }, [value, editor])
 
   if (!editor) {
     return (
-      <div className={cn('rounded-md border border-input bg-background p-4 text-xs text-muted-foreground', className)}>
+      <div
+        className={cn(
+          "rounded-md border border-input bg-background p-4 text-xs text-muted-foreground",
+          className,
+        )}
+      >
         Laster editor...
       </div>
-    );
+    )
   }
 
   return (
-    <div className={cn('rounded-md border border-input bg-background overflow-hidden', className)}>
+    <div className={cn("rounded-md border border-input bg-background overflow-hidden", className)}>
       <Toolbar editor={editor} />
       <div className="resize-y overflow-auto min-h-[20rem]">
         <EditorContent editor={editor} />
       </div>
     </div>
-  );
+  )
 }
 
 function Toolbar({ editor }: { editor: Editor }) {
   const insertMergeField = (key: string) => {
-    editor.chain().focus().insertContent(key).run();
-  };
+    editor.chain().focus().insertContent(key).run()
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-input bg-muted/40 p-1.5">
       <ToolbarButton
-        active={editor.isActive('bold')}
+        active={editor.isActive("bold")}
         onClick={() => editor.chain().focus().toggleBold().run()}
         ariaLabel="Fet"
       >
         <Bold />
       </ToolbarButton>
       <ToolbarButton
-        active={editor.isActive('italic')}
+        active={editor.isActive("italic")}
         onClick={() => editor.chain().focus().toggleItalic().run()}
         ariaLabel="Kursiv"
       >
         <Italic />
       </ToolbarButton>
       <ToolbarButton
-        active={editor.isActive('underline')}
+        active={editor.isActive("underline")}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         ariaLabel="Understreket"
       >
@@ -136,21 +143,21 @@ function Toolbar({ editor }: { editor: Editor }) {
       </ToolbarButton>
       <Separator orientation="vertical" className="h-6 mx-0.5" />
       <ToolbarButton
-        active={editor.isActive('heading', { level: 1 })}
+        active={editor.isActive("heading", { level: 1 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         ariaLabel="Overskrift 1"
       >
         <Heading1 />
       </ToolbarButton>
       <ToolbarButton
-        active={editor.isActive('heading', { level: 2 })}
+        active={editor.isActive("heading", { level: 2 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         ariaLabel="Overskrift 2"
       >
         <Heading2 />
       </ToolbarButton>
       <ToolbarButton
-        active={editor.isActive('heading', { level: 3 })}
+        active={editor.isActive("heading", { level: 3 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         ariaLabel="Overskrift 3"
       >
@@ -158,14 +165,14 @@ function Toolbar({ editor }: { editor: Editor }) {
       </ToolbarButton>
       <Separator orientation="vertical" className="h-6 mx-0.5" />
       <ToolbarButton
-        active={editor.isActive('bulletList')}
+        active={editor.isActive("bulletList")}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         ariaLabel="Punktliste"
       >
         <List />
       </ToolbarButton>
       <ToolbarButton
-        active={editor.isActive('orderedList')}
+        active={editor.isActive("orderedList")}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         ariaLabel="Nummerert liste"
       >
@@ -184,7 +191,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         <MergeFieldDropdown onInsert={insertMergeField} size="xs" />
       </div>
     </div>
-  );
+  )
 }
 
 function ToolbarButton({
@@ -193,15 +200,15 @@ function ToolbarButton({
   ariaLabel,
   children,
 }: {
-  active?: boolean;
-  onClick: () => void;
-  ariaLabel: string;
-  children: React.ReactNode;
+  active?: boolean
+  onClick: () => void
+  ariaLabel: string
+  children: React.ReactNode
 }) {
   return (
     <Button
       type="button"
-      variant={active ? 'secondary' : 'ghost'}
+      variant={active ? "secondary" : "ghost"}
       size="xs"
       onClick={onClick}
       aria-label={ariaLabel}
@@ -210,40 +217,35 @@ function ToolbarButton({
     >
       {children}
     </Button>
-  );
+  )
 }
 
 function LinkButton({ editor }: { editor: Editor }) {
-  const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState('');
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState("")
 
   const apply = () => {
     if (url.trim()) {
-      editor
-        .chain()
-        .focus()
-        .extendMarkRange('link')
-        .setLink({ href: url.trim() })
-        .run();
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run()
     } else {
-      editor.chain().focus().unsetLink().run();
+      editor.chain().focus().unsetLink().run()
     }
-    setOpen(false);
-    setUrl('');
-  };
+    setOpen(false)
+    setUrl("")
+  }
 
   return (
     <Popover
       open={open}
       onOpenChange={(o) => {
-        setOpen(o);
-        if (o) setUrl(editor.getAttributes('link').href ?? '');
+        setOpen(o)
+        if (o) setUrl(editor.getAttributes("link").href ?? "")
       }}
     >
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant={editor.isActive('link') ? 'secondary' : 'ghost'}
+          variant={editor.isActive("link") ? "secondary" : "ghost"}
           size="xs"
           aria-label="Lenke"
           title="Lenke"
@@ -261,9 +263,9 @@ function LinkButton({ editor }: { editor: Editor }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                apply();
+              if (e.key === "Enter") {
+                e.preventDefault()
+                apply()
               }
             }}
             autoFocus
@@ -273,11 +275,11 @@ function LinkButton({ editor }: { editor: Editor }) {
               Avbryt
             </Button>
             <Button type="button" size="xs" onClick={apply}>
-              {editor.isActive('link') ? 'Oppdater' : 'Sett inn'}
+              {editor.isActive("link") ? "Oppdater" : "Sett inn"}
             </Button>
           </div>
         </div>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

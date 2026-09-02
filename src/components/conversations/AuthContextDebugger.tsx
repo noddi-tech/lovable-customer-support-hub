@@ -1,100 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/components/auth/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Database, Clock, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertTriangle, CheckCircle2, Clock, Database, RefreshCw, XCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { useAuth } from "@/components/auth/AuthContext"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/integrations/supabase/client"
 
 interface AuthDebugInfo {
-  frontendUser: any;
-  frontendSession: any;
-  dbAuthUid: string | null;
-  dbOrgId: string | null;
-  dbDeptId: string | null;
-  profileExists: boolean;
-  conversationsCount: number;
-  conversationsError: string | null;
-  lastChecked: string;
+  frontendUser: any
+  frontendSession: any
+  dbAuthUid: string | null
+  dbOrgId: string | null
+  dbDeptId: string | null
+  profileExists: boolean
+  conversationsCount: number
+  conversationsError: string | null
+  lastChecked: string
 }
 
 // Helper to get error explanation and fix guidance
 function getErrorGuidance(error: string): { explanation: string; fix: string[] } {
-  const lowerError = error.toLowerCase();
-  
-  if (lowerError.includes('row-level security') || lowerError.includes('rls')) {
+  const lowerError = error.toLowerCase()
+
+  if (lowerError.includes("row-level security") || lowerError.includes("rls")) {
     return {
-      explanation: 'Your session token is valid but Row Level Security policies are blocking database access. This usually happens when the session token is stale or the profile is not properly linked to an organization.',
+      explanation:
+        "Your session token is valid but Row Level Security policies are blocking database access. This usually happens when the session token is stale or the profile is not properly linked to an organization.",
       fix: [
         'Click "Force Refresh" to get a fresh session token',
-        'If that doesn\'t work, log out and log back in',
-        'If the issue persists, ask an admin to verify your profile is linked to an organization'
-      ]
-    };
+        "If that doesn't work, log out and log back in",
+        "If the issue persists, ask an admin to verify your profile is linked to an organization",
+      ],
+    }
   }
-  
-  if (lowerError.includes('permission denied')) {
+
+  if (lowerError.includes("permission denied")) {
     return {
-      explanation: 'Your account lacks the required permissions to access this data. This may be a role or permission configuration issue.',
+      explanation:
+        "Your account lacks the required permissions to access this data. This may be a role or permission configuration issue.",
       fix: [
-        'Check that your profile has the correct role assigned',
-        'Ask an admin to verify your permissions',
-        'Try logging out and back in to refresh your role claims'
-      ]
-    };
+        "Check that your profile has the correct role assigned",
+        "Ask an admin to verify your permissions",
+        "Try logging out and back in to refresh your role claims",
+      ],
+    }
   }
-  
-  if (lowerError.includes('jwt') || lowerError.includes('token')) {
+
+  if (lowerError.includes("jwt") || lowerError.includes("token")) {
     return {
-      explanation: 'Your authentication token is invalid or expired. This can happen after long periods of inactivity.',
+      explanation:
+        "Your authentication token is invalid or expired. This can happen after long periods of inactivity.",
       fix: [
         'Click "Force Refresh" to get a new token',
-        'If that fails, log out and log back in',
-        'Clear your browser cache if the issue persists'
-      ]
-    };
+        "If that fails, log out and log back in",
+        "Clear your browser cache if the issue persists",
+      ],
+    }
   }
-  
-  if (lowerError.includes('function') && lowerError.includes('not exist')) {
+
+  if (lowerError.includes("function") && lowerError.includes("not exist")) {
     return {
-      explanation: 'A required database function is missing. This is a configuration issue that requires admin intervention.',
+      explanation:
+        "A required database function is missing. This is a configuration issue that requires admin intervention.",
       fix: [
-        'Contact your system administrator',
-        'This may require a database migration to be applied'
-      ]
-    };
+        "Contact your system administrator",
+        "This may require a database migration to be applied",
+      ],
+    }
   }
-  
-  if (lowerError.includes('organization') || lowerError.includes('org')) {
+
+  if (lowerError.includes("organization") || lowerError.includes("org")) {
     return {
-      explanation: 'Your profile is not linked to an organization. All users must belong to an organization to access data.',
+      explanation:
+        "Your profile is not linked to an organization. All users must belong to an organization to access data.",
       fix: [
-        'Ask an admin to add you to an organization',
-        'If you are an admin, go to Organization Settings and verify your profile is linked'
-      ]
-    };
+        "Ask an admin to add you to an organization",
+        "If you are an admin, go to Organization Settings and verify your profile is linked",
+      ],
+    }
   }
-  
+
   // Default generic guidance
   return {
-    explanation: 'An unexpected error occurred while accessing the database. This may be a temporary issue.',
+    explanation:
+      "An unexpected error occurred while accessing the database. This may be a temporary issue.",
     fix: [
       'Click "Force Refresh" to refresh your session',
-      'Try logging out and back in',
-      'If the issue persists, contact support with the error message'
-    ]
-  };
+      "Try logging out and back in",
+      "If the issue persists, contact support with the error message",
+    ],
+  }
 }
 
 export function AuthContextDebugger() {
-  const { user, session, refreshSession, validateSession } = useAuth();
-  const [debugInfo, setDebugInfo] = useState<AuthDebugInfo | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
+  const { user, session, refreshSession, validateSession } = useAuth()
+  const [debugInfo, setDebugInfo] = useState<AuthDebugInfo | null>(null)
+  const [isChecking, setIsChecking] = useState(false)
 
   const runFullDiagnostics = async () => {
-    setIsChecking(true);
-    
+    setIsChecking(true)
+
     try {
       const diagnostics: AuthDebugInfo = {
         frontendUser: {
@@ -103,9 +109,11 @@ export function AuthContextDebugger() {
           aud: user?.aud,
         },
         frontendSession: {
-          access_token: session?.access_token ? 'present' : 'missing',
-          refresh_token: session?.refresh_token ? 'present' : 'missing',
-          expires_at: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'none',
+          access_token: session?.access_token ? "present" : "missing",
+          refresh_token: session?.refresh_token ? "present" : "missing",
+          expires_at: session?.expires_at
+            ? new Date(session.expires_at * 1000).toISOString()
+            : "none",
         },
         dbAuthUid: null,
         dbOrgId: null,
@@ -113,26 +121,26 @@ export function AuthContextDebugger() {
         profileExists: false,
         conversationsCount: 0,
         conversationsError: null,
-        lastChecked: new Date().toISOString()
-      };
+        lastChecked: new Date().toISOString(),
+      }
 
       // Test database auth context
       try {
-        const { data: authCheck, error: authError } = await supabase.rpc('get_user_organization_id');
+        const { data: authCheck, error: authError } = await supabase.rpc("get_user_organization_id")
         if (authError) {
-          diagnostics.dbAuthUid = 'ERROR: ' + authError.message;
+          diagnostics.dbAuthUid = `ERROR: ${authError.message}`
         } else {
-          diagnostics.dbOrgId = authCheck;
-          diagnostics.dbAuthUid = 'working';
+          diagnostics.dbOrgId = authCheck
+          diagnostics.dbAuthUid = "working"
         }
       } catch (error) {
-        diagnostics.dbAuthUid = 'EXCEPTION';
+        diagnostics.dbAuthUid = "EXCEPTION"
       }
 
       // Test department function
       try {
-        const { data: deptCheck } = await supabase.rpc('get_user_department_id');
-        diagnostics.dbDeptId = deptCheck;
+        const { data: deptCheck } = await supabase.rpc("get_user_department_id")
+        diagnostics.dbDeptId = deptCheck
       } catch (error) {
         // Ignore
       }
@@ -141,12 +149,12 @@ export function AuthContextDebugger() {
       if (user?.id) {
         try {
           const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('user_id, organization_id, department_id, full_name')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          diagnostics.profileExists = !!profile && !profileError;
+            .from("profiles")
+            .select("user_id, organization_id, department_id, full_name")
+            .eq("user_id", user.id)
+            .maybeSingle()
+
+          diagnostics.profileExists = !!profile && !profileError
         } catch (error) {
           // Ignore
         }
@@ -154,68 +162,66 @@ export function AuthContextDebugger() {
 
       // Check conversations access
       try {
-        const { data: conversations, error: convError } = await supabase.rpc('get_conversations', { p_status_filter: 'all' });
+        const { data: conversations, error: convError } = await supabase.rpc("get_conversations", {
+          p_status_filter: "all",
+        })
         if (convError) {
-          diagnostics.conversationsCount = -1;
-          diagnostics.conversationsError = convError.message;
+          diagnostics.conversationsCount = -1
+          diagnostics.conversationsError = convError.message
         } else {
-          diagnostics.conversationsCount = conversations?.length || 0;
-          diagnostics.conversationsError = null;
+          diagnostics.conversationsCount = conversations?.length || 0
+          diagnostics.conversationsError = null
         }
       } catch (error) {
-        diagnostics.conversationsCount = -1;
-        diagnostics.conversationsError = (error as Error).message;
+        diagnostics.conversationsCount = -1
+        diagnostics.conversationsError = (error as Error).message
       }
 
-      setDebugInfo(diagnostics);
-
+      setDebugInfo(diagnostics)
     } catch (error) {
-      toast.error('Diagnostics failed: ' + (error as Error).message);
+      toast.error(`Diagnostics failed: ${(error as Error).message}`)
     } finally {
-      setIsChecking(false);
+      setIsChecking(false)
     }
-  };
+  }
 
   const forceSessionRefresh = async () => {
     try {
-      await supabase.auth.refreshSession();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await refreshSession();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const isValid = await validateSession();
-      toast.success(`Session refresh ${isValid ? 'successful' : 'failed'}`);
-      setTimeout(() => runFullDiagnostics(), 500);
+      await supabase.auth.refreshSession()
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await refreshSession()
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const isValid = await validateSession()
+      toast.success(`Session refresh ${isValid ? "successful" : "failed"}`)
+      setTimeout(() => runFullDiagnostics(), 500)
     } catch (error) {
-      toast.error('Session refresh failed');
+      toast.error("Session refresh failed")
     }
-  };
+  }
 
   useEffect(() => {
-    setTimeout(() => runFullDiagnostics(), 1000);
-  }, []);
+    setTimeout(() => runFullDiagnostics(), 1000)
+  }, [runFullDiagnostics])
 
   if (!import.meta.env.DEV) {
-    return null;
+    return null
   }
 
   // Determine health status dynamically
-  const hasErrors = debugInfo && (
-    debugInfo.dbAuthUid !== 'working' ||
-    !debugInfo.profileExists ||
-    debugInfo.conversationsCount === -1
-  );
-  
-  const hasWarnings = debugInfo && (
-    !debugInfo.dbOrgId ||
-    !debugInfo.dbDeptId
-  );
+  const hasErrors =
+    debugInfo &&
+    (debugInfo.dbAuthUid !== "working" ||
+      !debugInfo.profileExists ||
+      debugInfo.conversationsCount === -1)
+
+  const hasWarnings = debugInfo && (!debugInfo.dbOrgId || !debugInfo.dbDeptId)
 
   const getStatusBadge = () => {
-    if (!debugInfo) return null;
-    if (hasErrors) return <Badge variant="destructive">Issues Detected</Badge>;
-    if (hasWarnings) return <Badge variant="secondary">Warnings</Badge>;
-    return <Badge variant="default">Healthy</Badge>;
-  };
+    if (!debugInfo) return null
+    if (hasErrors) return <Badge variant="destructive">Issues Detected</Badge>
+    if (hasWarnings) return <Badge variant="secondary">Warnings</Badge>
+    return <Badge variant="default">Healthy</Badge>
+  }
 
   const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
@@ -233,7 +239,7 @@ export function AuthContextDebugger() {
         </span>
       )}
     </div>
-  );
+  )
 
   return (
     <Card className="border-border/50">
@@ -267,11 +273,7 @@ export function AuthContextDebugger() {
               </>
             )}
           </Button>
-          <Button 
-            size="sm" 
-            variant="default" 
-            onClick={forceSessionRefresh}
-          >
+          <Button size="sm" variant="default" onClick={forceSessionRefresh}>
             <RefreshCw className="w-3 h-3 mr-2" />
             Force Refresh
           </Button>
@@ -281,37 +283,71 @@ export function AuthContextDebugger() {
           <div className="space-y-4">
             {/* Frontend Checks */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Frontend</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Frontend
+              </h4>
               <div className="bg-muted/30 rounded-lg px-3">
-                <CheckItem ok={!!debugInfo.frontendUser.id} label="User Exists" value={debugInfo.frontendUser.email} />
-                <CheckItem ok={debugInfo.frontendSession.access_token === 'present'} label="Access Token" value={debugInfo.frontendSession.access_token} />
-                <CheckItem ok={debugInfo.frontendSession.refresh_token === 'present'} label="Refresh Token" value={debugInfo.frontendSession.refresh_token} />
+                <CheckItem
+                  ok={!!debugInfo.frontendUser.id}
+                  label="User Exists"
+                  value={debugInfo.frontendUser.email}
+                />
+                <CheckItem
+                  ok={debugInfo.frontendSession.access_token === "present"}
+                  label="Access Token"
+                  value={debugInfo.frontendSession.access_token}
+                />
+                <CheckItem
+                  ok={debugInfo.frontendSession.refresh_token === "present"}
+                  label="Refresh Token"
+                  value={debugInfo.frontendSession.refresh_token}
+                />
               </div>
             </div>
 
             {/* Database Checks */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Database</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Database
+              </h4>
               <div className="bg-muted/30 rounded-lg px-3">
-                <CheckItem ok={debugInfo.dbAuthUid === 'working'} label="auth.uid()" value={debugInfo.dbAuthUid || 'null'} />
+                <CheckItem
+                  ok={debugInfo.dbAuthUid === "working"}
+                  label="auth.uid()"
+                  value={debugInfo.dbAuthUid || "null"}
+                />
                 <CheckItem ok={debugInfo.profileExists} label="Profile Exists" />
-                <CheckItem ok={!!debugInfo.dbOrgId} label="Organization" value={debugInfo.dbOrgId?.slice(0, 8) || 'null'} />
-                <CheckItem ok={!!debugInfo.dbDeptId} label="Department" value={debugInfo.dbDeptId?.slice(0, 8) || 'null'} />
+                <CheckItem
+                  ok={!!debugInfo.dbOrgId}
+                  label="Organization"
+                  value={debugInfo.dbOrgId?.slice(0, 8) || "null"}
+                />
+                <CheckItem
+                  ok={!!debugInfo.dbDeptId}
+                  label="Department"
+                  value={debugInfo.dbDeptId?.slice(0, 8) || "null"}
+                />
               </div>
             </div>
 
             {/* Data Access */}
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Data Access</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Data Access
+              </h4>
               <div className="bg-muted/30 rounded-lg px-3">
-                <CheckItem 
-                  ok={debugInfo.conversationsCount >= 0} 
-                  label="Conversations Query" 
-                  value={debugInfo.conversationsCount >= 0 ? `${debugInfo.conversationsCount} found` : 'ERROR'} 
+                <CheckItem
+                  ok={debugInfo.conversationsCount >= 0}
+                  label="Conversations Query"
+                  value={
+                    debugInfo.conversationsCount >= 0
+                      ? `${debugInfo.conversationsCount} found`
+                      : "ERROR"
+                  }
                 />
               </div>
             </div>
-            
+
             {/* Error Details with Explanation and Fix Guidance */}
             {debugInfo.conversationsError && (
               <div className="space-y-3 border border-destructive/30 rounded-lg p-4 bg-destructive/5">
@@ -324,9 +360,9 @@ export function AuthContextDebugger() {
                     </p>
                   </div>
                 </div>
-                
+
                 {(() => {
-                  const guidance = getErrorGuidance(debugInfo.conversationsError);
+                  const guidance = getErrorGuidance(debugInfo.conversationsError)
                   return (
                     <>
                       <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
@@ -338,7 +374,7 @@ export function AuthContextDebugger() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start gap-2 pt-2 border-t border-destructive/20">
                         <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                         <div>
@@ -351,21 +387,22 @@ export function AuthContextDebugger() {
                         </div>
                       </div>
                     </>
-                  );
+                  )
                 })()}
               </div>
             )}
-            
+
             {/* Critical Error Alert for Auth */}
-            {debugInfo.dbAuthUid !== 'working' && !debugInfo.conversationsError && (
+            {debugInfo.dbAuthUid !== "working" && !debugInfo.conversationsError && (
               <div className="flex items-start gap-2 text-sm bg-destructive/10 text-destructive p-3 rounded-lg">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <strong>Database auth context is broken.</strong> The frontend has a session but the database can't see it. Try Force Refresh.
+                  <strong>Database auth context is broken.</strong> The frontend has a session but
+                  the database can't see it. Try Force Refresh.
                 </div>
               </div>
             )}
-            
+
             <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2">
               <Clock className="w-3 h-3" />
               Last checked: {new Date(debugInfo.lastChecked).toLocaleTimeString()}
@@ -374,5 +411,5 @@ export function AuthContextDebugger() {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from "react"
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,28 +9,28 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-const REQUIRED_PHRASE = 'I forstår at samtykke trekkes';
+const REQUIRED_PHRASE = "I forstår at samtykke trekkes"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-  isPending?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+  isPending?: boolean
 }
 
 const GDPRRevocationDialog: React.FC<Props> = ({ open, onOpenChange, onConfirm, isPending }) => {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("")
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setText('');
-    onOpenChange(next);
-  };
+    if (!next) setText("")
+    onOpenChange(next)
+  }
 
-  const matches = text === REQUIRED_PHRASE;
+  const matches = text === REQUIRED_PHRASE
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
@@ -37,15 +38,12 @@ const GDPRRevocationDialog: React.FC<Props> = ({ open, onOpenChange, onConfirm, 
         <AlertDialogHeader>
           <AlertDialogTitle>Trekke GDPR-samtykke?</AlertDialogTitle>
           <AlertDialogDescription>
-            Du er i ferd med å trekke samtykket fra denne søkeren. Dette er en juridisk
-            hendelse som logges i revisjonsloggen. Vurder om du heller burde slette søkeren
-            permanent.
+            Du er i ferd med å trekke samtykket fra denne søkeren. Dette er en juridisk hendelse som
+            logges i revisjonsloggen. Vurder om du heller burde slette søkeren permanent.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="gdpr-confirm">
-            Skriv «{REQUIRED_PHRASE}» for å bekrefte:
-          </Label>
+          <Label htmlFor="gdpr-confirm">Skriv «{REQUIRED_PHRASE}» for å bekrefte:</Label>
           <Input
             id="gdpr-confirm"
             value={text}
@@ -59,9 +57,9 @@ const GDPRRevocationDialog: React.FC<Props> = ({ open, onOpenChange, onConfirm, 
           <AlertDialogAction
             disabled={!matches || isPending}
             onClick={(e) => {
-              e.preventDefault();
-              if (!matches) return;
-              onConfirm();
+              e.preventDefault()
+              if (!matches) return
+              onConfirm()
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
@@ -70,7 +68,7 @@ const GDPRRevocationDialog: React.FC<Props> = ({ open, onOpenChange, onConfirm, 
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default GDPRRevocationDialog;
+export default GDPRRevocationDialog

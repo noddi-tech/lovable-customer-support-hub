@@ -1,31 +1,31 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Briefcase,
   Loader2,
   Mail,
+  Medal,
   MessageCircle,
   MessageSquare,
-  Briefcase,
+  Minus,
+  Phone,
+  Timer,
   Trophy,
   Zap,
-  Timer,
-  Medal,
-  Phone,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
+} from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatMinutes } from "@/hooks/useInboxSupportMetrics"
 import {
   CHANNEL_LABELS,
-  useAgentLeaderboard,
-  useChannelOverview,
   type ChannelRow,
   type LeaderboardRow,
-} from '@/hooks/useSupportKpis';
+  useAgentLeaderboard,
+  useChannelOverview,
+} from "@/hooks/useSupportKpis"
+import { cn } from "@/lib/utils"
 
 const CHANNEL_ICONS: Record<string, typeof Mail> = {
   email: Mail,
@@ -34,13 +34,12 @@ const CHANNEL_ICONS: Record<string, typeof Mail> = {
   widget: MessageSquare,
   cases: Briefcase,
   voice: Phone,
-};
+}
 
 const CHANNEL_DESCRIPTIONS: Record<string, string> = {
-  sms:
-    'Text messages (SMS) received in the last 30 days. They sit in the same Inbox as email, so this row is the SMS slice of it.',
+  sms: "Text messages (SMS) received in the last 30 days. They sit in the same Inbox as email, so this row is the SMS slice of it.",
   whatsapp:
-    'WhatsApp conversations received in the last 30 days. They sit in the same Inbox as email, so this row is the WhatsApp slice of it.',
+    "WhatsApp conversations received in the last 30 days. They sit in the same Inbox as email, so this row is the WhatsApp slice of it.",
   email:
     'Email tickets received in the last 30 days. "Waiting" counts open threads where the customer sent the last message, so the ball is in our court.',
   widget:
@@ -49,20 +48,19 @@ const CHANNEL_DESCRIPTIONS: Record<string, string> = {
     'Cases opened in the last 30 days. "Open" counts every case that is not resolved or closed; "waiting" counts the ones that sit with us (open, in progress or waiting internally).',
   voice:
     'Phone calls in the last 30 days. "Open" counts calls ringing or on hold right now; "waiting" counts missed calls and voicemails in the window that may need a call back.',
-};
+}
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+const MEDALS = ["🥇", "🥈", "🥉"]
 
 /** Plain-English explanations for the leaderboard metrics, shown on hover. */
 const METRIC_DESCRIPTIONS = {
   resolved:
-    'Conversations assigned to this teammate that were closed in the last 30 days. It measures throughput — how much of the queue they actually finished, not just touched. The arrow compares it with the 30 days before that.',
+    "Conversations assigned to this teammate that were closed in the last 30 days. It measures throughput — how much of the queue they actually finished, not just touched. The arrow compares it with the 30 days before that.",
   firstReply:
-    'Median time from a conversation arriving to this teammate sending its first non-internal reply. Median is used so one forgotten thread cannot distort the picture. It is the number customers feel most: how long they waited before hearing from a human. Lower is better, so a downward arrow is green.',
+    "Median time from a conversation arriving to this teammate sending its first non-internal reply. Median is used so one forgotten thread cannot distort the picture. It is the number customers feel most: how long they waited before hearing from a human. Lower is better, so a downward arrow is green.",
   resolveTime:
-    'Median time from a conversation being created to it being closed by this teammate. It tracks how long a customer lives with an unsolved problem, and catches tickets that get a fast first reply but then stall. Lower is better, so a downward arrow is green.',
-} as const;
-
+    "Median time from a conversation being created to it being closed by this teammate. It tracks how long a customer lives with an unsolved problem, and catches tickets that get a fast first reply but then stall. Lower is better, so a downward arrow is green.",
+} as const
 
 /**
  * Arrow + percentage change against the equally long preceding window.
@@ -78,20 +76,23 @@ function Trend({
   higherIsBetter,
   label,
 }: {
-  current: number | null | undefined;
-  previous: number | null | undefined;
-  higherIsBetter: boolean;
-  label: string;
+  current: number | null | undefined
+  previous: number | null | undefined
+  higherIsBetter: boolean
+  label: string
 }) {
-  const base = 'inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums';
+  const base = "inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums"
 
   // Nothing measured in either window — keep the slot so rows stay aligned.
   if (current == null && previous == null) {
     return (
-      <span title={`${label}: no data in either period`} className={cn(base, 'text-muted-foreground')}>
+      <span
+        title={`${label}: no data in either period`}
+        className={cn(base, "text-muted-foreground")}
+      >
         –
       </span>
-    );
+    )
   }
 
   // No baseline to compare against (first period with activity, or the metric
@@ -99,20 +100,26 @@ function Trend({
   if (previous == null || previous === 0) {
     if (current == null || current === 0) {
       return (
-        <span title={`${label}: no data in either period`} className={cn(base, 'text-muted-foreground')}>
+        <span
+          title={`${label}: no data in either period`}
+          className={cn(base, "text-muted-foreground")}
+        >
           –
         </span>
-      );
+      )
     }
     return (
       <span
         title={`${label}: new this period — nothing recorded in the previous period`}
-        className={cn(base, higherIsBetter ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}
+        className={cn(
+          base,
+          higherIsBetter ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+        )}
       >
         <ArrowUpRight className="h-3 w-3" />
         new
       </span>
-    );
+    )
   }
 
   if (current == null || current === 0) {
@@ -120,44 +127,51 @@ function Trend({
     return (
       <span
         title={`${label}: nothing recorded this period (was ${previous})`}
-        className={cn(base, higherIsBetter ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground')}
+        className={cn(
+          base,
+          higherIsBetter ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
+        )}
       >
         <ArrowDownRight className="h-3 w-3" />
         none
       </span>
-    );
+    )
   }
 
-  const diff = current - previous;
-  const pct = Math.round((diff / Math.abs(previous)) * 100);
+  const diff = current - previous
+  const pct = Math.round((diff / Math.abs(previous)) * 100)
   if (pct === 0) {
     return (
-      <span title={`${label}: unchanged vs the previous period (${previous})`} className={cn(base, 'text-muted-foreground')}>
+      <span
+        title={`${label}: unchanged vs the previous period (${previous})`}
+        className={cn(base, "text-muted-foreground")}
+      >
         <Minus className="h-3 w-3" />
         0%
       </span>
-    );
+    )
   }
 
-  const up = diff > 0;
-  const good = higherIsBetter ? up : !up;
-  const Arrow = up ? ArrowUpRight : ArrowDownRight;
+  const up = diff > 0
+  const good = higherIsBetter ? up : !up
+  const Arrow = up ? ArrowUpRight : ArrowDownRight
 
   return (
     <span
-      title={`${label}: ${up ? '+' : ''}${pct}% vs the previous period (${previous})`}
-      className={cn(base, good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}
+      title={`${label}: ${up ? "+" : ""}${pct}% vs the previous period (${previous})`}
+      className={cn(
+        base,
+        good ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+      )}
     >
       <Arrow className="h-3 w-3" />
       {Math.abs(pct)}%
     </span>
-  );
+  )
 }
 
-
-
 function ChannelStat({ row }: { row: ChannelRow }) {
-  const Icon = CHANNEL_ICONS[row.channel] ?? MessageSquare;
+  const Icon = CHANNEL_ICONS[row.channel] ?? MessageSquare
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
@@ -182,7 +196,7 @@ function ChannelStat({ row }: { row: ChannelRow }) {
                 {row.open} open
               </Badge>
               <Badge
-                variant={row.awaiting_us > 0 ? 'destructive' : 'secondary'}
+                variant={row.awaiting_us > 0 ? "destructive" : "secondary"}
                 className="text-[10px]"
               >
                 {row.awaiting_us} waiting
@@ -202,27 +216,27 @@ function ChannelStat({ row }: { row: ChannelRow }) {
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" align="start" className="max-w-[280px] text-xs leading-relaxed">
-          {CHANNEL_DESCRIPTIONS[row.channel] ?? 'Conversation volume for this channel.'}
+          {CHANNEL_DESCRIPTIONS[row.channel] ?? "Conversation volume for this channel."}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
+  )
 }
 
 function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
-  const name = row.full_name || row.email || 'Teammate';
+  const name = row.full_name || row.email || "Teammate"
   const initials = name
-    .split(' ')
+    .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
-    .join('')
-    .toUpperCase();
+    .join("")
+    .toUpperCase()
 
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border p-2',
-        rank === 0 && 'border-amber-400/60 bg-amber-50/60 dark:bg-amber-950/20',
+        "flex items-center gap-3 rounded-md border p-2",
+        rank === 0 && "border-amber-400/60 bg-amber-50/60 dark:bg-amber-950/20",
       )}
     >
       <span className="w-6 text-center text-sm">{MEDALS[rank] ?? rank + 1}</span>
@@ -248,17 +262,15 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed">
                 <p className="font-medium">Resolved conversations</p>
-                <p className="text-muted-foreground">
-                  {METRIC_DESCRIPTIONS.resolved}
-                </p>
+                <p className="text-muted-foreground">{METRIC_DESCRIPTIONS.resolved}</p>
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex cursor-help items-center gap-1">
-                  <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)} first
-                  reply
+                  <Zap className="h-3 w-3" /> {formatMinutes(row.median_first_response_minutes)}{" "}
+                  first reply
                   <Trend
                     current={row.median_first_response_minutes}
                     previous={row.prev_median_first_response_minutes}
@@ -276,7 +288,8 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex cursor-help items-center gap-1">
-                  <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to resolve
+                  <Timer className="h-3 w-3" /> {formatMinutes(row.median_resolve_minutes)} to
+                  resolve
                   <Trend
                     current={row.median_resolve_minutes}
                     previous={row.prev_median_resolve_minutes}
@@ -292,14 +305,13 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
             </Tooltip>
           </div>
         </TooltipProvider>
-
       </div>
 
-      <Badge variant={rank === 0 ? 'default' : 'secondary'} className="tabular-nums">
+      <Badge variant={rank === 0 ? "default" : "secondary"} className="tabular-nums">
         {row.score} pts
       </Badge>
     </div>
-  );
+  )
 }
 
 /**
@@ -307,16 +319,16 @@ function LeaderRow({ row, rank }: { row: LeaderboardRow; rank: number }) {
  * gamified leaderboard of the teammates resolving the most tickets fastest.
  */
 export function SupportOverviewSection() {
-  const { data: overview, isLoading: overviewLoading } = useChannelOverview(30);
-  const { data: board, isLoading: boardLoading } = useAgentLeaderboard(30, 5);
+  const { data: overview, isLoading: overviewLoading } = useChannelOverview(30)
+  const { data: board, isLoading: boardLoading } = useAgentLeaderboard(30, 5)
 
-  const leaders = board?.leaders ?? [];
+  const leaders = board?.leaders ?? []
 
   // Only surface channels that carry real traffic — a channel with nothing in
   // either window and nothing open is a placeholder, not a KPI.
   const activeChannels = (overview?.channels ?? []).filter(
     (row) => row.received > 0 || (row.prev_received ?? 0) > 0 || row.open > 0 || row.closed > 0,
-  );
+  )
 
   return (
     <div className="space-y-3">
@@ -340,7 +352,7 @@ export function SupportOverviewSection() {
                 </div>
                 {overview && (
                   <p className="text-[11px] text-muted-foreground">
-                    {overview.totals.received} conversations in the last 30 days ·{' '}
+                    {overview.totals.received} conversations in the last 30 days ·{" "}
                     {overview.totals.open} still open · {overview.totals.awaiting_us} waiting on us.
                   </p>
                 )}
@@ -374,25 +386,28 @@ export function SupportOverviewSection() {
                 <TooltipTrigger asChild>
                   <p className="text-[11px] text-muted-foreground cursor-help">
                     Rolling window: only work from the last 30 days counts, so the board moves every
-                    day. Points = 10 per resolved ticket + 3 per first reply + a speed bonus for fast
-                    first replies.
+                    day. Points = 10 per resolved ticket + 3 per first reply + a speed bonus for
+                    fast first replies.
                   </p>
                 </TooltipTrigger>
-                <TooltipContent side="top" align="start" className="max-w-[280px] text-xs leading-relaxed">
+                <TooltipContent
+                  side="top"
+                  align="start"
+                  className="max-w-[280px] text-xs leading-relaxed"
+                >
                   The leaderboard always recalculates over the trailing 30 days from right now — a
-                  single big day drops out of the window after 30 days, so nobody stays on top without
-                  keeping it up. Resolved counts conversations assigned to the teammate that were closed in the period.
-                  Time to resolve is measured from the customer's first message to the close. The speed
-                  bonus rewards median first replies under an hour.
+                  single big day drops out of the window after 30 days, so nobody stays on top
+                  without keeping it up. Resolved counts conversations assigned to the teammate that
+                  were closed in the period. Time to resolve is measured from the customer's first
+                  message to the close. The speed bonus rewards median first replies under an hour.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </CardContent>
         </Card>
       </div>
-
     </div>
-  );
+  )
 }
 
-export default SupportOverviewSection;
+export default SupportOverviewSection

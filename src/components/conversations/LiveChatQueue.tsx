@@ -1,94 +1,95 @@
-import React from 'react';
-import { useLiveChatSessions } from '@/hooks/useLiveChatSessions';
-import { useAuth } from '@/hooks/useAuth';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, Clock, User, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from "@tanstack/react-query"
+import { formatDistanceToNow } from "date-fns"
+import { Clock, MessageCircle, User, X } from "lucide-react"
+import type React from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/hooks/useAuth"
+import { useLiveChatSessions } from "@/hooks/useLiveChatSessions"
+import { cn } from "@/lib/utils"
 
 interface LiveChatQueueProps {
-  className?: string;
-  compact?: boolean;
+  className?: string
+  compact?: boolean
 }
 
-export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({ 
-  className,
-  compact = false
-}) => {
-  const { profile } = useAuth();
-  const organizationId = profile?.organization_id || null;
-  const { waitingSessions, activeSessions, isLoading, claimSession, dismissSession } = useLiveChatSessions(organizationId);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({ className, compact = false }) => {
+  const { profile } = useAuth()
+  const organizationId = profile?.organization_id || null
+  const { waitingSessions, activeSessions, isLoading, claimSession, dismissSession } =
+    useLiveChatSessions(organizationId)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   const handleClaimSession = async (sessionId: string, conversationId: string) => {
-    if (!profile?.id) return;
-    
+    if (!profile?.id) return
+
     // Use profile.id (not user_id) as it matches the FK on widget_chat_sessions.assigned_agent_id
-    const success = await claimSession(sessionId, profile.id);
+    const success = await claimSession(sessionId, profile.id)
     if (success) {
       // Force invalidate conversation data before navigating to ensure fresh data loads
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      
-      toast.success('Chat claimed', { description: 'You are now chatting with the visitor' });
-      
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+
+      toast.success("Chat claimed", { description: "You are now chatting with the visitor" })
+
       // Navigate to the conversation
-      navigate(`/interactions/chat/conversations/${conversationId}`);
+      navigate(`/interactions/chat/conversations/${conversationId}`)
     }
-  };
+  }
 
   const handleOpenConversation = (conversationId: string) => {
-    navigate(`/interactions/chat/conversations/${conversationId}`);
-  };
+    navigate(`/interactions/chat/conversations/${conversationId}`)
+  }
 
   const handleDismissSession = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation()
     // Default dismissal message - this will be shown to the customer
-    const dismissalMessage = "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly.";
-    const success = await dismissSession(sessionId, dismissalMessage);
+    const dismissalMessage =
+      "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly."
+    const success = await dismissSession(sessionId, dismissalMessage)
     if (success) {
-      toast.info('Chat dismissed', {
-        description: 'The visitor will see a message and the conversation will remain for email follow-up.',
-      });
+      toast.info("Chat dismissed", {
+        description:
+          "The visitor will see a message and the conversation will remain for email follow-up.",
+      })
     } else {
-      toast.error('Failed to dismiss chat');
+      toast.error("Failed to dismiss chat")
     }
-  };
+  }
 
-  const totalCount = waitingSessions.length + activeSessions.length;
+  const totalCount = waitingSessions.length + activeSessions.length
 
   if (isLoading) {
-    return null;
+    return null
   }
 
   if (totalCount === 0) {
-    return null;
+    return null
   }
 
   if (compact) {
     return (
       <div className={cn("flex items-center gap-2", className)}>
-        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+        <Badge
+          variant="secondary"
+          className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+        >
           <MessageCircle className="h-3 w-3 mr-1" />
           {waitingSessions.length} waiting
         </Badge>
         {activeSessions.length > 0 && (
-          <Badge variant="outline">
-            {activeSessions.length} active
-          </Badge>
+          <Badge variant="outline">{activeSessions.length} active</Badge>
         )}
       </div>
-    );
+    )
   }
 
   return (
@@ -107,7 +108,7 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
       <CardContent className="space-y-3">
         {/* Waiting Sessions */}
         {waitingSessions.map((session) => (
-          <div 
+          <div
             key={session.id}
             className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg"
           >
@@ -117,7 +118,7 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
               </div>
               <div>
                 <p className="text-sm font-medium">
-                  {session.visitorName || session.visitorEmail || 'Visitor'}
+                  {session.visitorName || session.visitorEmail || "Visitor"}
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -126,8 +127,8 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={(e) => handleDismissSession(session.id, e)}
                 className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
@@ -135,7 +136,7 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
               >
                 <X className="h-4 w-4" />
               </Button>
-              <Button 
+              <Button
                 size="sm"
                 onClick={() => handleClaimSession(session.id, session.conversationId)}
               >
@@ -147,9 +148,9 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
 
         {/* Active Sessions (assigned to current user) */}
         {activeSessions
-          .filter(s => s.assignedAgentId === profile?.user_id)
+          .filter((s) => s.assignedAgentId === profile?.user_id)
           .map((session) => (
-            <div 
+            <div
               key={session.id}
               className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
               onClick={() => handleOpenConversation(session.conversationId)}
@@ -161,11 +162,9 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-medium">
-                    {session.visitorName || session.visitorEmail || 'Visitor'}
+                    {session.visitorName || session.visitorEmail || "Visitor"}
                   </p>
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    Active chat
-                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400">Active chat</p>
                 </div>
               </div>
               <Badge variant="outline" className="text-green-600 border-green-300">
@@ -174,12 +173,11 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({
             </div>
           ))}
 
-        {waitingSessions.length === 0 && activeSessions.filter(s => s.assignedAgentId === profile?.user_id).length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-2">
-            No active chats
-          </p>
-        )}
+        {waitingSessions.length === 0 &&
+          activeSessions.filter((s) => s.assignedAgentId === profile?.user_id).length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-2">No active chats</p>
+          )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

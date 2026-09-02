@@ -1,29 +1,30 @@
-import React, { useState } from 'react';
-import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { OptimizedInteractionsSidebar } from './OptimizedInteractionsSidebar';
-import { SidebarStateManager } from '@/components/ui/sidebar-state-manager';
+import { Menu } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { SidebarStateManager } from "@/components/ui/sidebar-state-manager"
+import { OptimizedInteractionsSidebar } from "./OptimizedInteractionsSidebar"
 
 interface MobileSidebarDrawerProps {
-  selectedTab: string;
-  onTabChange: (tab: string) => void;
-  activeTab?: string;
-  selectedInboxId?: string;
+  selectedTab: string
+  onTabChange: (tab: string) => void
+  activeTab?: string
+  selectedInboxId?: string
 }
 
 export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   selectedTab,
   onTabChange,
-  activeTab = 'interactions',
-  selectedInboxId
+  activeTab = "interactions",
+  selectedInboxId,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleTabChange = (tab: string) => {
-    onTabChange(tab);
-    setIsOpen(false); // Close drawer after selection
-  };
+    onTabChange(tab)
+    setIsOpen(false) // Close drawer after selection
+  }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -32,15 +33,15 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      
+
       <SheetContent side="left" className="p-0 w-80">
         <SheetHeader className="px-4 py-3 border-b border-border">
           <SheetTitle className="text-left">Navigation</SheetTitle>
         </SheetHeader>
-        
+
         <div className="h-full overflow-hidden">
           <SidebarStateManager initialTab={selectedTab}>
-            <OptimizedInteractionsSidebar 
+            <OptimizedInteractionsSidebar
               selectedTab={selectedTab}
               onTabChange={handleTabChange}
               selectedInboxId={selectedInboxId}
@@ -49,5 +50,5 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
         </div>
       </SheetContent>
     </Sheet>
-  );
-};
+  )
+}

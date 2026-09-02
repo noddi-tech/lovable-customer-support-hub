@@ -1,10 +1,10 @@
-import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
-import { useEntityBrandActions } from '@/hooks/useEntityBrandActions';
+import { useCallback } from "react"
+import { toast } from "sonner"
+import { useEntityBrandActions } from "@/hooks/useEntityBrandActions"
+import { supabase } from "@/integrations/supabase/client"
+import { logger } from "@/utils/logger"
 
-const INVALIDATE_KEYS = ['calls', 'active-calls'];
+const INVALIDATE_KEYS = ["calls", "active-calls"]
 
 /**
  * Lets agents categorise a phone call by brand (which business the caller
@@ -16,23 +16,26 @@ export function useCallBrandActions() {
   // Mirror the brand label onto the call in Aircall as a tag, so the same
   // categorisation is visible to anyone working in the Aircall phone.
   const syncAircallTag = useCallback(async (callId: string, brandName: string | null) => {
-    const { data: tagResult, error: tagError } = await supabase.functions.invoke('aircall-tag-call', {
-      body: { callId, brandName },
-    });
+    const { data: tagResult, error: tagError } = await supabase.functions.invoke(
+      "aircall-tag-call",
+      {
+        body: { callId, brandName },
+      },
+    )
     if (tagError || (tagResult && tagResult.success === false)) {
       logger.warn(
-        'Failed to sync call brand tag to Aircall',
+        "Failed to sync call brand tag to Aircall",
         tagError || tagResult,
-        'useCallBrandActions',
-      );
-      toast.warning('Brand saved, but the Aircall tag could not be updated');
+        "useCallBrandActions",
+      )
+      toast.warning("Brand saved, but the Aircall tag could not be updated")
     }
-  }, []);
+  }, [])
 
   return useEntityBrandActions({
-    table: 'calls',
+    table: "calls",
     invalidateKeys: INVALIDATE_KEYS,
-    context: 'useCallBrandActions',
+    context: "useCallBrandActions",
     afterSet: syncAircallTag,
-  });
+  })
 }

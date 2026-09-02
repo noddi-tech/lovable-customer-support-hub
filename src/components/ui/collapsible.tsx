@@ -1,5 +1,5 @@
-import * as React from "react"
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
+import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Collapsible = CollapsiblePrimitive.Root
@@ -21,7 +21,7 @@ const CollapsibleContent = React.forwardRef<
       "[.disable-animation_&[data-state=closed]]:!hidden",
       "[.disable-animation_&[data-state=open]]:!opacity-100",
       "[.disable-animation_&[data-state=closed]]:!opacity-0",
-      className
+      className,
     )}
     {...props}
   >
@@ -30,4 +30,4 @@ const CollapsibleContent = React.forwardRef<
 ))
 CollapsibleContent.displayName = "CollapsibleContent"
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent }
+export { Collapsible, CollapsibleContent, CollapsibleTrigger }

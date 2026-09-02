@@ -1,48 +1,39 @@
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { FileText, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query"
+import { FileText, Loader2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 interface TemplateSelectorProps {
-  onSelectTemplate: (content: string, templateId: string) => void;
-  isMobile?: boolean;
+  onSelectTemplate: (content: string, templateId: string) => void
+  isMobile?: boolean
 }
 
 export const TemplateSelector = ({ onSelectTemplate, isMobile }: TemplateSelectorProps) => {
-  const { user } = useAuth();
+  const { user } = useAuth()
 
   const { data: templates, isLoading } = useQuery({
-    queryKey: ['response-templates', user?.id],
+    queryKey: ["response-templates", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('response_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('title');
-      
-      if (error) throw error;
-      return data;
+        .from("response_templates")
+        .select("*")
+        .eq("is_active", true)
+        .order("title")
+
+      if (error) throw error
+      return data
     },
     enabled: !!user,
-  });
+  })
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2"
-          title="Quick replies"
-        >
+        <Button variant="ghost" size="sm" className="gap-2" title="Quick replies">
           <FileText className="h-4 w-4" />
           {!isMobile && <span className="text-xs">Templates</span>}
         </Button>
@@ -87,5 +78,5 @@ export const TemplateSelector = ({ onSelectTemplate, isMobile }: TemplateSelecto
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

@@ -1,25 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/auth/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useCallback, useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import { useAuth } from "@/components/auth/AuthContext"
+import { supabase } from "@/integrations/supabase/client"
 
 interface SessionValidationState {
-  isValid: boolean;
-  isValidating: boolean;
-  lastValidation: Date | null;
-  error: string | null;
+  isValid: boolean
+  isValidating: boolean
+  lastValidation: Date | null
+  error: string | null
 }
 
 export function useSessionValidation() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [state, setState] = useState<SessionValidationState>({
     isValid: true,
     isValidating: false,
     lastValidation: null,
-    error: null
-  });
+    error: null,
+  })
 
   const validateSession = useCallback(async () => {
     if (!user) {
@@ -27,102 +27,112 @@ export function useSessionValidation() {
         isValid: false,
         isValidating: false,
         lastValidation: new Date(),
-        error: 'No user session'
-      });
-      return false;
+        error: "No user session",
+      })
+      return false
     }
 
-    setState(prev => ({ ...prev, isValidating: true, error: null }));
+    setState((prev) => ({ ...prev, isValidating: true, error: null }))
 
     try {
       // Check if session is still valid
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
       if (sessionError || !session) {
         setState({
           isValid: false,
           isValidating: false,
           lastValidation: new Date(),
-          error: 'Session expired or invalid'
-        });
-        
-        toast.error('Your session has expired. Please log in again.');
-        navigate('/auth');
-        return false;
+          error: "Session expired or invalid",
+        })
+
+        toast.error("Your session has expired. Please log in again.")
+        navigate("/auth")
+        return false
       }
 
       // Validate profile and organization exist
-      const { data: validationData, error: validationError } = await supabase
-        .rpc('validate_session_context');
+      const { data: validationData, error: validationError } = await supabase.rpc(
+        "validate_session_context",
+      )
 
       if (validationError) {
-        console.error('Session validation error:', validationError);
+        console.error("Session validation error:", validationError)
         setState({
           isValid: false,
           isValidating: false,
           lastValidation: new Date(),
-          error: validationError.message
-        });
-        return false;
+          error: validationError.message,
+        })
+        return false
       }
 
-      const validation = validationData?.[0] as {
-        auth_uid: string;
-        session_valid: boolean;
-        organization_id: string | null;
-        profile_exists: boolean;
-        has_memberships: boolean;
-      } | undefined;
-      
+      const validation = validationData?.[0] as
+        | {
+            auth_uid: string
+            session_valid: boolean
+            organization_id: string | null
+            profile_exists: boolean
+            has_memberships: boolean
+          }
+        | undefined
+
       // Check if user has profile and either legacy org_id or active memberships
-      if (!validation?.session_valid || !validation?.profile_exists || !validation?.has_memberships) {
-        const errorMsg = !validation?.profile_exists 
-          ? 'User profile not found'
+      if (
+        !validation?.session_valid ||
+        !validation?.profile_exists ||
+        !validation?.has_memberships
+      ) {
+        const errorMsg = !validation?.profile_exists
+          ? "User profile not found"
           : !validation?.has_memberships
-          ? 'No organization access found'
-          : 'Session validation failed';
+            ? "No organization access found"
+            : "Session validation failed"
 
         setState({
           isValid: false,
           isValidating: false,
           lastValidation: new Date(),
-          error: errorMsg
-        });
-        
-        toast.error(errorMsg + '. Please contact support or try logging out and back in.');
-        return false;
+          error: errorMsg,
+        })
+
+        toast.error(`${errorMsg}. Please contact support or try logging out and back in.`)
+        return false
       }
 
       setState({
         isValid: true,
         isValidating: false,
         lastValidation: new Date(),
-        error: null
-      });
-      
-      return true;
+        error: null,
+      })
+
+      return true
     } catch (error) {
-      console.error('Session validation exception:', error);
+      console.error("Session validation exception:", error)
       setState({
         isValid: false,
         isValidating: false,
         lastValidation: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      return false;
+        error: error instanceof Error ? error.message : "Unknown error",
+      })
+      return false
     }
-  }, [user, navigate]);
+  }, [user, navigate])
 
   // Validate on mount and when user changes
   useEffect(() => {
     if (user) {
-      validateSession();
+      validateSession()
     }
-  }, [user, validateSession]);
+  }, [user, validateSession])
 
   return {
     ...state,
     validateSession,
-    canRetry: !state.isValidating && state.error !== null
-  };
+    canRetry: !state.isValidating && state.error !== null,
+  }
 }

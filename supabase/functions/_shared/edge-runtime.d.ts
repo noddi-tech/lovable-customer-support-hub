@@ -1,1 +1,1 @@
-declare const EdgeRuntime: { waitUntil(promise: Promise<any>): void };
+declare const EdgeRuntime: { waitUntil(promise: Promise<any>): void }

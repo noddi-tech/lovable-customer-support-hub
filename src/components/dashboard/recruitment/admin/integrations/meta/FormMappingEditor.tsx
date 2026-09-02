@@ -1,25 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { AlertTriangle, ChevronDown, FileText, Plus, Save, Sparkles } from "lucide-react"
+import React, { useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -27,73 +10,87 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { AlertTriangle, Plus, Save, Sparkles, FileText, ChevronDown } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useFormQuestions } from '@/hooks/recruitment/useFormQuestions';
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  type CustomFieldWithType,
+  useCustomFields,
+  useUpdateCustomField,
+} from "@/hooks/recruitment/useCustomFields"
+import {
+  useCreateTemplate,
+  useCreateTemplateItem,
+  useFieldMappingTemplateItems,
+  useFieldMappingTemplates,
+} from "@/hooks/recruitment/useFieldMappingTemplates"
 import {
   useFormFieldMappings,
   useUpsertFormFieldMappings,
-} from '@/hooks/recruitment/useFormFieldMappings';
-import { useCustomFields, useUpdateCustomField, type CustomFieldWithType } from '@/hooks/recruitment/useCustomFields';
+} from "@/hooks/recruitment/useFormFieldMappings"
+import { useFormQuestions } from "@/hooks/recruitment/useFormQuestions"
+import { useToast } from "@/hooks/use-toast"
+import { findBestMatch } from "@/lib/recruitment/fuzzyMatch"
 import {
-  useFieldMappingTemplates,
-  useFieldMappingTemplateItems,
-  useCreateTemplate,
-  useCreateTemplateItem,
-} from '@/hooks/recruitment/useFieldMappingTemplates';
-import { findBestMatch } from '@/lib/recruitment/fuzzyMatch';
-import {
-  extractMetaOptions,
   findMissingOptions,
   inferFieldTypeKeyFromMeta,
   mergeOptions,
   type SelectFamily,
-} from '@/lib/recruitment/optionSync';
-import { CustomFieldDialog } from '../../fields/CustomFieldDialog';
-import type {
-  FormFieldMapping,
-  MetaFormQuestion,
-  StandardField,
-  TargetKind,
-  FieldMappingTemplateItem,
-} from '../types';
+} from "@/lib/recruitment/optionSync"
+import { CustomFieldDialog } from "../../fields/CustomFieldDialog"
+import type { FormFieldMapping, MetaFormQuestion, StandardField, TargetKind } from "../types"
 
 interface Props {
-  formMappingId: string;
-  formName: string | null;
-  onReconnectClick?: () => void;
+  formMappingId: string
+  formName: string | null
+  onReconnectClick?: () => void
 }
 
 interface RowState {
-  meta_question_id: string;
-  meta_question_key: string | null;
-  meta_question_text: string;
-  target_kind: TargetKind;
-  target_standard_field: StandardField | null;
-  target_custom_field_id: string | null;
+  meta_question_id: string
+  meta_question_key: string | null
+  meta_question_text: string
+  target_kind: TargetKind
+  target_standard_field: StandardField | null
+  target_custom_field_id: string | null
 }
 
 const STANDARD_FIELDS: Array<{ value: StandardField; label: string }> = [
-  { value: 'full_name', label: 'Fullt navn' },
-  { value: 'email', label: 'E-post' },
-  { value: 'phone_number', label: 'Telefon' },
-];
+  { value: "full_name", label: "Fullt navn" },
+  { value: "email", label: "E-post" },
+  { value: "phone_number", label: "Telefon" },
+]
 
 const STANDARD_HINTS: Array<{ field: StandardField; needles: string[] }> = [
-  { field: 'full_name', needles: ['navn', 'name', 'fornavn', 'etternavn', 'full name'] },
-  { field: 'email', needles: ['epost', 'e-post', 'email', 'mail'] },
-  { field: 'phone_number', needles: ['telefon', 'phone', 'mobil', 'tlf'] },
-];
+  { field: "full_name", needles: ["navn", "name", "fornavn", "etternavn", "full name"] },
+  { field: "email", needles: ["epost", "e-post", "email", "mail"] },
+  { field: "phone_number", needles: ["telefon", "phone", "mobil", "tlf"] },
+]
 
 function autoSuggest(
   questionText: string,
   customFields: Array<{ id: string; field_key: string; display_name: string }>,
 ): Partial<RowState> {
-  const lower = questionText.toLowerCase();
+  const lower = questionText.toLowerCase()
   for (const hint of STANDARD_HINTS) {
     if (hint.needles.some((n) => lower.includes(n))) {
-      return { target_kind: 'standard', target_standard_field: hint.field };
+      return { target_kind: "standard", target_standard_field: hint.field }
     }
   }
   const match = findBestMatch(
@@ -101,40 +98,40 @@ function autoSuggest(
     customFields,
     (f) => `${f.display_name} ${f.field_key}`,
     0.7,
-  );
+  )
   if (match) {
-    return { target_kind: 'custom', target_custom_field_id: match.item.id };
+    return { target_kind: "custom", target_custom_field_id: match.item.id }
   }
-  return { target_kind: 'metadata_only' };
+  return { target_kind: "metadata_only" }
 }
 
 export function FormMappingEditor({ formMappingId, formName, onReconnectClick }: Props) {
-  const questionsQ = useFormQuestions(formMappingId);
-  const existingQ = useFormFieldMappings(formMappingId);
-  const customFieldsQ = useCustomFields();
-  const upsert = useUpsertFormFieldMappings();
-  const { toast } = useToast();
+  const questionsQ = useFormQuestions(formMappingId)
+  const existingQ = useFormFieldMappings(formMappingId)
+  const customFieldsQ = useCustomFields()
+  const upsert = useUpsertFormFieldMappings()
+  const { toast } = useToast()
 
-  const [createFieldOpen, setCreateFieldOpen] = useState(false);
-  const [createFieldDefault, setCreateFieldDefault] = useState<string>('');
-  const [pendingFieldRowKey, setPendingFieldRowKey] = useState<string | null>(null);
-  const [pendingMetaQuestion, setPendingMetaQuestion] = useState<MetaFormQuestion | null>(null);
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  const [createFieldOpen, setCreateFieldOpen] = useState(false)
+  const [createFieldDefault, setCreateFieldDefault] = useState<string>("")
+  const [pendingFieldRowKey, setPendingFieldRowKey] = useState<string | null>(null)
+  const [pendingMetaQuestion, setPendingMetaQuestion] = useState<MetaFormQuestion | null>(null)
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
 
-  const customFields = customFieldsQ.data ?? [];
-  const questions: MetaFormQuestion[] = questionsQ.data?.questions ?? [];
-  const scopeMissing = !!questionsQ.data?.scope_missing;
+  const customFields = customFieldsQ.data ?? []
+  const questions: MetaFormQuestion[] = questionsQ.data?.questions ?? []
+  const scopeMissing = !!questionsQ.data?.scope_missing
 
   // Build per-row state. Key by meta_question_id (or label fallback).
   const initialRows: Record<string, RowState> = useMemo(() => {
-    if (!questions.length) return {};
-    const existingByQ = new Map<string, FormFieldMapping>();
-    for (const m of existingQ.data ?? []) existingByQ.set(m.meta_question_id, m);
-    const out: Record<string, RowState> = {};
+    if (!questions.length) return {}
+    const existingByQ = new Map<string, FormFieldMapping>()
+    for (const m of existingQ.data ?? []) existingByQ.set(m.meta_question_id, m)
+    const out: Record<string, RowState> = {}
     for (const q of questions) {
-      const qid = q.id ?? q.key ?? q.label;
-      const qkey = q.key ?? null;
-      const e = existingByQ.get(qid);
+      const qid = q.id ?? q.key ?? q.label
+      const qkey = q.key ?? null
+      const e = existingByQ.get(qid)
       if (e) {
         out[qid] = {
           meta_question_id: qid,
@@ -143,34 +140,34 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           target_kind: e.target_kind,
           target_standard_field: e.target_standard_field,
           target_custom_field_id: e.target_custom_field_id,
-        };
+        }
       } else {
-        const sug = autoSuggest(q.label, customFields);
+        const sug = autoSuggest(q.label, customFields)
         out[qid] = {
           meta_question_id: qid,
           meta_question_key: qkey,
           meta_question_text: q.label,
-          target_kind: (sug.target_kind ?? 'metadata_only') as TargetKind,
+          target_kind: (sug.target_kind ?? "metadata_only") as TargetKind,
           target_standard_field: sug.target_standard_field ?? null,
           target_custom_field_id: sug.target_custom_field_id ?? null,
-        };
+        }
       }
     }
-    return out;
-  }, [questions, existingQ.data, customFields]);
+    return out
+  }, [questions, existingQ.data, customFields])
 
-  const [rows, setRows] = useState<Record<string, RowState>>({});
-  const [initialised, setInitialised] = useState(false);
+  const [rows, setRows] = useState<Record<string, RowState>>({})
+  const [initialised, setInitialised] = useState(false)
   React.useEffect(() => {
     if (!initialised && questions.length > 0) {
-      setRows(initialRows);
-      setInitialised(true);
+      setRows(initialRows)
+      setInitialised(true)
     }
-  }, [initialised, initialRows, questions.length]);
+  }, [initialised, initialRows, questions.length])
 
   const updateRow = (qid: string, patch: Partial<RowState>) => {
-    setRows((prev) => ({ ...prev, [qid]: { ...prev[qid], ...patch } }));
-  };
+    setRows((prev) => ({ ...prev, [qid]: { ...prev[qid], ...patch } }))
+  }
 
   const handleSave = async () => {
     try {
@@ -182,17 +179,17 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           meta_question_text: r.meta_question_text,
           target_kind: r.target_kind,
           target_standard_field:
-            r.target_kind === 'standard' ? r.target_standard_field ?? null : null,
+            r.target_kind === "standard" ? (r.target_standard_field ?? null) : null,
           target_custom_field_id:
-            r.target_kind === 'custom' ? r.target_custom_field_id ?? null : null,
+            r.target_kind === "custom" ? (r.target_custom_field_id ?? null) : null,
           display_order: idx,
         })),
-      );
-      toast({ title: 'Tilordninger lagret' });
+      )
+      toast({ title: "Tilordninger lagret" })
     } catch (e: any) {
-      toast({ title: 'Lagring feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Lagring feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   if (scopeMissing) {
     return (
@@ -202,8 +199,8 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           Mangler pages_manage_ads-tilgang
         </div>
         <p className="text-muted-foreground">
-          Vi kan ikke hente skjemafeltene fra Meta uten denne tilgangen. Koble til på nytt for å hente
-          skjemafelt automatisk.
+          Vi kan ikke hente skjemafeltene fra Meta uten denne tilgangen. Koble til på nytt for å
+          hente skjemafelt automatisk.
         </p>
         {onReconnectClick && (
           <Button size="sm" variant="outline" onClick={onReconnectClick}>
@@ -211,20 +208,20 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           </Button>
         )}
       </div>
-    );
+    )
   }
 
   if (questionsQ.isLoading || existingQ.isLoading) {
-    return <Skeleton className="h-40 w-full" />;
+    return <Skeleton className="h-40 w-full" />
   }
 
   if (questionsQ.error || (questionsQ.data?.error && !questions.length)) {
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        Kunne ikke hente spørsmål fra Meta-skjemaet.{' '}
+        Kunne ikke hente spørsmål fra Meta-skjemaet.{" "}
         {(questionsQ.error as any)?.message ?? questionsQ.data?.error}
       </div>
-    );
+    )
   }
 
   if (questions.length === 0) {
@@ -232,7 +229,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
       <p className="text-sm text-muted-foreground rounded-md border bg-muted/30 px-3 py-4">
         Ingen spørsmål funnet i dette skjemaet.
       </p>
-    );
+    )
   }
 
   return (
@@ -243,15 +240,19 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         </div>
         <div className="flex gap-2">
           <ApplyTemplateButton onSelectTemplate={setPreviewTemplateId} />
-          <SaveAsTemplateButton rows={Object.values(rows)} formName={formName} customFields={customFields} />
+          <SaveAsTemplateButton
+            rows={Object.values(rows)}
+            formName={formName}
+            customFields={customFields}
+          />
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              setCreateFieldDefault('');
-              setPendingFieldRowKey(null);
-              setPendingMetaQuestion(null);
-              setCreateFieldOpen(true);
+              setCreateFieldDefault("")
+              setPendingFieldRowKey(null)
+              setPendingMetaQuestion(null)
+              setCreateFieldOpen(true)
             }}
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
@@ -266,21 +267,21 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
 
       <div className="space-y-2">
         {questions.map((q) => {
-          const qid = q.id ?? q.key ?? q.label;
-          const r = rows[qid];
-          if (!r) return null;
-          const suggestion = autoSuggest(q.label, customFields);
+          const qid = q.id ?? q.key ?? q.label
+          const r = rows[qid]
+          if (!r) return null
+          const suggestion = autoSuggest(q.label, customFields)
           return (
             <div key={qid} className="rounded-md border p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="text-sm font-medium flex-1">{q.label}</div>
-                {suggestion.target_kind === 'standard' && (
+                {suggestion.target_kind === "standard" && (
                   <Badge variant="outline" className="text-[10px]">
                     <Sparkles className="h-3 w-3 mr-1" />
                     Foreslått: standard
                   </Badge>
                 )}
-                {suggestion.target_kind === 'custom' && (
+                {suggestion.target_kind === "custom" && (
                   <Badge variant="outline" className="text-[10px]">
                     <Sparkles className="h-3 w-3 mr-1" />
                     Foreslått: egendefinert
@@ -316,9 +317,9 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                   <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
                     Felt
                   </Label>
-                  {r.target_kind === 'standard' ? (
+                  {r.target_kind === "standard" ? (
                     <Select
-                      value={r.target_standard_field ?? ''}
+                      value={r.target_standard_field ?? ""}
                       onValueChange={(v) =>
                         updateRow(qid, { target_standard_field: v as StandardField })
                       }
@@ -334,11 +335,11 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                         ))}
                       </SelectContent>
                     </Select>
-                  ) : r.target_kind === 'custom' ? (
+                  ) : r.target_kind === "custom" ? (
                     <div className="space-y-2">
                       <div className="flex gap-1">
                         <Select
-                          value={r.target_custom_field_id ?? ''}
+                          value={r.target_custom_field_id ?? ""}
                           onValueChange={(v) => updateRow(qid, { target_custom_field_id: v })}
                         >
                           <SelectTrigger className="flex-1">
@@ -357,10 +358,10 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                           variant="ghost"
                           title="Opprett nytt felt"
                           onClick={() => {
-                            setCreateFieldDefault(q.label);
-                            setPendingFieldRowKey(qid);
-                            setPendingMetaQuestion(q);
-                            setCreateFieldOpen(true);
+                            setCreateFieldDefault(q.label)
+                            setPendingFieldRowKey(qid)
+                            setPendingMetaQuestion(q)
+                            setCreateFieldOpen(true)
                           }}
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -369,7 +370,9 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                       {r.target_custom_field_id && (
                         <OptionMismatchNotice
                           question={q}
-                          field={customFields.find((f) => f.id === r.target_custom_field_id) ?? null}
+                          field={
+                            customFields.find((f) => f.id === r.target_custom_field_id) ?? null
+                          }
                         />
                       )}
                     </div>
@@ -381,7 +384,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
                 </div>
               </div>
             </div>
-          );
+          )
         })}
       </div>
 
@@ -393,9 +396,9 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         onCreated={(created) => {
           if (pendingFieldRowKey) {
             updateRow(pendingFieldRowKey, {
-              target_kind: 'custom',
+              target_kind: "custom",
               target_custom_field_id: created.id,
-            });
+            })
           }
         }}
       />
@@ -409,27 +412,23 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
         onClose={() => setPreviewTemplateId(null)}
         onApply={(updates) => {
           setRows((prev) => {
-            const next = { ...prev };
+            const next = { ...prev }
             for (const u of updates) {
-              if (next[u.qid]) next[u.qid] = { ...next[u.qid], ...u.patch };
+              if (next[u.qid]) next[u.qid] = { ...next[u.qid], ...u.patch }
             }
-            return next;
-          });
-          setPreviewTemplateId(null);
+            return next
+          })
+          setPreviewTemplateId(null)
         }}
       />
     </div>
-  );
+  )
 }
 
 // ─── Apply template (with preview) ─────────────────────────────────────
 
-function ApplyTemplateButton({
-  onSelectTemplate,
-}: {
-  onSelectTemplate: (id: string) => void;
-}) {
-  const tplsQ = useFieldMappingTemplates('all');
+function ApplyTemplateButton({ onSelectTemplate }: { onSelectTemplate: (id: string) => void }) {
+  const tplsQ = useFieldMappingTemplates("all")
 
   return (
     <DropdownMenu modal={false}>
@@ -444,18 +443,16 @@ function ApplyTemplateButton({
         <DropdownMenuLabel>Velg mal</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {(tplsQ.data ?? []).length === 0 ? (
-          <div className="px-2 py-1.5 text-xs text-muted-foreground">
-            Ingen maler tilgjengelig
-          </div>
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">Ingen maler tilgjengelig</div>
         ) : (
           (tplsQ.data ?? []).map((t) => (
             <DropdownMenuItem
               key={t.id}
               onSelect={(e) => {
-                e.preventDefault();
-                const id = t.id;
+                e.preventDefault()
+                const id = t.id
                 // Defer until after dropdown close cycle to avoid body-lock collision
-                setTimeout(() => onSelectTemplate(id), 0);
+                setTimeout(() => onSelectTemplate(id), 0)
               }}
             >
               <span className="flex-1">{t.name}</span>
@@ -469,15 +466,15 @@ function ApplyTemplateButton({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }
 
 interface ProposedAssignment {
-  qid: string;
-  question_text: string;
-  template_pattern: string;
-  patch: Partial<RowState>;
-  description: string;
+  qid: string
+  question_text: string
+  template_pattern: string
+  patch: Partial<RowState>
+  description: string
 }
 
 function ApplyTemplatePreviewDialog({
@@ -489,48 +486,47 @@ function ApplyTemplatePreviewDialog({
   onClose,
   onApply,
 }: {
-  open: boolean;
-  templateId: string | null;
-  rows: Record<string, RowState>;
-  questions: MetaFormQuestion[];
-  customFields: CustomFieldWithType[];
-  onClose: () => void;
-  onApply: (updates: Array<{ qid: string; patch: Partial<RowState> }>) => void;
+  open: boolean
+  templateId: string | null
+  rows: Record<string, RowState>
+  questions: MetaFormQuestion[]
+  customFields: CustomFieldWithType[]
+  onClose: () => void
+  onApply: (updates: Array<{ qid: string; patch: Partial<RowState> }>) => void
 }) {
-  const itemsQ = useFieldMappingTemplateItems(open ? templateId : null);
-  const items = itemsQ.data ?? [];
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const itemsQ = useFieldMappingTemplateItems(open ? templateId : null)
+  const items = itemsQ.data ?? []
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
 
   const proposed: ProposedAssignment[] = useMemo(() => {
-    const allRows = Object.values(rows);
-    const out: ProposedAssignment[] = [];
+    const allRows = Object.values(rows)
+    const out: ProposedAssignment[] = []
     for (const item of items) {
       const match = findBestMatch(
         item.meta_question_pattern,
         allRows,
         (r) => r.meta_question_text,
         0.7,
-      );
-      if (!match) continue;
+      )
+      if (!match) continue
       const cf = item.target_custom_field_key
         ? customFields.find((f) => f.field_key === item.target_custom_field_key)
-        : null;
+        : null
       const patch: Partial<RowState> = {
         target_kind: item.target_kind,
-        target_standard_field:
-          item.target_kind === 'standard' ? item.target_standard_field : null,
-        target_custom_field_id: item.target_kind === 'custom' ? cf?.id ?? null : null,
-      };
-      let description = '';
-      if (item.target_kind === 'standard') {
-        const lbl = STANDARD_FIELDS.find((s) => s.value === item.target_standard_field)?.label;
-        description = `→ ${lbl ?? item.target_standard_field}`;
-      } else if (item.target_kind === 'custom') {
+        target_standard_field: item.target_kind === "standard" ? item.target_standard_field : null,
+        target_custom_field_id: item.target_kind === "custom" ? (cf?.id ?? null) : null,
+      }
+      let description = ""
+      if (item.target_kind === "standard") {
+        const lbl = STANDARD_FIELDS.find((s) => s.value === item.target_standard_field)?.label
+        description = `→ ${lbl ?? item.target_standard_field}`
+      } else if (item.target_kind === "custom") {
         description = cf
           ? `→ egendefinert «${item.target_custom_field_key}»`
-          : `→ egendefinert «${item.target_custom_field_key}» (felt mangler — opprett først)`;
+          : `→ egendefinert «${item.target_custom_field_key}» (felt mangler — opprett først)`
       } else {
-        description = '→ kun metadata';
+        description = "→ kun metadata"
       }
       out.push({
         qid: match.item.meta_question_id,
@@ -538,27 +534,28 @@ function ApplyTemplatePreviewDialog({
         template_pattern: item.meta_question_pattern,
         patch,
         description,
-      });
+      })
     }
-    return out;
-  }, [items, rows, customFields]);
+    return out
+  }, [items, rows, customFields])
 
-  const proposedRef = React.useRef(proposed);
-  proposedRef.current = proposed;
+  const proposedRef = React.useRef(proposed)
+  proposedRef.current = proposed
   React.useEffect(() => {
-    if (!open) return;
-    const init: Record<string, boolean> = {};
+    if (!open) return
+    const init: Record<string, boolean> = {}
     proposedRef.current.forEach((p) => {
-      init[p.qid] = true;
-    });
-    setChecked(init);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, templateId, items?.length]);
+      init[p.qid] = true
+    })
+    setChecked(init)
+  }, [open])
 
   const handleApply = () => {
-    const updates = proposed.filter((p) => checked[p.qid]).map((p) => ({ qid: p.qid, patch: p.patch }));
-    onApply(updates);
-  };
+    const updates = proposed
+      .filter((p) => checked[p.qid])
+      .map((p) => ({ qid: p.qid, patch: p.patch }))
+    onApply(updates)
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -578,12 +575,11 @@ function ApplyTemplatePreviewDialog({
         ) : (
           <ul className="space-y-2 max-h-80 overflow-y-auto">
             {proposed.map((p) => {
-              const q =
-                questions.find((qq) => (qq.id ?? qq.key ?? qq.label) === p.qid) ?? null;
+              const q = questions.find((qq) => (qq.id ?? qq.key ?? qq.label) === p.qid) ?? null
               const cf =
-                p.patch.target_kind === 'custom' && p.patch.target_custom_field_id
-                  ? customFields.find((f) => f.id === p.patch.target_custom_field_id) ?? null
-                  : null;
+                p.patch.target_kind === "custom" && p.patch.target_custom_field_id
+                  ? (customFields.find((f) => f.id === p.patch.target_custom_field_id) ?? null)
+                  : null
               return (
                 <li key={p.qid} className="flex items-start gap-3 rounded-md border p-3">
                   <Checkbox
@@ -599,7 +595,7 @@ function ApplyTemplatePreviewDialog({
                     {q && cf && <OptionMismatchNotice question={q} field={cf} />}
                   </div>
                 </li>
-              );
+              )
             })}
           </ul>
         )}
@@ -616,7 +612,7 @@ function ApplyTemplatePreviewDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
 // ─── Save as template ─────────────────────────────────────────────────
@@ -626,62 +622,62 @@ function SaveAsTemplateButton({
   formName,
   customFields,
 }: {
-  rows: RowState[];
-  formName: string | null;
-  customFields: Array<{ id: string; field_key: string }>;
+  rows: RowState[]
+  formName: string | null
+  customFields: Array<{ id: string; field_key: string }>
 }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const createTpl = useCreateTemplate();
-  const createItem = useCreateTemplateItem();
-  const { toast } = useToast();
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const createTpl = useCreateTemplate()
+  const createItem = useCreateTemplateItem()
+  const { toast } = useToast()
 
   React.useEffect(() => {
     if (open) {
-      setName(formName ? `Mal fra «${formName}»` : 'Ny mal');
-      setDescription('');
+      setName(formName ? `Mal fra «${formName}»` : "Ny mal")
+      setDescription("")
     }
-  }, [open, formName]);
+  }, [open, formName])
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast({ title: 'Navn er påkrevd', variant: 'destructive' });
-      return;
+      toast({ title: "Navn er påkrevd", variant: "destructive" })
+      return
     }
     try {
       const tpl = await createTpl.mutateAsync({
         name: name.trim(),
         description: description.trim() || null,
-        scope: 'org',
-      });
-      const tplId = (tpl as any).id;
-      let order = 0;
+        scope: "org",
+      })
+      const tplId = (tpl as any).id
+      let order = 0
       for (const r of rows) {
-        if (r.target_kind === 'metadata_only') {
-          order++;
-          continue;
+        if (r.target_kind === "metadata_only") {
+          order++
+          continue
         }
         const cf =
-          r.target_kind === 'custom' && r.target_custom_field_id
+          r.target_kind === "custom" && r.target_custom_field_id
             ? customFields.find((f) => f.id === r.target_custom_field_id)
-            : null;
+            : null
         await createItem.mutateAsync({
           template_id: tplId,
           meta_question_pattern: r.meta_question_text,
           target_kind: r.target_kind,
-          target_standard_field: r.target_kind === 'standard' ? r.target_standard_field : null,
+          target_standard_field: r.target_kind === "standard" ? r.target_standard_field : null,
           target_custom_field_key: cf?.field_key ?? null,
           target_custom_field_type_key: null,
           display_order: order++,
-        });
+        })
       }
-      toast({ title: 'Mal lagret' });
-      setOpen(false);
+      toast({ title: "Mal lagret" })
+      setOpen(false)
     } catch (e: any) {
-      toast({ title: 'Kunne ikke lagre', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke lagre", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <>
@@ -718,7 +714,7 @@ function SaveAsTemplateButton({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
 
 // ─── Option mismatch notice ───────────────────────────────────────────
@@ -727,63 +723,63 @@ function OptionMismatchNotice({
   question,
   field,
 }: {
-  question: MetaFormQuestion;
-  field: CustomFieldWithType | null;
+  question: MetaFormQuestion
+  field: CustomFieldWithType | null
 }) {
-  const { toast } = useToast();
-  const update = useUpdateCustomField();
+  const { toast } = useToast()
+  const update = useUpdateCustomField()
 
-  if (!field) return null;
-  const metaFamily = inferFieldTypeKeyFromMeta(question);
-  if (!metaFamily) return null;
+  if (!field) return null
+  const metaFamily = inferFieldTypeKeyFromMeta(question)
+  if (!metaFamily) return null
 
   const fieldFamily: SelectFamily | null =
-    field.type_key === 'single_select' || field.type_key === 'multi_select'
+    field.type_key === "single_select" || field.type_key === "multi_select"
       ? (field.type_key as SelectFamily)
-      : null;
+      : null
 
   // Field isn't a select type at all — let the parent's existing UI handle it; nothing to warn here.
-  if (!fieldFamily) return null;
+  if (!fieldFamily) return null
 
   // Type-level mismatch (e.g. multi_select field for a RADIO question). Informational only.
   if (fieldFamily !== metaFamily) {
     const msg =
-      fieldFamily === 'multi_select'
-        ? 'Feltet er flervalg, men Meta-spørsmålet er enkeltvalg'
-        : 'Feltet er enkeltvalg, men Meta-spørsmålet er flervalg';
+      fieldFamily === "multi_select"
+        ? "Feltet er flervalg, men Meta-spørsmålet er enkeltvalg"
+        : "Feltet er enkeltvalg, men Meta-spørsmålet er flervalg"
     return (
       <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>{msg}</span>
       </div>
-    );
+    )
   }
 
-  const missing = findMissingOptions(field, question);
-  if (missing.length === 0) return null;
+  const missing = findMissingOptions(field, question)
+  if (missing.length === 0) return null
 
   const handleSync = async () => {
     try {
       await update.mutateAsync({
         id: field.id,
         options: mergeOptions(field.options, missing),
-      });
-      toast({ title: 'Alternativer synkronisert' });
+      })
+      toast({ title: "Alternativer synkronisert" })
     } catch (e: any) {
       toast({
-        title: 'Synkronisering feilet',
+        title: "Synkronisering feilet",
         description: e?.message,
-        variant: 'destructive',
-      });
+        variant: "destructive",
+      })
     }
-  };
+  }
 
   return (
     <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 space-y-1.5">
       <div className="flex items-start gap-1.5">
         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>
-          Feltet mangler {missing.map((m) => m.value).join(', ')} som finnes i Meta-skjemaet
+          Feltet mangler {missing.map((m) => m.value).join(", ")} som finnes i Meta-skjemaet
         </span>
       </div>
       <Button
@@ -796,6 +792,5 @@ function OptionMismatchNotice({
         Synkroniser alternativer
       </Button>
     </div>
-  );
+  )
 }
-

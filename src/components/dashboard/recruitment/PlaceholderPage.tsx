@@ -1,7 +1,7 @@
-import React from 'react';
+import type React from "react"
 
 interface PlaceholderPageProps {
-  title: string;
+  title: string
 }
 
 const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title }) => {
@@ -12,7 +12,7 @@ const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title }) => {
         <p className="text-muted-foreground">Denne siden er under utvikling</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PlaceholderPage;
+export default PlaceholderPage

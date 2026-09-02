@@ -1,58 +1,61 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { 
-  CheckCircle2, 
-  ExternalLink, 
-  Copy, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
+import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Slack,
   BarChart3,
-  AlertTriangle,
   Bell,
-} from 'lucide-react';
-import { toast } from 'sonner';
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Loader2,
+  Slack,
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 
 interface SecondarySlackSetupWizardProps {
-  onConnect: (token: string) => Promise<void>;
-  isConnecting: boolean;
+  onConnect: (token: string) => Promise<void>
+  isConnecting: boolean
 }
 
 const STEPS = [
-  { title: 'Introduction', description: 'Why connect a second workspace' },
-  { title: 'Create Slack App', description: 'Set up in your product workspace' },
-  { title: 'Add Scopes & Install', description: 'Permissions & installation' },
-  { title: 'Connect', description: 'Paste token to finish' },
-];
+  { title: "Introduction", description: "Why connect a second workspace" },
+  { title: "Create Slack App", description: "Set up in your product workspace" },
+  { title: "Add Scopes & Install", description: "Permissions & installation" },
+  { title: "Connect", description: "Paste token to finish" },
+]
 
-const REQUIRED_SCOPES = ['channels:read', 'groups:read', 'chat:write'];
+const REQUIRED_SCOPES = ["channels:read", "groups:read", "chat:write"]
 
-export function SecondarySlackSetupWizard({ onConnect, isConnecting }: SecondarySlackSetupWizardProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [botToken, setBotToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
+export function SecondarySlackSetupWizard({
+  onConnect,
+  isConnecting,
+}: SecondarySlackSetupWizardProps) {
+  const [currentStep, setCurrentStep] = useState(0)
+  const [botToken, setBotToken] = useState("")
+  const [showToken, setShowToken] = useState(false)
 
   const handleCopyScopes = () => {
-    navigator.clipboard.writeText(REQUIRED_SCOPES.join(', '));
-    toast.success('Scopes copied to clipboard');
-  };
+    navigator.clipboard.writeText(REQUIRED_SCOPES.join(", "))
+    toast.success("Scopes copied to clipboard")
+  }
 
   const handleConnect = async () => {
-    if (!botToken.startsWith('xoxb-') || botToken.length <= 20) {
-      toast.error('Please enter a valid Bot Token (starts with xoxb-)');
-      return;
+    if (!botToken.startsWith("xoxb-") || botToken.length <= 20) {
+      toast.error("Please enter a valid Bot Token (starts with xoxb-)")
+      return
     }
-    await onConnect(botToken);
-  };
+    await onConnect(botToken)
+  }
 
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
-  const isTokenValid = botToken.startsWith('xoxb-') && botToken.length > 20;
+  const progress = ((currentStep + 1) / STEPS.length) * 100
+  const isTokenValid = botToken.startsWith("xoxb-") && botToken.length > 20
 
   return (
     <div className="space-y-5">
@@ -70,9 +73,12 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
       {/* Step 0: Introduction */}
       {currentStep === 0 && (
         <div className="space-y-4">
-          <h3 className="font-semibold text-base">Give your product team visibility into customer issues</h3>
+          <h3 className="font-semibold text-base">
+            Give your product team visibility into customer issues
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Connect your product or engineering team's Slack workspace to automatically receive customer support insights — without needing access to the support hub.
+            Connect your product or engineering team's Slack workspace to automatically receive
+            customer support insights — without needing access to the support hub.
           </p>
 
           <div className="bg-muted/50 p-4 rounded-lg space-y-3">
@@ -82,14 +88,22 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
                 <BarChart3 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <div>
                   <span className="font-medium">Daily Digest</span>
-                  <span className="text-muted-foreground"> — automated summary of conversation volume, trending topics, and customer sentiment every weekday morning</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — automated summary of conversation volume, trending topics, and customer
+                    sentiment every weekday morning
+                  </span>
                 </div>
               </li>
               <li className="flex items-start gap-2.5">
                 <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                 <div>
                   <span className="font-medium">Critical Alerts</span>
-                  <span className="text-muted-foreground"> — real-time notifications when customers report payment failures, broken features, or urgent issues (in English and Norwegian)</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — real-time notifications when customers report payment failures, broken
+                    features, or urgent issues (in English and Norwegian)
+                  </span>
                 </div>
               </li>
             </ul>
@@ -101,7 +115,8 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
               <span className="text-sm font-medium text-primary">Separate workspace</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              This connects a <strong>different</strong> Slack workspace than your support team's. You'll create a new Slack app in your product team's workspace.
+              This connects a <strong>different</strong> Slack workspace than your support team's.
+              You'll create a new Slack app in your product team's workspace.
             </p>
           </div>
         </div>
@@ -114,7 +129,9 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
 
           <div className="space-y-3">
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">1</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                1
+              </div>
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Open the Slack API dashboard</p>
                 <Button variant="outline" size="sm" asChild>
@@ -126,21 +143,27 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
             </div>
 
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">2</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                2
+              </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">Create New App → From scratch</p>
                 <p className="text-xs text-muted-foreground">
-                  Name it something like <code className="bg-muted px-1 rounded">"Support Alerts"</code>
+                  Name it something like{" "}
+                  <code className="bg-muted px-1 rounded">"Support Alerts"</code>
                 </p>
               </div>
             </div>
 
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">3</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                3
+              </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">Select your product team's workspace</p>
                 <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-2 rounded text-xs text-amber-700 dark:text-amber-300">
-                  ⚠️ Make sure you pick the <strong>product/engineering</strong> workspace, not the support workspace.
+                  ⚠️ Make sure you pick the <strong>product/engineering</strong> workspace, not the
+                  support workspace.
                 </div>
               </div>
             </div>
@@ -155,20 +178,23 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
 
           <div className="space-y-3">
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">1</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                1
+              </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Add Bot Token Scopes</p>
                 <p className="text-xs text-muted-foreground">
-                  Go to <strong>OAuth & Permissions</strong> → scroll to <strong>Bot Token Scopes</strong> → add these:
+                  Go to <strong>OAuth & Permissions</strong> → scroll to{" "}
+                  <strong>Bot Token Scopes</strong> → add these:
                 </p>
                 <div className="space-y-1">
                   {REQUIRED_SCOPES.map((scope) => (
                     <div key={scope} className="flex items-center gap-2 text-xs">
                       <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{scope}</code>
                       <span className="text-muted-foreground">
-                        {scope === 'channels:read' && '— list public channels'}
-                        {scope === 'groups:read' && '— list private channels'}
-                        {scope === 'chat:write' && '— post digests & alerts'}
+                        {scope === "channels:read" && "— list public channels"}
+                        {scope === "groups:read" && "— list private channels"}
+                        {scope === "chat:write" && "— post digests & alerts"}
                       </span>
                     </div>
                   ))}
@@ -180,22 +206,28 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
             </div>
 
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">2</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                2
+              </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">Install App to Workspace</p>
                 <p className="text-xs text-muted-foreground">
-                  Go to <strong>Install App</strong> in the sidebar → click <strong>Install to Workspace</strong> → authorize
+                  Go to <strong>Install App</strong> in the sidebar → click{" "}
+                  <strong>Install to Workspace</strong> → authorize
                 </p>
               </div>
             </div>
 
             <div className="flex gap-3 p-3 bg-muted/30 rounded-lg">
-              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">3</div>
+              <div className="flex-shrink-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-semibold text-xs">
+                3
+              </div>
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Copy the Bot User OAuth Token</p>
                 <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-2 rounded">
                   <p className="text-xs text-green-700 dark:text-green-300 font-medium">
-                    Copy the token starting with <code className="bg-green-100 dark:bg-green-900 px-1 rounded">xoxb-</code>
+                    Copy the token starting with{" "}
+                    <code className="bg-green-100 dark:bg-green-900 px-1 rounded">xoxb-</code>
                   </p>
                 </div>
               </div>
@@ -211,11 +243,13 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="secondary-bot-token" className="text-sm">Bot User OAuth Token</Label>
+              <Label htmlFor="secondary-bot-token" className="text-sm">
+                Bot User OAuth Token
+              </Label>
               <div className="relative">
                 <Input
                   id="secondary-bot-token"
-                  type={showToken ? 'text' : 'password'}
+                  type={showToken ? "text" : "password"}
                   value={botToken}
                   onChange={(e) => setBotToken(e.target.value)}
                   placeholder="xoxb-your-token-here"
@@ -231,7 +265,7 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
                   {showToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </Button>
               </div>
-              {botToken && !botToken.startsWith('xoxb-') && (
+              {botToken && !botToken.startsWith("xoxb-") && (
                 <p className="text-xs text-destructive">Token should start with xoxb-</p>
               )}
               {isTokenValid && (
@@ -260,7 +294,8 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
             </Button>
 
             <p className="text-xs text-muted-foreground">
-              Your token is securely stored and only used to post digest summaries and critical alerts.
+              Your token is securely stored and only used to post digest summaries and critical
+              alerts.
             </p>
           </div>
         </div>
@@ -283,5 +318,5 @@ export function SecondarySlackSetupWizard({ onConnect, isConnecting }: Secondary
         )}
       </div>
     </div>
-  );
+  )
 }

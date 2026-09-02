@@ -1,81 +1,77 @@
-import { useState, useEffect } from 'react';
-import { X, User, Loader2, Mail, Phone } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Loader2, Mail, Phone, User, X } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { supabase } from "@/integrations/supabase/client"
 
 interface Customer {
-  id: string;
-  full_name: string;
-  email?: string;
-  phone?: string;
+  id: string
+  full_name: string
+  email?: string
+  phone?: string
   metadata?: {
-    noddi_user_id?: string;
-    user_group_id?: string;
-    is_new?: boolean;
-    noddi_email?: string;
-    badge?: string;
-    has_priority?: boolean;
-    unpaid_count?: number;
-  };
+    noddi_user_id?: string
+    user_group_id?: string
+    is_new?: boolean
+    noddi_email?: string
+    badge?: string
+    has_priority?: boolean
+    unpaid_count?: number
+  }
 }
 
 interface NoddiCustomerSearchProps {
-  selectedCustomer: Customer | null;
-  onSelectCustomer: (customer: Customer | null) => void;
-  organizationId: string;
-  showEmailSearch?: boolean;
-  conversationEmail?: string;
+  selectedCustomer: Customer | null
+  onSelectCustomer: (customer: Customer | null) => void
+  organizationId: string
+  showEmailSearch?: boolean
+  conversationEmail?: string
 }
 
-export const NoddiCustomerSearch = ({ 
-  selectedCustomer, 
+export const NoddiCustomerSearch = ({
+  selectedCustomer,
   onSelectCustomer,
   organizationId,
   showEmailSearch = false,
-  conversationEmail
+  conversationEmail,
 }: NoddiCustomerSearchProps) => {
-  const [searchName, setSearchName] = useState('');
-  const [searchResults, setSearchResults] = useState<Customer[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchMode, setSearchMode] = useState<'name' | 'email'>('name');
-  const [alternativeEmail, setAlternativeEmail] = useState('');
+  const [searchName, setSearchName] = useState("")
+  const [searchResults, setSearchResults] = useState<Customer[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchMode, setSearchMode] = useState<"name" | "email">("name")
+  const [alternativeEmail, setAlternativeEmail] = useState("")
 
   const handleNameSearch = async () => {
     // One box: first token is the first name, the rest is the last name.
-    const parts = searchName.trim().split(/\s+/).filter(Boolean);
-    const firstName = parts[0] || '';
-    const lastName = parts.slice(1).join(' ');
+    const parts = searchName.trim().split(/\s+/).filter(Boolean)
+    const firstName = parts[0] || ""
+    const lastName = parts.slice(1).join(" ")
 
     if (firstName.length < 2) {
-      toast.error('Please enter at least 2 characters for the name');
-      return;
+      toast.error("Please enter at least 2 characters for the name")
+      return
     }
 
-
-    setIsSearching(true);
-    setSearchResults([]);
+    setIsSearching(true)
+    setSearchResults([])
 
     try {
       const body: any = {
         firstName,
         organizationId,
-      };
-      
-      if (lastName) {
-        body.lastName = lastName;
       }
 
-      const { data, error } = await supabase.functions.invoke(
-        'noddi-search-by-name',
-        { body }
-      );
+      if (lastName) {
+        body.lastName = lastName
+      }
 
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("noddi-search-by-name", { body })
+
+      if (error) throw error
 
       if (data?.results && data.results.length > 0) {
         const transformedCustomers = data.results.map((result: any) => ({
@@ -91,38 +87,39 @@ export const NoddiCustomerSearch = ({
             noddi_email: result.noddi_email,
             badge: result.badge,
             has_priority: result.has_priority,
-            unpaid_count: result.unpaid_count
-          }
-        }));
+            unpaid_count: result.unpaid_count,
+          },
+        }))
 
-        setSearchResults(transformedCustomers);
-        toast.success(`Found ${transformedCustomers.length} customer${transformedCustomers.length > 1 ? 's' : ''} in Noddi`);
+        setSearchResults(transformedCustomers)
+        toast.success(
+          `Found ${transformedCustomers.length} customer${transformedCustomers.length > 1 ? "s" : ""} in Noddi`,
+        )
       } else {
-        const searchTerm = lastName ? `"${firstName} ${lastName}"` : `"${firstName}"`;
-        toast.error(`No customers found matching ${searchTerm}`);
+        const searchTerm = lastName ? `"${firstName} ${lastName}"` : `"${firstName}"`
+        toast.error(`No customers found matching ${searchTerm}`)
       }
     } catch (error) {
-      console.error('Failed to search customers:', error);
-      toast.error('Failed to search customers');
+      console.error("Failed to search customers:", error)
+      toast.error("Failed to search customers")
     } finally {
-      setIsSearching(false);
+      setIsSearching(false)
     }
-  };
+  }
 
   const handleAlternativeEmailSearch = async () => {
-    if (!alternativeEmail || !organizationId) return;
-    
-    setIsSearching(true);
-    setSearchResults([]);
+    if (!alternativeEmail || !organizationId) return
+
+    setIsSearching(true)
+    setSearchResults([])
 
     try {
       // Use the existing noddi-customer-lookup function (supports both phone AND email)
-      const { data, error } = await supabase.functions.invoke(
-        'noddi-customer-lookup',
-        { body: { email: alternativeEmail, organizationId } }
-      );
+      const { data, error } = await supabase.functions.invoke("noddi-customer-lookup", {
+        body: { email: alternativeEmail, organizationId },
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       if (data?.data?.found) {
         // Map the response to the expected Customer format
@@ -135,37 +132,36 @@ export const NoddiCustomerSearch = ({
             noddi_user_id: data.data.noddi_user_id?.toString(),
             user_group_id: data.data.user_group_id?.toString(),
             is_new: true,
-            noddi_email: data.data.email || alternativeEmail
-          }
-        };
-        
-        setSearchResults([customer]);
-        toast.success('Customer found');
+            noddi_email: data.data.email || alternativeEmail,
+          },
+        }
+
+        setSearchResults([customer])
+        toast.success("Customer found")
       } else {
-        toast.error('No customer found with that email');
+        toast.error("No customer found with that email")
       }
     } catch (error) {
-      console.error('Failed to search by email:', error);
-      toast.error('Failed to search by email');
+      console.error("Failed to search by email:", error)
+      toast.error("Failed to search by email")
     } finally {
-      setIsSearching(false);
+      setIsSearching(false)
     }
-  };
+  }
 
   const handleSelectCustomer = (customer: Customer) => {
-    onSelectCustomer(customer);
-    setSearchName('');
-    setAlternativeEmail('');
-    setSearchResults([]);
-  };
+    onSelectCustomer(customer)
+    setSearchName("")
+    setAlternativeEmail("")
+    setSearchResults([])
+  }
 
   const handleClearCustomer = () => {
-    onSelectCustomer(null);
-    setSearchName('');
-    setAlternativeEmail('');
-    setSearchResults([]);
-  };
-
+    onSelectCustomer(null)
+    setSearchName("")
+    setAlternativeEmail("")
+    setSearchResults([])
+  }
 
   if (selectedCustomer) {
     return (
@@ -192,44 +188,39 @@ export const NoddiCustomerSearch = ({
                 </div>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleClearCustomer}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearCustomer}>
               <X className="w-4 h-4" />
             </Button>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
     <div className="space-y-3">
       <Label>Search Customer (Optional)</Label>
-      
+
       {showEmailSearch && (
         <div className="flex gap-2 border-b">
           <button
             type="button"
-            onClick={() => setSearchMode('name')}
+            onClick={() => setSearchMode("name")}
             className={`px-3 py-1.5 text-sm transition-colors ${
-              searchMode === 'name' 
-                ? 'border-b-2 border-primary font-medium' 
-                : 'text-muted-foreground hover:text-foreground'
+              searchMode === "name"
+                ? "border-b-2 border-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Search by Name
           </button>
           <button
             type="button"
-            onClick={() => setSearchMode('email')}
+            onClick={() => setSearchMode("email")}
             className={`px-3 py-1.5 text-sm transition-colors ${
-              searchMode === 'email' 
-                ? 'border-b-2 border-primary font-medium' 
-                : 'text-muted-foreground hover:text-foreground'
+              searchMode === "email"
+                ? "border-b-2 border-primary font-medium"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Search by Email
@@ -237,7 +228,7 @@ export const NoddiCustomerSearch = ({
         </div>
       )}
 
-      {searchMode === 'name' && (
+      {searchMode === "name" && (
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="customer-name">
@@ -250,7 +241,7 @@ export const NoddiCustomerSearch = ({
                 onChange={(e) => setSearchName(e.target.value)}
                 placeholder="e.g., Joachim Rathke"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && searchName.trim().length >= 2) handleNameSearch();
+                  if (e.key === "Enter" && searchName.trim().length >= 2) handleNameSearch()
                 }}
               />
               <Button
@@ -258,7 +249,7 @@ export const NoddiCustomerSearch = ({
                 onClick={handleNameSearch}
                 disabled={searchName.trim().length < 2 || isSearching}
               >
-                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -268,8 +259,7 @@ export const NoddiCustomerSearch = ({
         </div>
       )}
 
-
-      {searchMode === 'email' && showEmailSearch && (
+      {searchMode === "email" && showEmailSearch && (
         <div className="space-y-2">
           <Label htmlFor="alternative-email">Alternative Email Address</Label>
           <div className="flex gap-2">
@@ -280,7 +270,7 @@ export const NoddiCustomerSearch = ({
               value={alternativeEmail}
               onChange={(e) => setAlternativeEmail(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAlternativeEmailSearch();
+                if (e.key === "Enter") handleAlternativeEmailSearch()
               }}
             />
             <Button
@@ -288,11 +278,7 @@ export const NoddiCustomerSearch = ({
               onClick={handleAlternativeEmailSearch}
               disabled={!alternativeEmail || isSearching}
             >
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Search'
-              )}
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
             </Button>
           </div>
         </div>
@@ -324,7 +310,10 @@ export const NoddiCustomerSearch = ({
                           </span>
                         )}
                         {customer.metadata?.unpaid_count && customer.metadata.unpaid_count > 0 && (
-                          <span className="text-destructive text-[10px] font-semibold" title={`${customer.metadata.unpaid_count} unpaid booking(s)`}>
+                          <span
+                            className="text-destructive text-[10px] font-semibold"
+                            title={`${customer.metadata.unpaid_count} unpaid booking(s)`}
+                          >
                             ⚠️ {customer.metadata.unpaid_count} unpaid
                           </span>
                         )}
@@ -364,9 +353,7 @@ export const NoddiCustomerSearch = ({
         </Card>
       )}
 
-      {isSearching && (
-        <p className="text-sm text-muted-foreground">Searching...</p>
-      )}
+      {isSearching && <p className="text-sm text-muted-foreground">Searching...</p>}
     </div>
-  );
-};
+  )
+}

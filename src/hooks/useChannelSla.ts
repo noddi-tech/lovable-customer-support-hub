@@ -1,16 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { SLA_PRIORITIES, type SlaPriority } from '@/hooks/useInboxSla';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { SLA_PRIORITIES, type SlaPriority } from "@/hooks/useInboxSla"
+import { supabase } from "@/integrations/supabase/client"
 
 export interface ChannelSlaPolicyRow {
-  id: string;
-  inbox_id: string | null;
-  channel: string | null;
-  priority: SlaPriority;
-  first_response_minutes: number;
-  resolution_minutes: number;
-  is_active: boolean;
+  id: string
+  inbox_id: string | null
+  channel: string | null
+  priority: SlaPriority
+  first_response_minutes: number
+  resolution_minutes: number
+  is_active: boolean
 }
 
 /**
@@ -19,67 +19,67 @@ export interface ChannelSlaPolicyRow {
  */
 export function useChannelSlaPolicies(channel: string, enabled = true) {
   return useQuery({
-    queryKey: ['channel_sla_policies', channel],
+    queryKey: ["channel_sla_policies", channel],
     enabled,
     queryFn: async (): Promise<ChannelSlaPolicyRow[]> => {
-      const { data, error } = await supabase.rpc('get_channel_sla_policies', {
+      const { data, error } = await supabase.rpc("get_channel_sla_policies", {
         p_channel: channel,
-      } as never);
-      if (error) throw error;
-      return (data || []) as unknown as ChannelSlaPolicyRow[];
+      } as never)
+      if (error) throw error
+      return (data || []) as unknown as ChannelSlaPolicyRow[]
     },
-  });
+  })
 }
 
 export function useSaveChannelSla(channel: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['channel_sla_policies', channel] });
-    queryClient.invalidateQueries({ queryKey: ['inbox_support_metrics'] });
-    queryClient.invalidateQueries({ queryKey: ['sla_policies'] });
-  };
+    queryClient.invalidateQueries({ queryKey: ["channel_sla_policies", channel] })
+    queryClient.invalidateQueries({ queryKey: ["inbox_support_metrics"] })
+    queryClient.invalidateQueries({ queryKey: ["sla_policies"] })
+  }
 
   const save = useMutation({
     mutationFn: async (input: {
-      priority: SlaPriority;
-      firstResponseMinutes: number;
-      resolutionMinutes: number;
+      priority: SlaPriority
+      firstResponseMinutes: number
+      resolutionMinutes: number
     }) => {
-      const { error } = await supabase.rpc('upsert_channel_sla_policy', {
+      const { error } = await supabase.rpc("upsert_channel_sla_policy", {
         p_channel: channel,
         p_priority: input.priority,
         p_first_response_minutes: input.firstResponseMinutes,
         p_resolution_minutes: input.resolutionMinutes,
         p_inbox_id: null,
         p_is_active: true,
-      } as never);
-      if (error) throw error;
+      } as never)
+      if (error) throw error
     },
     onSuccess: () => {
-      invalidate();
-      toast.success('Live chat SLA saved');
+      invalidate()
+      toast.success("Live chat SLA saved")
     },
-    onError: (e: any) => toast.error('Could not save SLA: ' + e.message),
-  });
+    onError: (e: any) => toast.error(`Could not save SLA: ${e.message}`),
+  })
 
   const reset = useMutation({
     mutationFn: async (priority: SlaPriority) => {
-      const { error } = await supabase.rpc('delete_channel_sla_policy', {
+      const { error } = await supabase.rpc("delete_channel_sla_policy", {
         p_channel: channel,
         p_priority: priority,
         p_inbox_id: null,
-      } as never);
-      if (error) throw error;
+      } as never)
+      if (error) throw error
     },
     onSuccess: () => {
-      invalidate();
-      toast.success('Reverted to the general target');
+      invalidate()
+      toast.success("Reverted to the general target")
     },
-    onError: (e: any) => toast.error('Could not reset SLA: ' + e.message),
-  });
+    onError: (e: any) => toast.error(`Could not reset SLA: ${e.message}`),
+  })
 
-  return { save, reset };
+  return { save, reset }
 }
 
-export { SLA_PRIORITIES, type SlaPriority };
+export { SLA_PRIORITIES, type SlaPriority }

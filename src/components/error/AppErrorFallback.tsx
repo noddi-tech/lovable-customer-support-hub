@@ -1,19 +1,19 @@
 /**
  * Generic App Error Fallback Component
- * 
+ *
  * Shown when any component in the app crashes.
  * Provides a recovery UI with reload option.
  */
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export const AppErrorFallback = () => {
   const handleReload = () => {
-    window.location.reload();
-  };
+    window.location.reload()
+  }
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -21,9 +21,7 @@ export const AppErrorFallback = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription>
-            An unexpected error occurred. Please try again.
-          </AlertDescription>
+          <AlertDescription>An unexpected error occurred. Please try again.</AlertDescription>
         </Alert>
 
         <div className="space-y-2 text-sm text-muted-foreground">
@@ -45,5 +43,5 @@ export const AppErrorFallback = () => {
         </p>
       </Card>
     </div>
-  );
-};
+  )
+}

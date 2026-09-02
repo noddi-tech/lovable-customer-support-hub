@@ -1,77 +1,77 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useQuery } from "@tanstack/react-query"
+import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from "lucide-react"
+import React, { useState } from "react"
+import type {
+  FieldMappingTemplateItem,
+  TargetKind,
+} from "@/components/dashboard/recruitment/admin/integrations/types"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Trash2, ArrowUp, ArrowDown, Save } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
+  useCreateTemplateItem,
+  useDeleteTemplateItem,
   useFieldMappingTemplate,
   useFieldMappingTemplateItems,
-  useCreateTemplateItem,
   useUpdateTemplate,
   useUpdateTemplateItem,
-  useDeleteTemplateItem,
-} from '@/hooks/recruitment/useFieldMappingTemplates';
-import type {
-  FieldMappingTemplateItem,
-  TargetKind,
-} from '@/components/dashboard/recruitment/admin/integrations/types';
+} from "@/hooks/recruitment/useFieldMappingTemplates"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
-const STANDARD_FIELDS: Array<{ value: 'full_name' | 'email' | 'phone_number'; label: string }> = [
-  { value: 'full_name', label: 'Fullt navn' },
-  { value: 'email', label: 'E-post' },
-  { value: 'phone_number', label: 'Telefon' },
-];
+const STANDARD_FIELDS: Array<{ value: "full_name" | "email" | "phone_number"; label: string }> = [
+  { value: "full_name", label: "Fullt navn" },
+  { value: "email", label: "E-post" },
+  { value: "phone_number", label: "Telefon" },
+]
 
 interface Props {
-  templateId: string;
+  templateId: string
 }
 
 export function TemplateEditor({ templateId }: Props) {
-  const tplQ = useFieldMappingTemplate(templateId);
-  const itemsQ = useFieldMappingTemplateItems(templateId);
-  const updateTpl = useUpdateTemplate();
-  const createItem = useCreateTemplateItem();
-  const updateItem = useUpdateTemplateItem();
-  const deleteItem = useDeleteTemplateItem();
-  const { toast } = useToast();
+  const tplQ = useFieldMappingTemplate(templateId)
+  const itemsQ = useFieldMappingTemplateItems(templateId)
+  const updateTpl = useUpdateTemplate()
+  const createItem = useCreateTemplateItem()
+  const updateItem = useUpdateTemplateItem()
+  const deleteItem = useDeleteTemplateItem()
+  const { toast } = useToast()
 
   const { data: typesData } = useQuery({
-    queryKey: ['recruitment-custom-field-types'],
+    queryKey: ["recruitment-custom-field-types"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recruitment_custom_field_types')
-        .select('type_key, display_name_no');
-      if (error) throw error;
-      return data ?? [];
+        .from("recruitment_custom_field_types")
+        .select("type_key, display_name_no")
+      if (error) throw error
+      return data ?? []
     },
-  });
+  })
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [roleHint, setRoleHint] = useState('');
-  const [initialised, setInitialised] = useState(false);
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [roleHint, setRoleHint] = useState("")
+  const [initialised, setInitialised] = useState(false)
 
   React.useEffect(() => {
     if (tplQ.data && !initialised) {
-      setName(tplQ.data.name);
-      setDescription(tplQ.data.description ?? '');
-      setRoleHint(tplQ.data.target_role_hint ?? '');
-      setInitialised(true);
+      setName(tplQ.data.name)
+      setDescription(tplQ.data.description ?? "")
+      setRoleHint(tplQ.data.target_role_hint ?? "")
+      setInitialised(true)
     }
-  }, [tplQ.data, initialised]);
+  }, [tplQ.data, initialised])
 
   const handleSaveMeta = async () => {
     try {
@@ -80,45 +80,53 @@ export function TemplateEditor({ templateId }: Props) {
         name,
         description: description || null,
         target_role_hint: roleHint || null,
-      });
-      toast({ title: 'Mal lagret' });
+      })
+      toast({ title: "Mal lagret" })
     } catch (e: any) {
-      toast({ title: 'Lagring feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Lagring feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
-  const items = itemsQ.data ?? [];
+  const items = itemsQ.data ?? []
   const handleAddItem = async () => {
     try {
       await createItem.mutateAsync({
         template_id: templateId,
-        meta_question_pattern: '',
-        target_kind: 'standard',
-        target_standard_field: 'full_name',
+        meta_question_pattern: "",
+        target_kind: "standard",
+        target_standard_field: "full_name",
         target_custom_field_key: null,
         target_custom_field_type_key: null,
         display_order: items.length,
-      });
+      })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke legge til', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke legge til", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const move = async (item: FieldMappingTemplateItem, dir: -1 | 1) => {
-    const idx = items.findIndex((i) => i.id === item.id);
-    const swap = items[idx + dir];
-    if (!swap) return;
+    const idx = items.findIndex((i) => i.id === item.id)
+    const swap = items[idx + dir]
+    if (!swap) return
     await Promise.all([
-      updateItem.mutateAsync({ id: item.id, template_id: templateId, display_order: swap.display_order }),
-      updateItem.mutateAsync({ id: swap.id, template_id: templateId, display_order: item.display_order }),
-    ]);
-  };
+      updateItem.mutateAsync({
+        id: item.id,
+        template_id: templateId,
+        display_order: swap.display_order,
+      }),
+      updateItem.mutateAsync({
+        id: swap.id,
+        template_id: templateId,
+        display_order: item.display_order,
+      }),
+    ])
+  }
 
   if (tplQ.isLoading) {
-    return <Skeleton className="h-48 w-full" />;
+    return <Skeleton className="h-48 w-full" />
   }
   if (!tplQ.data) {
-    return <p className="text-sm text-muted-foreground">Mal ikke funnet.</p>;
+    return <p className="text-sm text-muted-foreground">Mal ikke funnet.</p>
   }
 
   return (
@@ -191,45 +199,49 @@ export function TemplateEditor({ templateId }: Props) {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 interface ItemRowProps {
-  item: FieldMappingTemplateItem;
-  templateId: string;
-  typeOptions: Array<{ type_key: string; display_name_no: string }>;
-  isFirst: boolean;
-  isLast: boolean;
-  onMove: (dir: -1 | 1) => void;
-  onUpdate: (patch: Partial<FieldMappingTemplateItem>) => void;
-  onDelete: () => void;
+  item: FieldMappingTemplateItem
+  templateId: string
+  typeOptions: Array<{ type_key: string; display_name_no: string }>
+  isFirst: boolean
+  isLast: boolean
+  onMove: (dir: -1 | 1) => void
+  onUpdate: (patch: Partial<FieldMappingTemplateItem>) => void
+  onDelete: () => void
 }
 
-function ItemRow({
-  item,
-  typeOptions,
-  isFirst,
-  isLast,
-  onMove,
-  onUpdate,
-  onDelete,
-}: ItemRowProps) {
-  const [pattern, setPattern] = useState(item.meta_question_pattern);
-  const [customKey, setCustomKey] = useState(item.target_custom_field_key ?? '');
+function ItemRow({ item, typeOptions, isFirst, isLast, onMove, onUpdate, onDelete }: ItemRowProps) {
+  const [pattern, setPattern] = useState(item.meta_question_pattern)
+  const [customKey, setCustomKey] = useState(item.target_custom_field_key ?? "")
 
   React.useEffect(() => {
-    setPattern(item.meta_question_pattern);
-    setCustomKey(item.target_custom_field_key ?? '');
-  }, [item.id]);
+    setPattern(item.meta_question_pattern)
+    setCustomKey(item.target_custom_field_key ?? "")
+  }, [item.target_custom_field_key, item.meta_question_pattern])
 
   return (
     <div className="rounded-md border p-3 space-y-3">
       <div className="flex items-start gap-2">
         <div className="flex flex-col gap-0.5 pt-1">
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" disabled={isFirst} onClick={() => onMove(-1)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            disabled={isFirst}
+            onClick={() => onMove(-1)}
+          >
             <ArrowUp className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" disabled={isLast} onClick={() => onMove(1)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 w-6 p-0"
+            disabled={isLast}
+            onClick={() => onMove(1)}
+          >
             <ArrowDown className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -242,7 +254,7 @@ function ItemRow({
               onChange={(e) => setPattern(e.target.value)}
               onBlur={() => {
                 if (pattern !== item.meta_question_pattern) {
-                  onUpdate({ meta_question_pattern: pattern });
+                  onUpdate({ meta_question_pattern: pattern })
                 }
               }}
             />
@@ -257,27 +269,33 @@ function ItemRow({
             >
               <div className="flex items-center gap-2">
                 <RadioGroupItem id={`${item.id}-std`} value="standard" />
-                <Label htmlFor={`${item.id}-std`} className="text-xs">Standardfelt</Label>
+                <Label htmlFor={`${item.id}-std`} className="text-xs">
+                  Standardfelt
+                </Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem id={`${item.id}-cust`} value="custom" />
-                <Label htmlFor={`${item.id}-cust`} className="text-xs">Egendefinert felt</Label>
+                <Label htmlFor={`${item.id}-cust`} className="text-xs">
+                  Egendefinert felt
+                </Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem id={`${item.id}-meta`} value="metadata_only" />
-                <Label htmlFor={`${item.id}-meta`} className="text-xs">Kun metadata (ikke lagre svar)</Label>
+                <Label htmlFor={`${item.id}-meta`} className="text-xs">
+                  Kun metadata (ikke lagre svar)
+                </Label>
               </div>
             </RadioGroup>
           </div>
 
-          {item.target_kind === 'standard' && (
+          {item.target_kind === "standard" && (
             <div className="space-y-1">
               <Label className="text-xs">Standardfelt</Label>
               <Select
-                value={item.target_standard_field ?? ''}
+                value={item.target_standard_field ?? ""}
                 onValueChange={(v) =>
                   onUpdate({
-                    target_standard_field: v as 'full_name' | 'email' | 'phone_number',
+                    target_standard_field: v as "full_name" | "email" | "phone_number",
                   })
                 }
               >
@@ -295,7 +313,7 @@ function ItemRow({
             </div>
           )}
 
-          {item.target_kind === 'custom' && (
+          {item.target_kind === "custom" && (
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">Feltnøkkel (field_key)</Label>
@@ -304,8 +322,8 @@ function ItemRow({
                   placeholder="f.eks. years_experience"
                   onChange={(e) => setCustomKey(e.target.value)}
                   onBlur={() => {
-                    if (customKey !== (item.target_custom_field_key ?? '')) {
-                      onUpdate({ target_custom_field_key: customKey || null });
+                    if (customKey !== (item.target_custom_field_key ?? "")) {
+                      onUpdate({ target_custom_field_key: customKey || null })
                     }
                   }}
                 />
@@ -313,7 +331,7 @@ function ItemRow({
               <div className="space-y-1">
                 <Label className="text-xs">Felttype (type_key)</Label>
                 <Select
-                  value={item.target_custom_field_type_key ?? ''}
+                  value={item.target_custom_field_type_key ?? ""}
                   onValueChange={(v) => onUpdate({ target_custom_field_type_key: v })}
                 >
                   <SelectTrigger>
@@ -331,10 +349,15 @@ function ItemRow({
             </div>
           )}
         </div>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={onDelete}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+          onClick={onDelete}
+        >
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>
-  );
+  )
 }

@@ -1,90 +1,97 @@
-import { useState } from 'react';
+import { useQueryClient } from "@tanstack/react-query"
+import { format } from "date-fns"
+import { nb } from "date-fns/locale"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react"
+import { useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, AlertTriangle, ExternalLink, Loader2, KeyRound, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import type { MetaIntegration } from '../types';
+} from "@/components/ui/sheet"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import type { MetaIntegration } from "../types"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  integration: MetaIntegration | null;
-  onUseOAuth?: () => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  integration: MetaIntegration | null
+  onUseOAuth?: () => void
 }
 
-type Method = 'oauth' | 'manual' | 'system_user';
-type ManualStep = 'method' | 'app_secret' | 'user_token' | 'confirm' | 'done';
-type SystemStep = 'method' | 'system_intro' | 'system_paste' | 'done';
+type Method = "oauth" | "manual" | "system_user"
+type ManualStep = "method" | "app_secret" | "user_token" | "confirm" | "done"
+type SystemStep = "method" | "system_intro" | "system_paste" | "done"
 
 interface ExchangeResult {
-  expires_at: string | null;
-  never_expires: boolean;
-  scopes: string[];
-  missing_scopes: string[];
+  expires_at: string | null
+  never_expires: boolean
+  scopes: string[]
+  missing_scopes: string[]
 }
 
 export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseOAuth }: Props) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [method, setMethod] = useState<Method>('oauth');
-  const [step, setStep] = useState<ManualStep | SystemStep>('method');
-  const [appSecret, setAppSecret] = useState('');
-  const [userToken, setUserToken] = useState('');
-  const [systemUserToken, setSystemUserToken] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<ExchangeResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast()
+  const qc = useQueryClient()
+  const [method, setMethod] = useState<Method>("oauth")
+  const [step, setStep] = useState<ManualStep | SystemStep>("method")
+  const [appSecret, setAppSecret] = useState("")
+  const [userToken, setUserToken] = useState("")
+  const [systemUserToken, setSystemUserToken] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<ExchangeResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const reset = () => {
-    setMethod('oauth');
-    setStep('method');
-    setAppSecret('');
-    setUserToken('');
-    setSystemUserToken('');
-    setResult(null);
-    setError(null);
-    setSubmitting(false);
-  };
+    setMethod("oauth")
+    setStep("method")
+    setAppSecret("")
+    setUserToken("")
+    setSystemUserToken("")
+    setResult(null)
+    setError(null)
+    setSubmitting(false)
+  }
 
   const handleClose = (v: boolean) => {
-    if (!v) reset();
-    onOpenChange(v);
-  };
+    if (!v) reset()
+    onOpenChange(v)
+  }
 
   const handleMethodNext = () => {
-    if (!integration) return;
-    if (method === 'oauth') {
-      onOpenChange(false);
-      reset();
-      onUseOAuth?.();
-      return;
+    if (!integration) return
+    if (method === "oauth") {
+      onOpenChange(false)
+      reset()
+      onUseOAuth?.()
+      return
     }
-    if (method === 'manual') setStep('app_secret');
-    else setStep('system_intro');
-  };
+    if (method === "manual") setStep("app_secret")
+    else setStep("system_intro")
+  }
 
   const handleExchange = async () => {
-    if (!integration) return;
-    setSubmitting(true);
-    setError(null);
+    if (!integration) return
+    setSubmitting(true)
+    setError(null)
     try {
       const { data, error: invokeErr } = await supabase.functions.invoke(
-        'meta-token-exchange-long-lived',
+        "meta-token-exchange-long-lived",
         {
           body: {
             integration_id: integration.id,
@@ -92,51 +99,51 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             user_token: userToken,
           },
         },
-      );
+      )
       if (invokeErr || (data as any)?.error) {
-        setError((data as any)?.error ?? invokeErr?.message ?? 'Ukjent feil.');
-        return;
+        setError((data as any)?.error ?? invokeErr?.message ?? "Ukjent feil.")
+        return
       }
-      setResult(data as ExchangeResult);
-      setStep('done');
-      qc.invalidateQueries({ queryKey: ['recruitment-meta-integration'] });
-      qc.invalidateQueries({ queryKey: ['recruitment-admin-alerts'] });
+      setResult(data as ExchangeResult)
+      setStep("done")
+      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
+      qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
       // Clear sensitive inputs immediately on success
-      setAppSecret('');
-      setUserToken('');
-      toast({ title: 'Token fornyet' });
+      setAppSecret("")
+      setUserToken("")
+      toast({ title: "Token fornyet" })
     } catch (e: any) {
-      setError(e?.message ?? 'Uventet feil.');
+      setError(e?.message ?? "Uventet feil.")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   const handleSystemUserSave = async () => {
-    if (!integration) return;
-    setSubmitting(true);
-    setError(null);
+    if (!integration) return
+    setSubmitting(true)
+    setError(null)
     try {
       const { data, error: invokeErr } = await supabase.functions.invoke(
-        'meta-token-paste-system-user',
+        "meta-token-paste-system-user",
         { body: { integration_id: integration.id, system_user_token: systemUserToken } },
-      );
+      )
       if (invokeErr || (data as any)?.error) {
-        setError((data as any)?.error ?? invokeErr?.message ?? 'Ukjent feil.');
-        return;
+        setError((data as any)?.error ?? invokeErr?.message ?? "Ukjent feil.")
+        return
       }
-      setResult(data as ExchangeResult);
-      setStep('done');
-      qc.invalidateQueries({ queryKey: ['recruitment-meta-integration'] });
-      qc.invalidateQueries({ queryKey: ['recruitment-admin-alerts'] });
-      setSystemUserToken('');
-      toast({ title: 'System User-token lagret' });
+      setResult(data as ExchangeResult)
+      setStep("done")
+      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
+      qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
+      setSystemUserToken("")
+      toast({ title: "System User-token lagret" })
     } catch (e: any) {
-      setError(e?.message ?? 'Uventet feil.');
+      setError(e?.message ?? "Uventet feil.")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
@@ -146,12 +153,12 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
           <SheetDescription>
             {integration?.page_name
               ? `Sett opp et nytt access token for ${integration.page_name}.`
-              : 'Sett opp et nytt access token for Meta-tilkoblingen.'}
+              : "Sett opp et nytt access token for Meta-tilkoblingen."}
           </SheetDescription>
         </SheetHeader>
 
         <div className="py-4 space-y-4">
-          {step === 'method' && (
+          {step === "method" && (
             <div className="space-y-4">
               <RadioGroup value={method} onValueChange={(v) => setMethod(v as Method)}>
                 <div className="flex items-start gap-3 rounded-md border p-3">
@@ -185,11 +192,11 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'app_secret' && (
+          {step === "app_secret" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                App Secret hentes fra Meta Developer Portal → Settings → Basic → App Secret.
-                Klikk «Show» og bekreft med Facebook-passord.
+                App Secret hentes fra Meta Developer Portal → Settings → Basic → App Secret. Klikk
+                «Show» og bekreft med Facebook-passord.
               </p>
               <a
                 href="https://developers.facebook.com/apps/"
@@ -213,7 +220,7 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'user_token' && (
+          {step === "user_token" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Brukertokenet hentes fra Graph API Explorer → Access Token-feltet øverst til høyre.
@@ -241,14 +248,14 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'confirm' && (
+          {step === "confirm" && (
             <div className="space-y-3">
               <Alert>
                 <KeyRound className="h-4 w-4" />
                 <AlertTitle>Klar til å fornye</AlertTitle>
                 <AlertDescription>
-                  Vi vil utveksle dette mot et langvarig brukertoken (~60 dager) og deretter
-                  avlede et permanent side-token. Verken App Secret eller brukertoken lagres.
+                  Vi vil utveksle dette mot et langvarig brukertoken (~60 dager) og deretter avlede
+                  et permanent side-token. Verken App Secret eller brukertoken lagres.
                 </AlertDescription>
               </Alert>
               {error && (
@@ -260,21 +267,24 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'system_intro' && (
+          {step === "system_intro" && (
             <div className="space-y-3 text-sm">
               <Alert>
                 <ShieldCheck className="h-4 w-4" />
                 <AlertTitle>System User-tokens</AlertTitle>
                 <AlertDescription>
-                  System User-tokens er den anbefalte løsningen for produksjon — de utløper aldri
-                  og kan administreres sentralt i Business Manager.
+                  System User-tokens er den anbefalte løsningen for produksjon — de utløper aldri og
+                  kan administreres sentralt i Business Manager.
                 </AlertDescription>
               </Alert>
               <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
                 <li>Åpne Meta Business Manager → Business Settings → Users → System Users.</li>
                 <li>Opprett en system user med rollen «Admin» eller «Employee».</li>
                 <li>Tilordne tilgang til Facebook-siden under «Assigned Assets».</li>
-                <li>Klikk «Generate New Token», velg appen, og hak av nødvendige scopes (leads_retrieval, pages_show_list, pages_read_engagement, pages_manage_metadata).</li>
+                <li>
+                  Klikk «Generate New Token», velg appen, og hak av nødvendige scopes
+                  (leads_retrieval, pages_show_list, pages_read_engagement, pages_manage_metadata).
+                </li>
                 <li>Kopier tokenet og lim det inn i neste steg.</li>
               </ol>
               <a
@@ -288,7 +298,7 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'system_paste' && (
+          {step === "system_paste" && (
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="sys-token">System User-token</Label>
@@ -310,21 +320,21 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
             </div>
           )}
 
-          {step === 'done' && result && (
+          {step === "done" && result && (
             <Alert className="border-emerald-500/30 bg-emerald-500/10">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <AlertTitle>Token aktivt</AlertTitle>
               <AlertDescription>
                 {result.never_expires
-                  ? 'Side-token aktivt og utløper aldri.'
+                  ? "Side-token aktivt og utløper aldri."
                   : `Side-token aktivt og utløper ${
                       result.expires_at
-                        ? format(new Date(result.expires_at), 'd. MMMM yyyy', { locale: nb })
-                        : 'snart'
+                        ? format(new Date(result.expires_at), "d. MMMM yyyy", { locale: nb })
+                        : "snart"
                     }.`}
                 {result.missing_scopes.length > 0 && (
                   <div className="mt-2 text-destructive">
-                    Mangler tilganger: {result.missing_scopes.join(', ')}
+                    Mangler tilganger: {result.missing_scopes.join(", ")}
                   </div>
                 )}
               </AlertDescription>
@@ -333,37 +343,42 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
         </div>
 
         <SheetFooter className="gap-2">
-          {step === 'method' && (
+          {step === "method" && (
             <>
-              <Button variant="outline" onClick={() => handleClose(false)}>Avbryt</Button>
-              <Button onClick={handleMethodNext} disabled={!integration}>Neste</Button>
+              <Button variant="outline" onClick={() => handleClose(false)}>
+                Avbryt
+              </Button>
+              <Button onClick={handleMethodNext} disabled={!integration}>
+                Neste
+              </Button>
             </>
           )}
-          {step === 'app_secret' && (
+          {step === "app_secret" && (
             <>
-              <Button variant="outline" onClick={() => setStep('method')}>Tilbake</Button>
+              <Button variant="outline" onClick={() => setStep("method")}>
+                Tilbake
+              </Button>
+              <Button onClick={() => setStep("user_token")} disabled={appSecret.trim().length < 30}>
+                Neste
+              </Button>
+            </>
+          )}
+          {step === "user_token" && (
+            <>
+              <Button variant="outline" onClick={() => setStep("app_secret")}>
+                Tilbake
+              </Button>
               <Button
-                onClick={() => setStep('user_token')}
-                disabled={appSecret.trim().length < 30}
+                onClick={() => setStep("confirm")}
+                disabled={!userToken.trim().startsWith("EAA") || userToken.trim().length < 50}
               >
                 Neste
               </Button>
             </>
           )}
-          {step === 'user_token' && (
+          {step === "confirm" && (
             <>
-              <Button variant="outline" onClick={() => setStep('app_secret')}>Tilbake</Button>
-              <Button
-                onClick={() => setStep('confirm')}
-                disabled={!userToken.trim().startsWith('EAA') || userToken.trim().length < 50}
-              >
-                Neste
-              </Button>
-            </>
-          )}
-          {step === 'confirm' && (
-            <>
-              <Button variant="outline" onClick={() => setStep('user_token')} disabled={submitting}>
+              <Button variant="outline" onClick={() => setStep("user_token")} disabled={submitting}>
                 Tilbake
               </Button>
               <Button onClick={handleExchange} disabled={submitting}>
@@ -372,22 +387,28 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
               </Button>
             </>
           )}
-          {step === 'system_intro' && (
+          {step === "system_intro" && (
             <>
-              <Button variant="outline" onClick={() => setStep('method')}>Tilbake</Button>
-              <Button onClick={() => setStep('system_paste')}>Jeg har tokenet</Button>
+              <Button variant="outline" onClick={() => setStep("method")}>
+                Tilbake
+              </Button>
+              <Button onClick={() => setStep("system_paste")}>Jeg har tokenet</Button>
             </>
           )}
-          {step === 'system_paste' && (
+          {step === "system_paste" && (
             <>
-              <Button variant="outline" onClick={() => setStep('system_intro')} disabled={submitting}>
+              <Button
+                variant="outline"
+                onClick={() => setStep("system_intro")}
+                disabled={submitting}
+              >
                 Tilbake
               </Button>
               <Button
                 onClick={handleSystemUserSave}
                 disabled={
                   submitting ||
-                  !systemUserToken.trim().startsWith('EAA') ||
+                  !systemUserToken.trim().startsWith("EAA") ||
                   systemUserToken.trim().length < 50
                 }
               >
@@ -396,11 +417,9 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
               </Button>
             </>
           )}
-          {step === 'done' && (
-            <Button onClick={() => handleClose(false)}>Ferdig</Button>
-          )}
+          {step === "done" && <Button onClick={() => handleClose(false)}>Ferdig</Button>}
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

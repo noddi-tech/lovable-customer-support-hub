@@ -1,46 +1,59 @@
-import { useState } from "react";
-import { Heading } from '@/components/ui/heading';
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from 'react-i18next';
-import { useAuditLog } from '@/hooks/useAuditLog';
-import { DataTable } from "./DataTable";
-import { userColumns, UserRow } from "./users/UserColumns";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { UserPlus } from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { useAuditLog } from "@/hooks/useAuditLog"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { DataTable } from "./DataTable"
+import { type UserRow, userColumns } from "./users/UserColumns"
 
 interface Department {
-  id: string;
-  name: string;
-  description: string | null;
+  id: string
+  name: string
+  description: string | null
 }
 
 interface CreateUserData {
-  email: string;
-  full_name: string;
-  department_id: string | null;
-  primary_role: 'admin' | 'user';
+  email: string
+  full_name: string
+  department_id: string | null
+  primary_role: "admin" | "user"
 }
 
 export function UserManagement() {
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createUserData, setCreateUserData] = useState<CreateUserData>({
-    email: '',
-    full_name: '',
+    email: "",
+    full_name: "",
     department_id: null,
-    primary_role: 'user'
-  });
-  const { toast } = useToast();
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const { logAction } = useAuditLog();
+    primary_role: "user",
+  })
+  const { toast } = useToast()
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const { logAction } = useAuditLog()
 
   // Fetch users with their departments
   const { data: users = [], isLoading } = useQuery({
@@ -59,12 +72,12 @@ export function UserManagement() {
           created_at,
           department:departments(id, name)
         `)
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      return data as UserRow[];
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      return data as UserRow[]
     },
-  });
+  })
 
   // Fetch departments for assignment
   const { data: departments = [] } = useQuery({
@@ -73,87 +86,81 @@ export function UserManagement() {
       const { data, error } = await supabase
         .from("departments")
         .select("*")
-        .order("name", { ascending: true });
-      
-      if (error) throw error;
-      return data as Department[];
+        .order("name", { ascending: true })
+
+      if (error) throw error
+      return data as Department[]
     },
-  });
+  })
 
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user) throw new Error("User not authenticated")
 
-      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
         body: {
           email: userData.email,
           full_name: userData.full_name,
           department_id: userData.department_id,
           primary_role: userData.primary_role,
-        }
-      });
+        },
+      })
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      
-      return { user: data.user };
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      return { user: data.user }
     },
     onSuccess: async (data, variables) => {
       try {
-        await logAction(
-          'user.create',
-          'user',
-          data.user.id,
-          variables.email,
-          { 
-            email: variables.email,
-            full_name: variables.full_name,
-            department_id: variables.department_id,
-            primary_role: variables.primary_role
-          }
-        );
+        await logAction("user.create", "user", data.user.id, variables.email, {
+          email: variables.email,
+          full_name: variables.full_name,
+          department_id: variables.department_id,
+          primary_role: variables.primary_role,
+        })
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["all-users"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast({
         title: "Invite sent",
         description: "The user will receive an email to set up their password.",
-      });
-      setShowCreateDialog(false);
-      setCreateUserData({ email: '', full_name: '', department_id: null, primary_role: 'user' });
+      })
+      setShowCreateDialog(false)
+      setCreateUserData({ email: "", full_name: "", department_id: null, primary_role: "user" })
     },
     onError: () => {
       toast({
         title: "Error",
         description: "Failed to create user. Please try again.",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (!createUserData.email.trim() || !createUserData.full_name.trim()) {
       toast({
         title: "Validation Error",
         description: "Email and full name are required.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-    createUserMutation.mutate(createUserData);
-  };
+    createUserMutation.mutate(createUserData)
+  }
 
   if (isLoading) {
     return (
       <div className="text-center py-8">
         <p>Loading users...</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -169,7 +176,7 @@ export function UserManagement() {
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="h-4 w-4 mr-2" />
-              {t('admin.createUser')}
+              {t("admin.createUser")}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -186,7 +193,9 @@ export function UserManagement() {
                   id="email"
                   type="email"
                   value={createUserData.email}
-                  onChange={(e) => setCreateUserData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateUserData((prev) => ({ ...prev, email: e.target.value }))
+                  }
                   placeholder="user@company.com"
                   required
                 />
@@ -196,7 +205,9 @@ export function UserManagement() {
                 <Input
                   id="full_name"
                   value={createUserData.full_name}
-                  onChange={(e) => setCreateUserData(prev => ({ ...prev, full_name: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateUserData((prev) => ({ ...prev, full_name: e.target.value }))
+                  }
                   placeholder="John Doe"
                   required
                 />
@@ -206,32 +217,38 @@ export function UserManagement() {
               </p>
               <div>
                 <Label htmlFor="department">Department</Label>
-                <Select 
-                  value={createUserData.department_id || 'no-department'} 
-                  onValueChange={(value) => setCreateUserData(prev => ({ 
-                    ...prev, 
-                    department_id: value === 'no-department' ? null : value 
-                  }))}
+                <Select
+                  value={createUserData.department_id || "no-department"}
+                  onValueChange={(value) =>
+                    setCreateUserData((prev) => ({
+                      ...prev,
+                      department_id: value === "no-department" ? null : value,
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select department (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="no-department">No Department</SelectItem>
-                    {departments?.map(dept => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    {departments?.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={createUserData.primary_role} 
-                  onValueChange={(value: 'admin' | 'user') => setCreateUserData(prev => ({ 
-                    ...prev, 
-                    primary_role: value 
-                  }))}
+                <Select
+                  value={createUserData.primary_role}
+                  onValueChange={(value: "admin" | "user") =>
+                    setCreateUserData((prev) => ({
+                      ...prev,
+                      primary_role: value,
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -247,7 +264,7 @@ export function UserManagement() {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createUserMutation.isPending}>
-                  {createUserMutation.isPending ? t('admin.creating') : t('admin.createUser')}
+                  {createUserMutation.isPending ? t("admin.creating") : t("admin.createUser")}
                 </Button>
               </div>
             </form>
@@ -262,5 +279,5 @@ export function UserManagement() {
         globalFilter
       />
     </div>
-  );
+  )
 }

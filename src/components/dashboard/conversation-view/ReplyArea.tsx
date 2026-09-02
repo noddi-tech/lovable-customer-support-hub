@@ -1,299 +1,306 @@
-import { useRef, useEffect, useState } from 'react';
-import * as React from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { MentionTextarea } from "@/components/ui/mention-textarea";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-
-import { 
-  Send,
-  Sparkles,
-  Loader2,
-  Languages,
-  Lock,
-  Database,
-  StickyNote,
-  Paperclip,
-  X,
-  FileIcon,
-  Users,
-  User,
-  ChevronDown,
+import {
   AlertCircle,
   ArrowDown,
-} from "lucide-react";
-import type { EmailPriority } from "@/lib/emailPriority";
+  ChevronDown,
+  Database,
+  FileIcon,
+  Languages,
+  Loader2,
+  Paperclip,
+  Send,
+  Sparkles,
+  StickyNote,
+  User,
+  Users,
+  X,
+} from "lucide-react"
+import * as React from "react"
+import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
+import { NoteTemplateSelector } from "@/components/conversations/NoteTemplateSelector"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useConversationView } from "@/contexts/ConversationViewContext";
-import { useTranslation } from "react-i18next";
-import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation";
-import { useIsMobile } from "@/hooks/use-responsive";
-import { useMentionNotifications } from "@/hooks/useMentionNotifications";
-import { useAgentTyping } from "@/hooks/useAgentTyping";
-import { cn } from "@/lib/utils";
-import { 
+} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import { MentionTextarea } from "@/components/ui/mention-textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { TemplateSelector } from "./TemplateSelector";
-import { FeedbackPrompt } from "./FeedbackPrompt";
-import { AiSuggestionsSheet } from "./AiSuggestionsSheet";
-import { NoteTemplateSelector } from "@/components/conversations/NoteTemplateSelector";
-import { toast } from 'sonner';
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useAgentTyping } from "@/hooks/useAgentTyping"
+import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation"
+import { useMentionNotifications } from "@/hooks/useMentionNotifications"
+import type { EmailPriority } from "@/lib/emailPriority"
+import { cn } from "@/lib/utils"
+import { AiSuggestionsSheet } from "./AiSuggestionsSheet"
+import { FeedbackPrompt } from "./FeedbackPrompt"
+import { TemplateSelector } from "./TemplateSelector"
 
 export const ReplyArea = () => {
-  const { 
-    state, 
-    dispatch, 
-    sendReply, 
+  const {
+    state,
+    dispatch,
+    sendReply,
     getAiSuggestions,
     refineAiSuggestion,
     translateText,
     conversation,
-    messages
-  } = useConversationView();
-  const { t } = useTranslation();
-  const isMobile = useIsMobile();
-  const { clearConversation } = useInteractionsNavigation();
-  const { processMentions } = useMentionNotifications();
-  const { handleTyping, stopTyping } = useAgentTyping({ conversationId: conversation?.id ?? null });
-  const replyRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [replyStatus, setReplyStatus] = React.useState<string>('closed');
-  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
-  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
-  const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([]);
-  const [replyAll, setReplyAll] = useState(true);
-  const [priority, setPriority] = useState<EmailPriority>('normal');
+    messages,
+  } = useConversationView()
+  const { t } = useTranslation()
+  const isMobile = useIsMobile()
+  const { clearConversation } = useInteractionsNavigation()
+  const { processMentions } = useMentionNotifications()
+  const { handleTyping, stopTyping } = useAgentTyping({ conversationId: conversation?.id ?? null })
+  const replyRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [replyStatus, setReplyStatus] = React.useState<string>("closed")
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false)
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<{ file: File; previewUrl: string }[]>([])
+  const [replyAll, setReplyAll] = useState(true)
+  const [priority, setPriority] = useState<EmailPriority>("normal")
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
   // Extract CC recipients from message email_headers for preview
   const ccRecipients = React.useMemo(() => {
-    if (!messages || messages.length === 0) return [];
-    
-    const ccEmails = new Set<string>();
-    const customerEmail = conversation?.customer?.email?.toLowerCase();
-    
+    if (!messages || messages.length === 0) return []
+
+    const ccEmails = new Set<string>()
+    const customerEmail = conversation?.customer?.email?.toLowerCase()
+
     for (const msg of messages) {
-      const headers = (msg as any).email_headers;
-      if (!Array.isArray(headers)) continue;
-      
+      const headers = (msg as any).email_headers
+      if (!Array.isArray(headers)) continue
+
       for (const header of headers) {
-        if (header?.name?.toLowerCase() === 'cc' && header?.value) {
+        if (header?.name?.toLowerCase() === "cc" && header?.value) {
           // Parse "Name <email>" or just "email" patterns
-          const emailPattern = /[\w.+-]+@[\w.-]+\.\w+/g;
-          const found = header.value.match(emailPattern);
+          const emailPattern = /[\w.+-]+@[\w.-]+\.\w+/g
+          const found = header.value.match(emailPattern)
           if (found) {
             for (const email of found) {
-              const lower = email.toLowerCase();
+              const lower = email.toLowerCase()
               if (lower !== customerEmail) {
-                ccEmails.add(lower);
+                ccEmails.add(lower)
               }
             }
           }
         }
       }
     }
-    
-    return Array.from(ccEmails);
-  }, [messages, conversation?.customer?.email]);
+
+    return Array.from(ccEmails)
+  }, [messages, conversation?.customer?.email])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles: { file: File; previewUrl: string }[] = [];
-    
+    const files = Array.from(e.target.files || [])
+    const validFiles: { file: File; previewUrl: string }[] = []
+
     for (const file of files) {
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`${file.name} exceeds 10MB limit`);
-        continue;
+        toast.error(`${file.name} exceeds 10MB limit`)
+        continue
       }
-      validFiles.push({ file, previewUrl: URL.createObjectURL(file) });
+      validFiles.push({ file, previewUrl: URL.createObjectURL(file) })
     }
-    
-    setAttachments(prev => [...prev, ...validFiles]);
+
+    setAttachments((prev) => [...prev, ...validFiles])
     // Reset input so the same file can be selected again
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   const removeAttachment = (index: number) => {
-    setAttachments(prev => {
-      const removed = prev[index];
-      if (removed) URL.revokeObjectURL(removed.previewUrl);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
+    setAttachments((prev) => {
+      const removed = prev[index]
+      if (removed) URL.revokeObjectURL(removed.previewUrl)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
 
   // Available languages for translation
   const languages = [
-    { code: 'auto', name: t('conversation.autoDetect') },
-    { code: 'en', name: t('languages.en') },
-    { code: 'es', name: t('languages.es') },
-    { code: 'fr', name: t('languages.fr') },
-    { code: 'de', name: t('languages.de') },
-    { code: 'it', name: t('languages.it') },
-    { code: 'pt', name: t('languages.pt') },
-    { code: 'nl', name: t('languages.nl') },
-    { code: 'no', name: t('languages.no') },
-    { code: 'sv', name: t('languages.sv') },
-    { code: 'da', name: t('languages.da') }
-  ];
+    { code: "auto", name: t("conversation.autoDetect") },
+    { code: "en", name: t("languages.en") },
+    { code: "es", name: t("languages.es") },
+    { code: "fr", name: t("languages.fr") },
+    { code: "de", name: t("languages.de") },
+    { code: "it", name: t("languages.it") },
+    { code: "pt", name: t("languages.pt") },
+    { code: "nl", name: t("languages.nl") },
+    { code: "no", name: t("languages.no") },
+    { code: "sv", name: t("languages.sv") },
+    { code: "da", name: t("languages.da") },
+  ]
 
   // Focus the reply area when it becomes visible
   useEffect(() => {
     if (state.showReplyArea && replyRef.current) {
-      replyRef.current.focus();
+      replyRef.current.focus()
     }
-  }, [state.showReplyArea]);
-
-  // Safety: never carry note mode over to another conversation. A reply must
-  // only become an internal note when the agent explicitly chose note mode
-  // for the conversation they are currently looking at.
-  useEffect(() => {
-    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-  }, [conversation?.id, dispatch]);
-
+  }, [state.showReplyArea])
 
   const handleSendReply = () => {
-    if (!state.replyText.trim()) return;
+    if (!state.replyText.trim()) return
 
     // Capture values before sending
-    const replyText = state.replyText;
-    const isInternal = state.isInternalNote;
-    const currentMentionedUserIds = [...mentionedUserIds];
-    const conversationIdForMentions = conversation?.id;
-    const currentAttachments = [...attachments];
+    const replyText = state.replyText
+    const isInternal = state.isInternalNote
+    const currentMentionedUserIds = [...mentionedUserIds]
+    const conversationIdForMentions = conversation?.id
+    const currentAttachments = [...attachments]
 
     // Stop typing indicator immediately (cosmetic)
-    stopTyping();
+    stopTyping()
 
     // Do NOT clear composer / close reply area / navigate at click-time.
     // Only clear once the send (incl. all uploads) has actually resolved.
-    sendReply(replyText, isInternal, replyStatus, currentAttachments.map(a => a.file), replyAll, priority)
+    sendReply(
+      replyText,
+      isInternal,
+      replyStatus,
+      currentAttachments.map((a) => a.file),
+      replyAll,
+      priority,
+    )
       .then((messageId) => {
         // Send succeeded — now safe to clear UI + navigate.
-        dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-        dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
-        dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-        setMentionedUserIds([]);
-        setAttachments([]);
-        setPriority('normal');
-        clearConversation();
+        dispatch({ type: "SET_REPLY_TEXT", payload: "" })
+        dispatch({ type: "SET_SHOW_REPLY_AREA", payload: false })
+        dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
+        setMentionedUserIds([])
+        setAttachments([])
+        setPriority("normal")
+        clearConversation()
 
         // Process mentions after successful send
         if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
           processMentions(replyText, currentMentionedUserIds, {
-            type: 'internal_note',
+            type: "internal_note",
             conversation_id: conversationIdForMentions,
             message_id: messageId,
-          });
+          })
         }
       })
       .catch((error) => {
         // Error toast is handled by mutation's onError in context.
         // Intentionally do NOT clear composer / attachments / showReplyArea —
         // agent stays on the open conversation with their draft + chips intact.
-        console.error('Reply failed:', error);
-      });
-  };
+        console.error("Reply failed:", error)
+      })
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSendReply();
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      handleSendReply()
     }
-  };
+  }
 
   // Sheet-based suggestion handlers
   const handleSheetUseAsIs = (suggestion: string) => {
-    dispatch({ type: 'SET_REPLY_TEXT', payload: suggestion });
-    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
-    setShowSuggestionsSheet(false);
-    toast.success('Suggestion inserted into reply area');
-  };
+    dispatch({ type: "SET_REPLY_TEXT", payload: suggestion })
+    dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: suggestion })
+    setShowSuggestionsSheet(false)
+    toast.success("Suggestion inserted into reply area")
+  }
 
   const handleSheetRefine = async (refinementInstructions: string, originalText: string) => {
-    const lastCustomerMessage = [...messages].reverse().find((m: any) => m.sender_type === 'customer');
-    const customerMessageText = lastCustomerMessage?.content || '';
-    
-    const refinedText = await refineAiSuggestion(originalText, refinementInstructions, customerMessageText);
-    
-    if (refinedText) {
-      dispatch({ type: 'SET_REPLY_TEXT', payload: refinedText });
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
-      setShowSuggestionsSheet(false);
-      toast.success('Refined suggestion inserted into reply area');
-    }
-  };
+    const lastCustomerMessage = [...messages]
+      .reverse()
+      .find((m: any) => m.sender_type === "customer")
+    const customerMessageText = lastCustomerMessage?.content || ""
 
+    const refinedText = await refineAiSuggestion(
+      originalText,
+      refinementInstructions,
+      customerMessageText,
+    )
+
+    if (refinedText) {
+      dispatch({ type: "SET_REPLY_TEXT", payload: refinedText })
+      dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: refinedText })
+      setShowSuggestionsSheet(false)
+      toast.success("Refined suggestion inserted into reply area")
+    }
+  }
 
   const handleTemplateSelect = (content: string, templateId: string) => {
-    dispatch({ type: 'SET_REPLY_TEXT', payload: content });
-    dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: templateId });
-  };
+    dispatch({ type: "SET_REPLY_TEXT", payload: content })
+    dispatch({ type: "SET_SELECTED_TEMPLATE", payload: templateId })
+  }
 
   const handleNoteTemplateSelect = (content: string, templateId: string) => {
-    dispatch({ type: 'SET_REPLY_TEXT', payload: content });
+    dispatch({ type: "SET_REPLY_TEXT", payload: content })
     // Note templates don't track for knowledge base
-  };
+  }
 
   const handleGetAiSuggestions = async () => {
     try {
-      await getAiSuggestions();
-      setShowSuggestionsSheet(true);
+      await getAiSuggestions()
+      setShowSuggestionsSheet(true)
     } catch (error) {
       // Error handling is done in the context
     }
-  };
+  }
 
   const handleTranslate = async () => {
-    if (!state.replyText.trim()) return;
-    
+    if (!state.replyText.trim()) return
+
     try {
-      const translated = await translateText(state.replyText, state.sourceLanguage, state.targetLanguage);
+      const translated = await translateText(
+        state.replyText,
+        state.sourceLanguage,
+        state.targetLanguage,
+      )
       if (translated) {
-        dispatch({ type: 'SET_REPLY_TEXT', payload: translated });
-        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-          open: false, 
-          loading: false,
-          sourceLanguage: state.sourceLanguage,
-          targetLanguage: state.targetLanguage
-        }});
+        dispatch({ type: "SET_REPLY_TEXT", payload: translated })
+        dispatch({
+          type: "SET_TRANSLATE_STATE",
+          payload: {
+            open: false,
+            loading: false,
+            sourceLanguage: state.sourceLanguage,
+            targetLanguage: state.targetLanguage,
+          },
+        })
       }
     } catch (error) {
       // Error handling is done in the context
     }
-  };
+  }
 
   // Phase 3: Enhanced reply area with strong visual separation
   return (
-    <div className={cn(
-      "border-t-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]",
-      state.isInternalNote 
-        ? "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30" 
-        : "border-border bg-gray-50"
-    )}>
+    <div
+      className={cn(
+        "border-t-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]",
+        state.isInternalNote
+          ? "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30"
+          : "border-border bg-gray-50",
+      )}
+    >
       {/* Note Mode Header - only shown when adding a note */}
       {state.isInternalNote && (
         <div className="flex items-center gap-2 px-6 py-3 bg-yellow-100 dark:bg-yellow-900/50 border-b border-yellow-200 dark:border-yellow-800">
@@ -301,12 +308,10 @@ export const ReplyArea = () => {
           <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
             Adding internal note
           </span>
-          <Badge className="ml-auto bg-yellow-500 text-white text-xs">
-            Only visible to team
-          </Badge>
+          <Badge className="ml-auto bg-yellow-500 text-white text-xs">Only visible to team</Badge>
         </div>
       )}
-      
+
       <div className="p-3 md:p-6 space-y-4">
         {/* Feedback Prompt */}
         <FeedbackPrompt />
@@ -330,7 +335,8 @@ export const ReplyArea = () => {
             className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            View {state.aiSuggestions.length} AI Suggestion{state.aiSuggestions.length > 1 ? 's' : ''}
+            View {state.aiSuggestions.length} AI Suggestion
+            {state.aiSuggestions.length > 1 ? "s" : ""}
           </Button>
         )}
 
@@ -343,16 +349,13 @@ export const ReplyArea = () => {
                 <Switch
                   id="internal-note"
                   checked={state.isInternalNote}
-                  onCheckedChange={(checked) => 
-                    dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: checked })
+                  onCheckedChange={(checked) =>
+                    dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: checked })
                   }
                   className="data-[state=checked]:bg-yellow-500"
                 />
-                <Label 
-                  htmlFor="internal-note" 
-                  className="text-sm cursor-pointer font-semibold"
-                >
-                  {t('conversation.internalNote')}
+                <Label htmlFor="internal-note" className="text-sm cursor-pointer font-semibold">
+                  {t("conversation.internalNote")}
                 </Label>
               </>
             )}
@@ -361,7 +364,7 @@ export const ReplyArea = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false })}
+                onClick={() => dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })}
                 className="text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 dark:text-yellow-300 dark:hover:bg-yellow-900"
               >
                 Switch to Reply
@@ -372,18 +375,15 @@ export const ReplyArea = () => {
           <div className="flex items-center gap-1 md:gap-2 flex-wrap">
             {/* Note Template Selector - show in note mode */}
             {state.isInternalNote && (
-              <NoteTemplateSelector 
+              <NoteTemplateSelector
                 onSelectTemplate={handleNoteTemplateSelect}
                 disabled={state.sendLoading}
               />
             )}
-            
+
             {/* Template Selector - only for replies */}
             {!state.isInternalNote && (
-              <TemplateSelector 
-                onSelectTemplate={handleTemplateSelect}
-                isMobile={isMobile}
-              />
+              <TemplateSelector onSelectTemplate={handleTemplateSelect} isMobile={isMobile} />
             )}
 
             {/* AI Suggestions Button */}
@@ -393,7 +393,7 @@ export const ReplyArea = () => {
               onClick={handleGetAiSuggestions}
               disabled={state.aiLoading}
               className="gap-2"
-              title={t('conversation.getAiSuggestions')}
+              title={t("conversation.getAiSuggestions")}
             >
               {state.aiLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -411,49 +411,57 @@ export const ReplyArea = () => {
                   size="sm"
                   disabled={!state.replyText.trim()}
                   className="gap-2"
-                  title={t('conversation.translate')}
+                  title={t("conversation.translate")}
                 >
                   <Languages className="h-4 w-4" />
                   {!isMobile && <span className="text-xs">Translate</span>}
                 </Button>
               </PopoverTrigger>
 
-            {/* Attachment Button */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="gap-2"
-              title="Attach files"
-            >
-              <Paperclip className="h-4 w-4" />
-              {!isMobile && <span className="text-xs">Attach</span>}
-              {attachments.length > 0 && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">{attachments.length}</Badge>
-              )}
-            </Button>
-              <PopoverContent className="w-80 bg-popover border border-border shadow-md z-50" align="end">
+              {/* Attachment Button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2"
+                title="Attach files"
+              >
+                <Paperclip className="h-4 w-4" />
+                {!isMobile && <span className="text-xs">Attach</span>}
+                {attachments.length > 0 && (
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5">
+                    {attachments.length}
+                  </Badge>
+                )}
+              </Button>
+              <PopoverContent
+                className="w-80 bg-popover border border-border shadow-md z-50"
+                align="end"
+              >
                 <div className="space-y-3">
-                  <h4 className="font-medium text-sm">{t('conversation.translate')}</h4>
-                  
+                  <h4 className="font-medium text-sm">{t("conversation.translate")}</h4>
+
                   <div className="space-y-2">
-                    <Label className="text-xs">{t('conversation.from')}</Label>
+                    <Label className="text-xs">{t("conversation.from")}</Label>
                     <Select
                       value={state.sourceLanguage}
-                      onValueChange={(value) => 
-                        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-                          open: state.translateOpen,
-                          loading: state.translateLoading,
-                          sourceLanguage: value,
-                          targetLanguage: state.targetLanguage
-                        }})
+                      onValueChange={(value) =>
+                        dispatch({
+                          type: "SET_TRANSLATE_STATE",
+                          payload: {
+                            open: state.translateOpen,
+                            loading: state.translateLoading,
+                            sourceLanguage: value,
+                            targetLanguage: state.targetLanguage,
+                          },
+                        })
                       }
                     >
                       <SelectTrigger className="w-full bg-background">
@@ -470,27 +478,32 @@ export const ReplyArea = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs">{t('conversation.to')}</Label>
+                    <Label className="text-xs">{t("conversation.to")}</Label>
                     <Select
                       value={state.targetLanguage}
-                      onValueChange={(value) => 
-                        dispatch({ type: 'SET_TRANSLATE_STATE', payload: { 
-                          open: state.translateOpen,
-                          loading: state.translateLoading,
-                          sourceLanguage: state.sourceLanguage,
-                          targetLanguage: value
-                        }})
+                      onValueChange={(value) =>
+                        dispatch({
+                          type: "SET_TRANSLATE_STATE",
+                          payload: {
+                            open: state.translateOpen,
+                            loading: state.translateLoading,
+                            sourceLanguage: state.sourceLanguage,
+                            targetLanguage: value,
+                          },
+                        })
                       }
                     >
                       <SelectTrigger className="w-full bg-background">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border border-border shadow-md z-50">
-                        {languages.filter(l => l.code !== 'auto').map((lang) => (
-                          <SelectItem key={lang.code} value={lang.code}>
-                            {lang.name}
-                          </SelectItem>
-                        ))}
+                        {languages
+                          .filter((l) => l.code !== "auto")
+                          .map((lang) => (
+                            <SelectItem key={lang.code} value={lang.code}>
+                              {lang.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -502,7 +515,7 @@ export const ReplyArea = () => {
                     size="sm"
                   >
                     {state.translateLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    {t('conversation.translate')}
+                    {t("conversation.translate")}
                   </Button>
                 </div>
               </PopoverContent>
@@ -515,7 +528,7 @@ export const ReplyArea = () => {
           <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-md">
             <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="text-xs text-muted-foreground">
-              <span className="font-medium">CC:</span> {ccRecipients.join(', ')}
+              <span className="font-medium">CC:</span> {ccRecipients.join(", ")}
             </span>
           </div>
         )}
@@ -534,16 +547,16 @@ export const ReplyArea = () => {
             <MentionTextarea
               value={state.replyText}
               onChange={(value, mentions) => {
-                dispatch({ type: 'SET_REPLY_TEXT', payload: value });
-                setMentionedUserIds(mentions);
-                handleTyping();
+                dispatch({ type: "SET_REPLY_TEXT", payload: value })
+                setMentionedUserIds(mentions)
+                handleTyping()
               }}
               mentionedUserIds={mentionedUserIds}
               onKeyDown={handleKeyPress}
-              placeholder={t('conversation.internalNotePlaceholder') + ' (Type @ to mention team members)'}
+              placeholder={`${t("conversation.internalNotePlaceholder")} (Type @ to mention team members)`}
               className={cn(
                 "min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm",
-                "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900"
+                "bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900",
               )}
             />
           ) : (
@@ -551,18 +564,27 @@ export const ReplyArea = () => {
               ref={replyRef}
               value={state.replyText}
               onChange={(e) => {
-                dispatch({ type: 'SET_REPLY_TEXT', payload: e.target.value });
-                handleTyping();
+                dispatch({ type: "SET_REPLY_TEXT", payload: e.target.value })
+                handleTyping()
               }}
               onKeyDown={handleKeyPress}
-              placeholder={t('conversation.replyPlaceholder')}
+              placeholder={t("conversation.replyPlaceholder")}
               className="min-h-[80px] md:min-h-[140px] resize-none transition-colors text-sm"
             />
           )}
           {!isMobile && (
             <p className="text-xs text-muted-foreground">
-              Press <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">Ctrl+Enter</kbd> to send
-              {state.isInternalNote && <span className="ml-2">• Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to mention team members</span>}
+              Press{" "}
+              <kbd className="px-2 py-1 bg-muted rounded border text-xs font-medium">
+                Ctrl+Enter
+              </kbd>{" "}
+              to send
+              {state.isInternalNote && (
+                <span className="ml-2">
+                  • Type <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">@</kbd> to
+                  mention team members
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -577,7 +599,9 @@ export const ReplyArea = () => {
               >
                 <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="truncate max-w-[150px]">{att.file.name}</span>
-                <span className="text-xs text-muted-foreground">{formatFileSize(att.file.size)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatFileSize(att.file.size)}
+                </span>
                 <button
                   onClick={() => removeAttachment(index)}
                   className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
@@ -594,14 +618,14 @@ export const ReplyArea = () => {
             variant="ghost"
             size={isMobile ? "sm" : "default"}
             onClick={() => {
-              stopTyping();
-              dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-              dispatch({ type: 'SET_IS_INTERNAL_NOTE', payload: false });
-              dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: false });
+              // Collapse only — keep typed draft. Reply vs Internal note is
+              // chosen again when the agent presses those buttons.
+              stopTyping()
+              dispatch({ type: "SET_SHOW_REPLY_AREA", payload: false })
             }}
             disabled={state.sendLoading}
           >
-            {t('conversation.cancel')}
+            Minimize
           </Button>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -611,8 +635,12 @@ export const ReplyArea = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="default" className="gap-1.5 h-11">
-                      {replyAll ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-                      {replyAll ? 'Reply All' : 'Reply'}
+                      {replyAll ? (
+                        <Users className="h-3.5 w-3.5" />
+                      ) : (
+                        <User className="h-3.5 w-3.5" />
+                      )}
+                      {replyAll ? "Reply All" : "Reply"}
                       <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -632,8 +660,12 @@ export const ReplyArea = () => {
                 <Select value={priority} onValueChange={(v) => setPriority(v as EmailPriority)}>
                   <SelectTrigger className="w-[150px] h-11" aria-label="Email importance">
                     <div className="flex items-center gap-1.5 truncate">
-                      {priority === 'high' && <AlertCircle className="h-3.5 w-3.5 text-destructive" />}
-                      {priority === 'low' && <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {priority === "high" && (
+                        <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                      )}
+                      {priority === "low" && (
+                        <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
                       <SelectValue />
                     </div>
                   </SelectTrigger>
@@ -655,7 +687,7 @@ export const ReplyArea = () => {
                 </Select>
               </>
             )}
-            
+
             <Button
               onClick={handleSendReply}
               disabled={!state.replyText.trim() || state.sendLoading}
@@ -663,18 +695,24 @@ export const ReplyArea = () => {
               className={cn(
                 "gap-2",
                 isMobile ? "px-4 flex-1" : "px-6",
-                state.isInternalNote && "bg-yellow-500 hover:bg-yellow-600 text-white"
+                state.isInternalNote && "bg-yellow-500 hover:bg-yellow-600 text-white",
               )}
             >
               {state.sendLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {t('conversation.sending')}
+                  {t("conversation.sending")}
                 </>
               ) : (
                 <>
-                  {state.isInternalNote ? <StickyNote className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                  {state.isInternalNote ? (t('conversation.addNote') || 'Add Note') : t('conversation.send')}
+                  {state.isInternalNote ? (
+                    <StickyNote className="w-4 h-4" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  {state.isInternalNote
+                    ? t("conversation.addNote") || "Add Note"
+                    : t("conversation.send")}
                 </>
               )}
             </Button>
@@ -682,5 +720,5 @@ export const ReplyArea = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

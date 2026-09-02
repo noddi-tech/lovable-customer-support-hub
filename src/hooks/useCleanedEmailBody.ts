@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { cleanEmailHtml, cleanPlainTextBody, isLibCleanEnabled, type CleanResult } from '@/lib/emailClean';
+import { useEffect, useMemo, useState } from "react"
+import {
+  type CleanResult,
+  cleanEmailHtml,
+  cleanPlainTextBody,
+  isLibCleanEnabled,
+} from "@/lib/emailClean"
 
 /**
  * Return the "visible turn" of an email body — quotes, signatures and legal
@@ -9,38 +14,38 @@ import { cleanEmailHtml, cleanPlainTextBody, isLibCleanEnabled, type CleanResult
  * is async, so the original renders until the cleaned version resolves.
  */
 export function useCleanedEmailBody(content: string, isHTML: boolean): CleanResult {
-  const enabled = isLibCleanEnabled();
+  const enabled = isLibCleanEnabled()
 
   const passthrough = useMemo<CleanResult>(
-    () => ({ visible: content, removed: '', confidence: 'high', cleaned: false }),
-    [content]
-  );
+    () => ({ visible: content, removed: "", confidence: "high", cleaned: false }),
+    [content],
+  )
 
   const syncResult = useMemo<CleanResult>(() => {
-    if (!enabled || isHTML) return passthrough;
-    return cleanPlainTextBody(content);
-  }, [enabled, isHTML, content, passthrough]);
+    if (!enabled || isHTML) return passthrough
+    return cleanPlainTextBody(content)
+  }, [enabled, isHTML, content, passthrough])
 
-  const [htmlResult, setHtmlResult] = useState<CleanResult>(passthrough);
+  const [htmlResult, setHtmlResult] = useState<CleanResult>(passthrough)
 
   useEffect(() => {
     if (!enabled || !isHTML) {
-      setHtmlResult(passthrough);
-      return;
+      setHtmlResult(passthrough)
+      return
     }
-    let cancelled = false;
-    setHtmlResult(passthrough);
+    let cancelled = false
+    setHtmlResult(passthrough)
     cleanEmailHtml(content)
       .then((result) => {
-        if (!cancelled) setHtmlResult(result);
+        if (!cancelled) setHtmlResult(result)
       })
       .catch(() => {
-        if (!cancelled) setHtmlResult(passthrough);
-      });
+        if (!cancelled) setHtmlResult(passthrough)
+      })
     return () => {
-      cancelled = true;
-    };
-  }, [enabled, isHTML, content, passthrough]);
+      cancelled = true
+    }
+  }, [enabled, isHTML, content, passthrough])
 
-  return isHTML ? htmlResult : syncResult;
+  return isHTML ? htmlResult : syncResult
 }

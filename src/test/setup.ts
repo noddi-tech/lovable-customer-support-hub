@@ -1,8 +1,8 @@
-import '@testing-library/jest-dom'
-import { beforeAll, afterEach, afterAll, vi } from 'vitest'
+import "@testing-library/jest-dom"
+import { afterEach, beforeAll, vi } from "vitest"
 
 // Mock Supabase client
-vi.mock('@/integrations/supabase/client', () => ({
+vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       getUser: vi.fn(),
@@ -30,18 +30,18 @@ vi.mock('@/integrations/supabase/client', () => ({
 }))
 
 // Mock react-router-dom
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom')
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom")
   return {
     ...actual,
     useNavigate: () => vi.fn(),
     useSearchParams: () => [new URLSearchParams(), vi.fn()],
-    useLocation: () => ({ pathname: '/' }),
+    useLocation: () => ({ pathname: "/" }),
   }
 })
 
 // Mock react-i18next
-vi.mock('react-i18next', () => ({
+vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => fallback || key,
     i18n: {
@@ -51,7 +51,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -61,7 +61,7 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 // Mock toast
-vi.mock('sonner', () => ({
+vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
@@ -72,9 +72,9 @@ vi.mock('sonner', () => ({
 // Global test setup
 beforeAll(() => {
   // Mock window.matchMedia for responsive hooks
-  Object.defineProperty(window, 'matchMedia', {
+  Object.defineProperty(window, "matchMedia", {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,

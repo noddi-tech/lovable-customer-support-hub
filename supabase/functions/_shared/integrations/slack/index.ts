@@ -3,4 +3,4 @@ export {
   type SlackApiResponse,
   type SlackClient,
   type SlackPostMessageArgs,
-} from './client.ts';
+} from "./client.ts"

@@ -1,6 +1,6 @@
-import { EmailForwarding } from "./EmailForwarding";
-import { ConnectedEmailAccountsContent } from "@/components/dashboard/ConnectedEmailAccounts";
-import { Separator } from "@/components/ui/separator";
+import { ConnectedEmailAccountsContent } from "@/components/dashboard/ConnectedEmailAccounts"
+import { Separator } from "@/components/ui/separator"
+import { EmailForwarding } from "./EmailForwarding"
 
 // Legacy wrapper component for backwards compatibility
 export function EmailAccountConnection() {
@@ -10,5 +10,5 @@ export function EmailAccountConnection() {
       <Separator />
       <ConnectedEmailAccountsContent />
     </div>
-  );
+  )
 }

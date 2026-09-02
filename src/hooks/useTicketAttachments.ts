@@ -1,57 +1,59 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
 
 export function useTicketAttachments(ticketId: string) {
   return useQuery({
-    queryKey: ['ticket-attachments', ticketId],
+    queryKey: ["ticket-attachments", ticketId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('service_ticket_attachments' as any)
-        .select('*')
-        .eq('ticket_id', ticketId)
-        .order('created_at', { ascending: false });
+        .from("service_ticket_attachments" as any)
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: false })
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data || []
     },
-  });
+  })
 }
 
 export function useUploadTicketAttachment(ticketId: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (file: File) => {
       // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${ticketId}/${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('ticket-attachments')
-        .upload(fileName, file);
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${ticketId}/${Date.now()}.${fileExt}`
 
-      if (uploadError) throw uploadError;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("ticket-attachments")
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('ticket-attachments')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("ticket-attachments").getPublicUrl(fileName)
 
       // Create attachment record
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("User not authenticated")
+
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('User profile not found');
-      
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!profile) throw new Error("User profile not found")
+
       const { data, error } = await supabase
-        .from('service_ticket_attachments' as any)
+        .from("service_ticket_attachments" as any)
         .insert({
           ticket_id: ticketId,
           file_name: file.name,
@@ -61,39 +63,39 @@ export function useUploadTicketAttachment(ticketId: string) {
           uploaded_by_id: profile.id,
         })
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ticket-attachments', ticketId] });
-      toast.success('File uploaded successfully');
+      queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
+      toast.success("File uploaded successfully")
     },
     onError: (error) => {
-      toast.error('Failed to upload file: ' + error.message);
+      toast.error(`Failed to upload file: ${error.message}`)
     },
-  });
+  })
 }
 
 export function useDeleteTicketAttachment(ticketId: string) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (attachmentId: string) => {
       const { error } = await supabase
-        .from('service_ticket_attachments' as any)
+        .from("service_ticket_attachments" as any)
         .delete()
-        .eq('id', attachmentId);
+        .eq("id", attachmentId)
 
-      if (error) throw error;
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ticket-attachments', ticketId] });
-      toast.success('Attachment deleted');
+      queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
+      toast.success("Attachment deleted")
     },
     onError: (error) => {
-      toast.error('Failed to delete attachment: ' + error.message);
+      toast.error(`Failed to delete attachment: ${error.message}`)
     },
-  });
+  })
 }

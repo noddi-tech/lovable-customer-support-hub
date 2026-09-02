@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import type { AutomationExecution } from './types';
+import { useQuery } from "@tanstack/react-query"
+import { AlertTriangle, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { supabase } from "@/integrations/supabase/client"
+import { cn } from "@/lib/utils"
+import type { AutomationExecution } from "./types"
 import {
   formatAbsoluteNbNo,
   formatDuration,
@@ -20,91 +20,95 @@ import {
   isActionFailed,
   maskWebhookUrl,
   truncateText,
-} from './types';
+} from "./types"
 
 interface Props {
-  execution: AutomationExecution | null;
-  onClose: () => void;
-  onAcknowledge: (execution: AutomationExecution) => void;
+  execution: AutomationExecution | null
+  onClose: () => void
+  onAcknowledge: (execution: AutomationExecution) => void
 }
 
 export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Props) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [showTriggerContext, setShowTriggerContext] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [showTriggerContext, setShowTriggerContext] = useState(false)
 
   useEffect(() => {
     if (execution) {
-      setSheetOpen(true);
-      setShowTriggerContext(false);
+      setSheetOpen(true)
+      setShowTriggerContext(false)
     }
-  }, [execution]);
+  }, [execution])
 
   const handleOpenChange = (open: boolean) => {
-    setSheetOpen(open);
+    setSheetOpen(open)
     if (!open) {
-      setTimeout(() => onClose(), 150);
+      setTimeout(() => onClose(), 150)
     }
-  };
+  }
 
-  const status = execution ? getExecutionStatusMeta(execution) : null;
+  const status = execution ? getExecutionStatusMeta(execution) : null
   const actionResults = useMemo(
     () => (execution ? getActionResults(execution.action_results) : []),
     [execution],
-  );
+  )
 
   // For skipped rows, resolve template_id / would_send_to_application_id to
   // human-readable names so the drawer shows "Mal: Søknad mottatt" instead of UUIDs.
-  const isSkippedExecution = execution?.overall_status === 'skipped';
+  const isSkippedExecution = execution?.overall_status === "skipped"
   const templateIds = useMemo(
     () =>
       Array.from(
         new Set(
           actionResults
             .map((a) => a.template_id ?? a.phone_template_id)
-            .filter((id): id is string => typeof id === 'string' && id.length > 0),
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
         ),
       ),
     [actionResults],
-  );
+  )
   const applicationIds = useMemo(
     () =>
       Array.from(
         new Set(
           actionResults
             .map((a) => a.would_send_to_application_id)
-            .filter((id): id is string => typeof id === 'string' && id.length > 0),
+            .filter((id): id is string => typeof id === "string" && id.length > 0),
         ),
       ),
     [actionResults],
-  );
+  )
 
   const { data: nameMaps } = useQuery({
-    queryKey: ['execution-drawer-resolution', execution?.id, templateIds, applicationIds],
-    enabled: !!execution && isSkippedExecution && (templateIds.length > 0 || applicationIds.length > 0),
+    queryKey: ["execution-drawer-resolution", execution?.id, templateIds, applicationIds],
+    enabled:
+      !!execution && isSkippedExecution && (templateIds.length > 0 || applicationIds.length > 0),
     staleTime: 60_000,
     queryFn: async () => {
       const [templatesRes, appsRes] = await Promise.all([
         templateIds.length
-          ? supabase.from('recruitment_email_templates').select('id, name').in('id', templateIds)
+          ? supabase.from("recruitment_email_templates").select("id, name").in("id", templateIds)
           : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
         applicationIds.length
           ? (supabase as any)
-              .from('applications')
-              .select('id, applicants(email, first_name, last_name)')
-              .in('id', applicationIds)
+              .from("applications")
+              .select("id, applicants(email, first_name, last_name)")
+              .in("id", applicationIds)
           : Promise.resolve({ data: [] as any[] }),
-      ]);
+      ])
       const templateMap = new Map(
-        ((templatesRes.data ?? []) as Array<{ id: string; name: string }>).map((t) => [t.id, t.name]),
-      );
+        ((templatesRes.data ?? []) as Array<{ id: string; name: string }>).map((t) => [
+          t.id,
+          t.name,
+        ]),
+      )
       const applicantEmailMap = new Map<string, string | null>(
         ((appsRes.data ?? []) as any[]).map((a) => [a.id, a.applicants?.email ?? null]),
-      );
-      return { templateMap, applicantEmailMap };
+      )
+      return { templateMap, applicantEmailMap }
     },
-  });
+  })
 
-  if (!execution || !status) return null;
+  if (!execution || !status) return null
 
   return (
     <Sheet open={sheetOpen} onOpenChange={handleOpenChange}>
@@ -112,11 +116,13 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
         <SheetHeader className="sticky top-0 z-10 border-b bg-background px-6 py-4 text-left">
           <div className="flex items-center justify-between gap-3 pr-8">
             <div className="space-y-1">
-              <SheetTitle className="text-left">Utførelse av {execution.rule_name ?? '(slettet regel)'}</SheetTitle>
+              <SheetTitle className="text-left">
+                Utførelse av {execution.rule_name ?? "(slettet regel)"}
+              </SheetTitle>
             </div>
-            <Badge variant="outline" className={cn('gap-1 font-normal', status.className)}>
+            <Badge variant="outline" className={cn("gap-1 font-normal", status.className)}>
               {status.showAlertIcon ? <AlertTriangle className="h-3 w-3" /> : null}
-              <span className={status.italic ? 'italic' : undefined}>{status.label}</span>
+              <span className={status.italic ? "italic" : undefined}>{status.label}</span>
             </Badge>
           </div>
         </SheetHeader>
@@ -127,8 +133,8 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <MetaItem label="Tidspunkt" value={formatAbsoluteNbNo(execution.created_at)} />
               <MetaItem label="Varighet" value={formatDuration(execution.duration_ms)} />
-              <MetaItem label="Utløst av" value={execution.triggered_by_name ?? 'System'} />
-              <MetaItem label="Test-kjøring" value={execution.is_dry_run ? 'Ja' : 'Nei'} />
+              <MetaItem label="Utløst av" value={execution.triggered_by_name ?? "System"} />
+              <MetaItem label="Test-kjøring" value={execution.is_dry_run ? "Ja" : "Nei"} />
               <MetaItem
                 label="Søknad"
                 value={
@@ -141,12 +147,12 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Link>
                   ) : (
-                    '—'
+                    "—"
                   )
                 }
               />
-              {execution.overall_status === 'skipped' ? (
-                <MetaItem label="Grunn" value={execution.skip_reason ?? 'Ikke oppgitt'} />
+              {execution.overall_status === "skipped" ? (
+                <MetaItem label="Grunn" value={execution.skip_reason ?? "Ikke oppgitt"} />
               ) : null}
             </dl>
           </section>
@@ -155,9 +161,9 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
 
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">
-              {execution.overall_status === 'skipped'
-                ? 'Handlinger som ville blitt utført'
-                : 'Handlinger utført'}
+              {execution.overall_status === "skipped"
+                ? "Handlinger som ville blitt utført"
+                : "Handlinger utført"}
             </h3>
             <div className="space-y-3">
               {actionResults.length === 0 ? (
@@ -166,27 +172,30 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                 </div>
               ) : (
                 actionResults.map((action, index) => {
-                  const isSkipped = execution.overall_status === 'skipped' || action.skipped === true;
-                  const failed = !isSkipped && isActionFailed(action);
+                  const isSkipped =
+                    execution.overall_status === "skipped" || action.skipped === true
+                  const failed = !isSkipped && isActionFailed(action)
                   return (
                     <div key={index} className="rounded-md border p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-medium">{getActionLabel(action.action_type)}</p>
-                          <p className="text-xs text-muted-foreground">Varighet: {formatDuration(action.duration_ms)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Varighet: {formatDuration(action.duration_ms)}
+                          </p>
                         </div>
                         <Badge
                           variant="outline"
                           className={cn(
-                            'font-normal',
+                            "font-normal",
                             isSkipped
-                              ? 'border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                              ? "border-amber-300/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
                               : failed
-                                ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                                : 'border-success/40 bg-success/10 text-success',
+                                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                                : "border-success/40 bg-success/10 text-success",
                           )}
                         >
-                          {isSkipped ? 'Hoppet over' : failed ? 'Feilet' : 'Vellykket'}
+                          {isSkipped ? "Hoppet over" : failed ? "Feilet" : "Vellykket"}
                         </Badge>
                       </div>
 
@@ -197,72 +206,72 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                           </p>
                         ) : null}
 
-                        {action.action_type === 'send_email' ? (
+                        {action.action_type === "send_email" ? (
                           isSkipped ? (
                             <DetailGrid
                               items={[
                                 [
-                                  'Mal',
+                                  "Mal",
                                   action.template_name ??
                                     (action.template_id
-                                      ? nameMaps?.templateMap.get(action.template_id) ?? '—'
-                                      : '—'),
+                                      ? (nameMaps?.templateMap.get(action.template_id) ?? "—")
+                                      : "—"),
                                 ],
                                 [
-                                  'Ville sendt til',
+                                  "Ville sendt til",
                                   action.recipient ??
                                     action.recipient_email ??
                                     (action.would_send_to_application_id
-                                      ? nameMaps?.applicantEmailMap.get(
+                                      ? (nameMaps?.applicantEmailMap.get(
                                           action.would_send_to_application_id,
-                                        ) ?? '—'
-                                      : '—'),
+                                        ) ?? "—")
+                                      : "—"),
                                 ],
                               ]}
                             />
                           ) : (
                             <DetailGrid
                               items={[
-                                ['Mottaker', action.recipient ?? action.recipient_email ?? '—'],
-                                ['Mal', action.template_name ?? action.template_id ?? '—'],
-                                ['SendGrid-ID', action.sendgrid_message_id ?? '—'],
+                                ["Mottaker", action.recipient ?? action.recipient_email ?? "—"],
+                                ["Mal", action.template_name ?? action.template_id ?? "—"],
+                                ["SendGrid-ID", action.sendgrid_message_id ?? "—"],
                               ]}
                             />
                           )
                         ) : null}
 
-                        {action.action_type === 'assign_to' ? (
+                        {action.action_type === "assign_to" ? (
                           <DetailGrid
                             items={[
                               [
-                                isSkipped ? 'Ville tildelt' : 'Tildelt',
-                                action.assigned_to_name ?? action.assigned_to ?? '—',
+                                isSkipped ? "Ville tildelt" : "Tildelt",
+                                action.assigned_to_name ?? action.assigned_to ?? "—",
                               ],
                             ]}
                           />
                         ) : null}
 
-                        {action.action_type === 'webhook' ? (
+                        {action.action_type === "webhook" ? (
                           isSkipped ? (
                             <DetailGrid
                               items={[
-                                ['Ville kalt URL', maskWebhookUrl(action.url)],
-                                ['Metode', action.method ?? 'POST'],
+                                ["Ville kalt URL", maskWebhookUrl(action.url)],
+                                ["Metode", action.method ?? "POST"],
                               ]}
                             />
                           ) : (
                             <DetailGrid
                               items={[
-                                ['URL', maskWebhookUrl(action.url)],
-                                ['HTTP-status', action.http_status?.toString() ?? '—'],
-                                ['Respons', truncateText(action.response_body)],
+                                ["URL", maskWebhookUrl(action.url)],
+                                ["HTTP-status", action.http_status?.toString() ?? "—"],
+                                ["Respons", truncateText(action.response_body)],
                               ]}
                             />
                           )
                         ) : null}
                       </div>
                     </div>
-                  );
+                  )
                 })
               )}
             </div>
@@ -277,7 +286,11 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
               onClick={() => setShowTriggerContext((prev) => !prev)}
             >
               Utløserkontekst
-              {showTriggerContext ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {showTriggerContext ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </button>
             {showTriggerContext ? (
               <pre className="overflow-x-auto rounded-md border bg-muted/40 p-4 text-xs text-foreground">
@@ -292,13 +305,19 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
             <div className="text-sm text-muted-foreground">
               {execution.acknowledged_at ? (
                 <span>
-                  Bekreftet av {execution.acknowledged_by_name ?? 'Ukjent bruker'} {formatRelativeNbNo(execution.acknowledged_at)}
+                  Bekreftet av {execution.acknowledged_by_name ?? "Ukjent bruker"}{" "}
+                  {formatRelativeNbNo(execution.acknowledged_at)}
                 </span>
               ) : null}
             </div>
             <div className="flex items-center justify-end gap-2">
-              {execution.overall_status === 'failed' && execution.acknowledged_at === null ? (
-                <Button type="button" variant="destructive" size="sm" onClick={() => onAcknowledge(execution)}>
+              {execution.overall_status === "failed" && execution.acknowledged_at === null ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onAcknowledge(execution)}
+                >
                   <Check className="h-4 w-4" />
                   Bekreft feil
                 </Button>
@@ -311,7 +330,7 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
+  )
 }
 
 function MetaItem({ label, value }: { label: string; value: React.ReactNode }) {
@@ -320,7 +339,7 @@ function MetaItem({ label, value }: { label: string; value: React.ReactNode }) {
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
       <dd className="text-sm">{value}</dd>
     </div>
-  );
+  )
 }
 
 function DetailGrid({ items }: { items: Array<[string, string]> }) {
@@ -333,5 +352,5 @@ function DetailGrid({ items }: { items: Array<[string, string]> }) {
         </div>
       ))}
     </dl>
-  );
+  )
 }

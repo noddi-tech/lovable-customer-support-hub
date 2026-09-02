@@ -1,23 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, Download, Loader2, AlertCircle, RefreshCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { cn } from '@/lib/utils';
+import { AlertCircle, Download, Loader2, Pause, Play, RefreshCcw, Volume2 } from "lucide-react"
+import type React from "react"
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
+import { cn } from "@/lib/utils"
 
 interface DynamicAudioPlayerProps {
-  initialSrc: string;
-  title?: string;
-  duration?: number;
-  className?: string;
-  onDownload?: () => void;
-  autoPlay?: boolean;
-  onGetFreshUrl?: () => Promise<{ 
-    localUrl?: string; 
-    audioData?: string; 
-    contentType?: string; 
-    error?: string; 
-    success?: boolean; 
-  }>;
+  initialSrc: string
+  title?: string
+  duration?: number
+  className?: string
+  onDownload?: () => void
+  autoPlay?: boolean
+  onGetFreshUrl?: () => Promise<{
+    localUrl?: string
+    audioData?: string
+    contentType?: string
+    error?: string
+    success?: boolean
+  }>
 }
 
 export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
@@ -27,224 +28,228 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
   className,
   onDownload,
   autoPlay = false,
-  onGetFreshUrl
+  onGetFreshUrl,
 }) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(expectedDuration || 0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [src, setSrc] = useState(initialSrc);
-  const [isGettingFreshUrl, setIsGettingFreshUrl] = useState(false);
-  const [currentBlobUrl, setCurrentBlobUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(expectedDuration || 0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+  const [volume, setVolume] = useState(1)
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
+  const [src, setSrc] = useState(initialSrc)
+  const [isGettingFreshUrl, setIsGettingFreshUrl] = useState(false)
+  const [currentBlobUrl, setCurrentBlobUrl] = useState<string | null>(null)
 
   // Format time in MM:SS
   const formatTime = (seconds: number) => {
-    if (!isFinite(seconds)) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!Number.isFinite(seconds)) return "0:00"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = Math.floor(seconds % 60)
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   // Handle play/pause
   const togglePlayPause = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) return
 
     try {
       if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
+        audioRef.current.pause()
+        setIsPlaying(false)
       } else {
-        setIsLoadingAudio(true);
-        await audioRef.current.play();
-        setIsPlaying(true);
-        setIsLoadingAudio(false);
+        setIsLoadingAudio(true)
+        await audioRef.current.play()
+        setIsPlaying(true)
+        setIsLoadingAudio(false)
       }
     } catch (error) {
-      console.error('Error playing audio:', error);
-      setHasError(true);
-      setIsLoadingAudio(false);
+      console.error("Error playing audio:", error)
+      setHasError(true)
+      setIsLoadingAudio(false)
     }
-  };
+  }
 
   // Handle seeking
   const handleSeek = (value: number[]) => {
-    if (!audioRef.current) return;
-    const newTime = value[0];
-    audioRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
+    if (!audioRef.current) return
+    const newTime = value[0]
+    audioRef.current.currentTime = newTime
+    setCurrentTime(newTime)
+  }
 
   // Handle volume change
   const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0];
-    setVolume(newVolume);
+    const newVolume = value[0]
+    setVolume(newVolume)
     if (audioRef.current) {
-      audioRef.current.volume = newVolume;
+      audioRef.current.volume = newVolume
     }
-  };
+  }
 
   // Get fresh URL when needed
   const getFreshUrlAndRetry = async () => {
-    if (!onGetFreshUrl) return;
-    
+    if (!onGetFreshUrl) return
+
     try {
-      setIsGettingFreshUrl(true);
-      setHasError(false);
-      
-      const result = await onGetFreshUrl();
-      
+      setIsGettingFreshUrl(true)
+      setHasError(false)
+
+      const result = await onGetFreshUrl()
+
       if (result?.audioData && result?.contentType) {
         // Convert base64 to blob
-        const binaryString = atob(result.audioData);
-        const bytes = new Uint8Array(binaryString.length);
+        const binaryString = atob(result.audioData)
+        const bytes = new Uint8Array(binaryString.length)
         for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+          bytes[i] = binaryString.charCodeAt(i)
         }
-        
-        const blob = new Blob([bytes], { type: result.contentType });
-        const localUrl = URL.createObjectURL(blob);
-        
+
+        const blob = new Blob([bytes], { type: result.contentType })
+        const localUrl = URL.createObjectURL(blob)
+
         // Clean up previous blob URL if it exists
         if (currentBlobUrl) {
-          URL.revokeObjectURL(currentBlobUrl);
+          URL.revokeObjectURL(currentBlobUrl)
         }
-        setCurrentBlobUrl(localUrl);
-        
+        setCurrentBlobUrl(localUrl)
+
         // Reset states before changing src
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setHasError(false);
-        setIsLoadingAudio(false);
-        setSrc(localUrl);
-        
+        setIsPlaying(false)
+        setCurrentTime(0)
+        setIsLoading(true)
+        setHasError(false)
+        setIsLoadingAudio(false)
+        setSrc(localUrl)
       } else if (result?.localUrl) {
         // Fallback to direct URL
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setIsLoading(true);
-        setHasError(false);
-        setIsLoadingAudio(false);
-        setSrc(result.localUrl);
-        
+        setIsPlaying(false)
+        setCurrentTime(0)
+        setIsLoading(true)
+        setHasError(false)
+        setIsLoadingAudio(false)
+        setSrc(result.localUrl)
       } else if (result?.error) {
-        throw new Error(result.error || 'Failed to get playback URL');
+        throw new Error(result.error || "Failed to get playback URL")
       } else {
-        throw new Error('No valid URL returned from server'); 
+        throw new Error("No valid URL returned from server")
       }
     } catch (error) {
-      console.error('Failed to get fresh URL:', error);
-      setHasError(true);
-      setIsLoading(false);
-      setIsLoadingAudio(false);
+      console.error("Failed to get fresh URL:", error)
+      setHasError(true)
+      setIsLoading(false)
+      setIsLoadingAudio(false)
     } finally {
-      setIsGettingFreshUrl(false);
+      setIsGettingFreshUrl(false)
     }
-  };
+  }
 
   // Audio event handlers
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const audio = audioRef.current
+    if (!audio) return
 
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
-      setHasError(false);
-    };
+      setDuration(audio.duration)
+      setIsLoading(false)
+      setHasError(false)
+    }
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
+      setCurrentTime(audio.currentTime)
+    }
 
     const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
+      setIsPlaying(false)
+      setCurrentTime(0)
+    }
 
     const handleError = (e: any) => {
-      const audio = audioRef.current;      
-      console.error('🚨 Audio playback error:', {
-        errorMessage: 'Audio format not supported or URL is invalid',
+      const audio = audioRef.current
+      console.error("🚨 Audio playback error:", {
+        errorMessage: "Audio format not supported or URL is invalid",
         errorCode: audio?.error?.code,
         audioSrc: src,
-        event: e
-      });
-      
-      setHasError(true);
-      setIsLoading(false);
-      setIsLoadingAudio(false);
-      setIsGettingFreshUrl(false);
-    };
+        event: e,
+      })
+
+      setHasError(true)
+      setIsLoading(false)
+      setIsLoadingAudio(false)
+      setIsGettingFreshUrl(false)
+    }
 
     const handleLoadStart = () => {
-      setIsLoading(true);
-      setHasError(false);
-    };
+      setIsLoading(true)
+      setHasError(false)
+    }
 
     const handleCanPlay = () => {
-      setIsLoading(false);
-    };
+      setIsLoading(false)
+    }
 
     const handleWaiting = () => {
-      setIsLoadingAudio(true);
-    };
+      setIsLoadingAudio(true)
+    }
 
     const handleCanPlayThrough = () => {
-      setIsLoadingAudio(false);
-    };
+      setIsLoadingAudio(false)
+    }
 
     // Add event listeners
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('canplaythrough', handleCanPlayThrough);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata)
+    audio.addEventListener("timeupdate", handleTimeUpdate)
+    audio.addEventListener("ended", handleEnded)
+    audio.addEventListener("error", handleError)
+    audio.addEventListener("loadstart", handleLoadStart)
+    audio.addEventListener("canplay", handleCanPlay)
+    audio.addEventListener("waiting", handleWaiting)
+    audio.addEventListener("canplaythrough", handleCanPlayThrough)
 
     // Cleanup
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('waiting', handleWaiting);
-      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
-    };
-  }, [src]);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
+      audio.removeEventListener("timeupdate", handleTimeUpdate)
+      audio.removeEventListener("ended", handleEnded)
+      audio.removeEventListener("error", handleError)
+      audio.removeEventListener("loadstart", handleLoadStart)
+      audio.removeEventListener("canplay", handleCanPlay)
+      audio.removeEventListener("waiting", handleWaiting)
+      audio.removeEventListener("canplaythrough", handleCanPlayThrough)
+    }
+  }, [src])
 
   // Initialize state when component mounts or expectedDuration changes
   useEffect(() => {
     if (expectedDuration) {
-      setDuration(expectedDuration);
+      setDuration(expectedDuration)
     }
-  }, [expectedDuration]);
+  }, [expectedDuration])
 
   // Clean up blob URLs on unmount
   useEffect(() => {
     return () => {
       if (currentBlobUrl) {
-        URL.revokeObjectURL(currentBlobUrl);
+        URL.revokeObjectURL(currentBlobUrl)
       }
-    };
-  }, [currentBlobUrl]);
+    }
+  }, [currentBlobUrl])
 
   if (hasError) {
     return (
-      <div className={cn("flex items-center gap-3 p-4 bg-muted rounded-lg border border-destructive/20", className)}>
+      <div
+        className={cn(
+          "flex items-center gap-3 p-4 bg-muted rounded-lg border border-destructive/20",
+          className,
+        )}
+      >
         <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-destructive">Failed to load audio</p>
           <p className="text-xs text-muted-foreground">
-            The recording URL has expired or is no longer accessible. Try refreshing to get a new URL.
+            The recording URL has expired or is no longer accessible. Try refreshing to get a new
+            URL.
           </p>
         </div>
         {onGetFreshUrl && (
@@ -260,7 +265,7 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
             ) : (
               <RefreshCcw className="h-3 w-3" />
             )}
-            {isGettingFreshUrl ? 'Refreshing...' : 'Refresh'}
+            {isGettingFreshUrl ? "Refreshing..." : "Refresh"}
           </Button>
         )}
         {onDownload && (
@@ -275,18 +280,13 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
           </Button>
         )}
       </div>
-    );
+    )
   }
 
   return (
     <div className={cn("space-y-3 p-4 bg-muted rounded-lg", className)}>
       {/* Hidden audio element */}
-      <audio
-        ref={audioRef}
-        src={src}
-        preload="metadata"
-        autoPlay={autoPlay}
-      />
+      <audio ref={audioRef} src={src} preload="metadata" autoPlay={autoPlay} />
 
       {/* Title and duration */}
       <div className="flex items-center justify-between">
@@ -339,10 +339,14 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
             <Play className="h-4 w-4" />
           )}
           {(() => {
-            const buttonText = isLoading ? 'Loading...' : 
-                              isGettingFreshUrl ? 'Refreshing...' :
-                              isPlaying ? 'Pause' : 'Play';
-            return buttonText;
+            const buttonText = isLoading
+              ? "Loading..."
+              : isGettingFreshUrl
+                ? "Refreshing..."
+                : isPlaying
+                  ? "Pause"
+                  : "Play"
+            return buttonText
           })()}
         </Button>
 
@@ -359,5 +363,5 @@ export const DynamicAudioPlayer: React.FC<DynamicAudioPlayerProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,22 +1,20 @@
-import React, { useState } from 'react';
-import { CallAnalyticsDashboard } from '@/components/dashboard/voice/CallAnalyticsDashboard';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
-import { LiveDataIndicator } from '@/components/dashboard/voice/LiveDataIndicator';
-import { useNavigate } from 'react-router-dom';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { format } from "date-fns"
+import { ArrowLeft, CalendarIcon } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { CallAnalyticsDashboard } from "@/components/dashboard/voice/CallAnalyticsDashboard"
+import { LiveDataIndicator } from "@/components/dashboard/voice/LiveDataIndicator"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export default function VoiceAnalyticsPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
-  });
-  const [isLive, setIsLive] = useState(true);
+  })
+  const [isLive, setIsLive] = useState(true)
 
   return (
     <div className="space-y-4 p-3 pb-24 sm:space-y-6 sm:p-0 sm:pb-0">
@@ -27,7 +25,7 @@ export default function VoiceAnalyticsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/voice')}
+            onClick={() => navigate("/voice")}
             className="shrink-0 gap-2 px-2 sm:px-3"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -41,74 +39,74 @@ export default function VoiceAnalyticsPage() {
           </div>
         </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <LiveDataIndicator 
-              isLive={isLive} 
-              lastUpdated={new Date()}
-              onRefresh={() => window.location.reload()}
-            />
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 gap-2 sm:h-9">
-                  <CalendarIcon className="h-4 w-4" />
-                  {format(dateRange.from, 'MMM dd')} - {format(dateRange.to, 'MMM dd')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[min(20rem,calc(100vw-1.5rem))] p-0 sm:w-auto" align="end">
-                <div className="p-3 space-y-2">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Date Range</p>
-                    <p className="text-xs text-muted-foreground">
-                      Select a range to filter analytics
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setDateRange({
-                          from: new Date(new Date().setDate(new Date().getDate() - 7)),
-                          to: new Date(),
-                        })
-                      }
-                    >
-                      Last 7 days
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setDateRange({
-                          from: new Date(new Date().setDate(new Date().getDate() - 30)),
-                          to: new Date(),
-                        })
-                      }
-                    >
-                      Last 30 days
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setDateRange({
-                          from: new Date(new Date().setDate(new Date().getDate() - 90)),
-                          to: new Date(),
-                        })
-                      }
-                    >
-                      Last 90 days
-                    </Button>
-                  </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveDataIndicator
+            isLive={isLive}
+            lastUpdated={new Date()}
+            onRefresh={() => window.location.reload()}
+          />
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 gap-2 sm:h-9">
+                <CalendarIcon className="h-4 w-4" />
+                {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[min(20rem,calc(100vw-1.5rem))] p-0 sm:w-auto" align="end">
+              <div className="p-3 space-y-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Date Range</p>
+                  <p className="text-xs text-muted-foreground">
+                    Select a range to filter analytics
+                  </p>
                 </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setDateRange({
+                        from: new Date(new Date().setDate(new Date().getDate() - 7)),
+                        to: new Date(),
+                      })
+                    }
+                  >
+                    Last 7 days
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setDateRange({
+                        from: new Date(new Date().setDate(new Date().getDate() - 30)),
+                        to: new Date(),
+                      })
+                    }
+                  >
+                    Last 30 days
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setDateRange({
+                        from: new Date(new Date().setDate(new Date().getDate() - 90)),
+                        to: new Date(),
+                      })
+                    }
+                  >
+                    Last 90 days
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
+      </div>
 
       {/* Analytics Dashboard */}
       <CallAnalyticsDashboard dateRange={dateRange} />
     </div>
-  );
+  )
 }

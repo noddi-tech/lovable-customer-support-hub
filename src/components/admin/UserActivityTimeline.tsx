@@ -1,54 +1,73 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
-import { useUserActivity } from '@/hooks/useUserActivity';
-import { Activity, User, Target, Calendar, Clock } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, formatDistanceToNow } from "date-fns"
+import { Activity, Calendar, Clock, Target, User } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useUserActivity } from "@/hooks/useUserActivity"
 
 interface UserActivityTimelineProps {
-  userId: string;
-  userEmail: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  userId: string
+  userEmail: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 const actionCategoryColors: Record<string, string> = {
-  user_management: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200',
-  org_management: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200',
-  role_management: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200',
-  bulk_management: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-200',
-};
+  user_management: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200",
+  org_management: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200",
+  role_management: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200",
+  bulk_management: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-200",
+}
 
-export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: UserActivityTimelineProps) {
-  const { data: activities = [], isLoading } = useUserActivity(userId, open);
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+export function UserActivityTimeline({
+  userId,
+  userEmail,
+  open,
+  onOpenChange,
+}: UserActivityTimelineProps) {
+  const { data: activities = [], isLoading } = useUserActivity(userId, open)
+  const [categoryFilter, setCategoryFilter] = useState<string>("all")
 
-  const filteredActivities = activities.filter(activity => 
-    categoryFilter === 'all' || activity.action_category === categoryFilter
-  );
+  const filteredActivities = activities.filter(
+    (activity) => categoryFilter === "all" || activity.action_category === categoryFilter,
+  )
 
   // Group activities by date
-  const groupedActivities = filteredActivities.reduce((acc, activity) => {
-    const date = format(new Date(activity.created_at), 'yyyy-MM-dd');
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(activity);
-    return acc;
-  }, {} as Record<string, typeof activities>);
+  const groupedActivities = filteredActivities.reduce(
+    (acc, activity) => {
+      const date = format(new Date(activity.created_at), "yyyy-MM-dd")
+      if (!acc[date]) acc[date] = []
+      acc[date].push(activity)
+      return acc
+    },
+    {} as Record<string, typeof activities>,
+  )
 
-  const sortedDates = Object.keys(groupedActivities).sort((a, b) => b.localeCompare(a));
+  const sortedDates = Object.keys(groupedActivities).sort((a, b) => b.localeCompare(a))
 
   // Calculate stats
-  const totalActions = activities.length;
-  const actionTypes = new Set(activities.map(a => a.action_type));
-  const mostCommonAction = activities.reduce((acc, activity) => {
-    acc[activity.action_type] = (acc[activity.action_type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  const topAction = Object.entries(mostCommonAction).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
+  const totalActions = activities.length
+  const actionTypes = new Set(activities.map((a) => a.action_type))
+  const mostCommonAction = activities.reduce(
+    (acc, activity) => {
+      acc[activity.action_type] = (acc[activity.action_type] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+  const topAction = Object.entries(mostCommonAction).sort(
+    (a, b) => (b[1] as number) - (a[1] as number),
+  )[0]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,9 +91,7 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
           </Card>
           <Card className="p-3">
             <div className="text-sm text-muted-foreground">Most Common</div>
-            <div className="text-sm font-medium truncate">
-              {topAction ? topAction[0] : 'N/A'}
-            </div>
+            <div className="text-sm font-medium truncate">{topAction ? topAction[0] : "N/A"}</div>
           </Card>
         </div>
 
@@ -115,17 +132,19 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
                 <div key={date}>
                   <div className="flex items-center gap-2 mb-3">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <h4 className="font-medium">{format(new Date(date), 'EEEE, MMMM d, yyyy')}</h4>
+                    <h4 className="font-medium">{format(new Date(date), "EEEE, MMMM d, yyyy")}</h4>
                   </div>
                   <div className="space-y-2 pl-6 border-l-2 border-border">
                     {groupedActivities[date].map((activity) => {
-                      const categoryColor = actionCategoryColors[activity.action_category] || actionCategoryColors.user_management;
-                      
+                      const categoryColor =
+                        actionCategoryColors[activity.action_category] ||
+                        actionCategoryColors.user_management
+
                       return (
                         <div key={activity.id} className="relative pl-4 pb-4">
                           {/* Timeline dot */}
                           <div className="absolute left-0 top-2 -translate-x-[calc(50%+0.5rem)] w-2 h-2 rounded-full bg-primary" />
-                          
+
                           {/* Activity card */}
                           <Card className={`p-3 ${categoryColor} border`}>
                             <div className="flex items-start justify-between gap-2">
@@ -135,13 +154,15 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
                                     {activity.action_type}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground">
-                                    {activity.action_category.replace('_', ' ')}
+                                    {activity.action_category.replace("_", " ")}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <Target className="h-3.5 w-3.5" />
                                   <span className="font-medium">{activity.target_identifier}</span>
-                                  <span className="text-muted-foreground">({activity.target_type})</span>
+                                  <span className="text-muted-foreground">
+                                    ({activity.target_type})
+                                  </span>
                                 </div>
                                 {Object.keys(activity.changes).length > 0 && (
                                   <details className="text-xs mt-2">
@@ -156,15 +177,17 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
                               </div>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
-                                {format(new Date(activity.created_at), 'HH:mm:ss')}
+                                {format(new Date(activity.created_at), "HH:mm:ss")}
                               </div>
                             </div>
                             <div className="mt-2 text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                              {formatDistanceToNow(new Date(activity.created_at), {
+                                addSuffix: true,
+                              })}
                             </div>
                           </Card>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -174,5 +197,5 @@ export function UserActivityTimeline({ userId, userEmail, open, onOpenChange }: 
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

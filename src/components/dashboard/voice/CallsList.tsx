@@ -1,377 +1,425 @@
-import React, { useState, useMemo } from 'react';
-import { Phone, ArrowUpRight, ArrowDownLeft, Clock, User, Filter, MessageSquare, Calendar, Building2, History, PhoneCall, CheckCircle2, AlertCircle, Table as TableIcon, LayoutGrid, RefreshCw } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TimeRangeFilter } from '@/components/ui/timerange-filter';
-import { SidebarCounter } from '@/components/ui/sidebar-counter';
-import { useCalls } from '@/hooks/useCalls';
-import { useVoiceIntegrations } from '@/hooks/useVoiceIntegrations';
-import { useCallNotes } from '@/hooks/useCallNotes';
-import { formatDistanceToNow, format, isAfter } from 'date-fns';
-import { CallDetailsDialog } from './CallDetailsDialog';
-import { CallActionButton } from './CallActionButton';
-import { formatPhoneNumber, normalizePhoneNumber } from '@/utils/phoneNumberUtils';
-import { getMonitoredPhoneForCall } from '@/utils/phoneNumberUtils';
-import { EnhancedCallCard } from './EnhancedCallCard';
-import { AdvancedCallFilters, CallFilters } from './AdvancedCallFilters';
-import { BadgeGuide } from './BadgeGuide';
-import { CallsTable } from './CallsTable';
-import { SelectionToolbar } from '@/components/shared/SelectionToolbar';
-import { BulkTagMenu } from '@/components/tags/BulkTagMenu';
-import { useListSelection } from '@/hooks/useListSelection';
-import { TagFilterSelect, matchesTagFilter } from '@/components/tags/TagFilterSelect';
-import { useEntityTags } from '@/hooks/useEntityTags';
-import { SyncCustomerNamesButton } from './SyncCustomerNamesButton';
-import { useIsMobile } from '@/hooks/use-responsive';
+import { isAfter } from "date-fns"
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Clock,
+  Filter,
+  History,
+  LayoutGrid,
+  Phone,
+  PhoneCall,
+  Table as TableIcon,
+} from "lucide-react"
+import type React from "react"
+import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { SelectionToolbar } from "@/components/shared/SelectionToolbar"
+import { BulkTagMenu } from "@/components/tags/BulkTagMenu"
+import { matchesTagFilter, TagFilterSelect } from "@/components/tags/TagFilterSelect"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { TimeRangeFilter } from "@/components/ui/timerange-filter"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useCallNotes } from "@/hooks/useCallNotes"
+import { useCalls } from "@/hooks/useCalls"
+import { useEntityTags } from "@/hooks/useEntityTags"
+import { useListSelection } from "@/hooks/useListSelection"
+import { useVoiceIntegrations } from "@/hooks/useVoiceIntegrations"
+import { normalizePhoneNumber } from "@/utils/phoneNumberUtils"
+import { AdvancedCallFilters, type CallFilters } from "./AdvancedCallFilters"
+import { BadgeGuide } from "./BadgeGuide"
+import { CallDetailsDialog } from "./CallDetailsDialog"
+import { CallsTable } from "./CallsTable"
+import { EnhancedCallCard } from "./EnhancedCallCard"
+import { SyncCustomerNamesButton } from "./SyncCustomerNamesButton"
 
 interface CallsListProps {
-  showTimeFilter?: boolean;
-  dateFilter?: 'today' | 'yesterday';
-  onNavigateToEvents?: (callId: string) => void;
-  onSelectCall?: (call: any) => void;
-  selectedCallId?: string;
+  showTimeFilter?: boolean
+  dateFilter?: "today" | "yesterday"
+  onNavigateToEvents?: (callId: string) => void
+  onSelectCall?: (call: any) => void
+  selectedCallId?: string
 }
 
+export const CallsList = ({
+  showTimeFilter = true,
+  dateFilter,
+  onNavigateToEvents,
+  onSelectCall,
+  selectedCallId,
+}: CallsListProps) => {
+  const { t } = useTranslation()
+  const isMobile = useIsMobile()
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [tagFilter, setTagFilter] = useState<string[]>([])
+  const [directionFilter, setDirectionFilter] = useState<string>("all")
+  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null)
+  const [selectedCall, setSelectedCall] = useState<any>(null)
+  const { getTags: getCallTags } = useEntityTags("call")
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table")
 
-export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvents, onSelectCall, selectedCallId }: CallsListProps) => {
-  const { t } = useTranslation();
-  const isMobile = useIsMobile();
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const [directionFilter, setDirectionFilter] = useState<string>('all');
-  const [timeRangeStart, setTimeRangeStart] = useState<Date | null>(null);
-  const [selectedCall, setSelectedCall] = useState<any>(null);
-  const { getTags: getCallTags } = useEntityTags('call');
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  
   // Advanced filters state
   const [filters, setFilters] = useState<CallFilters>({
-    search: '',
+    search: "",
     status: [],
-    timeRange: 'all',
-    duration: '',
+    timeRange: "all",
+    duration: "",
     priority: [],
-  });
-  
-  const { calls, isLoading, error, removeCall } = useCalls();
-  const { getIntegrationByProvider } = useVoiceIntegrations();
-  const aircallIntegration = getIntegrationByProvider('aircall');
+  })
+
+  const { calls, isLoading, error, removeCall } = useCalls()
+  const { getIntegrationByProvider } = useVoiceIntegrations()
+  const aircallIntegration = getIntegrationByProvider("aircall")
 
   if (error) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Calls</CardTitle>
-          <CardDescription>
-            Failed to load calls. Please try again.
-          </CardDescription>
+          <CardDescription>Failed to load calls. Please try again.</CardDescription>
         </CardHeader>
       </Card>
-    );
+    )
   }
 
   // Filter calls based on all filters including advanced search
-  const filteredCalls = calls.filter(call => {
+  const filteredCalls = calls.filter((call) => {
     // Search filter
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      const normalizedSearch = normalizePhoneNumber(filters.search);
-      
-      const matchesPhone = call.customer_phone && (
-        call.customer_phone.toLowerCase().includes(searchLower) ||
-        normalizePhoneNumber(call.customer_phone).includes(normalizedSearch)
-      );
-      const matchesName = call.customers?.full_name?.toLowerCase().includes(searchLower);
-      const matchesId = call.id?.toLowerCase().includes(searchLower);
-      if (!matchesPhone && !matchesName && !matchesId) return false;
+      const searchLower = filters.search.toLowerCase()
+      const normalizedSearch = normalizePhoneNumber(filters.search)
+
+      const matchesPhone =
+        call.customer_phone &&
+        (call.customer_phone.toLowerCase().includes(searchLower) ||
+          normalizePhoneNumber(call.customer_phone).includes(normalizedSearch))
+      const matchesName = call.customers?.full_name?.toLowerCase().includes(searchLower)
+      const matchesId = call.id?.toLowerCase().includes(searchLower)
+      if (!matchesPhone && !matchesName && !matchesId) return false
     }
-    
+
     // Status filters from advanced filters
     if (filters.status.length > 0) {
-      const matchesStatus = filters.status.some(s => {
-        if (s === 'missed') return call.status === 'missed' || call.end_reason === 'not_answered';
-        if (s === 'completed') return call.status === 'completed' || call.status === 'answered';
-        if (s === 'ongoing') return call.status === 'ringing' || call.status === 'on_hold';
-        return false;
-      });
-      if (!matchesStatus) return false;
+      const matchesStatus = filters.status.some((s) => {
+        if (s === "missed") return call.status === "missed" || call.end_reason === "not_answered"
+        if (s === "completed") return call.status === "completed" || call.status === "answered"
+        if (s === "ongoing") return call.status === "ringing" || call.status === "on_hold"
+        return false
+      })
+      if (!matchesStatus) return false
     }
-    
+
     // Legacy status filter (for backward compatibility)
-    if (statusFilter !== 'all' && call.status !== statusFilter) return false;
-    if (directionFilter !== 'all' && call.direction !== directionFilter) return false;
-    if (!matchesTagFilter(getCallTags(call.id).map((t) => t.id), tagFilter)) return false;
-    
+    if (statusFilter !== "all" && call.status !== statusFilter) return false
+    if (directionFilter !== "all" && call.direction !== directionFilter) return false
+    if (
+      !matchesTagFilter(
+        getCallTags(call.id).map((t) => t.id),
+        tagFilter,
+      )
+    )
+      return false
+
     // Handle specific date filters (today/yesterday)
     if (dateFilter) {
-      const callDate = new Date(call.started_at);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
+      const callDate = new Date(call.started_at)
+      const today = new Date()
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+
       // Set times to start of day for accurate comparison
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-      const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
-      
-      if (dateFilter === 'today') {
-        if (callDate < todayStart || callDate >= todayEnd) return false;
-      } else if (dateFilter === 'yesterday') {
-        if (callDate < yesterdayStart || callDate >= yesterdayEnd) return false;
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      const yesterdayStart = new Date(
+        yesterday.getFullYear(),
+        yesterday.getMonth(),
+        yesterday.getDate(),
+      )
+      const yesterdayEnd = new Date(
+        yesterday.getFullYear(),
+        yesterday.getMonth(),
+        yesterday.getDate() + 1,
+      )
+
+      if (dateFilter === "today") {
+        if (callDate < todayStart || callDate >= todayEnd) return false
+      } else if (dateFilter === "yesterday") {
+        if (callDate < yesterdayStart || callDate >= yesterdayEnd) return false
       }
     }
     // Filter calls based on time range filter (for "All Calls" section)
     else if (showTimeFilter && timeRangeStart) {
-      const callDate = new Date(call.started_at);
-      if (!isAfter(callDate, timeRangeStart)) return false;
+      const callDate = new Date(call.started_at)
+      if (!isAfter(callDate, timeRangeStart)) return false
     }
-    
-    return true;
-  });
 
-  const orderedCallIds = useMemo(() => filteredCalls.map((c: any) => c.id as string), [filteredCalls]);
-  const selection = useListSelection(orderedCallIds);
+    return true
+  })
+
+  const orderedCallIds = useMemo(
+    () => filteredCalls.map((c: any) => c.id as string),
+    [filteredCalls],
+  )
+  const selection = useListSelection(orderedCallIds)
 
   // Smart grouping: Urgent, Active, Recent, Earlier
   const groupedCalls = useMemo(() => {
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    const urgent: typeof filteredCalls = [];
-    const active: typeof filteredCalls = [];
-    const recent: typeof filteredCalls = [];
-    const earlier: typeof filteredCalls = [];
-    
-    filteredCalls.forEach(call => {
-      const callDate = new Date(call.started_at);
-      
+    const now = new Date()
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    const urgent: typeof filteredCalls = []
+    const active: typeof filteredCalls = []
+    const recent: typeof filteredCalls = []
+    const earlier: typeof filteredCalls = []
+
+    filteredCalls.forEach((call) => {
+      const callDate = new Date(call.started_at)
+
       // Active calls
-      if (call.status === 'ringing' || call.status === 'on_hold') {
-        active.push(call);
+      if (call.status === "ringing" || call.status === "on_hold") {
+        active.push(call)
       }
       // Urgent: missed calls < 1 hour old
-      else if ((call.status === 'missed' || call.end_reason === 'not_answered') && callDate > oneHourAgo) {
-        urgent.push(call);
+      else if (
+        (call.status === "missed" || call.end_reason === "not_answered") &&
+        callDate > oneHourAgo
+      ) {
+        urgent.push(call)
       }
       // Recent: calls from today
       else if (callDate >= todayStart) {
-        recent.push(call);
+        recent.push(call)
       }
       // Earlier: older calls
       else {
-        earlier.push(call);
+        earlier.push(call)
       }
-    });
-    
-    return { urgent, active, recent, earlier };
-  }, [filteredCalls]);
+    })
+
+    return { urgent, active, recent, earlier }
+  }, [filteredCalls])
 
   const callsTimeRangePresets = [
-    { id: '24h', label: 'Last 24 Hours', hours: 24 },
-    { id: '1w', label: 'Last Week', weeks: 1 }
-  ];
+    { id: "24h", label: "Last 24 Hours", hours: 24 },
+    { id: "1w", label: "Last Week", weeks: 1 },
+  ]
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!seconds) return "0:00"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'answered':
-        return 'success';
-      case 'ringing':
-        return 'warning';
-      case 'missed':
-        return 'destructive';
-      case 'busy':
-        return 'destructive';
-      case 'failed':
-        return 'destructive';
-      case 'voicemail':
-        return 'secondary';
-      case 'transferred':
-        return 'default';
-      case 'on_hold':
-        return 'warning';
+      case "completed":
+        return "success"
+      case "answered":
+        return "success"
+      case "ringing":
+        return "warning"
+      case "missed":
+        return "destructive"
+      case "busy":
+        return "destructive"
+      case "failed":
+        return "destructive"
+      case "voicemail":
+        return "secondary"
+      case "transferred":
+        return "default"
+      case "on_hold":
+        return "warning"
       default:
-        return 'secondary';
+        return "secondary"
     }
-  };
+  }
 
   const getStatusDetails = (call: any) => {
-    const endReason = call.end_reason;
-    const availability = call.availability_status;
-    const ivrInteraction = call.ivr_interaction || [];
-    const enrichedDetails = call.enriched_details || {};
-    
+    const endReason = call.end_reason
+    const availability = call.availability_status
+    const ivrInteraction = call.ivr_interaction || []
+    const enrichedDetails = call.enriched_details || {}
+
     // Check for IVR interactions
-    const hasCallbackRequest = Array.isArray(ivrInteraction) && 
-      ivrInteraction.some((option: any) => option.branch === 'callback_requested');
-    
+    const hasCallbackRequest =
+      Array.isArray(ivrInteraction) &&
+      ivrInteraction.some((option: any) => option.branch === "callback_requested")
+
     // Determine status based on enriched data
     switch (endReason) {
-      case 'abandoned_in_ivr':
+      case "abandoned_in_ivr":
         if (hasCallbackRequest) {
           return {
-            label: 'Callback Requested',
-            description: 'Customer requested callback via IVR',
-            icon: '📞➡️'
-          };
+            label: "Callback Requested",
+            description: "Customer requested callback via IVR",
+            icon: "📞➡️",
+          }
         }
         return {
-          label: 'Abandoned in IVR',
-          description: 'Customer hung up during IVR menu',
-          icon: '📞❌'
-        };
-      
-      case 'hung_up':
+          label: "Abandoned in IVR",
+          description: "Customer hung up during IVR menu",
+          icon: "📞❌",
+        }
+
+      case "hung_up":
         return {
-          label: 'Hung Up',
-          description: 'Call was terminated by customer',
-          icon: '📞⬇️'
-        };
-      
-      case 'completed_normally':
-        const agentName = enrichedDetails.user_name;
+          label: "Hung Up",
+          description: "Call was terminated by customer",
+          icon: "📞⬇️",
+        }
+
+      case "completed_normally": {
+        const agentName = enrichedDetails.user_name
         return {
-          label: 'Completed',
-          description: agentName ? `Handled by ${agentName}` : 'Call completed successfully',
-          icon: '✅'
-        };
-      
-      case 'not_answered':
-        if (availability === 'closed') {
+          label: "Completed",
+          description: agentName ? `Handled by ${agentName}` : "Call completed successfully",
+          icon: "✅",
+        }
+      }
+
+      case "not_answered":
+        if (availability === "closed") {
           return {
-            label: 'Outside Hours',
-            description: 'Call received outside business hours',
-            icon: '🕐❌'
-          };
+            label: "Outside Hours",
+            description: "Call received outside business hours",
+            icon: "🕐❌",
+          }
         }
         return {
-          label: 'Not Answered',
-          description: 'No agent available to answer',
-          icon: '📞❌'
-        };
-      
+          label: "Not Answered",
+          description: "No agent available to answer",
+          icon: "📞❌",
+        }
+
       // Fallback to original logic for older records
       case null:
       case undefined:
         switch (call.status) {
-          case 'missed':
-            const missReason = call.metadata?.missReason || call.metadata?.miss_reason;
+          case "missed": {
+            const missReason = call.metadata?.missReason || call.metadata?.miss_reason
             return {
-              label: 'Missed',
-              description: missReason || 'Customer did not answer',
-              icon: '📞❌'
-            };
-          case 'busy':
+              label: "Missed",
+              description: missReason || "Customer did not answer",
+              icon: "📞❌",
+            }
+          }
+          case "busy":
             return {
-              label: 'Busy',
-              description: 'Line was busy',
-              icon: '📞🔴'
-            };
-          case 'failed':
-            const failReason = call.metadata?.failReason || call.metadata?.error || 'Technical issue';
+              label: "Busy",
+              description: "Line was busy",
+              icon: "📞🔴",
+            }
+          case "failed": {
+            const failReason =
+              call.metadata?.failReason || call.metadata?.error || "Technical issue"
             return {
-              label: 'Failed',
+              label: "Failed",
               description: `Failed: ${failReason}`,
-              icon: '❌'
-            };
-          case 'voicemail':
-            const vmDuration = call.metadata?.voicemailDuration || call.metadata?.duration;
+              icon: "❌",
+            }
+          }
+          case "voicemail": {
+            const vmDuration = call.metadata?.voicemailDuration || call.metadata?.duration
             return {
-              label: 'Voicemail',
-              description: vmDuration ? `Voicemail left (${vmDuration}s)` : 'Voicemail left',
-              icon: '📧'
-            };
-          case 'transferred':
-            const transferTo = call.metadata?.transferredTo || call.metadata?.transfer_to;
+              label: "Voicemail",
+              description: vmDuration ? `Voicemail left (${vmDuration}s)` : "Voicemail left",
+              icon: "📧",
+            }
+          }
+          case "transferred": {
+            const transferTo = call.metadata?.transferredTo || call.metadata?.transfer_to
             return {
-              label: 'Transferred',
-              description: transferTo ? `Transferred to ${transferTo}` : 'Call transferred',
-              icon: '↗️'
-            };
-          case 'answered':
+              label: "Transferred",
+              description: transferTo ? `Transferred to ${transferTo}` : "Call transferred",
+              icon: "↗️",
+            }
+          }
+          case "answered":
             return {
-              label: 'Answered',
-              description: 'Call was answered',
-              icon: '✅'
-            };
-          case 'completed':
+              label: "Answered",
+              description: "Call was answered",
+              icon: "✅",
+            }
+          case "completed":
             return {
-              label: 'Completed',
-              description: 'Call completed successfully',
-              icon: '✅'
-            };
-          case 'on_hold':
+              label: "Completed",
+              description: "Call completed successfully",
+              icon: "✅",
+            }
+          case "on_hold":
             return {
-              label: 'On Hold',
-              description: 'Call is on hold',
-              icon: '⏸️'
-            };
-          case 'ringing':
+              label: "On Hold",
+              description: "Call is on hold",
+              icon: "⏸️",
+            }
+          case "ringing":
             return {
-              label: 'Ringing',
-              description: 'Currently ringing',
-              icon: '📞'
-            };
+              label: "Ringing",
+              description: "Currently ringing",
+              icon: "📞",
+            }
           default:
             return {
-              label: call.status?.charAt(0).toUpperCase() + call.status?.slice(1) || 'Unknown',
+              label: call.status?.charAt(0).toUpperCase() + call.status?.slice(1) || "Unknown",
               description: `Status: ${call.status}`,
-              icon: '📞'
-            };
+              icon: "📞",
+            }
         }
-      
+
       default:
         return {
-          label: endReason.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          description: `Call ended: ${endReason.replace(/_/g, ' ')}`,
-          icon: '📞'
-        };
+          label: endReason.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          description: `Call ended: ${endReason.replace(/_/g, " ")}`,
+          icon: "📞",
+        }
     }
-  };
+  }
 
   const getDirectionIcon = (direction: string) => {
-    return direction === 'inbound' ? 
-      <ArrowDownLeft className="h-4 w-4" /> : 
-      <ArrowUpRight className="h-4 w-4" />;
-  };
+    return direction === "inbound" ? (
+      <ArrowDownLeft className="h-4 w-4" />
+    ) : (
+      <ArrowUpRight className="h-4 w-4" />
+    )
+  }
 
   const getBorderColor = (call: any) => {
     // Missed/urgent = red, completed = green, pending/callback = yellow
-    if (call.status === 'missed' || call.end_reason === 'not_answered') return 'border-l-destructive';
-    if (call.status === 'completed' || call.status === 'answered') return 'border-l-success';
-    if (call.status === 'ringing' || call.status === 'on_hold') return 'border-l-warning';
-    return 'border-l-muted';
-  };
+    if (call.status === "missed" || call.end_reason === "not_answered")
+      return "border-l-destructive"
+    if (call.status === "completed" || call.status === "answered") return "border-l-success"
+    if (call.status === "ringing" || call.status === "on_hold") return "border-l-warning"
+    return "border-l-muted"
+  }
 
   const getCallAge = (startedAt: string) => {
-    const now = new Date();
-    const callDate = new Date(startedAt);
-    const diffHours = (now.getTime() - callDate.getTime()) / (1000 * 60 * 60);
-    
-    if (diffHours > 24) return 'opacity-60';
-    if (diffHours > 12) return 'opacity-75';
-    if (diffHours > 6) return 'opacity-85';
-    return 'opacity-100';
-  };
+    const now = new Date()
+    const callDate = new Date(startedAt)
+    const diffHours = (now.getTime() - callDate.getTime()) / (1000 * 60 * 60)
+
+    if (diffHours > 24) return "opacity-60"
+    if (diffHours > 12) return "opacity-75"
+    if (diffHours > 6) return "opacity-85"
+    return "opacity-100"
+  }
 
   // Component to render a call card with notes
   const CallCardWithNotes = ({ call }: { call: any }) => {
-    const { notes } = useCallNotes(call.id);
-    const notesCount = notes?.length || 0;
+    const { notes } = useCallNotes(call.id)
+    const notesCount = notes?.length || 0
 
     return (
       <EnhancedCallCard
@@ -382,20 +430,25 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         onRemoveCall={removeCall}
         notesCount={notesCount}
       />
-    );
-  };
+    )
+  }
 
   // Convert renderGroup to a proper component to fix React hooks rule violation
-  const CallGroup = ({ title, calls, icon, defaultOpen = true }: { 
-    title: string; 
-    calls: typeof filteredCalls; 
-    icon: React.ReactNode; 
-    defaultOpen?: boolean;
+  const CallGroup = ({
+    title,
+    calls,
+    icon,
+    defaultOpen = true,
+  }: {
+    title: string
+    calls: typeof filteredCalls
+    icon: React.ReactNode
+    defaultOpen?: boolean
   }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
-    
-    if (calls.length === 0) return null;
-    
+    const [isOpen, setIsOpen] = useState(defaultOpen)
+
+    if (calls.length === 0) return null
+
     return (
       <div className="space-y-2">
         <button
@@ -410,19 +463,19 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         </button>
         {isOpen && (
           <div className="space-y-2">
-            {calls.map(call => (
+            {calls.map((call) => (
               <CallCardWithNotes key={call.id} call={call} />
             ))}
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   const openCallDetails = (call: any) => {
-    setSelectedCall(call);
-    setIsDetailsOpen(true);
-  };
+    setSelectedCall(call)
+    setIsDetailsOpen(true)
+  }
 
   return (
     <div className="space-y-4">
@@ -430,56 +483,58 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
       <AdvancedCallFilters
         filters={filters}
         onFiltersChange={setFilters}
-        onClearFilters={() => setFilters({
-          search: '',
-          status: [],
-          timeRange: 'all',
-          duration: '',
-          priority: [],
-        })}
+        onClearFilters={() =>
+          setFilters({
+            search: "",
+            status: [],
+            timeRange: "all",
+            duration: "",
+            priority: [],
+          })
+        }
       />
-      
+
       {/* Badge Guide */}
       <BadgeGuide />
-      
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-base font-semibold sm:text-lg">Call History</h3>
           <p className="text-sm text-muted-foreground">
-            {filteredCalls.length} call{filteredCalls.length !== 1 ? 's' : ''} found
+            {filteredCalls.length} call{filteredCalls.length !== 1 ? "s" : ""} found
           </p>
         </div>
-        
+
         {/* View Mode Toggle & Filters */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <SyncCustomerNamesButton calls={calls} />
           <div className="hidden items-center border rounded-md sm:flex">
-            <Button 
-              variant={viewMode === 'table' ? 'default' : 'ghost'} 
-              size="sm" 
-              onClick={() => setViewMode('table')}
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
               className="rounded-r-none"
             >
               <TableIcon className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={viewMode === 'cards' ? 'default' : 'ghost'} 
-              size="sm" 
-              onClick={() => setViewMode('cards')}
+            <Button
+              variant={viewMode === "cards" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
               className="rounded-l-none"
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </div>
           <Filter className="hidden h-4 w-4 text-muted-foreground sm:block" />
-          
+
           {showTimeFilter && (
             <TimeRangeFilter
               onTimeRangeChange={setTimeRangeStart}
               presets={callsTimeRangePresets}
             />
           )}
-          
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] sm:h-9 sm:w-32">
               <SelectValue placeholder="Status" />
@@ -491,7 +546,7 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
               <SelectItem value="answered">Answered</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={directionFilter} onValueChange={setDirectionFilter}>
             <SelectTrigger className="h-10 w-[calc(50%-0.25rem)] sm:h-9 sm:w-32">
               <SelectValue placeholder="Direction" />
@@ -528,14 +583,15 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
             <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">No calls found</p>
             <p className="text-sm text-muted-foreground">
-              {statusFilter !== 'all' || directionFilter !== 'all' || (showTimeFilter && timeRangeStart)
-                ? 'Try adjusting your filters to see more calls'
-                : 'Call history will appear here'
-              }
+              {statusFilter !== "all" ||
+              directionFilter !== "all" ||
+              (showTimeFilter && timeRangeStart)
+                ? "Try adjusting your filters to see more calls"
+                : "Call history will appear here"}
             </p>
           </CardContent>
         </Card>
-      ) : viewMode === 'table' && !isMobile ? (
+      ) : viewMode === "table" && !isMobile ? (
         <div className="flex flex-1 flex-col overflow-hidden">
           <SelectionToolbar
             count={selection.count}
@@ -596,5 +652,5 @@ export const CallsList = ({ showTimeFilter = true, dateFilter, onNavigateToEvent
         onRemoveCall={removeCall}
       />
     </div>
-  );
-};
+  )
+}

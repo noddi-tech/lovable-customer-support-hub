@@ -1,7 +1,10 @@
-import { useEffect } from 'react';
-import { setDesktopEmailNotificationsEnabled, isDesktopEmailNotificationsEnabled } from './useDesktopEmailNotifications';
+import { useEffect } from "react"
+import {
+  isDesktopEmailNotificationsEnabled,
+  setDesktopEmailNotificationsEnabled,
+} from "./useDesktopEmailNotifications"
 
-const ASKED_KEY = 'notification-permission-asked';
+const ASKED_KEY = "notification-permission-asked"
 
 /**
  * Asks the browser for notification permission the first time the app is
@@ -10,35 +13,39 @@ const ASKED_KEY = 'notification-permission-asked';
  */
 export function useNotificationPermissionPrompt() {
   useEffect(() => {
-    if (!('Notification' in window)) return;
-    if (window.top !== window.self) return;
-    if (Notification.permission !== 'default') {
+    if (!("Notification" in window)) return
+    if (window.top !== window.self) return
+    if (Notification.permission !== "default") {
       // Keep the opt-in flag in sync when already granted
-      if (Notification.permission === 'granted' && localStorage.getItem(ASKED_KEY) === 'true' && !isDesktopEmailNotificationsEnabled()) {
-        setDesktopEmailNotificationsEnabled(true);
+      if (
+        Notification.permission === "granted" &&
+        localStorage.getItem(ASKED_KEY) === "true" &&
+        !isDesktopEmailNotificationsEnabled()
+      ) {
+        setDesktopEmailNotificationsEnabled(true)
       }
-      return;
+      return
     }
-    if (localStorage.getItem(ASKED_KEY) === 'true') return;
+    if (localStorage.getItem(ASKED_KEY) === "true") return
 
-    let cancelled = false;
+    let cancelled = false
     const ask = async () => {
-      localStorage.setItem(ASKED_KEY, 'true');
+      localStorage.setItem(ASKED_KEY, "true")
       try {
-        const result = await Notification.requestPermission();
-        if (!cancelled && result === 'granted') {
-          setDesktopEmailNotificationsEnabled(true);
+        const result = await Notification.requestPermission()
+        if (!cancelled && result === "granted") {
+          setDesktopEmailNotificationsEnabled(true)
         }
       } catch {
         /* ignore */
       }
-    };
+    }
 
     // Slight delay so it doesn't fight with initial render/auth
-    const timer = window.setTimeout(ask, 1500);
+    const timer = window.setTimeout(ask, 1500)
     return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, []);
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [])
 }

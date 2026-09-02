@@ -1,49 +1,50 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { renderBrandedEmail, isFullHtmlDocument } from "../_shared/branded-email.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { isFullHtmlDocument, renderBrandedEmail } from "../_shared/branded-email.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+}
 
 interface EmailRequest {
-  to: string;
-  subject: string;
-  html: string;
-  from_email?: string;
-  from_name?: string;
-  headers?: Record<string, string>;
+  to: string
+  subject: string
+  html: string
+  from_email?: string
+  from_name?: string
+  headers?: Record<string, string>
   /** Brand hint ("noddi", "dekkfix", inbox name...) used for header/footer branding. */
-  brand?: string;
+  brand?: string
   /** Set to true to send the HTML as-is, without the branded header/footer. */
-  skip_layout?: boolean;
+  skip_layout?: boolean
   /** Optional inbox preview line. */
-  preheader?: string;
+  preheader?: string
 }
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY")
     if (!SENDGRID_API_KEY) {
-      throw new Error("SENDGRID_API_KEY is not configured");
+      throw new Error("SENDGRID_API_KEY is not configured")
     }
 
-    const body: EmailRequest = await req.json();
-    const { to, subject, html, from_email, from_name, headers, brand, skip_layout, preheader } = body;
+    const body: EmailRequest = await req.json()
+    const { to, subject, html, from_email, from_name, headers, brand, skip_layout, preheader } =
+      body
 
     if (!to || !subject || !html) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: to, subject, html" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields: to, subject, html" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const senderEmail = from_email || "noreply@noddi.no";
-    const senderName = from_name || "Noddi Support";
+    const senderEmail = from_email || "noreply@noddi.no"
+    const senderName = from_name || "Noddi Support"
 
     // Every outgoing email uses the shared branded layout (header + company
     // footer), unless the caller already provides a complete HTML document or
@@ -55,17 +56,17 @@ const handler = async (req: Request): Promise<Response> => {
             bodyHtml: html,
             brandHints: [brand, from_name, senderEmail, subject],
             preheader,
-          });
+          })
 
     const sgPayload: any = {
       personalizations: [{ to: [{ email: to }] }],
       from: { email: senderEmail, name: senderName },
       subject,
       content: [{ type: "text/html", value: finalHtml }],
-    };
+    }
 
     if (headers && Object.keys(headers).length > 0) {
-      sgPayload.headers = headers;
+      sgPayload.headers = headers
     }
 
     const sgResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
@@ -75,29 +76,29 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(sgPayload),
-    });
+    })
 
     if (!sgResponse.ok) {
-      const errorText = await sgResponse.text();
-      console.error(`SendGrid error [${sgResponse.status}]: ${errorText}`);
-      return new Response(
-        JSON.stringify({ error: "Failed to send email", details: errorText }),
-        { status: sgResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const errorText = await sgResponse.text()
+      console.error(`SendGrid error [${sgResponse.status}]: ${errorText}`)
+      return new Response(JSON.stringify({ error: "Failed to send email", details: errorText }), {
+        status: sgResponse.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    console.log(`✅ Email sent to ${to}: ${subject}`);
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.log(`✅ Email sent to ${to}: ${subject}`)
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error: any) {
-    console.error("Error in send-email:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("Error in send-email:", error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   }
-};
+}
 
-serve(handler);
+serve(handler)

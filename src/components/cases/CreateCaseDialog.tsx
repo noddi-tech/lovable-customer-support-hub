@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,30 +7,35 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import {
   CASE_PRIORITY_LABELS,
+  type CasePriority,
   useCaseCategories,
   useCreateCase,
-  type CasePriority,
-} from '@/hooks/useCases';
-import { CaseCustomerPicker, useCustomerBasics, type PickedCustomer } from './CaseCustomerPicker';
-import { CASE_PRIORITY_DOT } from './CaseBadges';
+} from "@/hooks/useCases"
+import { CASE_PRIORITY_DOT } from "./CaseBadges"
+import { CaseCustomerPicker, type PickedCustomer, useCustomerBasics } from "./CaseCustomerPicker"
 
 interface CreateCaseDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  defaultTitle?: string;
-  customerId?: string | null;
-  conversationId?: string | null;
-  inboxId?: string | null;
-  sourceChannel?: string | null;
-  onCreated?: (caseId: string) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultTitle?: string
+  customerId?: string | null
+  conversationId?: string | null
+  inboxId?: string | null
+  sourceChannel?: string | null
+  onCreated?: (caseId: string) => void
 }
 
 export function CreateCaseDialog({
@@ -42,35 +48,35 @@ export function CreateCaseDialog({
   sourceChannel,
   onCreated,
 }: CreateCaseDialogProps) {
-  const [title, setTitle] = useState(defaultTitle ?? '');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<CasePriority>('normal');
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [customer, setCustomer] = useState<PickedCustomer | null>(null);
-  const { data: categories = [] } = useCaseCategories();
-  const createCase = useCreateCase();
+  const [title, setTitle] = useState(defaultTitle ?? "")
+  const [description, setDescription] = useState("")
+  const [priority, setPriority] = useState<CasePriority>("normal")
+  const [categoryId, setCategoryId] = useState<string>("")
+  const [customer, setCustomer] = useState<PickedCustomer | null>(null)
+  const { data: categories = [] } = useCaseCategories()
+  const createCase = useCreateCase()
 
   // When a customer is passed in (e.g. from a conversation) resolve its label.
-  const { data: presetCustomer } = useCustomerBasics(customerId ?? null);
+  const { data: presetCustomer } = useCustomerBasics(customerId ?? null)
 
   useEffect(() => {
     if (open) {
-      setTitle(defaultTitle ?? '');
-      setDescription('');
-      setPriority('normal');
-      setCategoryId('');
-      setCustomer(null);
+      setTitle(defaultTitle ?? "")
+      setDescription("")
+      setPriority("normal")
+      setCategoryId("")
+      setCustomer(null)
     }
-  }, [open, defaultTitle]);
+  }, [open, defaultTitle])
 
   useEffect(() => {
-    if (open && presetCustomer) setCustomer(presetCustomer);
-  }, [open, presetCustomer]);
+    if (open && presetCustomer) setCustomer(presetCustomer)
+  }, [open, presetCustomer])
 
-  const selectedCustomerId = customer?.id ?? null;
+  const selectedCustomerId = customer?.id ?? null
 
   const handleSubmit = async () => {
-    if (!title.trim() || !selectedCustomerId) return;
+    if (!title.trim() || !selectedCustomerId) return
     const result = await createCase.mutateAsync({
       title: title.trim(),
       description: description.trim() || null,
@@ -80,10 +86,10 @@ export function CreateCaseDialog({
       inboxId: inboxId ?? null,
       sourceChannel: sourceChannel ?? null,
       conversationId: conversationId ?? null,
-    });
-    onOpenChange(false);
-    onCreated?.(result.id);
-  };
+    })
+    onOpenChange(false)
+    onCreated?.(result.id)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,8 +97,8 @@ export function CreateCaseDialog({
         <DialogHeader>
           <DialogTitle>New case</DialogTitle>
           <DialogDescription>
-            A case is the unit of work a support rep owns and must follow up. It can span several emails,
-            chats and calls for the same customer.
+            A case is the unit of work a support rep owns and must follow up. It can span several
+            emails, chats and calls for the same customer.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,7 +110,6 @@ export function CreateCaseDialog({
               Every case belongs to a customer. Search an existing one or create a new record.
             </p>
           </div>
-
 
           <div className="space-y-1.5">
             <Label htmlFor="case-title">Title</Label>
@@ -172,11 +177,14 @@ export function CreateCaseDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim() || !selectedCustomerId || createCase.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim() || !selectedCustomerId || createCase.isPending}
+          >
             Create case
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

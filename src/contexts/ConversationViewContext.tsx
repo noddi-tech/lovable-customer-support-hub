@@ -1,76 +1,80 @@
-import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { logger } from '@/utils/logger';
-import { sanitizeStorageFilename } from '@/utils/storageKey';
-import { sortInboxesByName } from '@/lib/sortInboxes';
-import type { EmailPriority } from '@/lib/emailPriority';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createContext, type ReactNode, useContext, useEffect, useReducer } from "react"
+import { toast } from "sonner"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import type { EmailPriority } from "@/lib/emailPriority"
+import { clearReplyDraft, loadReplyDraft, saveReplyDraft } from "@/lib/replyDraftStorage"
+import { sortInboxesByName } from "@/lib/sortInboxes"
+import { logger } from "@/utils/logger"
+import { sanitizeStorageFilename } from "@/utils/storageKey"
 
 interface ConversationViewState {
-  replyText: string;
-  isInternalNote: boolean;
-  editingMessageId: string | null;
-  editText: string;
-  aiOpen: boolean;
-  aiLoading: boolean;
-  aiSuggestions: any[];
-  selectedAiSuggestion: string | null;
-  selectedTemplateId: string | null; // Track which template was selected
-  showFeedbackRating: boolean; // Show feedback UI after sending reply
-  lastSentMessageId: string | null; // Track the last sent message for feedback
-  translateOpen: boolean;
-  translateLoading: boolean;
-  sourceLanguage: string;
-  targetLanguage: string;
-  assignDialogOpen: boolean;
-  assignSelectedUserId: string;
-  assignLoading: boolean;
-  moveDialogOpen: boolean;
-  moveSelectedInboxId: string;
-  moveLoading: boolean;
-  snoozeDialogOpen: boolean;
-  snoozeDate: Date | undefined;
-  snoozeTime: string;
-  tagDialogOpen: boolean;
-  deleteDialogOpen: boolean;
-  messageToDelete: string | null;
-  showCustomerInfo: boolean;
-  sendLoading: boolean;
-  showReplyArea: boolean;
-  trackingActive: boolean; // Visual indicator for knowledge tracking
-  refiningSuggestion: boolean; // Loading state for AI refinement
-  refinementDialogOpen: boolean;
-  selectedSuggestionForRefinement: string | null;
+  replyText: string
+  isInternalNote: boolean
+  editingMessageId: string | null
+  editText: string
+  aiOpen: boolean
+  aiLoading: boolean
+  aiSuggestions: any[]
+  selectedAiSuggestion: string | null
+  selectedTemplateId: string | null // Track which template was selected
+  showFeedbackRating: boolean // Show feedback UI after sending reply
+  lastSentMessageId: string | null // Track the last sent message for feedback
+  translateOpen: boolean
+  translateLoading: boolean
+  sourceLanguage: string
+  targetLanguage: string
+  assignDialogOpen: boolean
+  assignSelectedUserId: string
+  assignLoading: boolean
+  moveDialogOpen: boolean
+  moveSelectedInboxId: string
+  moveLoading: boolean
+  snoozeDialogOpen: boolean
+  snoozeDate: Date | undefined
+  snoozeTime: string
+  tagDialogOpen: boolean
+  deleteDialogOpen: boolean
+  messageToDelete: string | null
+  showCustomerInfo: boolean
+  sendLoading: boolean
+  showReplyArea: boolean
+  trackingActive: boolean // Visual indicator for knowledge tracking
+  refiningSuggestion: boolean // Loading state for AI refinement
+  refinementDialogOpen: boolean
+  selectedSuggestionForRefinement: string | null
 }
 
 type ConversationViewAction =
-  | { type: 'SET_REPLY_TEXT'; payload: string }
-  | { type: 'SET_IS_INTERNAL_NOTE'; payload: boolean }
-  | { type: 'SET_EDITING_MESSAGE'; payload: { id: string | null; text: string } }
-  | { type: 'SET_AI_STATE'; payload: { open: boolean; loading: boolean; suggestions: any[] } }
-  | { type: 'SET_SELECTED_AI_SUGGESTION'; payload: string | null }
-  | { type: 'SET_SELECTED_TEMPLATE'; payload: string | null }
-  | { type: 'SET_FEEDBACK_STATE'; payload: { show: boolean; messageId: string | null } }
-  | { type: 'SET_TRANSLATE_STATE'; payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string } }
-  | { type: 'SET_ASSIGN_DIALOG'; payload: { open: boolean; userId: string; loading: boolean } }
-  | { type: 'SET_MOVE_DIALOG'; payload: { open: boolean; inboxId: string; loading: boolean } }
-  | { type: 'SET_SNOOZE_DIALOG'; payload: { open: boolean; date: Date | undefined; time: string } }
-  | { type: 'SET_TAG_DIALOG'; payload: boolean }
-  | { type: 'SET_DELETE_DIALOG'; payload: { open: boolean; messageId: string | null } }
-  | { type: 'SET_CUSTOMER_INFO'; payload: boolean }
-  | { type: 'SET_SEND_LOADING'; payload: boolean }
-  | { type: 'SET_SHOW_REPLY_AREA'; payload: boolean }
-  | { type: 'SET_TRACKING_ACTIVE'; payload: boolean }
-  | { type: 'SET_REFINING_SUGGESTION'; payload: boolean }
-  | { type: 'SET_REFINEMENT_DIALOG'; payload: { open: boolean; suggestion: string | null } };
+  | { type: "SET_REPLY_TEXT"; payload: string }
+  | { type: "SET_IS_INTERNAL_NOTE"; payload: boolean }
+  | { type: "SET_EDITING_MESSAGE"; payload: { id: string | null; text: string } }
+  | { type: "SET_AI_STATE"; payload: { open: boolean; loading: boolean; suggestions: any[] } }
+  | { type: "SET_SELECTED_AI_SUGGESTION"; payload: string | null }
+  | { type: "SET_SELECTED_TEMPLATE"; payload: string | null }
+  | { type: "SET_FEEDBACK_STATE"; payload: { show: boolean; messageId: string | null } }
+  | {
+      type: "SET_TRANSLATE_STATE"
+      payload: { open: boolean; loading: boolean; sourceLanguage: string; targetLanguage: string }
+    }
+  | { type: "SET_ASSIGN_DIALOG"; payload: { open: boolean; userId: string; loading: boolean } }
+  | { type: "SET_MOVE_DIALOG"; payload: { open: boolean; inboxId: string; loading: boolean } }
+  | { type: "SET_SNOOZE_DIALOG"; payload: { open: boolean; date: Date | undefined; time: string } }
+  | { type: "SET_TAG_DIALOG"; payload: boolean }
+  | { type: "SET_DELETE_DIALOG"; payload: { open: boolean; messageId: string | null } }
+  | { type: "SET_CUSTOMER_INFO"; payload: boolean }
+  | { type: "SET_SEND_LOADING"; payload: boolean }
+  | { type: "SET_SHOW_REPLY_AREA"; payload: boolean }
+  | { type: "SET_TRACKING_ACTIVE"; payload: boolean }
+  | { type: "SET_REFINING_SUGGESTION"; payload: boolean }
+  | { type: "SET_REFINEMENT_DIALOG"; payload: { open: boolean; suggestion: string | null } }
 
 const initialState: ConversationViewState = {
-  replyText: '',
+  replyText: "",
   isInternalNote: false,
   editingMessageId: null,
-  editText: '',
+  editText: "",
   aiOpen: false,
   aiLoading: false,
   aiSuggestions: [],
@@ -80,17 +84,17 @@ const initialState: ConversationViewState = {
   lastSentMessageId: null,
   translateOpen: false,
   translateLoading: false,
-  sourceLanguage: 'auto',
-  targetLanguage: 'en',
+  sourceLanguage: "auto",
+  targetLanguage: "en",
   assignDialogOpen: false,
-  assignSelectedUserId: '',
+  assignSelectedUserId: "",
   assignLoading: false,
   moveDialogOpen: false,
-  moveSelectedInboxId: '',
+  moveSelectedInboxId: "",
   moveLoading: false,
   snoozeDialogOpen: false,
   snoozeDate: undefined,
-  snoozeTime: '09:00',
+  snoozeTime: "09:00",
   tagDialogOpen: false,
   deleteDialogOpen: false,
   messageToDelete: null,
@@ -101,117 +105,188 @@ const initialState: ConversationViewState = {
   refiningSuggestion: false,
   refinementDialogOpen: false,
   selectedSuggestionForRefinement: null,
-};
+}
 
-function conversationViewReducer(state: ConversationViewState, action: ConversationViewAction): ConversationViewState {
+function conversationViewReducer(
+  state: ConversationViewState,
+  action: ConversationViewAction,
+): ConversationViewState {
   switch (action.type) {
-    case 'SET_REPLY_TEXT':
-      return { ...state, replyText: action.payload };
-    case 'SET_IS_INTERNAL_NOTE':
-      return { ...state, isInternalNote: action.payload };
-    case 'SET_EDITING_MESSAGE':
-      return { ...state, editingMessageId: action.payload.id, editText: action.payload.text };
-    case 'SET_AI_STATE':
-      return { ...state, aiOpen: action.payload.open, aiLoading: action.payload.loading, aiSuggestions: action.payload.suggestions };
-    case 'SET_SELECTED_AI_SUGGESTION':
-      return { ...state, selectedAiSuggestion: action.payload, trackingActive: true };
-    case 'SET_SELECTED_TEMPLATE':
-      return { ...state, selectedTemplateId: action.payload, trackingActive: true };
-    case 'SET_FEEDBACK_STATE':
-      return { ...state, showFeedbackRating: action.payload.show, lastSentMessageId: action.payload.messageId };
-    case 'SET_TRANSLATE_STATE':
-      return { ...state, translateOpen: action.payload.open, translateLoading: action.payload.loading, sourceLanguage: action.payload.sourceLanguage, targetLanguage: action.payload.targetLanguage };
-    case 'SET_ASSIGN_DIALOG':
-      return { ...state, assignDialogOpen: action.payload.open, assignSelectedUserId: action.payload.userId, assignLoading: action.payload.loading };
-    case 'SET_MOVE_DIALOG':
-      return { ...state, moveDialogOpen: action.payload.open, moveSelectedInboxId: action.payload.inboxId, moveLoading: action.payload.loading };
-    case 'SET_SNOOZE_DIALOG':
-      return { ...state, snoozeDialogOpen: action.payload.open, snoozeDate: action.payload.date, snoozeTime: action.payload.time };
-    case 'SET_TAG_DIALOG':
-      return { ...state, tagDialogOpen: action.payload };
-    case 'SET_DELETE_DIALOG':
-      return { ...state, deleteDialogOpen: action.payload.open, messageToDelete: action.payload.messageId };
-    case 'SET_CUSTOMER_INFO':
-      return { ...state, showCustomerInfo: action.payload };
-    case 'SET_SEND_LOADING':
-      return { ...state, sendLoading: action.payload };
-    case 'SET_SHOW_REPLY_AREA':
-      return { ...state, showReplyArea: action.payload };
-    case 'SET_TRACKING_ACTIVE':
-      return { ...state, trackingActive: action.payload };
-    case 'SET_REFINING_SUGGESTION':
-      return { ...state, refiningSuggestion: action.payload };
-    case 'SET_REFINEMENT_DIALOG':
-      return { ...state, refinementDialogOpen: action.payload.open, selectedSuggestionForRefinement: action.payload.suggestion };
+    case "SET_REPLY_TEXT":
+      return { ...state, replyText: action.payload }
+    case "SET_IS_INTERNAL_NOTE":
+      return { ...state, isInternalNote: action.payload }
+    case "SET_EDITING_MESSAGE":
+      return { ...state, editingMessageId: action.payload.id, editText: action.payload.text }
+    case "SET_AI_STATE":
+      return {
+        ...state,
+        aiOpen: action.payload.open,
+        aiLoading: action.payload.loading,
+        aiSuggestions: action.payload.suggestions,
+      }
+    case "SET_SELECTED_AI_SUGGESTION":
+      return { ...state, selectedAiSuggestion: action.payload, trackingActive: true }
+    case "SET_SELECTED_TEMPLATE":
+      return { ...state, selectedTemplateId: action.payload, trackingActive: true }
+    case "SET_FEEDBACK_STATE":
+      return {
+        ...state,
+        showFeedbackRating: action.payload.show,
+        lastSentMessageId: action.payload.messageId,
+      }
+    case "SET_TRANSLATE_STATE":
+      return {
+        ...state,
+        translateOpen: action.payload.open,
+        translateLoading: action.payload.loading,
+        sourceLanguage: action.payload.sourceLanguage,
+        targetLanguage: action.payload.targetLanguage,
+      }
+    case "SET_ASSIGN_DIALOG":
+      return {
+        ...state,
+        assignDialogOpen: action.payload.open,
+        assignSelectedUserId: action.payload.userId,
+        assignLoading: action.payload.loading,
+      }
+    case "SET_MOVE_DIALOG":
+      return {
+        ...state,
+        moveDialogOpen: action.payload.open,
+        moveSelectedInboxId: action.payload.inboxId,
+        moveLoading: action.payload.loading,
+      }
+    case "SET_SNOOZE_DIALOG":
+      return {
+        ...state,
+        snoozeDialogOpen: action.payload.open,
+        snoozeDate: action.payload.date,
+        snoozeTime: action.payload.time,
+      }
+    case "SET_TAG_DIALOG":
+      return { ...state, tagDialogOpen: action.payload }
+    case "SET_DELETE_DIALOG":
+      return {
+        ...state,
+        deleteDialogOpen: action.payload.open,
+        messageToDelete: action.payload.messageId,
+      }
+    case "SET_CUSTOMER_INFO":
+      return { ...state, showCustomerInfo: action.payload }
+    case "SET_SEND_LOADING":
+      return { ...state, sendLoading: action.payload }
+    case "SET_SHOW_REPLY_AREA":
+      return { ...state, showReplyArea: action.payload }
+    case "SET_TRACKING_ACTIVE":
+      return { ...state, trackingActive: action.payload }
+    case "SET_REFINING_SUGGESTION":
+      return { ...state, refiningSuggestion: action.payload }
+    case "SET_REFINEMENT_DIALOG":
+      return {
+        ...state,
+        refinementDialogOpen: action.payload.open,
+        selectedSuggestionForRefinement: action.payload.suggestion,
+      }
     default:
-      return state;
+      return state
   }
 }
 
 interface ConversationViewContextType {
-  state: ConversationViewState;
-  dispatch: React.Dispatch<ConversationViewAction>;
-  conversation: any;
-  messages: any[];
-  assignUsers: any[];
-  moveInboxes: any[];
-  isLoading: boolean;
-  messagesLoading: boolean;
-  conversationIds?: string | string[];
-  sendReply: (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean, priority?: EmailPriority) => Promise<string | undefined>;
-  assignConversation: (userId: string) => Promise<void>;
-  moveConversation: (inboxId: string) => Promise<void>;
-  updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>;
-  snoozeConversation: () => Promise<void>;
-  getAiSuggestions: () => Promise<void>;
-  refineAiSuggestion: (originalSuggestion: string, refinementInstructions: string, customerMessage?: string) => Promise<string | null>;
-  translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>;
-  refreshConversation: () => Promise<void>;
-  addTag: (tag: string) => Promise<void>;
-  removeTag: (tag: string) => Promise<void>;
-  sendDraft: (messageId: string) => Promise<void>;
-  editDraft: (messageId: string) => void;
-  dismissDraft: (messageId: string) => Promise<void>;
+  state: ConversationViewState
+  dispatch: React.Dispatch<ConversationViewAction>
+  conversation: any
+  messages: any[]
+  assignUsers: any[]
+  moveInboxes: any[]
+  isLoading: boolean
+  messagesLoading: boolean
+  conversationIds?: string | string[]
+  sendReply: (
+    content: string,
+    isInternal: boolean,
+    status?: string,
+    files?: File[],
+    replyAll?: boolean,
+    priority?: EmailPriority,
+  ) => Promise<string | undefined>
+  assignConversation: (userId: string) => Promise<void>
+  moveConversation: (inboxId: string) => Promise<void>
+  updateStatus: (updates: { status?: string; isArchived?: boolean }) => Promise<void>
+  snoozeConversation: () => Promise<void>
+  getAiSuggestions: () => Promise<void>
+  refineAiSuggestion: (
+    originalSuggestion: string,
+    refinementInstructions: string,
+    customerMessage?: string,
+  ) => Promise<string | null>
+  translateText: (text: string, sourceLanguage: string, targetLanguage: string) => Promise<string>
+  refreshConversation: () => Promise<void>
+  addTag: (tag: string) => Promise<void>
+  removeTag: (tag: string) => Promise<void>
+  sendDraft: (messageId: string) => Promise<void>
+  editDraft: (messageId: string) => void
+  dismissDraft: (messageId: string) => Promise<void>
 }
 
-const ConversationViewContext = createContext<ConversationViewContextType | undefined>(undefined);
+const ConversationViewContext = createContext<ConversationViewContextType | undefined>(undefined)
 
 interface ConversationViewProviderProps {
-  children: ReactNode;
-  conversationId: string | null;
-  conversationIds?: string | string[];
+  children: ReactNode
+  conversationId: string | null
+  conversationIds?: string | string[]
 }
 
-export const ConversationViewProvider = ({ children, conversationId, conversationIds }: ConversationViewProviderProps) => {
-  const [state, dispatch] = useReducer(conversationViewReducer, initialState);
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
+export const ConversationViewProvider = ({
+  children,
+  conversationId,
+  conversationIds,
+}: ConversationViewProviderProps) => {
+  const [state, dispatch] = useReducer(conversationViewReducer, initialState)
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  // Restore per-conversation draft when opening / switching threads.
+  // Reply vs internal-note mode is NOT restored — that choice is made when the
+  // agent presses Reply or Internal note.
+  useEffect(() => {
+    const draft = loadReplyDraft(conversationId)
+    dispatch({ type: "SET_REPLY_TEXT", payload: draft })
+    dispatch({ type: "SET_IS_INTERNAL_NOTE", payload: false })
+    dispatch({ type: "SET_SHOW_REPLY_AREA", payload: false })
+  }, [conversationId])
+
+  // Persist typed text so navigating away does not lose the draft.
+  useEffect(() => {
+    saveReplyDraft(conversationId, state.replyText)
+  }, [conversationId, state.replyText])
 
   // Fetch conversation
   const { data: conversation, isLoading } = useQuery({
-    queryKey: ['conversation', conversationId, user?.id],
+    queryKey: ["conversation", conversationId, user?.id],
     queryFn: async () => {
-      if (!conversationId) return null;
+      if (!conversationId) return null
       const { data, error } = await supabase
-        .from('conversations')
-        .select('*, customer:customers(*), applicant:applicants(id, first_name, last_name, email)')
-        .eq('id', conversationId)
-        .single();
-      if (error) throw error;
-      return data;
+        .from("conversations")
+        .select("*, customer:customers(*), applicant:applicants(id, first_name, last_name, email)")
+        .eq("id", conversationId)
+        .single()
+      if (error) throw error
+      return data
     },
     enabled: !!conversationId && !!user,
-  });
+  })
 
   // Fetch messages with optimized query
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
-    queryKey: ['messages', conversationId, user?.id],
+    queryKey: ["messages", conversationId, user?.id],
     queryFn: async () => {
-      if (!conversationId) return [];
+      if (!conversationId) return []
 
-      logger.debug('Fetching messages', { conversationId }, 'ConversationViewContext');
+      logger.debug("Fetching messages", { conversationId }, "ConversationViewContext")
       const { data, error } = await supabase
-        .from('messages')
+        .from("messages")
         .select(`
           id,
           content,
@@ -226,287 +301,316 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
           email_headers,
           metadata
         `)
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
 
       if (error) {
-        logger.error('Error fetching messages', error, 'ConversationViewContext');
-        throw error;
+        logger.error("Error fetching messages", error, "ConversationViewContext")
+        throw error
       }
 
-      logger.debug('Messages fetched', { count: data?.length || 0 }, 'ConversationViewContext');
-      return data || [];
+      logger.debug("Messages fetched", { count: data?.length || 0 }, "ConversationViewContext")
+      return data || []
     },
     enabled: !!conversationId && !!user,
     staleTime: 1 * 60 * 1000, // 1 minute - shorter for faster note updates
     gcTime: 5 * 60 * 1000, // 5 minutes
-  });
+  })
 
   // Real-time subscription for messages
   useEffect(() => {
-    if (!conversationId || !user) return;
-    
+    if (!conversationId || !user) return
+
     const channel = supabase
       .channel(`messages-${conversationId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      }, (payload) => {
-        logger.debug('Real-time message update', { event: (payload as any)?.eventType }, 'ConversationViewContext');
-        // Invalidate both query keys for immediate update
-        queryClient.invalidateQueries({ 
-          queryKey: ['thread-messages'] 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['messages', conversationId] 
-        });
-      })
-      .subscribe();
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          logger.debug(
+            "Real-time message update",
+            { event: (payload as any)?.eventType },
+            "ConversationViewContext",
+          )
+          // Invalidate both query keys for immediate update
+          queryClient.invalidateQueries({
+            queryKey: ["thread-messages"],
+          })
+          queryClient.invalidateQueries({
+            queryKey: ["messages", conversationId],
+          })
+        },
+      )
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, user?.id, queryClient]);
+      supabase.removeChannel(channel)
+    }
+  }, [conversationId, user?.id, queryClient, user])
 
   // Auto-mark as read when conversation is opened and unread
   useEffect(() => {
     if (conversation && conversation.is_read === false && conversationId) {
-      autoMarkAsReadMutation.mutate(conversationId);
+      autoMarkAsReadMutation.mutate(conversationId)
     }
-  }, [conversation?.is_read, conversationId]);
+  }, [conversation?.is_read, conversationId, conversation, autoMarkAsReadMutation.mutate])
 
   // Fetch users for assignment
   const { data: assignUsers = [] } = useQuery({
-    queryKey: ['users-for-assignment'],
+    queryKey: ["users-for-assignment"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, user_id, full_name').order('full_name');
-      if (error) throw error;
-      return data || [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, user_id, full_name")
+        .order("full_name")
+      if (error) throw error
+      return data || []
     },
     enabled: !!user,
-  });
+  })
 
   // Fetch inboxes for moving
   const { data: moveInboxes = [] } = useQuery({
-    queryKey: ['inboxes-for-move'],
+    queryKey: ["inboxes-for-move"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_inboxes');
-      if (error) throw error;
-      return sortInboxesByName(data || []);
+      const { data, error } = await supabase.rpc("get_inboxes")
+      if (error) throw error
+      return sortInboxesByName(data || [])
     },
     enabled: !!user,
-  });
+  })
 
   // Send reply mutation
   const sendReplyMutation = useMutation({
-    mutationFn: async ({ content, isInternal, status, files, replyAll, priority }: { content: string; isInternal: boolean; status?: string; files?: File[]; replyAll?: boolean; priority?: EmailPriority }) => {
-      if (!conversationId) throw new Error('No conversation ID');
+    mutationFn: async ({
+      content,
+      isInternal,
+      status,
+      files,
+      replyAll,
+      priority,
+    }: {
+      content: string
+      isInternal: boolean
+      status?: string
+      files?: File[]
+      replyAll?: boolean
+      priority?: EmailPriority
+    }) => {
+      if (!conversationId) throw new Error("No conversation ID")
 
       // Upload attachments to storage if any.
       // ABORT on any failure — never send a reply that's missing its attachments.
-      let attachmentsMeta: any[] | null = null;
+      let attachmentsMeta: any[] | null = null
       if (files && files.length > 0) {
-        const orgId = conversation?.organization_id;
-        if (!orgId) throw new Error('No organization ID for file upload');
+        const orgId = conversation?.organization_id
+        if (!orgId) throw new Error("No organization ID for file upload")
 
-        const uploaded: { meta: any; storagePath: string }[] = [];
+        const uploaded: { meta: any; storagePath: string }[] = []
         for (const file of files) {
-          const uniqueName = `${crypto.randomUUID()}_${sanitizeStorageFilename(file.name)}`;
-          const storagePath = `${orgId}/${conversationId}/${uniqueName}`;
+          const uniqueName = `${crypto.randomUUID()}_${sanitizeStorageFilename(file.name)}`
+          const storagePath = `${orgId}/${conversationId}/${uniqueName}`
 
           const { error: uploadError } = await supabase.storage
-            .from('message-attachments')
-            .upload(storagePath, file);
+            .from("message-attachments")
+            .upload(storagePath, file)
 
           if (uploadError) {
-            logger.warn('Failed to upload attachment', uploadError, 'ConversationViewProvider');
+            logger.warn("Failed to upload attachment", uploadError, "ConversationViewProvider")
             // Best-effort rollback of any files already uploaded in this attempt
             if (uploaded.length > 0) {
               await supabase.storage
-                .from('message-attachments')
+                .from("message-attachments")
                 .remove(uploaded.map((u) => u.storagePath))
-                .catch(() => undefined);
+                .catch(() => undefined)
             }
             // Throw → mutation rejects → no insert, no send-reply-email,
             // composer content preserved (onError does not clear replyText).
-            throw new Error(
-              `Couldn't upload ${file.name} — reply not sent, your text is kept`
-            );
+            throw new Error(`Couldn't upload ${file.name} — reply not sent, your text is kept`)
           }
 
           uploaded.push({
             storagePath,
             meta: {
               filename: file.name,
-              mimeType: file.type || 'application/octet-stream',
+              mimeType: file.type || "application/octet-stream",
               size: file.size,
               storageKey: storagePath,
               isInline: false,
             },
-          });
+          })
         }
-        attachmentsMeta = uploaded.length > 0 ? uploaded.map((u) => u.meta) : null;
+        attachmentsMeta = uploaded.length > 0 ? uploaded.map((u) => u.meta) : null
       }
 
       const { data: message, error: insertError } = await supabase
-        .from('messages')
+        .from("messages")
         .insert({
           conversation_id: conversationId,
           content,
-          sender_type: 'agent',
+          sender_type: "agent",
           sender_id: user.id,
           is_internal: isInternal,
-          content_type: 'text/plain',
-          email_status: isInternal ? null : 'pending',
+          content_type: "text/plain",
+          email_status: isInternal ? null : "pending",
           ...(attachmentsMeta ? { attachments: attachmentsMeta } : {}),
-          ...(priority && priority !== 'normal' ? { metadata: { email_priority: priority } } : {}),
+          ...(priority && priority !== "normal" ? { metadata: { email_priority: priority } } : {}),
         })
         .select()
-        .single();
+        .single()
 
-      if (insertError) throw insertError;
+      if (insertError) throw insertError
 
       // Track response in knowledge database
       if (!isInternal && message) {
         // Get the customer message being replied to
-        const customerMessage = messages.find(
-          (m: any) => m.sender_type === 'customer'
-        );
-        
+        const customerMessage = messages.find((m: any) => m.sender_type === "customer")
+
         // Determine response source and ID
-        let responseSource: 'ai_suggestion' | 'template' | 'knowledge_base' | 'manual' = 'manual';
-        let sourceId: string | null = null;
-        
+        let responseSource: "ai_suggestion" | "template" | "knowledge_base" | "manual" = "manual"
+        let sourceId: string | null = null
+
         if (state.selectedAiSuggestion) {
           // Check if the AI suggestion came from knowledge base by looking at the suggestion metadata
           const selectedSuggestion = state.aiSuggestions.find(
-            s => s.reply === state.selectedAiSuggestion
-          );
+            (s) => s.reply === state.selectedAiSuggestion,
+          )
           if (selectedSuggestion?.knowledgeEntryId) {
-            responseSource = 'knowledge_base';
-            sourceId = selectedSuggestion.knowledgeEntryId;
+            responseSource = "knowledge_base"
+            sourceId = selectedSuggestion.knowledgeEntryId
           } else {
-            responseSource = 'ai_suggestion';
-            sourceId = state.selectedAiSuggestion;
+            responseSource = "ai_suggestion"
+            sourceId = state.selectedAiSuggestion
           }
         } else if (state.selectedTemplateId) {
-          responseSource = 'template';
-          sourceId = state.selectedTemplateId;
+          responseSource = "template"
+          sourceId = state.selectedTemplateId
         }
-        
+
         // Fetch organization_id from profiles
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", user.id)
+          .maybeSingle()
+
         if (!profile?.organization_id) {
-          logger.warn('No organization found for tracking', { userId: user.id }, 'ConversationViewProvider');
+          logger.warn(
+            "No organization found for tracking",
+            { userId: user.id },
+            "ConversationViewProvider",
+          )
         } else {
           // Insert response tracking with enhanced metadata
-          const { error: trackingError } = await supabase
-            .from('response_tracking')
-            .insert({
-              organization_id: profile.organization_id,
-              conversation_id: conversationId,
-              message_id: message.id,
-              agent_id: user?.id,
-              response_source: responseSource,
-              ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
-              knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
-              customer_message: customerMessage?.content || null,
-              agent_response: content
-            });
-          
+          const { error: trackingError } = await supabase.from("response_tracking").insert({
+            organization_id: profile.organization_id,
+            conversation_id: conversationId,
+            message_id: message.id,
+            agent_id: user?.id,
+            response_source: responseSource,
+            ai_suggestion_id: responseSource === "ai_suggestion" ? sourceId : null,
+            knowledge_entry_id: responseSource === "knowledge_base" ? sourceId : null,
+            customer_message: customerMessage?.content || null,
+            agent_response: content,
+          })
+
           if (trackingError) {
-            logger.warn('Failed to track response', trackingError, 'ConversationViewProvider');
+            logger.warn("Failed to track response", trackingError, "ConversationViewProvider")
           }
         }
 
         // Track outcome for the previous agent response when customer replies
-        if (customerMessage && customerMessage.sender_type === 'customer') {
+        if (customerMessage && customerMessage.sender_type === "customer") {
           try {
-            await supabase.functions.invoke('track-outcome', {
+            await supabase.functions.invoke("track-outcome", {
               body: {
                 conversationId,
                 messageId: customerMessage.id,
-              }
-            });
+              },
+            })
           } catch (outcomeError) {
-            logger.warn('Failed to track outcome', outcomeError, 'ConversationViewProvider');
+            logger.warn("Failed to track outcome", outcomeError, "ConversationViewProvider")
           }
         }
-        
+
         // Reset tracking state and show feedback if AI/template was used
-        const shouldShowFeedback = state.selectedAiSuggestion || state.selectedTemplateId;
-        dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
+        const shouldShowFeedback = state.selectedAiSuggestion || state.selectedTemplateId
+        dispatch({ type: "SET_TRACKING_ACTIVE", payload: false })
         if (shouldShowFeedback) {
-          dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: message.id } });
+          dispatch({ type: "SET_FEEDBACK_STATE", payload: { show: true, messageId: message.id } })
         }
       }
 
       // Update conversation status after agent reply (only for non-internal messages)
       if (!isInternal && status) {
         const { error: updateError } = await supabase
-          .from('conversations')
+          .from("conversations")
           .update({
             status,
             is_read: true,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', conversationId);
-        
+          .eq("id", conversationId)
+
         if (updateError) {
-          logger.warn('Failed to update conversation status', updateError, 'ConversationViewProvider');
+          logger.warn(
+            "Failed to update conversation status",
+            updateError,
+            "ConversationViewProvider",
+          )
         }
       }
 
       // Send email for all channels EXCEPT active live chat sessions
-      const conversationChannel = conversation?.channel;
-      let shouldSendEmail = !isInternal;
-      
-      if (shouldSendEmail && conversationChannel === 'widget') {
+      const conversationChannel = conversation?.channel
+      let shouldSendEmail = !isInternal
+
+      if (shouldSendEmail && conversationChannel === "widget") {
         // Check if visitor is actively chatting (active session with recent heartbeat)
         const { data: chatSession } = await supabase
-          .from('widget_chat_sessions')
-          .select('status, last_seen_at')
-          .eq('conversation_id', conversationId)
-          .eq('status', 'active')
-          .maybeSingle();
-        
-        const isActivelyLive = chatSession && chatSession.last_seen_at &&
-          (new Date().getTime() - new Date(chatSession.last_seen_at).getTime() < 30000);
-        
+          .from("widget_chat_sessions")
+          .select("status, last_seen_at")
+          .eq("conversation_id", conversationId)
+          .eq("status", "active")
+          .maybeSingle()
+
+        const isActivelyLive =
+          chatSession?.last_seen_at &&
+          Date.now() - new Date(chatSession.last_seen_at).getTime() < 30000
+
         if (isActivelyLive) {
-          shouldSendEmail = false; // Visitor sees reply in real-time
+          shouldSendEmail = false // Visitor sees reply in real-time
         }
       }
-      
+
       if (shouldSendEmail) {
-        const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-          body: { messageId: message.id, replyAll: replyAll ?? true }
-        });
-        
+        const { error: emailError } = await supabase.functions.invoke("send-reply-email", {
+          body: { messageId: message.id, replyAll: replyAll ?? true },
+        })
+
         if (emailError) {
-          logger.warn('Email sending failed', emailError, 'ConversationViewProvider');
-          await supabase.from('messages').update({ email_status: 'failed' }).eq('id', message.id);
-          toast.warning('Reply saved but email sending failed');
+          logger.warn("Email sending failed", emailError, "ConversationViewProvider")
+          await supabase.from("messages").update({ email_status: "failed" }).eq("id", message.id)
+          toast.warning("Reply saved but email sending failed")
         }
       } else if (!isInternal) {
         // Delivered live in the chat widget — clear the "pending email" marker so the
         // UI can tell chat-delivered replies apart from ones that went out as email.
-        await supabase.from('messages').update({ email_status: null }).eq('id', message.id);
+        await supabase.from("messages").update({ email_status: null }).eq("id", message.id)
       }
 
-      return message;
+      return message
     },
     onSuccess: (newMessage, variables) => {
-      dispatch({ type: 'SET_REPLY_TEXT', payload: '' });
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
-      dispatch({ type: 'SET_SELECTED_TEMPLATE', payload: null });
+      dispatch({ type: "SET_REPLY_TEXT", payload: "" })
+      clearReplyDraft(conversationId)
+      dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: null })
+      dispatch({ type: "SET_SELECTED_TEMPLATE", payload: null })
 
       // Accountability: a public reply takes ownership of the conversation and
       // its linked case, and stamps first response for SLA reporting.
@@ -514,592 +618,624 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
         void (async () => {
           try {
             const { data: profileRow } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('user_id', user?.id ?? '')
-              .maybeSingle();
-            const profileId = profileRow?.id;
-            if (!profileId || !conversationId) return;
+              .from("profiles")
+              .select("id")
+              .eq("user_id", user?.id ?? "")
+              .maybeSingle()
+            const profileId = profileRow?.id
+            if (!profileId || !conversationId) return
 
-            const { data: conv } = await (supabase.from('conversations') as any)
-              .select('assigned_to_id, case_id')
-              .eq('id', conversationId)
-              .maybeSingle();
+            const { data: conv } = await (supabase.from("conversations") as any)
+              .select("assigned_to_id, case_id")
+              .eq("id", conversationId)
+              .maybeSingle()
 
             if (conv && !conv.assigned_to_id) {
-              await (supabase.from('conversations') as any)
+              await (supabase.from("conversations") as any)
                 .update({ assigned_to_id: profileId })
-                .eq('id', conversationId);
-              queryClient.invalidateQueries({ queryKey: ['conversation-meta'] });
+                .eq("id", conversationId)
+              queryClient.invalidateQueries({ queryKey: ["conversation-meta"] })
             }
 
             if (conv?.case_id) {
-              const { data: caseRow } = await (supabase.from('cases') as any)
-                .select('owner_id, first_response_at, status')
-                .eq('id', conv.case_id)
-                .maybeSingle();
-              const updates: Record<string, unknown> = {};
-              if (caseRow && !caseRow.owner_id) updates.owner_id = profileId;
-              if (caseRow && !caseRow.first_response_at) updates.first_response_at = new Date().toISOString();
-              if (caseRow?.status === 'open') updates.status = 'in_progress';
+              const { data: caseRow } = await (supabase.from("cases") as any)
+                .select("owner_id, first_response_at, status")
+                .eq("id", conv.case_id)
+                .maybeSingle()
+              const updates: Record<string, unknown> = {}
+              if (caseRow && !caseRow.owner_id) updates.owner_id = profileId
+              if (caseRow && !caseRow.first_response_at)
+                updates.first_response_at = new Date().toISOString()
+              if (caseRow?.status === "open") updates.status = "in_progress"
               if (Object.keys(updates).length > 0) {
-                await (supabase.from('cases') as any).update(updates).eq('id', conv.case_id);
-                queryClient.invalidateQueries({ queryKey: ['conversation-case'] });
-                queryClient.invalidateQueries({ queryKey: ['cases'] });
+                await (supabase.from("cases") as any).update(updates).eq("id", conv.case_id)
+                queryClient.invalidateQueries({ queryKey: ["conversation-case"] })
+                queryClient.invalidateQueries({ queryKey: ["cases"] })
               }
             }
           } catch (err) {
-            logger.error('Assign-on-reply failed', err as any, 'ConversationViewProvider');
+            logger.error("Assign-on-reply failed", err as any, "ConversationViewProvider")
           }
-        })();
+        })()
       }
 
-
-      
       // Optimistically update messages cache instead of invalidating
-      queryClient.setQueryData(['messages', conversationId, user?.id], (old: any[]) => {
-        return old ? [...old, newMessage] : [newMessage];
-      });
-      
+      queryClient.setQueryData(["messages", conversationId, user?.id], (old: any[]) => {
+        return old ? [...old, newMessage] : [newMessage]
+      })
+
       // Force immediate refetch of thread-messages for notes to appear instantly
-      queryClient.refetchQueries({ 
-        queryKey: ['thread-messages'],
-        exact: false
-      });
-      
+      queryClient.refetchQueries({
+        queryKey: ["thread-messages"],
+        exact: false,
+      })
+
       // Only invalidate essential queries
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       // Fire success toast only after the send (incl. all uploads) resolved —
       // guarantees we never claim success on an aborted upload.
-      toast.success(variables.isInternal ? 'Internal note added' : 'Reply sent');
+      toast.success(variables.isInternal ? "Internal note added" : "Reply sent")
     },
     onError: (error: any) => {
-      logger.error('Failed to send reply', error, 'ConversationViewProvider');
-      const msg = error?.message || 'Failed to send reply';
+      logger.error("Failed to send reply", error, "ConversationViewProvider")
+      const msg = error?.message || "Failed to send reply"
       // If the error is our friendly upload-abort message, show as-is.
       // Otherwise prefix so the agent knows the send itself failed.
-      const isUploadAbort = typeof msg === 'string' && msg.startsWith("Couldn't upload ");
-      toast.error(isUploadAbort ? msg : 'Failed to send reply: ' + msg);
+      const isUploadAbort = typeof msg === "string" && msg.startsWith("Couldn't upload ")
+      toast.error(isUploadAbort ? msg : `Failed to send reply: ${msg}`)
       // Intentionally do NOT clear replyText — composer content is preserved
       // so the agent can fix the attachment and retry without retyping.
     },
-  });
+  })
 
   // Assign conversation mutation
   const assignMutation = useMutation({
     mutationFn: async (userId: string) => {
-      if (!conversationId) throw new Error('No conversation ID');
+      if (!conversationId) throw new Error("No conversation ID")
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ assigned_to_id: userId })
-        .eq('id', conversationId);
-      if (error) throw error;
+        .eq("id", conversationId)
+      if (error) throw error
     },
     onSuccess: (_, assignedUserId) => {
       // Optimistically update conversation cache
-      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
-        if (old) return { ...old, assigned_to_id: assignedUserId };
-        return old;
-      });
-      
+      queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, assigned_to_id: assignedUserId }
+        return old
+      })
+
       // Invalidate conversations list to refresh the inbox view
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: false, userId: '', loading: false } });
-      toast.success('Conversation assigned successfully');
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      dispatch({ type: "SET_ASSIGN_DIALOG", payload: { open: false, userId: "", loading: false } })
+      toast.success("Conversation assigned successfully")
     },
     onError: (error) => {
-      logger.error('Failed to assign conversation', error, 'ConversationViewProvider');
-      toast.error('Failed to assign: ' + error.message);
+      logger.error("Failed to assign conversation", error, "ConversationViewProvider")
+      toast.error(`Failed to assign: ${error.message}`)
     },
-  });
+  })
 
   // Move conversation mutation
   const moveMutation = useMutation({
     mutationFn: async (inboxId: string) => {
-      if (!conversationId) throw new Error('No conversation ID');
+      if (!conversationId) throw new Error("No conversation ID")
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ inbox_id: inboxId })
-        .eq('id', conversationId);
-      if (error) throw error;
+        .eq("id", conversationId)
+      if (error) throw error
     },
     onSuccess: (inboxId) => {
       // Optimistically update conversation cache
-      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
-        if (old) return { ...old, inbox_id: inboxId };
-        return old;
-      });
-      
+      queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, inbox_id: inboxId }
+        return old
+      })
+
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      dispatch({ type: 'SET_MOVE_DIALOG', payload: { open: false, inboxId: '', loading: false } });
-      toast.success('Conversation moved successfully');
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      dispatch({ type: "SET_MOVE_DIALOG", payload: { open: false, inboxId: "", loading: false } })
+      toast.success("Conversation moved successfully")
     },
     onError: (error) => {
-      logger.error('Failed to move conversation', error, 'ConversationViewProvider');
-      toast.error('Failed to move: ' + error.message);
+      logger.error("Failed to move conversation", error, "ConversationViewProvider")
+      toast.error(`Failed to move: ${error.message}`)
     },
-  });
+  })
 
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ status, isArchived }: { status?: string; isArchived?: boolean }) => {
-      if (!conversationId) throw new Error('No conversation ID');
-      const updates: any = {};
-      if (status !== undefined) updates.status = status;
-      if (isArchived !== undefined) updates.is_archived = isArchived;
+      if (!conversationId) throw new Error("No conversation ID")
+      const updates: any = {}
+      if (status !== undefined) updates.status = status
+      if (isArchived !== undefined) updates.is_archived = isArchived
       // Archiving always closes the conversation as well.
-      if (isArchived === true) updates.status = 'closed';
+      if (isArchived === true) updates.status = "closed"
       // Closing marks the conversation as read.
-      if (updates.status === 'closed') updates.is_read = true;
-      
-      
+      if (updates.status === "closed") updates.is_read = true
+
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update(updates)
-        .eq('id', conversationId);
-      if (error) throw error;
-      
+        .eq("id", conversationId)
+      if (error) throw error
+
       // Return the updates so we can use them in onSuccess
-      return { status: updates.status ?? status, isArchived };
+      return { status: updates.status ?? status, isArchived }
     },
     onSuccess: (result) => {
       // Optimistically update conversation cache with actual status change
-      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+      queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
         if (old) {
-          const updates: any = {};
-          if (result?.status !== undefined) updates.status = result.status;
-          if (result?.isArchived !== undefined) updates.is_archived = result.isArchived;
-          return { ...old, ...updates };
+          const updates: any = {}
+          if (result?.status !== undefined) updates.status = result.status
+          if (result?.isArchived !== undefined) updates.is_archived = result.isArchived
+          return { ...old, ...updates }
         }
-        return old;
-      });
-      
+        return old
+      })
+
       // Also update the meta cache used by the detail view
-      queryClient.setQueryData(['conversation-meta', conversationId, user?.id], (old: any) => {
+      queryClient.setQueryData(["conversation-meta", conversationId, user?.id], (old: any) => {
         if (old) {
-          const updates: any = {};
-          if (result?.status !== undefined) updates.status = result.status;
+          const updates: any = {}
+          if (result?.status !== undefined) updates.status = result.status
           if (result?.isArchived !== undefined) {
-            updates.isArchived = result.isArchived;
-            updates.is_archived = result.isArchived;
+            updates.isArchived = result.isArchived
+            updates.is_archived = result.isArchived
           }
-          return { ...old, ...updates };
+          return { ...old, ...updates }
         }
-        return old;
-      });
-      
+        return old
+      })
+
       // Invalidate conversations list to move conversation between status filters
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      toast.success('Status updated successfully');
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      toast.success("Status updated successfully")
     },
     onError: (error) => {
-      logger.error('Failed to update status', error, 'ConversationViewProvider');
-      toast.error('Failed to update status: ' + error.message);
+      logger.error("Failed to update status", error, "ConversationViewProvider")
+      toast.error(`Failed to update status: ${error.message}`)
     },
-  });
+  })
 
   // Snooze conversation mutation
   const snoozeMutation = useMutation({
     mutationFn: async () => {
-      if (!conversationId || !state.snoozeDate) throw new Error('No conversation ID or date');
-      
-      const [hours, minutes] = state.snoozeTime.split(':').map(Number);
-      const snoozeDateTime = new Date(state.snoozeDate);
-      snoozeDateTime.setHours(hours, minutes, 0, 0);
-      
+      if (!conversationId || !state.snoozeDate) throw new Error("No conversation ID or date")
+
+      const [hours, minutes] = state.snoozeTime.split(":").map(Number)
+      const snoozeDateTime = new Date(state.snoozeDate)
+      snoozeDateTime.setHours(hours, minutes, 0, 0)
+
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ snooze_until: snoozeDateTime.toISOString() })
-        .eq('id', conversationId);
-      if (error) throw error;
+        .eq("id", conversationId)
+      if (error) throw error
     },
     onSuccess: () => {
       // Optimistically update conversation cache
-      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
+      queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
         if (old) {
-          const [hours, minutes] = state.snoozeTime.split(':').map(Number);
-          const snoozeDateTime = new Date(state.snoozeDate!);
-          snoozeDateTime.setHours(hours, minutes, 0, 0);
-          return { ...old, snooze_until: snoozeDateTime.toISOString() };
+          const [hours, minutes] = state.snoozeTime.split(":").map(Number)
+          const snoozeDateTime = new Date(state.snoozeDate!)
+          snoozeDateTime.setHours(hours, minutes, 0, 0)
+          return { ...old, snooze_until: snoozeDateTime.toISOString() }
         }
-        return old;
-      });
-      
+        return old
+      })
+
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: false, date: undefined, time: '09:00' } });
-      toast.success('Conversation snoozed successfully');
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      dispatch({
+        type: "SET_SNOOZE_DIALOG",
+        payload: { open: false, date: undefined, time: "09:00" },
+      })
+      toast.success("Conversation snoozed successfully")
     },
     onError: (error) => {
-      logger.error('Failed to snooze conversation', error, 'ConversationViewProvider');
-      toast.error('Failed to snooze: ' + error.message);
+      logger.error("Failed to snooze conversation", error, "ConversationViewProvider")
+      toast.error(`Failed to snooze: ${error.message}`)
     },
-  });
+  })
 
   // Auto-mark as read mutation (silent, no toast)
   const autoMarkAsReadMutation = useMutation({
     mutationFn: async (convId: string) => {
       const { error } = await supabase
-        .from('conversations')
+        .from("conversations")
         .update({ is_read: true })
-        .eq('id', convId);
-      
-      if (error) throw error;
+        .eq("id", convId)
+
+      if (error) throw error
     },
     onSuccess: () => {
       // 1. Update all conversation list caches directly for immediate UI update
-      queryClient.setQueriesData(
-        { queryKey: ['conversations'], exact: false },
-        (oldData: any) => {
-          if (!oldData?.pages) return oldData;
-          
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page: any) => ({
-              ...page,
-              conversations: page.conversations.map((conv: any) =>
-                conv.id === conversationId 
-                  ? { ...conv, is_read: true }
-                  : conv
-              )
-            }))
-          };
+      queryClient.setQueriesData({ queryKey: ["conversations"], exact: false }, (oldData: any) => {
+        if (!oldData?.pages) return oldData
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            conversations: page.conversations.map((conv: any) =>
+              conv.id === conversationId ? { ...conv, is_read: true } : conv,
+            ),
+          })),
         }
-      );
-      
+      })
+
       // 2. Update single conversation caches
-      queryClient.setQueryData(['conversation', conversationId, user?.id], (old: any) => {
-        if (old) return { ...old, is_read: true };
-        return old;
-      });
-      
-      queryClient.setQueryData(['conversation-meta', conversationId, user?.id], (old: any) => {
-        if (old) return { ...old, isRead: true };
-        return old;
-      });
-      
+      queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, is_read: true }
+        return old
+      })
+
+      queryClient.setQueryData(["conversation-meta", conversationId, user?.id], (old: any) => {
+        if (old) return { ...old, isRead: true }
+        return old
+      })
+
       // 3. Force refetch counts for immediate update
-      queryClient.refetchQueries({ queryKey: ['all-counts'] });
-      queryClient.refetchQueries({ queryKey: ['conversation-counts'] });
+      queryClient.refetchQueries({ queryKey: ["all-counts"] })
+      queryClient.refetchQueries({ queryKey: ["conversation-counts"] })
     },
     onError: (error) => {
-      logger.error('Failed to auto-mark as read', error, 'ConversationViewProvider');
+      logger.error("Failed to auto-mark as read", error, "ConversationViewProvider")
     },
-  });
+  })
 
   // Gmail sync mutation for refreshing message data
   const gmailSyncMutation = useMutation({
     mutationFn: async () => {
-      if (!conversation?.email_account_id) throw new Error('No email account associated with conversation');
-      
-      const response = await fetch('/supabase/functions/v1/trigger-gmail-sync', {
-        method: 'POST',
+      if (!conversation?.email_account_id)
+        throw new Error("No email account associated with conversation")
+
+      const response = await fetch("/supabase/functions/v1/trigger-gmail-sync", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          emailAccountId: conversation.email_account_id
-        })
-      });
-      
+          emailAccountId: conversation.email_account_id,
+        }),
+      })
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Sync failed');
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Sync failed")
       }
-      
-      return response.json();
+
+      return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success('Gmail sync completed - signatures should now display correctly');
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      toast.success("Gmail sync completed - signatures should now display correctly")
     },
     onError: (error) => {
-      logger.error('Gmail sync failed', error, 'ConversationViewProvider');
-      toast.error('Gmail sync failed: ' + error.message);
+      logger.error("Gmail sync failed", error, "ConversationViewProvider")
+      toast.error(`Gmail sync failed: ${error.message}`)
     },
-  });
+  })
 
-  const sendReply = async (content: string, isInternal: boolean, status?: string, files?: File[], replyAll?: boolean, priority?: EmailPriority): Promise<string | undefined> => {
-    dispatch({ type: 'SET_SEND_LOADING', payload: true });
+  const sendReply = async (
+    content: string,
+    isInternal: boolean,
+    status?: string,
+    files?: File[],
+    replyAll?: boolean,
+    priority?: EmailPriority,
+  ): Promise<string | undefined> => {
+    dispatch({ type: "SET_SEND_LOADING", payload: true })
     try {
-      const message = await sendReplyMutation.mutateAsync({ content, isInternal, status, files, replyAll, priority });
-      return message?.id;
+      const message = await sendReplyMutation.mutateAsync({
+        content,
+        isInternal,
+        status,
+        files,
+        replyAll,
+        priority,
+      })
+      return message?.id
     } finally {
-      dispatch({ type: 'SET_SEND_LOADING', payload: false });
+      dispatch({ type: "SET_SEND_LOADING", payload: false })
     }
-  };
+  }
 
   const assignConversation = async (userId: string) => {
-    await assignMutation.mutateAsync(userId);
-  };
+    await assignMutation.mutateAsync(userId)
+  }
 
   const moveConversation = async (inboxId: string) => {
-    await moveMutation.mutateAsync(inboxId);
-  };
+    await moveMutation.mutateAsync(inboxId)
+  }
 
   const updateStatus = async (updates: { status?: string; isArchived?: boolean }) => {
-    await updateStatusMutation.mutateAsync(updates);
-  };
+    await updateStatusMutation.mutateAsync(updates)
+  }
 
   const snoozeConversation = async () => {
-    await snoozeMutation.mutateAsync();
-  };
+    await snoozeMutation.mutateAsync()
+  }
 
   const getAiSuggestions = async () => {
-    if (!conversationId || messages.length === 0) return;
-    
-    dispatch({ type: 'SET_AI_STATE', payload: { open: false, loading: true, suggestions: [] } });
+    if (!conversationId || messages.length === 0) return
+
+    dispatch({ type: "SET_AI_STATE", payload: { open: false, loading: true, suggestions: [] } })
     try {
-      const lastCustomerMessage = [...messages].reverse().find(m => m.sender_type === 'customer');
+      const lastCustomerMessage = [...messages].reverse().find((m) => m.sender_type === "customer")
       if (!lastCustomerMessage) {
-        toast.error('No customer message found for AI suggestions');
-        logger.warn('No customer message found', { conversationId, messageCount: messages.length }, 'ConversationViewProvider');
-        return;
+        toast.error("No customer message found for AI suggestions")
+        logger.warn(
+          "No customer message found",
+          { conversationId, messageCount: messages.length },
+          "ConversationViewProvider",
+        )
+        return
       }
 
       // Fetch organization_id from profiles
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .maybeSingle()
 
       if (!profile?.organization_id) {
-        throw new Error('No organization found for user');
+        throw new Error("No organization found for user")
       }
 
-      logger.info('Requesting AI suggestions with knowledge base', { 
-        conversationId, 
-        organizationId: profile.organization_id,
-        messagePreview: lastCustomerMessage.content.substring(0, 50) 
-      }, 'ConversationViewProvider');
+      logger.info(
+        "Requesting AI suggestions with knowledge base",
+        {
+          conversationId,
+          organizationId: profile.organization_id,
+          messagePreview: lastCustomerMessage.content.substring(0, 50),
+        },
+        "ConversationViewProvider",
+      )
 
-      const { data, error } = await supabase.functions.invoke('suggest-replies', {
+      const { data, error } = await supabase.functions.invoke("suggest-replies", {
         body: {
           customerMessage: lastCustomerMessage.content,
           organizationId: profile.organization_id,
           conversationId,
-        }
-      });
+        },
+      })
 
-      if (error) throw error;
-      
+      if (error) throw error
+
       // Map suggestions to extract just the reply text
-      const suggestions = (data?.suggestions || []).map((s: any) => s.reply || s);
-      dispatch({ type: 'SET_AI_STATE', payload: { open: true, loading: false, suggestions } });
+      const suggestions = (data?.suggestions || []).map((s: any) => s.reply || s)
+      dispatch({ type: "SET_AI_STATE", payload: { open: true, loading: false, suggestions } })
     } catch (error: any) {
-      logger.error('Failed to get AI suggestions', error, 'ConversationViewProvider');
-      toast.error('Failed to get AI suggestions: ' + error.message);
-      dispatch({ type: 'SET_AI_STATE', payload: { open: false, loading: false, suggestions: [] } });
+      logger.error("Failed to get AI suggestions", error, "ConversationViewProvider")
+      toast.error(`Failed to get AI suggestions: ${error.message}`)
+      dispatch({ type: "SET_AI_STATE", payload: { open: false, loading: false, suggestions: [] } })
     }
-  };
+  }
 
-  const translateText = async (text: string, sourceLanguage: string, targetLanguage: string): Promise<string> => {
-    if (!text.trim()) return text;
-    
+  const translateText = async (
+    text: string,
+    sourceLanguage: string,
+    targetLanguage: string,
+  ): Promise<string> => {
+    if (!text.trim()) return text
+
     try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
-        body: { 
+      const { data, error } = await supabase.functions.invoke("translate-text", {
+        body: {
           text: text.trim(),
           sourceLanguage,
-          targetLanguage
-        }
-      });
+          targetLanguage,
+        },
+      })
 
-      if (error) throw error;
-      
-      return data.translatedText || text;
+      if (error) throw error
+
+      return data.translatedText || text
     } catch (error: any) {
-      logger.error('Failed to translate text', error, 'ConversationViewProvider');
-      toast.error('Failed to translate text: ' + error.message);
-      return text;
+      logger.error("Failed to translate text", error, "ConversationViewProvider")
+      toast.error(`Failed to translate text: ${error.message}`)
+      return text
     }
-  };
+  }
 
   const refineAiSuggestion = async (
     originalSuggestion: string,
     refinementInstructions: string,
-    customerMessage?: string
+    customerMessage?: string,
   ): Promise<string | null> => {
-    dispatch({ type: 'SET_REFINING_SUGGESTION', payload: true });
-    
+    dispatch({ type: "SET_REFINING_SUGGESTION", payload: true })
+
     try {
-      const { data, error } = await supabase.functions.invoke('refine-suggestion', {
+      const { data, error } = await supabase.functions.invoke("refine-suggestion", {
         body: {
           originalSuggestion,
           refinementInstructions,
-          customerMessage
-        }
-      });
+          customerMessage,
+        },
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       // Extract refined text and pattern for learning
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .maybeSingle()
 
       if (profile?.organization_id && data?.learningMetadata) {
         // Extract pattern asynchronously (fire and forget)
-        supabase.functions.invoke('extract-refinement-pattern', {
-          body: {
-            refinementInstruction: refinementInstructions,
-            originalSuggestion,
-            refinedSuggestion: data.refinedText,
-            organizationId: profile.organization_id
-          }
-        }).catch(err => {
-          logger.warn('Failed to extract refinement pattern', err, 'ConversationViewProvider');
-        });
+        supabase.functions
+          .invoke("extract-refinement-pattern", {
+            body: {
+              refinementInstruction: refinementInstructions,
+              originalSuggestion,
+              refinedSuggestion: data.refinedText,
+              organizationId: profile.organization_id,
+            },
+          })
+          .catch((err) => {
+            logger.warn("Failed to extract refinement pattern", err, "ConversationViewProvider")
+          })
       }
 
-      return data.refinedText;
+      return data.refinedText
     } catch (error: any) {
-      logger.error('Failed to refine suggestion', error, 'ConversationViewProvider');
-      toast.error('Failed to refine suggestion: ' + error.message);
-      return null;
+      logger.error("Failed to refine suggestion", error, "ConversationViewProvider")
+      toast.error(`Failed to refine suggestion: ${error.message}`)
+      return null
     } finally {
-      dispatch({ type: 'SET_REFINING_SUGGESTION', payload: false });
+      dispatch({ type: "SET_REFINING_SUGGESTION", payload: false })
     }
-  };
+  }
 
   const refreshConversation = async () => {
-    await gmailSyncMutation.mutateAsync();
-  };
+    await gmailSyncMutation.mutateAsync()
+  }
 
   const addTag = async (tag: string) => {
-    if (!conversationId || !conversation) return;
-    
-    const metadata = conversation.metadata as Record<string, any> || {};
-    const currentTags = (metadata.tags || []) as string[];
-    const newTags = [...currentTags, tag];
-    
+    if (!conversationId || !conversation) return
+
+    const metadata = (conversation.metadata as Record<string, any>) || {}
+    const currentTags = (metadata.tags || []) as string[]
+    const newTags = [...currentTags, tag]
+
     const { error } = await supabase
-      .from('conversations')
-      .update({ 
-        metadata: { ...metadata, tags: newTags }
+      .from("conversations")
+      .update({
+        metadata: { ...metadata, tags: newTags },
       })
-      .eq('id', conversationId);
-      
+      .eq("id", conversationId)
+
     if (error) {
-      toast.error('Failed to add tag');
-      return;
+      toast.error("Failed to add tag")
+      return
     }
-    
-    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-    toast.success('Tag added');
-  };
+
+    queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+    toast.success("Tag added")
+  }
 
   const removeTag = async (tag: string) => {
-    if (!conversationId || !conversation) return;
-    
-    const metadata = conversation.metadata as Record<string, any> || {};
-    const currentTags = (metadata.tags || []) as string[];
-    const newTags = currentTags.filter((t: string) => t !== tag);
-    
+    if (!conversationId || !conversation) return
+
+    const metadata = (conversation.metadata as Record<string, any>) || {}
+    const currentTags = (metadata.tags || []) as string[]
+    const newTags = currentTags.filter((t: string) => t !== tag)
+
     const { error } = await supabase
-      .from('conversations')
-      .update({ 
-        metadata: { ...metadata, tags: newTags }
+      .from("conversations")
+      .update({
+        metadata: { ...metadata, tags: newTags },
       })
-      .eq('id', conversationId);
-      
+      .eq("id", conversationId)
+
     if (error) {
-      toast.error('Failed to remove tag');
-      return;
+      toast.error("Failed to remove tag")
+      return
     }
-    
-    queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-    toast.success('Tag removed');
-  };
+
+    queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+    toast.success("Tag removed")
+  }
 
   // --- AI Draft actions ---
   const sendDraft = async (messageId: string) => {
-    const draftMsg = messages.find((m: any) => m.id === messageId);
+    const draftMsg = messages.find((m: any) => m.id === messageId)
     if (!draftMsg) {
-      toast.error('Draft not found');
-      return;
+      toast.error("Draft not found")
+      return
     }
-    
+
     try {
       // Use the existing sendReply flow — identical to agent manually sending
-      await sendReply(draftMsg.content, false, 'pending');
-      
+      await sendReply(draftMsg.content, false, "pending")
+
       // Delete the draft message from DB
-      await supabase.from('messages').delete().eq('id', messageId);
-      
+      await supabase.from("messages").delete().eq("id", messageId)
+
       // Track in response_tracking
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-      
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user!.id)
+        .maybeSingle()
+
       if (profile?.organization_id) {
-        const customerMessage = messages.find((m: any) => m.sender_type === 'customer');
-        await supabase.from('response_tracking').insert({
-          organization_id: profile.organization_id,
-          conversation_id: conversationId!,
-          message_id: messageId,
-          agent_id: user!.id,
-          response_source: 'ai_draft',
-          customer_message: customerMessage?.content || null,
-          agent_response: draftMsg.content,
-        }).then(({ error }) => {
-          if (error) logger.warn('Failed to track draft send', error, 'ConversationViewProvider');
-        });
+        const customerMessage = messages.find((m: any) => m.sender_type === "customer")
+        await supabase
+          .from("response_tracking")
+          .insert({
+            organization_id: profile.organization_id,
+            conversation_id: conversationId!,
+            message_id: messageId,
+            agent_id: user!.id,
+            response_source: "ai_draft",
+            customer_message: customerMessage?.content || null,
+            agent_response: draftMsg.content,
+          })
+          .then(({ error }) => {
+            if (error) logger.warn("Failed to track draft send", error, "ConversationViewProvider")
+          })
       }
-      
+
       // Refresh messages to remove the draft
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Draft sent as reply');
+      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      toast.success("Draft sent as reply")
     } catch (error: any) {
-      logger.error('Failed to send draft', error, 'ConversationViewProvider');
-      toast.error('Failed to send draft: ' + error.message);
+      logger.error("Failed to send draft", error, "ConversationViewProvider")
+      toast.error(`Failed to send draft: ${error.message}`)
     }
-  };
+  }
 
   const editDraft = (messageId: string) => {
-    const draftMsg = messages.find((m: any) => m.id === messageId);
+    const draftMsg = messages.find((m: any) => m.id === messageId)
     if (!draftMsg) {
-      toast.error('Draft not found');
-      return;
+      toast.error("Draft not found")
+      return
     }
-    
+
     // Pre-fill reply composer with draft content
-    dispatch({ type: 'SET_REPLY_TEXT', payload: draftMsg.content });
-    dispatch({ type: 'SET_SHOW_REPLY_AREA', payload: true });
-    
+    dispatch({ type: "SET_REPLY_TEXT", payload: draftMsg.content })
+    dispatch({ type: "SET_SHOW_REPLY_AREA", payload: true })
+
     // Delete the draft from DB (fire-and-forget)
-    supabase.from('messages').delete().eq('id', messageId).then(() => {
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-    });
-    
-    toast.info('Draft loaded into composer — edit and send when ready');
-  };
+    supabase
+      .from("messages")
+      .delete()
+      .eq("id", messageId)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      })
+
+    toast.info("Draft loaded into composer — edit and send when ready")
+  }
 
   const dismissDraft = async (messageId: string) => {
     try {
-      await supabase.from('messages').delete().eq('id', messageId);
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      toast.success('Draft dismissed');
+      await supabase.from("messages").delete().eq("id", messageId)
+      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      toast.success("Draft dismissed")
     } catch (error: any) {
-      logger.error('Failed to dismiss draft', error, 'ConversationViewProvider');
-      toast.error('Failed to dismiss draft');
+      logger.error("Failed to dismiss draft", error, "ConversationViewProvider")
+      toast.error("Failed to dismiss draft")
     }
-  };
+  }
 
   const value = {
     state,
@@ -1125,19 +1261,17 @@ export const ConversationViewProvider = ({ children, conversationId, conversatio
     sendDraft,
     editDraft,
     dismissDraft,
-  };
+  }
 
   return (
-    <ConversationViewContext.Provider value={value}>
-      {children}
-    </ConversationViewContext.Provider>
-  );
-};
+    <ConversationViewContext.Provider value={value}>{children}</ConversationViewContext.Provider>
+  )
+}
 
 export const useConversationView = () => {
-  const context = useContext(ConversationViewContext);
+  const context = useContext(ConversationViewContext)
   if (context === undefined) {
-    throw new Error('useConversationView must be used within a ConversationViewProvider');
+    throw new Error("useConversationView must be used within a ConversationViewProvider")
   }
-  return context;
-};
+  return context
+}

@@ -39,12 +39,12 @@ App entry requires `supporthub.access` on `navio_permissions` (or
 special-case. Local `super_admin` / claim role names remain a fallback
 only when the token has no IAM graph.
 
-| Concern | Wire claims | App helper |
-| --- | --- | --- |
-| Service organizations | `navio_memberships`, `navio_organizations` | `getOrganizations` / `getEffectiveScope` |
-| Service departments | `navio_memberships[].departments`, `navio_departments` | `getDepartments` / `getAccessibleServiceDepartments` |
-| App entry | `navio_permissions` includes `supporthub.access` | `hasSupportHubNavioAccess` |
-| Superuser | `supporthub.admin` (or legacy claim/local role if no IAM graph) | `effectiveScope.isSuperuser` |
+| Concern               | Wire claims                                                     | App helper                                           |
+| --------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| Service organizations | `navio_memberships`, `navio_organizations`                      | `getOrganizations` / `getEffectiveScope`             |
+| Service departments   | `navio_memberships[].departments`, `navio_departments`          | `getDepartments` / `getAccessibleServiceDepartments` |
+| App entry             | `navio_permissions` includes `supporthub.access`                | `hasSupportHubNavioAccess`                           |
+| Superuser             | `supporthub.admin` (or legacy claim/local role if no IAM graph) | `effectiveScope.isSuperuser`                         |
 
 Local mapping columns: `organizations.navio_organization_id`,
 `departments.navio_department_id` (+ optional `departments.slug`).
@@ -105,11 +105,11 @@ uv run manage.py upsert_product_oidc_client \
 
 **Redirect URI rules:**
 
-| URI | When needed |
-| --- | --- |
+| URI                                                         | When needed                                        |
+| ----------------------------------------------------------- | -------------------------------------------------- |
 | `https://qgfaycwsangsqzpveoup.supabase.co/auth/v1/callback` | **Required** — production Supabase GoTrue callback |
-| `http://127.0.0.1:54321/auth/v1/callback` | Local Supabase CLI only |
-| `http://localhost:54321/auth/v1/callback` | Local Supabase CLI only |
+| `http://127.0.0.1:54321/auth/v1/callback`                   | Local Supabase CLI only                            |
+| `http://localhost:54321/auth/v1/callback`                   | Local Supabase CLI only                            |
 
 Store credentials in GSM so the configure script can read them:
 
@@ -138,10 +138,10 @@ If this fails, fix backend deploy / DNS for `auth.noddi.co` before continuing.
 Open:
 [Authentication → URL configuration](https://supabase.com/dashboard/project/qgfaycwsangsqzpveoup/auth/url-configuration)
 
-| Setting | Value | Why |
-| --- | --- | --- |
-| **Site URL** | Production Support Hub origin (e.g. `https://support.noddi.co` or your Lovable/prod host) | Default post-auth landing if `redirectTo` is omitted |
-| **Redirect URLs** | Every SPA origin that may complete login | GoTrue rejects unknown `redirectTo` values |
+| Setting           | Value                                                                                     | Why                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **Site URL**      | Production Support Hub origin (e.g. `https://support.noddi.co` or your Lovable/prod host) | Default post-auth landing if `redirectTo` is omitted |
+| **Redirect URLs** | Every SPA origin that may complete login                                                  | GoTrue rejects unknown `redirectTo` values           |
 
 Add **all** of these Redirect URLs that you use:
 
@@ -195,18 +195,18 @@ What the script does:
    (or **Custom OIDC** / **Add provider** depending on dashboard version).
 2. Add a **Custom OIDC** provider with:
 
-| Field | Exact value |
-| --- | --- |
-| **Provider identifier** | `navio` (SDK uses `custom:navio`) |
-| **Display name** | `Navio` |
-| **Client ID** | From GSM / step 1 `client_id` |
-| **Client secret** | From GSM / step 1 `client_secret` |
-| **Issuer URL** | `https://auth.noddi.co/o` |
-| **Discovery URL** | `https://auth.noddi.co/o/.well-known/openid-configuration` |
-| **Scopes** | `openid email profile navio:active` (or comma form: `openid, email, profile, navio:active`) |
-| **Enabled** | On |
-| **PKCE** | On (if exposed) |
-| **Email optional** | Off |
+| Field                   | Exact value                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| **Provider identifier** | `navio` (SDK uses `custom:navio`)                                                           |
+| **Display name**        | `Navio`                                                                                     |
+| **Client ID**           | From GSM / step 1 `client_id`                                                               |
+| **Client secret**       | From GSM / step 1 `client_secret`                                                           |
+| **Issuer URL**          | `https://auth.noddi.co/o`                                                                   |
+| **Discovery URL**       | `https://auth.noddi.co/o/.well-known/openid-configuration`                                  |
+| **Scopes**              | `openid email profile navio:active` (or comma form: `openid, email, profile, navio:active`) |
+| **Enabled**             | On                                                                                          |
+| **PKCE**                | On (if exposed)                                                                             |
+| **Email optional**      | Off                                                                                         |
 
 3. Save.
 
@@ -276,14 +276,14 @@ select * from public.ensure_authentik_support_hub_access(); -- as authenticated 
 
 Already implemented; no Supabase UI work:
 
-| Item | Status |
-| --- | --- |
-| `@navio/nidp@^0.8.0` + `.npmrc` Artifact Registry | App dependency |
-| `signInWithNavio` on `/auth` | `src/pages/Auth.tsx` |
-| Provision + membership sync on OAuth / `SIGNED_IN` | `AuthContext` + `auth-provision.ts` |
-| Claim → scope helpers | `src/lib/auth-scope.ts` |
-| Local install | `bun install` (needs network to `europe-north1-npm.pkg.dev`) |
-| Map local orgs to Navio SO | set `organizations.navio_organization_id` |
+| Item                                               | Status                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| `@navio/nidp@^0.8.0` + `.npmrc` Artifact Registry  | App dependency                                               |
+| `signInWithNavio` on `/auth`                       | `src/pages/Auth.tsx`                                         |
+| Provision + membership sync on OAuth / `SIGNED_IN` | `AuthContext` + `auth-provision.ts`                          |
+| Claim → scope helpers                              | `src/lib/auth-scope.ts`                                      |
+| Local install                                      | `bun install` (needs network to `europe-north1-npm.pkg.dev`) |
+| Map local orgs to Navio SO                         | set `organizations.navio_organization_id`                    |
 
 ---
 
@@ -300,32 +300,32 @@ Already implemented; no Supabase UI work:
 
 ## Client code (this repo)
 
-| File | Role |
-| --- | --- |
-| `src/pages/Auth.tsx` | **Sign in with Navio** → `signInWithNavio` (`@navio/nidp`) |
-| `src/lib/auth-provision.ts` | Detection, profile provision, membership sync from claims |
-| `src/lib/auth-scope.ts` | EffectiveScope (SO/SD) from claims + local map |
-| `src/components/auth/AuthContext.tsx` | Bootstrap on OAuth / `SIGNED_IN`; exposes `navioClaims` |
-| `src/hooks/useAuth.tsx` | `effectiveScope`, `allowedLocalOrgIds`, switcher inputs |
-| `@navio/nidp` | Shared login helper, issuer constants, claim helpers |
-| `scripts/configure-navio-oidc.sh` | Upsert Supabase Custom OIDC provider from GSM |
+| File                                  | Role                                                       |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `src/pages/Auth.tsx`                  | **Sign in with Navio** → `signInWithNavio` (`@navio/nidp`) |
+| `src/lib/auth-provision.ts`           | Detection, profile provision, membership sync from claims  |
+| `src/lib/auth-scope.ts`               | EffectiveScope (SO/SD) from claims + local map             |
+| `src/components/auth/AuthContext.tsx` | Bootstrap on OAuth / `SIGNED_IN`; exposes `navioClaims`    |
+| `src/hooks/useAuth.tsx`               | `effectiveScope`, `allowedLocalOrgIds`, switcher inputs    |
+| `@navio/nidp`                         | Shared login helper, issuer constants, claim helpers       |
+| `scripts/configure-navio-oidc.sh`     | Upsert Supabase Custom OIDC provider from GSM              |
 
 ## Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| Lands on Authentik / `auth.zendos.io` | Supabase issuer still points at Authentik app — re-run step 4 with product issuer |
-| `Unsupported provider: custom:navio` | Provider not created — run `./scripts/configure-navio-oidc.sh` or Dashboard step 4 |
-| `redirect_uri_mismatch` / invalid redirect | Add SPA origin to Supabase **Redirect URLs** (step 3) **and** product `OidcClient` redirect (step 1) |
-| `superuser_required` 403 | Product client still superuser-only; use allowed account or change client policy |
-| Sees no organizations after login | Missing SO memberships, or `organizations.navio_organization_id` not mapped |
-| Sees all orgs after Navio login | Old auto-super_admin; apply migration `20260812180000_nidp_membership_scope.sql` |
-| `access_denied: Unverified email` | Product IdP must emit `email_verified: true` |
-| `invalid_client` | Wrong client_id/secret or redirect URI not on `OidcClient` |
-| `PGRST202` after login | Apply migrations for provision + `sync_navio_organization_memberships` |
-| Login button does nothing / no URL | Provider disabled or misconfigured; check browser console `[auth]` logs |
-| `Could not start Navio sign-in (no redirect URL)` | Same as unsupported provider — step 4 incomplete |
-| Empty org graph warning in console | Supabase scopes missing `navio:active`, or user has no memberships |
+| Symptom                                           | Fix                                                                                                  |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Lands on Authentik / `auth.zendos.io`             | Supabase issuer still points at Authentik app — re-run step 4 with product issuer                    |
+| `Unsupported provider: custom:navio`              | Provider not created — run `./scripts/configure-navio-oidc.sh` or Dashboard step 4                   |
+| `redirect_uri_mismatch` / invalid redirect        | Add SPA origin to Supabase **Redirect URLs** (step 3) **and** product `OidcClient` redirect (step 1) |
+| `superuser_required` 403                          | Product client still superuser-only; use allowed account or change client policy                     |
+| Sees no organizations after login                 | Missing SO memberships, or `organizations.navio_organization_id` not mapped                          |
+| Sees all orgs after Navio login                   | Old auto-super_admin; apply migration `20260812180000_nidp_membership_scope.sql`                     |
+| `access_denied: Unverified email`                 | Product IdP must emit `email_verified: true`                                                         |
+| `invalid_client`                                  | Wrong client_id/secret or redirect URI not on `OidcClient`                                           |
+| `PGRST202` after login                            | Apply migrations for provision + `sync_navio_organization_memberships`                               |
+| Login button does nothing / no URL                | Provider disabled or misconfigured; check browser console `[auth]` logs                              |
+| `Could not start Navio sign-in (no redirect URL)` | Same as unsupported provider — step 4 incomplete                                                     |
+| Empty org graph warning in console                | Supabase scopes missing `navio:active`, or user has no memberships                                   |
 
 ## Duplicate accounts — `Multiple accounts with the same email … linking domain`
 
@@ -337,7 +337,7 @@ Multiple accounts with the same email address in the same linking domain detecte
 ```
 
 **Cause — data, not code.** Supabase GoTrue auto-links a new OIDC identity to an
-existing user *by verified email* (all providers share the `default` linking
+existing user _by verified email_ (all providers share the `default` linking
 domain). If **two or more `auth.users` rows already share that email** (e.g. a
 Google account **and** an older password/invite/earlier-attempt account), GoTrue
 cannot choose which to link → aborts the callback. Google + Navio both emitting

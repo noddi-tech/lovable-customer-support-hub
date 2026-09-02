@@ -1,19 +1,19 @@
-import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { Button } from '@/components/ui/button';
-import { GripVertical, Trash2 } from 'lucide-react';
-import { NewsletterBlock } from '../NewsletterBuilder';
-import { NewsletterBlockRenderer } from './NewsletterBlockRenderer';
-import { useNewsletterStore } from './useNewsletterStore';
-import { cn } from '@/lib/utils';
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical, Trash2 } from "lucide-react"
+import type React from "react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import type { NewsletterBlock } from "../NewsletterBuilder"
+import { NewsletterBlockRenderer } from "./NewsletterBlockRenderer"
+import { useNewsletterStore } from "./useNewsletterStore"
 
 interface SortableNewsletterBlockProps {
-  block: NewsletterBlock;
-  index: number;
-  isSelected: boolean;
-  onSelect: () => void;
-  isDarkMode: boolean;
+  block: NewsletterBlock
+  index: number
+  isSelected: boolean
+  onSelect: () => void
+  isDarkMode: boolean
 }
 
 export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = ({
@@ -21,29 +21,24 @@ export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = (
   index,
   isSelected,
   onSelect,
-  isDarkMode
+  isDarkMode,
 }) => {
-  const { deleteBlock } = useNewsletterStore();
-  
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: block.id });
+  const { deleteBlock } = useNewsletterStore()
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block.id,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1
-  };
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    deleteBlock(block.id);
-  };
+    e.stopPropagation()
+    deleteBlock(block.id)
+  }
 
   return (
     <div
@@ -52,15 +47,17 @@ export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = (
       className={cn(
         "group relative border-2 border-transparent rounded-lg transition-all duration-200 hover:border-primary/20",
         isSelected && "border-primary shadow-sm",
-        "mb-2"
+        "mb-2",
       )}
       onClick={onSelect}
     >
       {/* Block Controls */}
-      <div className={cn(
-        "absolute -left-12 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1",
-        isSelected && "opacity-100"
-      )}>
+      <div
+        className={cn(
+          "absolute -left-12 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1",
+          isSelected && "opacity-100",
+        )}
+      >
         <Button
           variant="outline"
           size="sm"
@@ -83,5 +80,5 @@ export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = (
       {/* Block Content */}
       <NewsletterBlockRenderer block={block} isDarkMode={isDarkMode} />
     </div>
-  );
-};
+  )
+}

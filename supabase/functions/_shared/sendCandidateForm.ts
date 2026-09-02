@@ -15,72 +15,70 @@
 // path uses send-recruitment-{email,sms} (proper attribution + threading);
 // the system/automation path posts directly to send-email with service role.
 
-import { logAudit } from './candidateFormUtils.ts';
-import { substituteVars } from './sendOutboundEmail.ts';
+import { logAudit } from "./candidateFormUtils.ts"
+import { substituteVars } from "./sendOutboundEmail.ts"
 
-const NEUTRAL_BRAND_COLOR = '#111827';
+const NEUTRAL_BRAND_COLOR = "#111827"
 
 function formatOsloDate(iso: string): string {
   try {
-    return new Intl.DateTimeFormat('nb-NO', {
-      dateStyle: 'long',
-      timeStyle: 'short',
-      timeZone: 'Europe/Oslo',
-    }).format(new Date(iso));
+    return new Intl.DateTimeFormat("nb-NO", {
+      dateStyle: "long",
+      timeStyle: "short",
+      timeZone: "Europe/Oslo",
+    }).format(new Date(iso))
   } catch {
-    return new Date(iso).toLocaleDateString('nb-NO');
+    return new Date(iso).toLocaleDateString("nb-NO")
   }
 }
 
 function escapeHtml(s: string): string {
   return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
 }
 
 interface TemplateLookup {
-  subject: string;
-  body: string;
-  found: boolean;
+  subject: string
+  body: string
+  found: boolean
 }
 
 async function loadInvitationTemplate(
   supabase: any,
   organizationId: string,
-  channel: 'email' | 'sms',
+  channel: "email" | "sms",
 ): Promise<TemplateLookup> {
   const name =
-    channel === 'email'
-      ? 'Kandidatskjema – invitasjon'
-      : 'Kandidatskjema – invitasjon (SMS)';
+    channel === "email" ? "Kandidatskjema – invitasjon" : "Kandidatskjema – invitasjon (SMS)"
   const { data, error } = await supabase
-    .from('recruitment_email_templates')
-    .select('subject, body, is_active, soft_deleted_at')
-    .eq('organization_id', organizationId)
-    .eq('name', name)
-    .eq('type', channel)
-    .is('soft_deleted_at', null)
-    .maybeSingle();
+    .from("recruitment_email_templates")
+    .select("subject, body, is_active, soft_deleted_at")
+    .eq("organization_id", organizationId)
+    .eq("name", name)
+    .eq("type", channel)
+    .is("soft_deleted_at", null)
+    .maybeSingle()
   if (error) {
-    console.warn('[candidateForm] template lookup error', error.message);
-    return { subject: '', body: '', found: false };
+    console.warn("[candidateForm] template lookup error", error.message)
+    return { subject: "", body: "", found: false }
   }
   if (!data || data.is_active === false) {
     if (data && data.is_active === false) {
       console.warn(
         `[candidateForm] template inactive, falling back: org=${organizationId} channel=${channel}`,
-      );
+      )
     } else {
       console.warn(
         `[candidateForm] template missing, falling back: org=${organizationId} channel=${channel}`,
-      );
+      )
     }
-    return { subject: '', body: '', found: false };
+    return { subject: "", body: "", found: false }
   }
-  return { subject: data.subject ?? '', body: data.body ?? '', found: true };
+  return { subject: data.subject ?? "", body: data.body ?? "", found: true }
 }
 
 async function loadOrgBranding(
@@ -88,71 +86,65 @@ async function loadOrgBranding(
   organizationId: string,
 ): Promise<{ name: string; brand_color: string }> {
   const { data } = await supabase
-    .from('organizations')
-    .select('name, primary_color, candidate_form_brand_color')
-    .eq('id', organizationId)
-    .maybeSingle();
+    .from("organizations")
+    .select("name, primary_color, candidate_form_brand_color")
+    .eq("id", organizationId)
+    .maybeSingle()
   return {
-    name: data?.name ?? '',
-    brand_color:
-      data?.candidate_form_brand_color ||
-      data?.primary_color ||
-      NEUTRAL_BRAND_COLOR,
-  };
+    name: data?.name ?? "",
+    brand_color: data?.candidate_form_brand_color || data?.primary_color || NEUTRAL_BRAND_COLOR,
+  }
 }
 
-async function loadRecruiterName(
-  supabase: any,
-  profileId: string | null,
-): Promise<string> {
-  if (!profileId) return '';
+async function loadRecruiterName(supabase: any, profileId: string | null): Promise<string> {
+  if (!profileId) return ""
   const { data } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', profileId)
-    .maybeSingle();
-  return data?.full_name ?? '';
+    .from("profiles")
+    .select("full_name")
+    .eq("id", profileId)
+    .maybeSingle()
+  return data?.full_name ?? ""
 }
 
 export interface CreateTokenInput {
-  application_id: string;
-  channel: 'email' | 'sms' | 'manual';
-  expiry_days?: number | null;
+  application_id: string
+  channel: "email" | "sms" | "manual"
+  expiry_days?: number | null
   /** Profile id of the recruiter creating it; null = system/automation. */
-  created_by_profile_id: string | null;
+  created_by_profile_id: string | null
 }
 
 export interface CreateTokenSuccess {
-  ok: true;
-  token_id: string;
-  token: string;
-  url: string;
-  expires_at: string;
-  channel: string;
-  organization_id: string;
+  ok: true
+  token_id: string
+  token: string
+  url: string
+  expires_at: string
+  channel: string
+  organization_id: string
   applicant: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    email: string | null;
-    phone: string | null;
-  };
-  position: { id: string; title: string };
+    id: string
+    first_name: string | null
+    last_name: string | null
+    email: string | null
+    phone: string | null
+  }
+  position: { id: string; title: string }
 }
 
 export interface CreateTokenFailure {
-  ok: false;
-  status: number;
-  error: string;
-  message?: string;
+  ok: false
+  status: number
+  error: string
+  message?: string
 }
 
-export type CreateTokenResult = CreateTokenSuccess | CreateTokenFailure;
+export type CreateTokenResult = CreateTokenSuccess | CreateTokenFailure
 
 function lastFourDigits(phone: string | null | undefined): string | null {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
-  return digits.length >= 4 ? digits.slice(-4) : null;
+  if (!phone) return null
+  const digits = phone.replace(/\D/g, "")
+  return digits.length >= 4 ? digits.slice(-4) : null
 }
 
 /** Service-role only — caller authorization must happen upstream. */
@@ -161,63 +153,62 @@ export async function createCandidateFormToken(
   input: CreateTokenInput,
 ): Promise<CreateTokenResult> {
   if (!input.application_id) {
-    return { ok: false, status: 400, error: 'application_id required' };
+    return { ok: false, status: 400, error: "application_id required" }
   }
-  if (!['email', 'sms', 'manual'].includes(input.channel)) {
-    return { ok: false, status: 400, error: 'channel must be email, sms, or manual' };
+  if (!["email", "sms", "manual"].includes(input.channel)) {
+    return { ok: false, status: 400, error: "channel must be email, sms, or manual" }
   }
 
   const { data: application } = await supabase
-    .from('applications')
-    .select('id, organization_id, applicant_id, position_id')
-    .eq('id', input.application_id)
-    .maybeSingle();
-  if (!application) return { ok: false, status: 404, error: 'Application not found' };
+    .from("applications")
+    .select("id, organization_id, applicant_id, position_id")
+    .eq("id", input.application_id)
+    .maybeSingle()
+  if (!application) return { ok: false, status: 404, error: "Application not found" }
 
   const { data: applicant } = await supabase
-    .from('applicants')
-    .select('id, phone, email, first_name, last_name')
-    .eq('id', application.applicant_id)
-    .maybeSingle();
-  if (!applicant) return { ok: false, status: 404, error: 'Applicant not found' };
+    .from("applicants")
+    .select("id, phone, email, first_name, last_name")
+    .eq("id", application.applicant_id)
+    .maybeSingle()
+  if (!applicant) return { ok: false, status: 404, error: "Applicant not found" }
 
   if (!lastFourDigits(applicant.phone)) {
     return {
       ok: false,
       status: 422,
-      error: 'missing_phone',
-      message: 'Søkeren har ikke gyldig telefonnummer registrert. Legg til telefonnummer først.',
-    };
+      error: "missing_phone",
+      message: "Søkeren har ikke gyldig telefonnummer registrert. Legg til telefonnummer først.",
+    }
   }
 
   const { data: position } = await supabase
-    .from('job_positions')
-    .select('id, title, candidate_form_enabled')
-    .eq('id', application.position_id)
-    .maybeSingle();
-  if (!position) return { ok: false, status: 404, error: 'Position not found' };
+    .from("job_positions")
+    .select("id, title, candidate_form_enabled")
+    .eq("id", application.position_id)
+    .maybeSingle()
+  if (!position) return { ok: false, status: 404, error: "Position not found" }
   if (position.candidate_form_enabled === false) {
     return {
       ok: false,
       status: 422,
-      error: 'forms_disabled',
-      message: 'Kandidatskjema er deaktivert for denne stillingen.',
-    };
+      error: "forms_disabled",
+      message: "Kandidatskjema er deaktivert for denne stillingen.",
+    }
   }
 
   const { data: org } = await supabase
-    .from('organizations')
-    .select('candidate_form_default_expiry_days')
-    .eq('id', application.organization_id)
-    .maybeSingle();
-  const expiryDays =
-    input.expiry_days ?? org?.candidate_form_default_expiry_days ?? 7;
-  const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
+    .from("organizations")
+    .select("candidate_form_default_expiry_days")
+    .eq("id", application.organization_id)
+    .maybeSingle()
+  const expiryDays = input.expiry_days ?? org?.candidate_form_default_expiry_days ?? 7
+  const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
 
-  const token = crypto.randomUUID();
+  const token = crypto.randomUUID()
 
   const { data: tokenRow, error: insertErr } = await supabase
-    .from('candidate_form_tokens')
+    .from("candidate_form_tokens")
     .insert({
       organization_id: application.organization_id,
       application_id: application.id,
@@ -227,20 +218,20 @@ export async function createCandidateFormToken(
       expires_at: expiresAt,
       channel: input.channel,
     })
-    .select('id, token, expires_at, channel')
-    .single();
+    .select("id, token, expires_at, channel")
+    .single()
 
   if (insertErr || !tokenRow) {
     return {
       ok: false,
       status: 500,
-      error: 'token_insert_failed',
-      message: insertErr?.message ?? 'Failed to create token',
-    };
+      error: "token_insert_failed",
+      message: insertErr?.message ?? "Failed to create token",
+    }
   }
 
-  const publicBase = Deno.env.get('PUBLIC_APP_URL') ?? 'https://support.noddi.co';
-  const url = `${publicBase}/apply/form/${token}`;
+  const publicBase = Deno.env.get("PUBLIC_APP_URL") ?? "https://support.noddi.co"
+  const url = `${publicBase}/apply/form/${token}`
 
   await logAudit(
     supabase,
@@ -250,7 +241,7 @@ export async function createCandidateFormToken(
       applicant_id: application.applicant_id,
       application_id: application.id,
     },
-    'candidate_form_sent',
+    "candidate_form_sent",
     null,
     {
       channel: input.channel,
@@ -258,7 +249,7 @@ export async function createCandidateFormToken(
       created_by_profile_id: input.created_by_profile_id,
     },
     { performed_by: input.created_by_profile_id, application_id: application.id },
-  );
+  )
 
   return {
     ok: true,
@@ -276,7 +267,7 @@ export async function createCandidateFormToken(
       phone: applicant.phone,
     },
     position: { id: position.id, title: position.title },
-  };
+  }
 }
 
 /** Revoke a token created above; used by callers on dispatch failure. */
@@ -287,30 +278,30 @@ export async function revokeCandidateFormToken(
   reason: string,
 ) {
   await supabase
-    .from('candidate_form_tokens')
+    .from("candidate_form_tokens")
     .update({
       revoked_at: new Date().toISOString(),
       revoked_by: revokedByProfileId,
     })
-    .eq('id', tokenId)
-    .is('revoked_at', null)
-    .is('used_at', null);
+    .eq("id", tokenId)
+    .is("revoked_at", null)
+    .is("used_at", null)
 
   // Audit the auto-revoke so the history shows why the token disappeared.
   const { data: t } = await supabase
-    .from('candidate_form_tokens')
-    .select('id, organization_id, applicant_id')
-    .eq('id', tokenId)
-    .maybeSingle();
+    .from("candidate_form_tokens")
+    .select("id, organization_id, applicant_id")
+    .eq("id", tokenId)
+    .maybeSingle()
   if (t) {
-    await logAudit(supabase, t, 'candidate_form_auto_revoked', null, { reason });
+    await logAudit(supabase, t, "candidate_form_auto_revoked", null, { reason })
   }
 }
 
 /** Build the public form URL from a raw token. */
 export function buildFormUrl(token: string): string {
-  const publicBase = Deno.env.get('PUBLIC_APP_URL') ?? 'https://support.noddi.co';
-  return `${publicBase}/apply/form/${token}`;
+  const publicBase = Deno.env.get("PUBLIC_APP_URL") ?? "https://support.noddi.co"
+  return `${publicBase}/apply/form/${token}`
 }
 
 /**
@@ -324,57 +315,58 @@ export function buildFormUrl(token: string): string {
 export async function dispatchCandidateFormInvite(
   supabase: any,
   args: {
-    token_id: string;
-    url: string;
-    expires_at: string;
-    channel: 'email' | 'sms';
-    organization_id: string;
-    recruiter_profile_id: string | null;
-    inbox_id?: string;
-    custom_message?: string;
-    template_id?: string;
-    subject_override?: string;
-    body_html_override?: string;
-    applicant: { id: string; first_name: string | null };
-    position: { title: string };
-    auth_header: string;
-    revoked_by_profile_id: string | null;
+    token_id: string
+    url: string
+    expires_at: string
+    channel: "email" | "sms"
+    organization_id: string
+    recruiter_profile_id: string | null
+    inbox_id?: string
+    custom_message?: string
+    template_id?: string
+    subject_override?: string
+    body_html_override?: string
+    applicant: { id: string; first_name: string | null }
+    position: { title: string }
+    auth_header: string
+    revoked_by_profile_id: string | null
   },
 ): Promise<
-  | { ok: true; dispatch: any }
-  | { ok: false; status: number; error: string; message?: string }
+  { ok: true; dispatch: any } | { ok: false; status: number; error: string; message?: string }
 > {
   const customHtml = args.custom_message?.trim()
-    ? `<p>${escapeHtml(args.custom_message.trim()).replace(/\n/g, '<br>')}</p>`
-    : '';
-  const customText = args.custom_message?.trim() ? `${args.custom_message.trim()}\n\n` : '';
-  const firstName = args.applicant.first_name ?? '';
-  const expiresHuman = formatOsloDate(args.expires_at);
+    ? `<p>${escapeHtml(args.custom_message.trim()).replace(/\n/g, "<br>")}</p>`
+    : ""
+  const customText = args.custom_message?.trim() ? `${args.custom_message.trim()}\n\n` : ""
+  const firstName = args.applicant.first_name ?? ""
+  const expiresHuman = formatOsloDate(args.expires_at)
 
   // Template lookup: explicit template_id wins over hardcoded name.
   const loadTemplateById = async (): Promise<TemplateLookup> => {
-    if (!args.template_id) return { subject: '', body: '', found: false };
+    if (!args.template_id) return { subject: "", body: "", found: false }
     const { data } = await supabase
-      .from('recruitment_email_templates')
-      .select('subject, body, is_active, soft_deleted_at')
-      .eq('id', args.template_id)
-      .eq('organization_id', args.organization_id)
-      .is('soft_deleted_at', null)
-      .maybeSingle();
+      .from("recruitment_email_templates")
+      .select("subject, body, is_active, soft_deleted_at")
+      .eq("id", args.template_id)
+      .eq("organization_id", args.organization_id)
+      .is("soft_deleted_at", null)
+      .maybeSingle()
     if (!data || data.is_active === false) {
-      console.warn(`[candidateForm] template_id ${args.template_id} missing or inactive — falling back`);
-      return { subject: '', body: '', found: false };
+      console.warn(
+        `[candidateForm] template_id ${args.template_id} missing or inactive — falling back`,
+      )
+      return { subject: "", body: "", found: false }
     }
-    return { subject: data.subject ?? '', body: data.body ?? '', found: true };
-  };
+    return { subject: data.subject ?? "", body: data.body ?? "", found: true }
+  }
 
   const [tplById, tplByName, branding, recruiterName] = await Promise.all([
     loadTemplateById(),
     loadInvitationTemplate(supabase, args.organization_id, args.channel),
     loadOrgBranding(supabase, args.organization_id),
     loadRecruiterName(supabase, args.recruiter_profile_id),
-  ]);
-  const tpl = tplById.found ? tplById : tplByName;
+  ])
+  const tpl = tplById.found ? tplById : tplByName
 
   const baseVars: Record<string, string> = {
     first_name: firstName,
@@ -384,15 +376,20 @@ export async function dispatchCandidateFormInvite(
     organization_name: branding.name,
     recruiter_name: recruiterName || branding.name,
     brand_color: branding.brand_color,
-  };
+  }
 
-  if (args.channel === 'email') {
+  if (args.channel === "email") {
     if (!args.inbox_id) {
-      await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, 'missing_inbox_id');
-      return { ok: false, status: 400, error: 'inbox_id required for email channel' };
+      await revokeCandidateFormToken(
+        supabase,
+        args.token_id,
+        args.revoked_by_profile_id,
+        "missing_inbox_id",
+      )
+      return { ok: false, status: 400, error: "inbox_id required for email channel" }
     }
 
-    const fallbackSubject = `Vi trenger litt mer info – ${args.position.title}`;
+    const fallbackSubject = `Vi trenger litt mer info – ${args.position.title}`
     const fallbackBody = `
       <p>Hei ${escapeHtml(firstName)},</p>
       <p>Vi trenger litt mer info for søknaden din til <strong>${escapeHtml(args.position.title)}</strong>.</p>
@@ -400,31 +397,35 @@ export async function dispatchCandidateFormInvite(
       <p><a href="${args.url}" style="display:inline-block;padding:12px 20px;background:${branding.brand_color};color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Åpne skjema</a></p>
       <p>Eller åpne lenken direkte:<br><a href="${args.url}">${args.url}</a></p>
       <p>Du vil bli bedt om å bekrefte de siste 4 sifrene i telefonnummeret ditt.</p>
-    `;
+    `
 
     const tplCtx = {
-      caller: 'dispatchCandidateFormInvite:email',
-      template_name: tplById.found ? `id:${args.template_id}` : 'Kandidatskjema – invitasjon',
+      caller: "dispatchCandidateFormInvite:email",
+      template_name: tplById.found ? `id:${args.template_id}` : "Kandidatskjema – invitasjon",
       organization_id: args.organization_id,
-    };
+    }
     // Subject: override > template (via tpl) > fallback. Always substituted.
     const subjectRaw = args.subject_override?.trim()
       ? args.subject_override
-      : (tpl.found ? tpl.subject : fallbackSubject);
-    const subject = substituteVars(subjectRaw, baseVars, tplCtx);
+      : tpl.found
+        ? tpl.subject
+        : fallbackSubject
+    const subject = substituteVars(subjectRaw, baseVars, tplCtx)
     // Body: override > template > fallback. Always substituted.
     const bodyRaw = args.body_html_override?.trim()
       ? args.body_html_override
-      : (tpl.found ? tpl.body : fallbackBody);
-    let bodyHtml = substituteVars(bodyRaw, baseVars, tplCtx);
+      : tpl.found
+        ? tpl.body
+        : fallbackBody
+    let bodyHtml = substituteVars(bodyRaw, baseVars, tplCtx)
 
     if (customHtml) {
       // Insert recruiter's optional custom note right above the CTA (before first <a>).
-      const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i);
+      const ctaIdx = bodyHtml.search(/<p>\s*<a\s+href=/i)
       if (ctaIdx >= 0) {
-        bodyHtml = bodyHtml.slice(0, ctaIdx) + customHtml + bodyHtml.slice(ctaIdx);
+        bodyHtml = bodyHtml.slice(0, ctaIdx) + customHtml + bodyHtml.slice(ctaIdx)
       } else {
-        bodyHtml += customHtml;
+        bodyHtml += customHtml
       }
     }
 
@@ -433,12 +434,12 @@ export async function dispatchCandidateFormInvite(
     const hasFormUrl =
       /\/apply\/form\//.test(bodyHtml) ||
       /\{\{\s*form_url\s*\}\}/i.test(bodyHtml) ||
-      /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i.test(bodyHtml);
+      /\{\{\s*cta_button\s*:[^:}]+:\s*form_url\s*\}\}/i.test(bodyHtml)
     if (!hasFormUrl) {
-      bodyHtml += `<p style="margin-top:16px">Skjemalenke: <a href="${args.url}">${args.url}</a></p>`;
+      bodyHtml += `<p style="margin-top:16px">Skjemalenke: <a href="${args.url}">${args.url}</a></p>`
     }
 
-    const { data, error } = await supabase.functions.invoke('send-recruitment-email', {
+    const { data, error } = await supabase.functions.invoke("send-recruitment-email", {
       headers: { Authorization: args.auth_header },
       body: {
         applicant_id: args.applicant.id,
@@ -446,39 +447,58 @@ export async function dispatchCandidateFormInvite(
         subject,
         body_html: bodyHtml,
       },
-    });
+    })
     if (error || (data as any)?.error) {
-      const msg = error?.message ?? (data as any)?.error ?? 'Email dispatch failed';
-      await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, `email_dispatch_failed: ${msg}`);
-      return { ok: false, status: 502, error: 'email_dispatch_failed', message: msg };
+      const msg = error?.message ?? (data as any)?.error ?? "Email dispatch failed"
+      await revokeCandidateFormToken(
+        supabase,
+        args.token_id,
+        args.revoked_by_profile_id,
+        `email_dispatch_failed: ${msg}`,
+      )
+      return { ok: false, status: 502, error: "email_dispatch_failed", message: msg }
     }
-    return { ok: true, dispatch: data };
+    return { ok: true, dispatch: data }
   }
 
   // SMS — strip any HTML the editor may have wrapped around the body.
-  const fallbackSmsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`;
-  let smsBody = tpl.found ? substituteVars(tpl.body, baseVars, { caller: 'dispatchCandidateFormInvite:sms', template_name: 'Kandidatskjema – invitasjon (SMS)', organization_id: args.organization_id }) : fallbackSmsBody;
-  smsBody = smsBody.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  const fallbackSmsBody = `Hei ${firstName}! ${customText}Fyll ut skjemaet for ${args.position.title}: ${args.url} (utløper ${expiresHuman})`
+  let smsBody = tpl.found
+    ? substituteVars(tpl.body, baseVars, {
+        caller: "dispatchCandidateFormInvite:sms",
+        template_name: "Kandidatskjema – invitasjon (SMS)",
+        organization_id: args.organization_id,
+      })
+    : fallbackSmsBody
+  smsBody = smsBody
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
   if (customText && tpl.found && !smsBody.includes(args.custom_message!.trim())) {
-    smsBody = `${customText.trim()} ${smsBody}`.trim();
+    smsBody = `${customText.trim()} ${smsBody}`.trim()
   }
-  const { data, error } = await supabase.functions.invoke('send-recruitment-sms', {
+  const { data, error } = await supabase.functions.invoke("send-recruitment-sms", {
     headers: { Authorization: args.auth_header },
     body: {
       applicant_id: args.applicant.id,
       inbox_id: args.inbox_id,
       body: smsBody,
     },
-  });
+  })
   if (error || (data as any)?.error) {
-    const msg = error?.message ?? (data as any)?.error ?? 'SMS dispatch failed';
-    await revokeCandidateFormToken(supabase, args.token_id, args.revoked_by_profile_id, `sms_dispatch_failed: ${msg}`);
+    const msg = error?.message ?? (data as any)?.error ?? "SMS dispatch failed"
+    await revokeCandidateFormToken(
+      supabase,
+      args.token_id,
+      args.revoked_by_profile_id,
+      `sms_dispatch_failed: ${msg}`,
+    )
     return {
       ok: false,
       status: 502,
-      error: 'sms_dispatch_failed',
-      message: 'SMS-utsending feilet. Sjekk at Messente er konfigurert.',
-    };
+      error: "sms_dispatch_failed",
+      message: "SMS-utsending feilet. Sjekk at Messente er konfigurert.",
+    }
   }
-  return { ok: true, dispatch: data };
+  return { ok: true, dispatch: data }
 }

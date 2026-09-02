@@ -3,243 +3,248 @@
  * Provides consistent author attribution and content parsing
  */
 
-import { parseQuotedEmail, type QuotedBlock, type QuotedMessage } from './parseQuotedEmail';
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger"
+import { parseQuotedEmail, type QuotedBlock } from "./parseQuotedEmail"
 
 // Helper function to parse raw email header string (e.g., "From: ...\nSubject: ...\n")
 function parseRawHeaders(raw: string): Record<string, any> {
-  const headers: Record<string, any> = {};
-  const lines = raw.split('\n');
-  let currentHeader = '';
-  let currentValue = '';
-  
+  const headers: Record<string, any> = {}
+  const lines = raw.split("\n")
+  let currentHeader = ""
+  let currentValue = ""
+
   for (const line of lines) {
     // Skip empty lines
     if (!line.trim()) {
-      continue;
+      continue
     }
-    
+
     // Check if line starts a new header (contains ':' and doesn't start with whitespace)
-    if (line.match(/^[^\s:]+:/) && !line.startsWith(' ') && !line.startsWith('\t')) {
+    if (line.match(/^[^\s:]+:/) && !line.startsWith(" ") && !line.startsWith("\t")) {
       // Save previous header if exists
       if (currentHeader) {
-        headers[currentHeader] = currentValue.trim();
+        headers[currentHeader] = currentValue.trim()
       }
-      
+
       // Parse new header
-      const colonIndex = line.indexOf(':');
+      const colonIndex = line.indexOf(":")
       if (colonIndex > 0) {
-        currentHeader = line.substring(0, colonIndex).trim();
-        currentValue = line.substring(colonIndex + 1).trim();
+        currentHeader = line.substring(0, colonIndex).trim()
+        currentValue = line.substring(colonIndex + 1).trim()
       }
-    } else if (currentHeader && (line.startsWith(' ') || line.startsWith('\t'))) {
+    } else if (currentHeader && (line.startsWith(" ") || line.startsWith("\t"))) {
       // Continuation of previous header (folded header)
-      currentValue += ' ' + line.trim();
+      currentValue += ` ${line.trim()}`
     }
   }
-  
+
   // Save last header
   if (currentHeader) {
-    headers[currentHeader] = currentValue.trim();
+    headers[currentHeader] = currentValue.trim()
   }
-  
-  return headers;
+
+  return headers
 }
 
 // Robust header parsing helpers
 function safeParseHeaders(h: unknown): Record<string, any> {
-  if (!h) return {};
-  
+  if (!h) return {}
+
   // If it's a string, try to parse as JSON
-  if (typeof h === 'string') {
-    try { 
-      const o = JSON.parse(h); 
-      if (typeof o === 'object' && o) {
+  if (typeof h === "string") {
+    try {
+      const o = JSON.parse(h)
+      if (typeof o === "object" && o) {
         // Check if it has a 'raw' field with header string
-        if (typeof o.raw === 'string') {
+        if (typeof o.raw === "string") {
           try {
-            return parseRawHeaders(o.raw);
+            return parseRawHeaders(o.raw)
           } catch (parseError) {
-            console.error('[safeParseHeaders] Failed to parse raw headers:', parseError);
-            return {}; // Fallback to empty
+            console.error("[safeParseHeaders] Failed to parse raw headers:", parseError)
+            return {} // Fallback to empty
           }
         }
-        return o as any;
+        return o as any
       }
-      return {};
-    } catch { 
-      return {}; 
+      return {}
+    } catch {
+      return {}
     }
   }
-  
+
   // If it's an object
-  if (typeof h === 'object' && h) {
-    const obj = h as Record<string, any>;
-    
+  if (typeof h === "object" && h) {
+    const obj = h as Record<string, any>
+
     // Check if it has a 'raw' field with header string
-    if (typeof obj.raw === 'string') {
+    if (typeof obj.raw === "string") {
       try {
-        return parseRawHeaders(obj.raw);
+        return parseRawHeaders(obj.raw)
       } catch (parseError) {
-        console.error('[safeParseHeaders] Failed to parse raw headers object:', parseError);
-        return {}; // Fallback to empty
+        console.error("[safeParseHeaders] Failed to parse raw headers object:", parseError)
+        return {} // Fallback to empty
       }
     }
-    
-    return obj;
+
+    return obj
   }
-  
-  return {};
+
+  return {}
 }
 
 function firstString(v: any): string | undefined {
-  if (Array.isArray(v)) return v.find(x => typeof x === 'string')?.trim();
-  return typeof v === 'string' ? v.trim() : undefined;
+  if (Array.isArray(v)) return v.find((x) => typeof x === "string")?.trim()
+  return typeof v === "string" ? v.trim() : undefined
 }
 
 function getHeader(headers: Record<string, any>, key: string): string | undefined {
-  const k = Object.keys(headers).find(h => h.toLowerCase() === key.toLowerCase());
-  return k ? firstString(headers[k]) : undefined;
+  const k = Object.keys(headers).find((h) => h.toLowerCase() === key.toLowerCase())
+  return k ? firstString(headers[k]) : undefined
 }
 
 function extractNameEmail(input?: string) {
-  if (!input) return { name: undefined, email: undefined };
-  
+  if (!input) return { name: undefined, email: undefined }
+
   // CRITICAL: Strip HTML first before parsing
-  const temp = document.createElement('div');
-  temp.innerHTML = input;
-  const cleaned = (temp.textContent || temp.innerText || input).trim();
-  
-  const s = cleaned.trim();
+  const temp = document.createElement("div")
+  temp.innerHTML = input
+  const cleaned = (temp.textContent || temp.innerText || input).trim()
+
+  const s = cleaned.trim()
   // "Name" <email@host>  |  Name <email@host>  |  <email@host>  |  email@host
-  const m1 = s.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/);
-  if (m1) return { name: m1[1]?.trim(), email: m1[2].trim().toLowerCase() };
-  if (s.includes('@')) return { name: undefined, email: s.toLowerCase() };
-  return { name: s, email: undefined };
+  const m1 = s.match(/^(?:"?([^"]+)"?\s*)?<([^>]+)>$/)
+  if (m1) return { name: m1[1]?.trim(), email: m1[2].trim().toLowerCase() }
+  if (s.includes("@")) return { name: undefined, email: s.toLowerCase() }
+  return { name: s, email: undefined }
 }
 
 // Helper functions for deduplication
 function normalizeText(s: string): string {
-  return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  return s
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
 }
 
 function roundTo2Min(ts: string | number): string {
-  const d = new Date(ts);
-  const m = Math.floor(d.getMinutes() / 2) * 2;
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), m).toISOString();
+  const d = new Date(ts)
+  const m = Math.floor(d.getMinutes() / 2) * 2
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), m).toISOString()
 }
 
 function simpleHash(s: string): string {
-  let h = 0; 
-  for (let i = 0; i < s.length; i++) { 
-    h = ((h << 5) - h) + s.charCodeAt(i); 
-    h |= 0; 
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i)
+    h |= 0
   }
-  return Math.abs(h).toString(36);
+  return Math.abs(h).toString(36)
 }
 
 export interface EmailAddress {
-  name?: string;
-  email?: string;
+  name?: string
+  email?: string
 }
 
 export interface NormalizedMessage {
-  id: string;
-  dedupKey: string;
-  createdAt: string | number;
-  channel: 'email' | 'sms' | 'voice' | string;
+  id: string
+  dedupKey: string
+  createdAt: string | number
+  channel: "email" | "sms" | "voice" | string
 
-  from: EmailAddress;
-  to: EmailAddress[];
-  cc?: EmailAddress[];
-  bcc?: EmailAddress[];
-  subject?: string;
+  from: EmailAddress
+  to: EmailAddress[]
+  cc?: EmailAddress[]
+  bcc?: EmailAddress[]
+  subject?: string
 
   // Derived fields
-  direction: 'inbound' | 'outbound';
-  authorType: 'agent' | 'customer' | 'system' | 'ai_draft';
-  authorLabel: string; // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
-  avatarInitial: string; // Initial for avatar display
-  isInternalNote: boolean; // Whether this is an internal note (only visible to team)
+  direction: "inbound" | "outbound"
+  authorType: "agent" | "customer" | "system" | "ai_draft"
+  authorLabel: string // e.g., "Agent (tom@noddi.no)" or "torstein@hyre.no"
+  avatarInitial: string // Initial for avatar display
+  isInternalNote: boolean // Whether this is an internal note (only visible to team)
 
   // Content rendering
-  visibleBody: string;         // without quoted sections
-  quotedBlocks?: QuotedBlock[];
-  
+  visibleBody: string // without quoted sections
+  quotedBlocks?: QuotedBlock[]
+
   // Email delivery status
-  emailStatus?: string;        // 'sent' | 'failed' | 'pending' | 'retry' | null
-  
+  emailStatus?: string // 'sent' | 'failed' | 'pending' | 'retry' | null
+
   // Original fields for compatibility
-  originalMessage: any;
+  originalMessage: any
 }
 
 export interface NormalizationContext {
-  agentEmailSet: Set<string>;     // case-insensitive agent emails
-  agentPhoneSet: Set<string>;     // agent phone numbers
-  agentDomainsSet: Set<string>;   // case-insensitive agent domains
-  orgDomains?: string[];          // fallback org domains (now array)
-  currentUserEmail?: string;      // fallback current user
-  inboxEmail?: string;            // inbox email for agent messages
-  conversationCustomerEmail?: string;  // conversation customer email
-  conversationCustomerName?: string;   // conversation customer name
+  agentEmailSet: Set<string> // case-insensitive agent emails
+  agentPhoneSet: Set<string> // agent phone numbers
+  agentDomainsSet: Set<string> // case-insensitive agent domains
+  orgDomains?: string[] // fallback org domains (now array)
+  currentUserEmail?: string // fallback current user
+  inboxEmail?: string // inbox email for agent messages
+  conversationCustomerEmail?: string // conversation customer email
+  conversationCustomerName?: string // conversation customer name
 }
 
 /**
  * Create a case-insensitive Set from string array
  */
 function createCaseInsensitiveSet(items: string[]): Set<string> {
-  return new Set(items.map(item => item.toLowerCase().trim()));
+  return new Set(items.map((item) => item.toLowerCase().trim()))
 }
 
 /**
  * Parse email address list (handles "Name <email@x>" or plain "email@x", comma-separated)
  */
 function parseAddressList(input?: string | string[]): EmailAddress[] {
-  if (!input) return [];
-  const raw = Array.isArray(input) ? input.join(',') : input;
+  if (!input) return []
+  const raw = Array.isArray(input) ? input.join(",") : input
   return raw
-    .split(',')
-    .map(s => s.trim())
+    .split(",")
+    .map((s) => s.trim())
     .filter(Boolean)
-    .map(s => {
+    .map((s) => {
       // "Name <mail@x>" or just "mail@x"
-      const m = s.match(/^(.*)<([^>]+)>$/);
+      const m = s.match(/^(.*)<([^>]+)>$/)
       if (m) {
-        return { name: m[1].trim().replace(/^"|"$/g, ''), email: m[2].trim() };
+        return { name: m[1].trim().replace(/^"|"$/g, ""), email: m[2].trim() }
       }
-      return { email: s.replace(/^"|"$/g, '') };
-    });
+      return { email: s.replace(/^"|"$/g, "") }
+    })
 }
 
 function parseSingleAddress(input?: string): EmailAddress {
-  return parseAddressList(input)[0] ?? {};
+  return parseAddressList(input)[0] ?? {}
 }
 
 /**
  * Build normalization context from available data
  */
 export function createNormalizationContext(options: {
-  agentEmails?: string[];
-  agentPhones?: string[];
-  agentDomains?: string[];
-  orgDomain?: string;
-  orgDomains?: string[];
-  currentUserEmail?: string;
-  inboxEmail?: string;
-  conversationCustomerEmail?: string;
-  conversationCustomerName?: string;
+  agentEmails?: string[]
+  agentPhones?: string[]
+  agentDomains?: string[]
+  orgDomain?: string
+  orgDomains?: string[]
+  currentUserEmail?: string
+  inboxEmail?: string
+  conversationCustomerEmail?: string
+  conversationCustomerName?: string
 }): NormalizationContext {
-  const allDomains = options.agentDomains || options.orgDomains || (options.orgDomain ? [options.orgDomain] : []);
+  const allDomains =
+    options.agentDomains || options.orgDomains || (options.orgDomain ? [options.orgDomain] : [])
   return {
-    agentEmailSet: new Set((options.agentEmails ?? []).map(e => e.toLowerCase())),
-    agentPhoneSet: new Set((options.agentPhones || []).map(p => p.trim())),
-    agentDomainsSet: new Set((allDomains ?? []).map(d => d.toLowerCase())),
+    agentEmailSet: new Set((options.agentEmails ?? []).map((e) => e.toLowerCase())),
+    agentPhoneSet: new Set((options.agentPhones || []).map((p) => p.trim())),
+    agentDomainsSet: new Set((allDomains ?? []).map((d) => d.toLowerCase())),
     orgDomains: allDomains,
     currentUserEmail: options.currentUserEmail?.toLowerCase().trim(),
     inboxEmail: options.inboxEmail?.toLowerCase().trim(),
     conversationCustomerEmail: options.conversationCustomerEmail?.toLowerCase().trim(),
     conversationCustomerName: options.conversationCustomerName?.trim(),
-  };
+  }
 }
 
 /**
@@ -247,36 +252,33 @@ export function createNormalizationContext(options: {
  * Only uses explicit agent emails and current user email — NOT broad domain matching.
  */
 function isAgentEmail(email: string | undefined, ctx: NormalizationContext): boolean {
-  if (!email) return false;
-  
-  const normalizedEmail = email.toLowerCase().trim();
-  
+  if (!email) return false
+
+  const normalizedEmail = email.toLowerCase().trim()
+
   // Check against known agent emails (explicitly provided)
   if (ctx.agentEmailSet.has(normalizedEmail)) {
-    return true;
+    return true
   }
-  
+
   // Check against current user email
   if (ctx.currentUserEmail && normalizedEmail === ctx.currentUserEmail) {
-    return true;
+    return true
   }
-  
+
   // Do NOT use broad org-domain matching — it misclassifies customer emails
   // from the same domain as agent emails.
-  
-  return false;
+
+  return false
 }
 
 /**
  * Determine if a phone belongs to an agent
  */
 function isAgentPhone(phone: string | undefined, ctx: NormalizationContext): boolean {
-  if (!phone) return false;
-  return ctx.agentPhoneSet.has(phone.trim());
+  if (!phone) return false
+  return ctx.agentPhoneSet.has(phone.trim())
 }
-
-
-import { extractEmailAddress } from './emailThreading';
 
 /**
  * Normalize a raw message from Supabase into canonical format
@@ -284,171 +286,202 @@ import { extractEmailAddress } from './emailThreading';
 export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): NormalizedMessage {
   // Parse content to separate visible and quoted parts
   const parsedContent = parseQuotedEmail({
-    content: rawMessage.content || '', 
-    contentType: rawMessage.content_type || 'text/plain'
-  });
-  
+    content: rawMessage.content || "",
+    contentType: rawMessage.content_type || "text/plain",
+  })
+
   // Determine channel from message data
-  let channel: string = rawMessage.channel || 'email';
-  
-  const headers = safeParseHeaders(rawMessage.email_headers ?? rawMessage.headers ?? rawMessage.emailHeaders);
-  
+  const channel: string = rawMessage.channel || "email"
+
+  const headers = safeParseHeaders(
+    rawMessage.email_headers ?? rawMessage.headers ?? rawMessage.emailHeaders,
+  )
+
   // Check for profile data (joined from sender_profile)
-  const senderProfile = rawMessage.sender_profile || rawMessage.profiles;
+  const senderProfile = rawMessage.sender_profile || rawMessage.profiles
 
   // Try multiple header keys (case-insensitive)
   const fromLine =
-    getHeader(headers, 'From') ??
-    getHeader(headers, 'Sender') ??
-    getHeader(headers, 'Reply-To') ??
-    (typeof rawMessage.from === 'string' ? rawMessage.from : undefined) ??
-    (typeof rawMessage.sender_email === 'string' ? rawMessage.sender_email : undefined);
+    getHeader(headers, "From") ??
+    getHeader(headers, "Sender") ??
+    getHeader(headers, "Reply-To") ??
+    (typeof rawMessage.from === "string" ? rawMessage.from : undefined) ??
+    (typeof rawMessage.sender_email === "string" ? rawMessage.sender_email : undefined)
 
   // Parse name/email
-  let { name: fromName, email: fromEmail } = extractNameEmail(fromLine);
+  let { name: fromName, email: fromEmail } = extractNameEmail(fromLine)
 
   // For internal notes, prefer profile data for accurate author attribution
   if (rawMessage.is_internal === true) {
     if (senderProfile) {
-      fromName = senderProfile.full_name || fromName;
-      fromEmail = senderProfile.email || fromEmail;
+      fromName = senderProfile.full_name || fromName
+      fromEmail = senderProfile.email || fromEmail
     } else {
       // No profile found - avoid falling back to inbox email for notes
       // Use sender_name if available, otherwise "Agent"
       if (!fromName || fromName === fromEmail) {
-        fromName = rawMessage.sender_name?.trim() || 'Agent';
+        fromName = rawMessage.sender_name?.trim() || "Agent"
       }
       // Clear fromEmail if it's the inbox email (not the actual note author)
       if (fromEmail && ctx.inboxEmail && fromEmail.toLowerCase() === ctx.inboxEmail) {
-        fromEmail = undefined;
+        fromEmail = undefined
       }
     }
   }
 
   // Fallbacks if header missing
-  if (!fromEmail && typeof rawMessage.sender_id === 'string' && rawMessage.sender_id.includes('@')) {
-    fromEmail = rawMessage.sender_id.toLowerCase();
+  if (
+    !fromEmail &&
+    typeof rawMessage.sender_id === "string" &&
+    rawMessage.sender_id.includes("@")
+  ) {
+    fromEmail = rawMessage.sender_id.toLowerCase()
   }
-  if (!fromName && typeof rawMessage.sender_name === 'string') {
-    fromName = rawMessage.sender_name.trim() || undefined;
+  if (!fromName && typeof rawMessage.sender_name === "string") {
+    fromName = rawMessage.sender_name.trim() || undefined
   }
 
   // For SMS, we might have phone information
-  if (channel === 'sms' && rawMessage.customer_phone && !fromEmail) {
-    fromEmail = rawMessage.customer_phone; // Store phone as email for SMS
+  if (channel === "sms" && rawMessage.customer_phone && !fromEmail) {
+    fromEmail = rawMessage.customer_phone // Store phone as email for SMS
   }
 
   // Build display label (public) - sanitize to remove HTML
   const sanitizeName = (name: string | undefined) => {
-    if (!name) return undefined;
+    if (!name) return undefined
     // Remove HTML tags and decode entities
-    const temp = document.createElement('div');
-    temp.innerHTML = name;
-    return (temp.textContent || temp.innerText || name).trim();
-  };
-  
-  const cleanFromName = sanitizeName(fromName);
-  const cleanFromEmail = fromEmail?.toLowerCase();
-  
+    const temp = document.createElement("div")
+    temp.innerHTML = name
+    return (temp.textContent || temp.innerText || name).trim()
+  }
+
+  const cleanFromName = sanitizeName(fromName)
+  const cleanFromEmail = fromEmail?.toLowerCase()
+
   // Helper: Detect when name equals email to avoid duplication like "email@x <email@x>"
   const isNameJustEmail = (name: string | undefined, email: string | undefined): boolean => {
-    if (!name || !email) return false;
-    const n = name.toLowerCase().trim();
-    const e = email.toLowerCase().trim();
-    return n === e || n.includes(e) || e.includes(n.split('@')[0]);
-  };
-  
+    if (!name || !email) return false
+    const n = name.toLowerCase().trim()
+    const e = email.toLowerCase().trim()
+    return n === e || n.includes(e) || e.includes(n.split("@")[0])
+  }
+
   // Build display label - avoid email duplication
-  let authorLabel: string | undefined;
+  let authorLabel: string | undefined
   if (isNameJustEmail(cleanFromName, cleanFromEmail)) {
-    authorLabel = cleanFromEmail || cleanFromName || undefined;
+    authorLabel = cleanFromEmail || cleanFromName || undefined
   } else {
     authorLabel =
-      (cleanFromName && cleanFromEmail) ? `${cleanFromName} <${cleanFromEmail}>`
-      : (cleanFromEmail || cleanFromName || undefined);
+      cleanFromName && cleanFromEmail
+        ? `${cleanFromName} <${cleanFromEmail}>`
+        : cleanFromEmail || cleanFromName || undefined
   }
 
   // Detect agent/customer using context — check explicit agent emails only
-  let isAgent =
-    (fromEmail && ctx.agentEmailSet?.has(fromEmail));
+  let isAgent = fromEmail && ctx.agentEmailSet?.has(fromEmail)
 
   // For Google Groups forwarded messages: check X-Original-From, X-Google-Original-From
   // These headers are explicit proof of original authorship.
   // Only flip sender_type='customer' when these explicit headers prove it.
   // Do NOT use Reply-To alone (customers can have Reply-To set), and
   // do NOT use broad domain matching or "via" text alone.
-  if (!isAgent && rawMessage.sender_type === 'customer' && channel === 'email') {
-    const xOrigFrom = getHeader(headers, 'X-Original-From') || getHeader(headers, 'X-Google-Original-From');
-    
+  if (!isAgent && rawMessage.sender_type === "customer" && channel === "email") {
+    const xOrigFrom =
+      getHeader(headers, "X-Original-From") || getHeader(headers, "X-Google-Original-From")
+
     // X-Original-From / X-Google-Original-From is explicit proof of the real author
     if (xOrigFrom) {
-      const { email: origEmail, name: origName } = extractNameEmail(xOrigFrom);
+      const { email: origEmail, name: origName } = extractNameEmail(xOrigFrom)
       if (origEmail && isAgentEmail(origEmail, ctx)) {
-        isAgent = true;
-        fromEmail = origEmail;
-        fromName = origName || fromName;
-        const cleanOrigName = sanitizeName(origName);
-        authorLabel = (cleanOrigName && origEmail) ? `${cleanOrigName} <${origEmail}>` : (origEmail || cleanOrigName || authorLabel);
-        logger.debug('Detected forwarded agent copy via X-Original-From', {
-          messageId: rawMessage.id,
-          resolvedEmail: origEmail,
-        }, 'ForwardingDetection');
+        isAgent = true
+        fromEmail = origEmail
+        fromName = origName || fromName
+        const cleanOrigName = sanitizeName(origName)
+        authorLabel =
+          cleanOrigName && origEmail
+            ? `${cleanOrigName} <${origEmail}>`
+            : origEmail || cleanOrigName || authorLabel
+        logger.debug(
+          "Detected forwarded agent copy via X-Original-From",
+          {
+            messageId: rawMessage.id,
+            resolvedEmail: origEmail,
+          },
+          "ForwardingDetection",
+        )
       }
     }
   }
 
-  const authorType: 'agent' | 'customer' | 'system' | 'ai_draft' =
-    rawMessage.sender_type === 'ai_draft' ? 'ai_draft' :
-    isAgent ? 'agent' : ((rawMessage.sender_type as any) ?? 'customer');
+  const authorType: "agent" | "customer" | "system" | "ai_draft" =
+    rawMessage.sender_type === "ai_draft"
+      ? "ai_draft"
+      : isAgent
+        ? "agent"
+        : ((rawMessage.sender_type as any) ?? "customer")
   // Use conversation fallbacks only if still missing
   // For agents: ALWAYS prefer profile data regardless of any header-derived values
-  if (authorType === 'agent' && senderProfile) {
-    fromName = senderProfile.full_name || fromName;
-    fromEmail = senderProfile.email || fromEmail;
-    authorLabel = senderProfile.full_name || senderProfile.email || authorLabel || 'Agent';
+  if (authorType === "agent" && senderProfile) {
+    fromName = senderProfile.full_name || fromName
+    fromEmail = senderProfile.email || fromEmail
+    authorLabel = senderProfile.full_name || senderProfile.email || authorLabel || "Agent"
   } else if (!authorLabel) {
-    if (authorType === 'customer' && ctx.conversationCustomerEmail) {
-      const e = ctx.conversationCustomerEmail.toLowerCase();
-      const n = ctx.conversationCustomerName;
-      fromEmail = fromEmail ?? e;
-      fromName  = fromName  ?? n;
-      
+    if (authorType === "customer" && ctx.conversationCustomerEmail) {
+      const e = ctx.conversationCustomerEmail.toLowerCase()
+      const n = ctx.conversationCustomerName
+      fromEmail = fromEmail ?? e
+      fromName = fromName ?? n
+
       // Don't show "email <email>" pattern - just show email once
       if (isNameJustEmail(n, e)) {
-        authorLabel = e;
+        authorLabel = e
       } else {
-        authorLabel = (n && e) ? `${n} <${e}>` : (e || n);
+        authorLabel = n && e ? `${n} <${e}>` : e || n
       }
-    } else if (authorType === 'agent') {
+    } else if (authorType === "agent") {
       // Fallback for agents without profile data
-      fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase();
-      authorLabel = fromName || fromEmail || 'Agent';
+      fromEmail = fromEmail ?? ctx.inboxEmail?.toLowerCase() ?? ctx.currentUserEmail?.toLowerCase()
+      authorLabel = fromName || fromEmail || "Agent"
     }
   }
 
-  const displayAuthorLabel = authorLabel ?? 'Unknown sender';
+  const displayAuthorLabel = authorLabel ?? "Unknown sender"
 
-  const from = { name: fromName, email: fromEmail, userId: rawMessage.sender_id };
-  const to = parseAddressList(getHeader(headers, 'To') || rawMessage.to);
-  const cc = parseAddressList(getHeader(headers, 'Cc') || rawMessage.cc);
-  const bcc = parseAddressList(getHeader(headers, 'Bcc') || rawMessage.bcc);
-  
-  const subject = rawMessage.email_subject || getHeader(headers, 'Subject');
-  
+  const from = { name: fromName, email: fromEmail, userId: rawMessage.sender_id }
+  const to = parseAddressList(getHeader(headers, "To") || rawMessage.to)
+  const cc = parseAddressList(getHeader(headers, "Cc") || rawMessage.cc)
+  const bcc = parseAddressList(getHeader(headers, "Bcc") || rawMessage.bcc)
+
+  const subject = rawMessage.email_subject || getHeader(headers, "Subject")
+
   // Avatar initials - multi-char, with name cleaning
-  const cleanedAvatarName = from.name ? from.name.replace(/^['"]+/, '').replace(/['"]+$/, '').split(/\s+via\s+/i)[0].trim() : undefined;
-  const avatarParts = (cleanedAvatarName || from.email?.split('@')[0] || 'A').split(/[\s._-]+/).filter(Boolean);
-  const initial = avatarParts.map(p => p[0]).join('').toUpperCase().slice(0, 3) || 'A';
-  
+  const cleanedAvatarName = from.name
+    ? from.name
+        .replace(/^['"]+/, "")
+        .replace(/['"]+$/, "")
+        .split(/\s+via\s+/i)[0]
+        .trim()
+    : undefined
+  const avatarParts = (cleanedAvatarName || from.email?.split("@")[0] || "A")
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+  const initial =
+    avatarParts
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 3) || "A"
+
   // Determine direction — use authorType (which includes DB sender_type) not just isAgent
-  const direction: 'inbound' | 'outbound' = (isAgent || authorType === 'agent' || authorType === 'ai_draft') ? 'outbound' : 'inbound';
-  
+  const direction: "inbound" | "outbound" =
+    isAgent || authorType === "agent" || authorType === "ai_draft" ? "outbound" : "inbound"
+
   // Extract quoted blocks
-  const quotedBlocks = parsedContent.quotedBlocks;
-  
+  const quotedBlocks = parsedContent.quotedBlocks
+
   const result: NormalizedMessage = {
     id: rawMessage.id,
-    dedupKey: '', // Will be set below
+    dedupKey: "", // Will be set below
     createdAt: rawMessage.created_at,
     channel,
     from,
@@ -466,16 +499,15 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
     emailStatus: rawMessage.email_status ?? undefined,
     originalMessage: {
       ...rawMessage,
-      _quotedMessages: parsedContent.quotedMessages?.filter(q => q !== null) || []
-    }
-  };
+      _quotedMessages: parsedContent.quotedMessages?.filter((q) => q !== null) || [],
+    },
+  }
 
   // Generate stable dedup key after we have the normalized message
-  result.dedupKey = generateStableDedupKey(rawMessage, result);
+  result.dedupKey = generateStableDedupKey(rawMessage, result)
 
-  return result;
+  return result
 }
-
 
 /**
  * Generate stable dedup key with 3-step fallback chain
@@ -483,58 +515,64 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
 function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
   // Special handling for quoted extracted messages
   if (raw.is_quoted_extraction) {
-    return `quoted:${raw.parent_message_id}:${raw.quoted_index || 0}`;
+    return `quoted:${raw.parent_message_id}:${raw.quoted_index || 0}`
   }
-  
+
   // Prefer IDs in your stored headers JSON - prioritize email_message_id as it's unique per message
-  const hdr = raw.email_headers || raw.headers || {};
+  const hdr = raw.email_headers || raw.headers || {}
   const explicit =
     raw.email_message_id ||
-    hdr['Message-ID'] || hdr['Message-Id'] || hdr['X-Message-Id'] ||
+    hdr["Message-ID"] ||
+    hdr["Message-Id"] ||
+    hdr["X-Message-Id"] ||
     raw.message_id ||
-    raw.external_id; // external_id is often a thread ID, not unique per message
-  
-  logger.debug('Generated dedup key', {
-    messageId: raw.id,
-    email_message_id: raw.email_message_id,
-    external_id: raw.external_id,
-    hasHeaderMessageId: !!(hdr['Message-ID'] || hdr['Message-Id']),
-    generatedKey: explicit ? `id:${String(explicit)}` : 'content-hash'
-  }, 'dedupKey');
-  
-  if (explicit) return `id:${String(explicit)}`;
+    raw.external_id // external_id is often a thread ID, not unique per message
+
+  logger.debug(
+    "Generated dedup key",
+    {
+      messageId: raw.id,
+      email_message_id: raw.email_message_id,
+      external_id: raw.external_id,
+      hasHeaderMessageId: !!(hdr["Message-ID"] || hdr["Message-Id"]),
+      generatedKey: explicit ? `id:${String(explicit)}` : "content-hash",
+    },
+    "dedupKey",
+  )
+
+  if (explicit) return `id:${String(explicit)}`
 
   // Fallback: content hash + author + 2-min bucket
-  const content = normalizeText(norm.visibleBody);
-  const bucket = roundTo2Min(norm.createdAt);
-  return `ch:${simpleHash(`${norm.authorType}|${content}|${bucket}`)}`;
+  const content = normalizeText(norm.visibleBody)
+  const bucket = roundTo2Min(norm.createdAt)
+  return `ch:${simpleHash(`${norm.authorType}|${content}|${bucket}`)}`
 }
 
 /**
  * Enhanced deduplication using stable dedup keys
  */
 export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMessage[] {
-  const seenKeys = new Set<string>();
-  const deduped: NormalizedMessage[] = [];
-  
+  const seenKeys = new Set<string>()
+  const deduped: NormalizedMessage[] = []
+
   // Sort by creation time first (oldest to newest) to preserve first occurrence
   const sorted = [...messages].sort((a, b) => {
-    const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt;
-    const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt;
-    return timeA - timeB;
-  });
-  
+    const timeA = typeof a.createdAt === "string" ? new Date(a.createdAt).getTime() : a.createdAt
+    const timeB = typeof b.createdAt === "string" ? new Date(b.createdAt).getTime() : b.createdAt
+    return timeA - timeB
+  })
+
   for (const message of sorted) {
     // Deduplication by stable dedup key
     if (seenKeys.has(message.dedupKey)) {
-      continue;
+      continue
     }
-    
-    seenKeys.add(message.dedupKey);
-    deduped.push(message);
+
+    seenKeys.add(message.dedupKey)
+    deduped.push(message)
   }
-  
-  return deduped;
+
+  return deduped
 }
 
 /**
@@ -542,59 +580,67 @@ export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMe
  * This creates a flat list showing the full thread conversation
  */
 export function expandQuotedMessagesToCards(
-  messages: NormalizedMessage[], 
-  ctx: NormalizationContext
+  messages: NormalizedMessage[],
+  ctx: NormalizationContext,
 ): NormalizedMessage[] {
-  const expanded: NormalizedMessage[] = [];
-  
+  const expanded: NormalizedMessage[] = []
+
   for (const message of messages) {
     // Add the main message first
-    expanded.push(message);
-    
+    expanded.push(message)
+
     // Extract quoted messages if present
-    const quotedMessages = message.originalMessage._quotedMessages || [];
-    
+    const quotedMessages = message.originalMessage._quotedMessages || []
+
     for (let i = 0; i < quotedMessages.length; i++) {
-      const quoted = quotedMessages[i];
-      
+      const quoted = quotedMessages[i]
+
       // Skip if confidence is explicitly 'none' - but accept 'low' confidence
-      if (quoted.confidence === 'none') {
-        logger.debug('Skipping no-confidence quoted message', {
-          parentId: message.id,
-          index: i,
-          confidence: quoted.confidence
-        }, 'Thread');
-        continue;
+      if (quoted.confidence === "none") {
+        logger.debug(
+          "Skipping no-confidence quoted message",
+          {
+            parentId: message.id,
+            index: i,
+            confidence: quoted.confidence,
+          },
+          "Thread",
+        )
+        continue
       }
-      
+
       // Parse the quoted content to extract ONLY visible content (strip nested quotes)
-      const quotedContent = quoted.bodyHtml || quoted.bodyText;
-      const contentType = quoted.bodyHtml ? 'text/html' : 'text/plain';
-      
+      const quotedContent = quoted.bodyHtml || quoted.bodyText
+      const contentType = quoted.bodyHtml ? "text/html" : "text/plain"
+
       const parsed = parseQuotedEmail({
         content: quotedContent,
-        contentType: contentType
-      });
-      
+        contentType: contentType,
+      })
+
       // Skip if no visible content (just nested quotes or headers)
-      const trimmedContent = parsed.visibleContent?.trim() || '';
+      const trimmedContent = parsed.visibleContent?.trim() || ""
       if (!trimmedContent || trimmedContent.length < 50) {
-        logger.debug('Skipping short/empty quoted message (likely header or nested quotes)', {
-          parentId: message.id,
-          index: i,
-          contentLength: trimmedContent.length,
-          hasNestedQuotes: parsed.quotedBlocks?.length > 0,
-          preview: trimmedContent.substring(0, 60)
-        }, 'Thread');
-        continue;
+        logger.debug(
+          "Skipping short/empty quoted message (likely header or nested quotes)",
+          {
+            parentId: message.id,
+            index: i,
+            contentLength: trimmedContent.length,
+            hasNestedQuotes: parsed.quotedBlocks?.length > 0,
+            preview: trimmedContent.substring(0, 60),
+          },
+          "Thread",
+        )
+        continue
       }
-      
+
       // Parse sender information
-      const { name: fromName, email: fromEmail } = extractNameEmail(quoted.fromEmail || '');
-      
+      const { name: fromName, email: fromEmail } = extractNameEmail(quoted.fromEmail || "")
+
       // Determine if this is an agent or customer
-      const isAgent = isAgentEmail(fromEmail, ctx);
-      
+      const isAgent = isAgentEmail(fromEmail, ctx)
+
       // Create a normalized message from the quoted content
       const quotedNormalized: NormalizedMessage = {
         id: `${message.id}-quoted-${i}`,
@@ -604,37 +650,42 @@ export function expandQuotedMessagesToCards(
         from: { name: fromName, email: fromEmail },
         to: message.to,
         subject: message.subject,
-        direction: isAgent ? 'outbound' : 'inbound',
-        authorType: isAgent ? 'agent' : 'customer',
-        authorLabel: fromName && fromEmail ? `${fromName} <${fromEmail}>` : (fromEmail || fromName || 'Unknown'),
-        avatarInitial: (fromName || fromEmail || 'U')[0].toUpperCase(),
+        direction: isAgent ? "outbound" : "inbound",
+        authorType: isAgent ? "agent" : "customer",
+        authorLabel:
+          fromName && fromEmail ? `${fromName} <${fromEmail}>` : fromEmail || fromName || "Unknown",
+        avatarInitial: (fromName || fromEmail || "U")[0].toUpperCase(),
         isInternalNote: false, // Quoted messages are never internal notes
-        visibleBody: parsed.visibleContent,  // Use ONLY visible content (nested quotes stripped)
-        quotedBlocks: parsed.quotedBlocks,   // Store nested quotes for potential "Show history" feature
+        visibleBody: parsed.visibleContent, // Use ONLY visible content (nested quotes stripped)
+        quotedBlocks: parsed.quotedBlocks, // Store nested quotes for potential "Show history" feature
         originalMessage: {
           ...message.originalMessage,
-          content: parsed.visibleContent,    // Use parsed visible content
+          content: parsed.visibleContent, // Use parsed visible content
           content_type: contentType,
           is_quoted_extraction: true,
           parent_message_id: message.id,
           quoted_index: i,
-          _quotedMessages: parsed.quotedMessages  // Store nested messages for potential recursive expansion
-        }
-      };
-      
-      logger.debug('Created quoted message card', {
-        id: quotedNormalized.id,
-        dedupKey: quotedNormalized.dedupKey,
-        authorType: quotedNormalized.authorType,
-        from: quotedNormalized.from,
-        confidence: quoted.confidence,
-        visibleContentLength: parsed.visibleContent.length,
-        hasNestedQuotes: parsed.quotedBlocks?.length > 0
-      }, 'Thread');
-      
-      expanded.push(quotedNormalized);
+          _quotedMessages: parsed.quotedMessages, // Store nested messages for potential recursive expansion
+        },
+      }
+
+      logger.debug(
+        "Created quoted message card",
+        {
+          id: quotedNormalized.id,
+          dedupKey: quotedNormalized.dedupKey,
+          authorType: quotedNormalized.authorType,
+          from: quotedNormalized.from,
+          confidence: quoted.confidence,
+          visibleContentLength: parsed.visibleContent.length,
+          hasNestedQuotes: parsed.quotedBlocks?.length > 0,
+        },
+        "Thread",
+      )
+
+      expanded.push(quotedNormalized)
     }
   }
-  
-  return expanded;
+
+  return expanded
 }

@@ -1,78 +1,90 @@
-import React, { useState } from 'react';
-import { Phone, Clock, CheckCircle, AlertCircle, User, MessageSquare } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCallbackRequests, CallbackRequest } from '@/hooks/useCallbackRequests';
-import { AgentAssignmentSelect } from './AgentAssignmentSelect';
-import { CallActionButton } from './CallActionButton';
-import { formatDistanceToNow } from 'date-fns';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
+import { formatDistanceToNow } from "date-fns"
+import { AlertCircle, CheckCircle, Clock, Phone, User } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useCallbackRequests } from "@/hooks/useCallbackRequests"
+import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
+import { AgentAssignmentSelect } from "./AgentAssignmentSelect"
+import { CallActionButton } from "./CallActionButton"
 
 const statusConfig = {
   pending: {
-    label: 'Pending',
+    label: "Pending",
     icon: Clock,
-    variant: 'secondary' as const,
-    color: 'text-amber-600'
+    variant: "secondary" as const,
+    color: "text-amber-600",
   },
   processed: {
-    label: 'Processed',
+    label: "Processed",
     icon: User,
-    variant: 'default' as const,
-    color: 'text-blue-600'
+    variant: "default" as const,
+    color: "text-blue-600",
   },
   completed: {
-    label: 'Completed',
+    label: "Completed",
     icon: CheckCircle,
-    variant: 'default' as const,
-    color: 'text-green-600'
+    variant: "default" as const,
+    color: "text-green-600",
   },
   failed: {
-    label: 'Failed',
+    label: "Failed",
     icon: AlertCircle,
-    variant: 'destructive' as const,
-    color: 'text-red-600'
-  }
-};
-
-interface CallbackRequestCardProps {
-  request: any;
-  onStatusChange: (id: string, status: string) => void;
-  onAssign: (id: string, agentId: string) => void;
-  isUpdating: boolean;
-  isAssigning: boolean;
-  onSelect?: (request: any) => void;
-  isSelected?: boolean;
+    variant: "destructive" as const,
+    color: "text-red-600",
+  },
 }
 
-const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, isAssigning, onSelect, isSelected }: CallbackRequestCardProps) => {
-  const { t } = useTranslation();
-  const config = statusConfig[request.status as keyof typeof statusConfig];
-  const StatusIcon = config.icon;
+interface CallbackRequestCardProps {
+  request: any
+  onStatusChange: (id: string, status: string) => void
+  onAssign: (id: string, agentId: string) => void
+  isUpdating: boolean
+  isAssigning: boolean
+  onSelect?: (request: any) => void
+  isSelected?: boolean
+}
+
+const CallbackRequestCard = ({
+  request,
+  onStatusChange,
+  onAssign,
+  isUpdating,
+  isAssigning,
+  onSelect,
+  isSelected,
+}: CallbackRequestCardProps) => {
+  const { t } = useTranslation()
+  const config = statusConfig[request.status as keyof typeof statusConfig]
+  const StatusIcon = config.icon
 
   return (
     <Card
       className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
+        isSelected ? "ring-2 ring-primary ring-offset-2" : ""
       }`}
       onClick={(e) => {
         // Only trigger selection if clicking the card, not interactive elements
-        if ((e.target as HTMLElement).closest('button, select')) {
-          return;
+        if ((e.target as HTMLElement).closest("button, select")) {
+          return
         }
-        onSelect?.(request);
+        onSelect?.(request)
       }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-base">
-              {formatPhoneNumber(request.customer_phone)}
-            </CardTitle>
+            <CardTitle className="text-base">{formatPhoneNumber(request.customer_phone)}</CardTitle>
           </div>
           <Badge variant={config.variant} className="flex items-center gap-1">
             <StatusIcon className={`h-3 w-3 ${config.color}`} />
@@ -83,7 +95,7 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
           Requested {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         <div className="space-y-3">
           {/* Request Details */}
@@ -112,13 +124,11 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
           )}
 
           {/* Auto-completion notice */}
-          {request.status === 'completed' && request.processed_at && (
+          {request.status === "completed" && request.processed_at && (
             <div className="p-2 bg-green-50 border border-green-200 rounded-md">
               <div className="flex items-center gap-2 text-green-700">
                 <CheckCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  Auto-completed by outbound call
-                </span>
+                <span className="text-sm font-medium">Auto-completed by outbound call</span>
               </div>
               <p className="text-xs text-green-600 mt-1">
                 Callback automatically marked as completed when agent called customer
@@ -139,14 +149,11 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
 
           {/* Call Action */}
           <div className="flex gap-2 pt-2">
-            <CallActionButton
-              phoneNumber={request.customer_phone}
-              size="sm"
-            />
+            <CallActionButton phoneNumber={request.customer_phone} size="sm" />
           </div>
 
           {/* Status Actions */}
-          {request.status === 'pending' && (
+          {request.status === "pending" && (
             <div className="flex gap-2 pt-2">
               <Select
                 onValueChange={(value) => onStatusChange(request.id, value)}
@@ -166,25 +173,30 @@ const CallbackRequestCard = ({ request, onStatusChange, onAssign, isUpdating, is
 
           {request.processed_at && (
             <div className="text-xs text-muted-foreground">
-              {request.status === 'completed' ? 'Completed' : 'Processed'} {formatDistanceToNow(new Date(request.processed_at), { addSuffix: true })}
+              {request.status === "completed" ? "Completed" : "Processed"}{" "}
+              {formatDistanceToNow(new Date(request.processed_at), { addSuffix: true })}
             </div>
           )}
         </div>
       </CardContent>
     </Card>
-  );
-};
-
-interface CallbackRequestsListProps {
-  statusFilter?: string;
-  onSelectCallback?: (callback: any) => void;
-  selectedCallbackId?: string;
+  )
 }
 
-export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ statusFilter, onSelectCallback, selectedCallbackId }) => {
-  const { t } = useTranslation();
-  const [filter, setFilter] = useState<string>(statusFilter || 'all');
-  
+interface CallbackRequestsListProps {
+  statusFilter?: string
+  onSelectCallback?: (callback: any) => void
+  selectedCallbackId?: string
+}
+
+export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({
+  statusFilter,
+  onSelectCallback,
+  selectedCallbackId,
+}) => {
+  const { t } = useTranslation()
+  const [filter, setFilter] = useState<string>(statusFilter || "all")
+
   const {
     callbackRequests,
     pendingRequests,
@@ -196,28 +208,27 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
     updateStatus,
     isUpdating,
     assignCallback,
-    isAssigning
-  } = useCallbackRequests();
+    isAssigning,
+  } = useCallbackRequests()
 
   if (error) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-red-600">Error Loading Requests</CardTitle>
-          <CardDescription>
-            Failed to load callback requests. Please try again.
-          </CardDescription>
+          <CardDescription>Failed to load callback requests. Please try again.</CardDescription>
         </CardHeader>
       </Card>
-    );
+    )
   }
 
   // Use statusFilter from props or local filter state
-  const effectiveFilter = statusFilter || filter;
+  const effectiveFilter = statusFilter || filter
 
-  const filteredRequests = effectiveFilter === 'all' 
-    ? callbackRequests
-    : callbackRequests.filter(req => req.status === effectiveFilter);
+  const filteredRequests =
+    effectiveFilter === "all"
+      ? callbackRequests
+      : callbackRequests.filter((req) => req.status === effectiveFilter)
 
   return (
     <div className="space-y-4">
@@ -225,9 +236,7 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">Callback Requests</h3>
-            <p className="text-sm text-muted-foreground">
-              Customer callback requests from IVR
-            </p>
+            <p className="text-sm text-muted-foreground">Customer callback requests from IVR</p>
           </div>
 
           <Select value={filter} onValueChange={setFilter}>
@@ -236,9 +245,7 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Requests</SelectItem>
-              <SelectItem value="pending">
-                Pending ({requestsByStatus.pending || 0})
-              </SelectItem>
+              <SelectItem value="pending">Pending ({requestsByStatus.pending || 0})</SelectItem>
               <SelectItem value="processed">
                 Processed ({requestsByStatus.processed || 0})
               </SelectItem>
@@ -249,7 +256,6 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
           </Select>
         </div>
       )}
-
 
       {/* Requests List */}
       {isLoading ? (
@@ -270,10 +276,9 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
           <CardContent className="p-8 text-center">
             <Phone className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">
-              {effectiveFilter === 'all' 
-                ? 'No callback requests yet'
-                : `No ${effectiveFilter} callback requests`
-              }
+              {effectiveFilter === "all"
+                ? "No callback requests yet"
+                : `No ${effectiveFilter} callback requests`}
             </p>
           </CardContent>
         </Card>
@@ -294,5 +299,5 @@ export const CallbackRequestsList: React.FC<CallbackRequestsListProps> = ({ stat
         </div>
       )}
     </div>
-  );
-};
+  )
+}

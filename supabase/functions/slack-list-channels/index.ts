@@ -1,111 +1,121 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization")
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Not authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verify user
-    const authToken = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
+    const authToken = authHeader.replace("Bearer ", "")
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(authToken)
 
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const body = await req.json();
-    const organizationId = body.organization_id;
+    const body = await req.json()
+    const organizationId = body.organization_id
 
     if (!organizationId) {
-      return new Response(
-        JSON.stringify({ error: 'Organization ID required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Organization ID required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const useSecondary = body.use_secondary === true;
+    const useSecondary = body.use_secondary === true
 
     // Get the Slack integration for this organization
     const { data: integration, error: integrationError } = await supabase
-      .from('slack_integrations')
-      .select('access_token, secondary_access_token')
-      .eq('organization_id', organizationId)
-      .single();
+      .from("slack_integrations")
+      .select("access_token, secondary_access_token")
+      .eq("organization_id", organizationId)
+      .single()
 
     // Pick the right token based on use_secondary flag
-    const token = useSecondary ? integration?.secondary_access_token : integration?.access_token;
-    const workspaceLabel = useSecondary ? 'secondary' : 'primary';
+    const token = useSecondary ? integration?.secondary_access_token : integration?.access_token
+    const workspaceLabel = useSecondary ? "secondary" : "primary"
 
     if (integrationError || !token) {
-      console.error(`No ${workspaceLabel} token found. Integration error:`, integrationError);
+      console.error(`No ${workspaceLabel} token found. Integration error:`, integrationError)
       return new Response(
-        JSON.stringify({ error: useSecondary ? 'Secondary workspace not connected' : 'Slack not connected', channels: [] }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({
+          error: useSecondary ? "Secondary workspace not connected" : "Slack not connected",
+          channels: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
     }
 
     // Verify token validity with auth.test
-    const authTestResponse = await fetch('https://slack.com/api/auth.test', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    const authTestData = await authTestResponse.json();
-    console.log(`auth.test for ${workspaceLabel} workspace:`, JSON.stringify(authTestData));
+    const authTestResponse = await fetch("https://slack.com/api/auth.test", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const authTestData = await authTestResponse.json()
+    console.log(`auth.test for ${workspaceLabel} workspace:`, JSON.stringify(authTestData))
 
     if (!authTestData.ok) {
-      console.error(`Token invalid for ${workspaceLabel} workspace:`, authTestData.error);
+      console.error(`Token invalid for ${workspaceLabel} workspace:`, authTestData.error)
       return new Response(
-        JSON.stringify({ error: `Token is invalid or expired (${authTestData.error}). Please reconnect the workspace.`, channels: [] }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({
+          error: `Token is invalid or expired (${authTestData.error}). Please reconnect the workspace.`,
+          channels: [],
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
     }
 
     // Fetch channels from Slack
-    const channels: Array<{ id: string; name: string; is_private: boolean; is_member: boolean }> = [];
-    let cursor: string | undefined;
+    const channels: Array<{ id: string; name: string; is_private: boolean; is_member: boolean }> =
+      []
+    let cursor: string | undefined
 
     do {
       const params = new URLSearchParams({
-        types: 'public_channel,private_channel',
-        exclude_archived: 'true',
-        limit: '200',
-      });
-      if (cursor) params.set('cursor', cursor);
+        types: "public_channel,private_channel",
+        exclude_archived: "true",
+        limit: "200",
+      })
+      if (cursor) params.set("cursor", cursor)
 
       const response = await fetch(`https://slack.com/api/conversations.list?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!data.ok) {
-        console.error('Slack API error:', data.error);
-        return new Response(
-          JSON.stringify({ error: data.error, channels: [] }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        console.error("Slack API error:", data.error)
+        return new Response(JSON.stringify({ error: data.error, channels: [] }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
       for (const channel of data.channels || []) {
@@ -114,27 +124,30 @@ Deno.serve(async (req) => {
           name: channel.name,
           is_private: channel.is_private,
           is_member: channel.is_member ?? false,
-        });
+        })
       }
 
-      cursor = data.response_metadata?.next_cursor;
-    } while (cursor);
+      cursor = data.response_metadata?.next_cursor
+    } while (cursor)
 
-    console.log(`Fetched ${channels.length} channels from ${workspaceLabel} workspace (team: ${authTestData.team})`);
+    console.log(
+      `Fetched ${channels.length} channels from ${workspaceLabel} workspace (team: ${authTestData.team})`,
+    )
 
     // Sort channels alphabetically
-    channels.sort((a, b) => a.name.localeCompare(b.name));
+    channels.sort((a, b) => a.name.localeCompare(b.name))
 
-    return new Response(
-      JSON.stringify({ channels }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ channels }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error) {
-    console.error('Error listing Slack channels:', error);
+    console.error("Error listing Slack channels:", error)
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error), channels: [] }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+        channels: [],
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    )
   }
-});
+})

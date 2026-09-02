@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client"
 
 /**
  * Thin browser-side wrapper over the Noddi/Navio edge-function proxies.
@@ -13,8 +13,8 @@ export class NavioError extends Error {
     readonly fn: string,
     readonly detail?: unknown,
   ) {
-    super(message);
-    this.name = 'NavioError';
+    super(message)
+    this.name = "NavioError"
   }
 }
 
@@ -23,15 +23,15 @@ export async function invokeNavio<T = unknown>(
   fn: string,
   body: Record<string, unknown> = {},
 ): Promise<T> {
-  const { data, error } = await supabase.functions.invoke<T>(fn, { body });
+  const { data, error } = await supabase.functions.invoke<T>(fn, { body })
 
   // supabase.functions.invoke does not throw on HTTP 500 — always check `error`.
-  if (error) throw new NavioError(error.message || `${fn} failed`, fn, error);
+  if (error) throw new NavioError(error.message || `${fn} failed`, fn, error)
 
-  const maybe = data as { error?: unknown } | null;
-  if (maybe && typeof maybe === 'object' && 'error' in maybe && maybe.error) {
-    throw new NavioError(String(maybe.error), fn, maybe);
+  const maybe = data as { error?: unknown } | null
+  if (maybe && typeof maybe === "object" && "error" in maybe && maybe.error) {
+    throw new NavioError(String(maybe.error), fn, maybe)
   }
 
-  return data as T;
+  return data as T
 }

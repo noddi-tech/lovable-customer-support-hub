@@ -1,21 +1,21 @@
 // System prompt builder for widget-ai-chat
 
 export interface ActionFlow {
-  intent_key: string;
-  label: string;
-  description: string | null;
-  trigger_phrases: string[];
-  requires_verification: boolean;
-  flow_steps: any[];
-  is_active: boolean;
+  intent_key: string
+  label: string
+  description: string | null
+  trigger_phrases: string[]
+  requires_verification: boolean
+  flow_steps: any[]
+  is_active: boolean
 }
 
 export interface GeneralConfig {
-  tone?: string;
-  max_initial_lines?: number;
-  never_dump_history?: boolean;
-  language_behavior?: string;
-  escalation_threshold?: number;
+  tone?: string
+  max_initial_lines?: number
+  never_dump_history?: boolean
+  language_behavior?: string
+  escalation_threshold?: number
 }
 
 const BLOCK_PROMPTS: Record<string, string> = {
@@ -63,63 +63,82 @@ Option 2
 [/ACTION_MENU]`,
   RATING: `Include the marker [RATING] to show a 5-star rating selector.`,
   CONFIRM: `Include the marker [CONFIRM]Summary text[/CONFIRM] for a confirmation card.`,
-};
+}
 
 export function buildActionFlowsPrompt(flows: ActionFlow[], isVerified: boolean): string {
-  const activeFlows = flows.filter(f => f.is_active);
-  if (activeFlows.length === 0) return '';
+  const activeFlows = flows.filter((f) => f.is_active)
+  if (activeFlows.length === 0) return ""
 
-  const lines: string[] = [];
-  lines.push('AVAILABLE ACTION FLOWS:');
-  lines.push('When the customer expresses intent matching one of these actions, follow the corresponding step-by-step flow.\n');
+  const lines: string[] = []
+  lines.push("AVAILABLE ACTION FLOWS:")
+  lines.push(
+    "When the customer expresses intent matching one of these actions, follow the corresponding step-by-step flow.\n",
+  )
 
   for (const flow of activeFlows) {
-    lines.push(`--- ${flow.label} (intent: "${flow.intent_key}") ---`);
-    if (flow.description) lines.push(`When: ${flow.description}`);
+    lines.push(`--- ${flow.label} (intent: "${flow.intent_key}") ---`)
+    if (flow.description) lines.push(`When: ${flow.description}`)
     if (flow.trigger_phrases.length > 0) {
-      lines.push(`Example triggers: ${flow.trigger_phrases.map(p => `"${p}"`).join(', ')}`);
+      lines.push(`Example triggers: ${flow.trigger_phrases.map((p) => `"${p}"`).join(", ")}`)
     }
     if (flow.requires_verification && !isVerified) {
-      lines.push(`⚠️ Requires phone verification first. Prompt [PHONE_VERIFY] before starting this flow.`);
+      lines.push(
+        `⚠️ Requires phone verification first. Prompt [PHONE_VERIFY] before starting this flow.`,
+      )
     }
 
     if (flow.flow_steps.length > 0) {
-      lines.push('Steps:');
+      lines.push("Steps:")
       for (let i = 0; i < flow.flow_steps.length; i++) {
-        const step = flow.flow_steps[i];
-        const num = i + 1;
-        lines.push(`  ${num}. ${step.instruction || step.field || step.type}`);
+        const step = flow.flow_steps[i]
+        const num = i + 1
+        lines.push(`  ${num}. ${step.instruction || step.field || step.type}`)
         if (step.marker && BLOCK_PROMPTS[step.marker]) {
-          lines.push(`     → ${BLOCK_PROMPTS[step.marker]}`);
+          lines.push(`     → ${BLOCK_PROMPTS[step.marker]}`)
         }
       }
     }
-    lines.push('');
+    lines.push("")
   }
 
-  return lines.join('\n');
+  return lines.join("\n")
 }
 
 function buildGeneralRulesPrompt(config: GeneralConfig): string {
-  const lines: string[] = ['GENERAL RULES:'];
-  if (config.tone) lines.push(`- Tone: ${config.tone}`);
-  if (config.max_initial_lines) lines.push(`- Keep the initial response to max ${config.max_initial_lines} lines before presenting choices.`);
-  if (config.never_dump_history) lines.push(`- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`);
-  if (config.language_behavior) lines.push(`- Language: ${config.language_behavior}`);
-  if (config.escalation_threshold) lines.push(`- If the customer seems stuck after ${config.escalation_threshold} unanswered turns, offer to connect them with a human agent.`);
-  return lines.join('\n');
+  const lines: string[] = ["GENERAL RULES:"]
+  if (config.tone) lines.push(`- Tone: ${config.tone}`)
+  if (config.max_initial_lines)
+    lines.push(
+      `- Keep the initial response to max ${config.max_initial_lines} lines before presenting choices.`,
+    )
+  if (config.never_dump_history)
+    lines.push(
+      `- NEVER dump full booking/order history unprompted. Summarize briefly and let the customer choose.`,
+    )
+  if (config.language_behavior) lines.push(`- Language: ${config.language_behavior}`)
+  if (config.escalation_threshold)
+    lines.push(
+      `- If the customer seems stuck after ${config.escalation_threshold} unanswered turns, offer to connect them with a human agent.`,
+    )
+  return lines.join("\n")
 }
 
-export function buildSystemPrompt(language: string, isVerified: boolean, actionFlows: ActionFlow[], generalConfig: GeneralConfig): string {
-  const langInstruction = language === 'no' || language === 'nb' || language === 'nn'
-    ? 'Respond in Norwegian (bokmål). Match the customer\'s language.'
-    : `Respond in the same language as the customer. The widget is set to language code: ${language}.`;
+export function buildSystemPrompt(
+  language: string,
+  isVerified: boolean,
+  actionFlows: ActionFlow[],
+  generalConfig: GeneralConfig,
+): string {
+  const langInstruction =
+    language === "no" || language === "nb" || language === "nn"
+      ? "Respond in Norwegian (bokmål). Match the customer's language."
+      : `Respond in the same language as the customer. The widget is set to language code: ${language}.`
 
-  const hasVerificationFlows = actionFlows.some(f => f.requires_verification && f.is_active);
+  const hasVerificationFlows = actionFlows.some((f) => f.requires_verification && f.is_active)
 
-  let verificationContext: string;
+  let verificationContext: string
   if (isVerified) {
-     verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
+    verificationContext = `VERIFICATION STATUS: The customer's phone number has been verified via SMS OTP. You can freely access their account data using lookup_customer.
 
 After looking up the customer:
 - Greet them by name.
@@ -133,7 +152,7 @@ CRITICAL: For the "new_booking" flow, NEVER show existing bookings or a [BOOKING
 - When it's time to collect an address, output ONLY the [ADDRESS_SEARCH] marker with stored addresses in JSON — no introductory text.
 - When it's time to collect a car, output ONLY the [LICENSE_PLATE] marker with stored cars in JSON — no introductory text.
 - IMPORTANT: You ALREADY KNOW whether this is an existing customer from the lookup result. NEVER ask "have you ordered before?".
-- If the customer has stored_addresses or stored_cars, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON.`;
+- If the customer has stored_addresses or stored_cars, you MUST pass them inside the ADDRESS_SEARCH / LICENSE_PLATE markers as JSON.`
   } else if (hasVerificationFlows) {
     verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone via SMS.
 
@@ -145,13 +164,13 @@ MODE 2 — ACTION FLOWS (require verification):
 - If the customer wants to perform an action (book, change, cancel, view bookings), they must verify their phone first.
 - Acknowledge their intent briefly, then prompt [PHONE_VERIFY].
 - Do NOT ask for the phone number in text — the form handles it.
-- Do NOT look up customer data or share account details without verification.`;
+- Do NOT look up customer data or share account details without verification.`
   } else {
-    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone. You can answer general questions using search_knowledge_base. For account-specific actions, ask them to verify first using [PHONE_VERIFY].`;
+    verificationContext = `VERIFICATION STATUS: The customer has NOT verified their phone. You can answer general questions using search_knowledge_base. For account-specific actions, ask them to verify first using [PHONE_VERIFY].`
   }
 
-  const actionFlowsPrompt = buildActionFlowsPrompt(actionFlows, isVerified);
-  const generalRules = buildGeneralRulesPrompt(generalConfig);
+  const actionFlowsPrompt = buildActionFlowsPrompt(actionFlows, isVerified)
+  const generalRules = buildGeneralRulesPrompt(generalConfig)
 
   return `You are an AI customer assistant. You help customers with questions about services and help them manage their bookings.
 
@@ -321,90 +340,95 @@ Trigger [RATING] when:
 Add a brief closing line before [RATING], e.g. "Glad I could help! How would you rate your experience?"
 Do NOT show [RATING] if the customer is frustrated, escalating, or the interaction was unsuccessful.
 
-${generalRules}`;
+${generalRules}`
 }
 
 // ── Customer memory prompt ──────────────────────────────────
 
 export interface CustomerMemory {
-  memory_type: string;
-  memory_text: string;
-  confidence: number;
+  memory_type: string
+  memory_text: string
+  confidence: number
 }
 
-export function buildCustomerMemoryPrompt(
-  summaryText: string,
-  memories: CustomerMemory[],
-): string {
-  const lines: string[] = ['=== CUSTOMER PROFILE ==='];
-  lines.push(summaryText);
-  lines.push('');
-  lines.push('Key details:');
+export function buildCustomerMemoryPrompt(summaryText: string, memories: CustomerMemory[]): string {
+  const lines: string[] = ["=== CUSTOMER PROFILE ==="]
+  lines.push(summaryText)
+  lines.push("")
+  lines.push("Key details:")
   for (const m of memories) {
-    lines.push(`- ${m.memory_text}`);
+    lines.push(`- ${m.memory_text}`)
   }
-  lines.push('');
-  lines.push('Use this context naturally. Don\'t explicitly say "according to our records" — just use the knowledge for more personalized responses.');
-  lines.push('If a memory contradicts what the customer says now, trust the customer.');
-  lines.push('=== END CUSTOMER PROFILE ===');
-  return lines.join('\n');
+  lines.push("")
+  lines.push(
+    'Use this context naturally. Don\'t explicitly say "according to our records" — just use the knowledge for more personalized responses.',
+  )
+  lines.push("If a memory contradicts what the customer says now, trust the customer.")
+  lines.push("=== END CUSTOMER PROFILE ===")
+  return lines.join("\n")
 }
 
 // ── Live customer data context ──────────────────────────────
 
 export function buildCustomerContextPrompt(customerData: any): string {
-  if (!customerData || !customerData.found) return '';
+  if (!customerData?.found) return ""
 
-  const lines: string[] = ['=== LIVE CUSTOMER DATA ==='];
-  const c = customerData.customer;
+  const lines: string[] = ["=== LIVE CUSTOMER DATA ==="]
+  const c = customerData.customer
   if (c) {
-    const parts: string[] = [];
-    if (c.name) parts.push(`Name: ${c.name}`);
-    if (c.email) parts.push(`Email: ${c.email}`);
-    if (c.phone) parts.push(`Phone: ${c.phone}`);
-    if (parts.length > 0) lines.push(parts.join(' | '));
+    const parts: string[] = []
+    if (c.name) parts.push(`Name: ${c.name}`)
+    if (c.email) parts.push(`Email: ${c.email}`)
+    if (c.phone) parts.push(`Phone: ${c.phone}`)
+    if (parts.length > 0) lines.push(parts.join(" | "))
   }
 
   // Vehicles
-  const cars = customerData.stored_cars;
+  const cars = customerData.stored_cars
   if (cars && cars.length > 0) {
-    const carList = cars.map((car: any) => {
-      const desc = [car.make, car.model].filter(Boolean).join(' ');
-      return car.plate ? `${desc} (${car.plate})` : desc;
-    }).join(', ');
-    lines.push(`Vehicles: ${carList}`);
+    const carList = cars
+      .map((car: any) => {
+        const desc = [car.make, car.model].filter(Boolean).join(" ")
+        return car.plate ? `${desc} (${car.plate})` : desc
+      })
+      .join(", ")
+    lines.push(`Vehicles: ${carList}`)
   }
 
   // Addresses
-  const addresses = customerData.stored_addresses;
+  const addresses = customerData.stored_addresses
   if (addresses && addresses.length > 0) {
-    const addrList = addresses.map((a: any) => a.label || `${a.zip_code} ${a.city}`).join(' | ');
-    lines.push(`Addresses: ${addrList}`);
+    const addrList = addresses.map((a: any) => a.label || `${a.zip_code} ${a.city}`).join(" | ")
+    lines.push(`Addresses: ${addrList}`)
   }
 
   // Upcoming/active bookings (max 5)
-  const bookings = customerData.bookings;
+  const bookings = customerData.bookings
   if (bookings && bookings.length > 0) {
     const upcoming = bookings
-      .filter((b: any) => b.status === 'confirmed' || b.status === 'pending' || b.status === 'assigned')
-      .slice(0, 5);
+      .filter(
+        (b: any) => b.status === "confirmed" || b.status === "pending" || b.status === "assigned",
+      )
+      .slice(0, 5)
     if (upcoming.length > 0) {
-      lines.push('');
-      lines.push('Upcoming bookings:');
+      lines.push("")
+      lines.push("Upcoming bookings:")
       for (const b of upcoming) {
-        const parts: string[] = [];
-        if (b.services?.length > 0) parts.push(b.services.map((s: any) => s.name).join(', '));
-        if (b.scheduledAt) parts.push(b.scheduledAt);
-        if (b.timeSlot) parts.push(`kl. ${b.timeSlot}`);
-        if (b.address) parts.push(b.address);
-        if (b.vehicle) parts.push(`(${b.vehicle})`);
-        lines.push(`- #${b.id}: ${parts.join(', ')}`);
+        const parts: string[] = []
+        if (b.services?.length > 0) parts.push(b.services.map((s: any) => s.name).join(", "))
+        if (b.scheduledAt) parts.push(b.scheduledAt)
+        if (b.timeSlot) parts.push(`kl. ${b.timeSlot}`)
+        if (b.address) parts.push(b.address)
+        if (b.vehicle) parts.push(`(${b.vehicle})`)
+        lines.push(`- #${b.id}: ${parts.join(", ")}`)
       }
     }
   }
 
-  lines.push('');
-  lines.push('Use this data to personalize your response. Reference their name, vehicle, or upcoming booking when relevant.');
-  lines.push('=== END LIVE CUSTOMER DATA ===');
-  return lines.join('\n');
+  lines.push("")
+  lines.push(
+    "Use this data to personalize your response. Reference their name, vehicle, or upcoming booking when relevant.",
+  )
+  lines.push("=== END LIVE CUSTOMER DATA ===")
+  return lines.join("\n")
 }

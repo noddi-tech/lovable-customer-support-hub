@@ -9,27 +9,27 @@
  * Hard-gated on `import.meta.env.DEV`, so it is dead code in production builds.
  */
 
-const STORAGE_KEY = 'dev:preview-auth-bypass';
+const STORAGE_KEY = "dev:preview-auth-bypass"
 
 /** True only in a dev build (vite dev server / Lovable preview). */
 export function isDevPreview(): boolean {
-  return import.meta.env.DEV === true;
+  return import.meta.env.DEV === true
 }
 
 /** True when the developer has explicitly enabled the bypass in this browser. */
 export function isPreviewBypassEnabled(): boolean {
-  if (!isDevPreview()) return false;
+  if (!isDevPreview()) return false
   try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
+    return localStorage.getItem(STORAGE_KEY) === "1"
   } catch {
-    return false;
+    return false
   }
 }
 
 export function enablePreviewBypass(): void {
-  if (!isDevPreview()) return;
+  if (!isDevPreview()) return
   try {
-    localStorage.setItem(STORAGE_KEY, '1');
+    localStorage.setItem(STORAGE_KEY, "1")
   } catch {
     /* storage unavailable — bypass simply stays off */
   }
@@ -37,7 +37,7 @@ export function enablePreviewBypass(): void {
 
 export function disablePreviewBypass(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY)
   } catch {
     /* no-op */
   }
@@ -50,21 +50,21 @@ export function disablePreviewBypass(): void {
  * Supabase session — real JWT, real RLS scope for that user.
  */
 export function getDevLoginCredentials(): { email: string; password: string } | null {
-  if (!isDevPreview()) return null;
+  if (!isDevPreview()) return null
   const email =
     (import.meta.env.VITE_DEV_LOGIN_EMAIL as string | undefined) ||
     getRememberedDevLogin()?.email ||
-    DEV_LOGIN_DEFAULT_EMAIL;
+    DEV_LOGIN_DEFAULT_EMAIL
   const password =
     (import.meta.env.VITE_DEV_LOGIN_PASSWORD as string | undefined) ||
     getRememberedDevLogin()?.password ||
-    DEV_LOGIN_FALLBACK_PASSWORD;
-  if (!email || !password) return null;
-  return { email, password };
+    DEV_LOGIN_FALLBACK_PASSWORD
+  if (!email || !password) return null
+  return { email, password }
 }
 
 /** Default email shown in the dev sign-in box when nothing is configured yet. */
-export const DEV_LOGIN_DEFAULT_EMAIL = 'anders@noddi.no';
+export const DEV_LOGIN_DEFAULT_EMAIL = "anders@noddi.no"
 
 /**
  * Shared local-development password. Only ever used in dev builds (the
@@ -72,9 +72,9 @@ export const DEV_LOGIN_DEFAULT_EMAIL = 'anders@noddi.no';
  * Keeps the dev sign-in one-click for everyone on the team without each
  * developer having to configure a local .env.
  */
-export const DEV_LOGIN_FALLBACK_PASSWORD = '123456789';
+export const DEV_LOGIN_FALLBACK_PASSWORD = "123456789"
 
-const REMEMBER_KEY = 'dev:preview-login';
+const REMEMBER_KEY = "dev:preview-login"
 
 /**
  * Credentials the developer typed once in the dev sign-in box, kept in this
@@ -82,22 +82,22 @@ const REMEMBER_KEY = 'dev:preview-login';
  * in production (isDevPreview() gate).
  */
 export function getRememberedDevLogin(): { email: string; password: string } | null {
-  if (!isDevPreview()) return null;
+  if (!isDevPreview()) return null
   try {
-    const raw = localStorage.getItem(REMEMBER_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed?.email || !parsed?.password) return null;
-    return { email: parsed.email, password: parsed.password };
+    const raw = localStorage.getItem(REMEMBER_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.email || !parsed?.password) return null
+    return { email: parsed.email, password: parsed.password }
   } catch {
-    return null;
+    return null
   }
 }
 
 export function rememberDevLogin(email: string, password: string): void {
-  if (!isDevPreview()) return;
+  if (!isDevPreview()) return
   try {
-    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email, password }));
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email, password }))
   } catch {
     /* storage unavailable — one-click sign-in simply stays off */
   }
@@ -105,9 +105,8 @@ export function rememberDevLogin(email: string, password: string): void {
 
 export function forgetDevLogin(): void {
   try {
-    localStorage.removeItem(REMEMBER_KEY);
+    localStorage.removeItem(REMEMBER_KEY)
   } catch {
     /* no-op */
   }
 }
-

@@ -1,34 +1,34 @@
-import React, { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import React, { useMemo } from "react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface WidgetContextCardProps {
-  metadata: unknown;
-  className?: string;
+  metadata: unknown
+  className?: string
 }
 
 const LABELS: Record<string, string> = {
-  locale: 'Language',
-  environment: 'Environment',
-  source_app: 'Source app',
-  user_id: 'User ID',
-  service_department_id: 'Department',
-  booking_id: 'Booking',
-  order_id: 'Order',
-  license_plate: 'License plate',
-  car: 'Car',
-  pathname: 'Route',
-  app_version: 'App version',
-};
+  locale: "Language",
+  environment: "Environment",
+  source_app: "Source app",
+  user_id: "User ID",
+  service_department_id: "Department",
+  booking_id: "Booking",
+  order_id: "Order",
+  license_plate: "License plate",
+  car: "Car",
+  pathname: "Route",
+  app_version: "App version",
+}
 
-const ORDER = Object.keys(LABELS);
+const ORDER = Object.keys(LABELS)
 
 const IDENTITY_LABELS: Record<string, string> = {
-  name: 'Name',
-  email: 'Email',
-  phone: 'Phone',
-  user_id: 'User ID',
-};
+  name: "Name",
+  email: "Email",
+  phone: "Phone",
+  user_id: "User ID",
+}
 
 /**
  * Shows the optional context the embedding site sent at widget init
@@ -36,32 +36,31 @@ const IDENTITY_LABELS: Record<string, string> = {
  */
 export const WidgetContextCard: React.FC<WidgetContextCardProps> = ({ metadata, className }) => {
   const entries = useMemo(() => {
-    const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, any>;
-    const ctx = meta.context;
-    if (!ctx || typeof ctx !== 'object') return [];
-    return ORDER
-      .filter((key) => ctx[key] !== undefined && ctx[key] !== null && ctx[key] !== '')
-      .map((key) => ({ key, label: LABELS[key], value: String(ctx[key]) }));
-  }, [metadata]);
+    const meta = (metadata && typeof metadata === "object" ? metadata : {}) as Record<string, any>
+    const ctx = meta.context
+    if (!ctx || typeof ctx !== "object") return []
+    return ORDER.filter(
+      (key) => ctx[key] !== undefined && ctx[key] !== null && ctx[key] !== "",
+    ).map((key) => ({ key, label: LABELS[key], value: String(ctx[key]) }))
+  }, [metadata])
 
   const identityEntries = useMemo(() => {
-    const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, any>;
-    const identity = meta.identity;
-    if (!identity || typeof identity !== 'object') return [];
+    const meta = (metadata && typeof metadata === "object" ? metadata : {}) as Record<string, any>
+    const identity = meta.identity
+    if (!identity || typeof identity !== "object") return []
     return Object.keys(IDENTITY_LABELS)
       .filter((key) => identity[key])
-      .map((key) => ({ key, label: IDENTITY_LABELS[key], value: String(identity[key]) }));
-  }, [metadata]);
+      .map((key) => ({ key, label: IDENTITY_LABELS[key], value: String(identity[key]) }))
+  }, [metadata])
 
-  if (entries.length === 0 && identityEntries.length === 0) return null;
+  if (entries.length === 0 && identityEntries.length === 0) return null
 
-  const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, any>;
+  const meta = (metadata && typeof metadata === "object" ? metadata : {}) as Record<string, any>
   const isNonProd =
-    typeof meta.context?.environment === 'string' &&
-    !/^prod/i.test(meta.context.environment);
+    typeof meta.context?.environment === "string" && !/^prod/i.test(meta.context.environment)
 
   return (
-    <div className={cn('rounded-md border bg-muted/30 p-3 space-y-2', className)}>
+    <div className={cn("rounded-md border bg-muted/30 p-3 space-y-2", className)}>
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">Session context</span>
         {isNonProd && (
@@ -94,5 +93,5 @@ export const WidgetContextCard: React.FC<WidgetContextCardProps> = ({ metadata, 
         ))}
       </dl>
     </div>
-  );
-};
+  )
+}

@@ -1,23 +1,23 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
-import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
-import { execSync } from "child_process";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite"
+import react from "@vitejs/plugin-react-swc"
+import { execSync } from "child_process"
+import { componentTagger } from "lovable-tagger"
+import path from "path"
+import { defineConfig } from "vite"
 
 function resolveGitCommit(): string {
   const fromEnv =
     process.env.VITE_GIT_COMMIT ||
     process.env.GIT_COMMIT ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
-    process.env.GITHUB_SHA;
-  if (fromEnv) return fromEnv.slice(0, 12);
+    process.env.GITHUB_SHA
+  if (fromEnv) return fromEnv.slice(0, 12)
   try {
     return execSync("git rev-parse --short=12 HEAD", { stdio: ["ignore", "pipe", "ignore"] })
       .toString()
-      .trim();
+      .trim()
   } catch {
-    return "unknown";
+    return "unknown"
   }
 }
 
@@ -31,15 +31,10 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [
-    react(),
-    mcpPlugin(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react(), mcpPlugin(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+}))

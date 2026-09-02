@@ -1,26 +1,26 @@
-import { Button } from '@/components/ui/button';
+import { RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw } from 'lucide-react';
-import type { TimeWindow, AssignmentScope } from '@/hooks/recruitment/useOversiktMetrics';
+} from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { AssignmentScope, TimeWindow } from "@/hooks/recruitment/useOversiktMetrics"
 
 interface Props {
-  positionId: string | null;
-  positions: Array<{ id: string; title: string }>;
-  timeWindow: TimeWindow;
-  scope: AssignmentScope;
-  realtimeConnected: boolean;
-  isFetching: boolean;
-  onPositionChange: (id: string | null) => void;
-  onTimeWindowChange: (w: TimeWindow) => void;
-  onScopeChange: (s: AssignmentScope) => void;
-  onRefresh: () => void;
+  positionId: string | null
+  positions: Array<{ id: string; title: string }>
+  timeWindow: TimeWindow
+  scope: AssignmentScope
+  realtimeConnected: boolean
+  isFetching: boolean
+  onPositionChange: (id: string | null) => void
+  onTimeWindowChange: (w: TimeWindow) => void
+  onScopeChange: (s: AssignmentScope) => void
+  onRefresh: () => void
 }
 
 export default function OversiktFilters({
@@ -37,7 +37,10 @@ export default function OversiktFilters({
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Select value={positionId ?? 'all'} onValueChange={(v) => onPositionChange(v === 'all' ? null : v)}>
+      <Select
+        value={positionId ?? "all"}
+        onValueChange={(v) => onPositionChange(v === "all" ? null : v)}
+      >
         <SelectTrigger className="w-[200px] h-8">
           <SelectValue />
         </SelectTrigger>
@@ -65,24 +68,36 @@ export default function OversiktFilters({
 
       <Tabs value={scope} onValueChange={(v) => onScopeChange(v as AssignmentScope)}>
         <TabsList className="h-8">
-          <TabsTrigger value="mine" className="text-xs h-6">Mine</TabsTrigger>
-          <TabsTrigger value="unassigned" className="text-xs h-6">Ikke tildelt</TabsTrigger>
-          <TabsTrigger value="all" className="text-xs h-6">Alle</TabsTrigger>
+          <TabsTrigger value="mine" className="text-xs h-6">
+            Mine
+          </TabsTrigger>
+          <TabsTrigger value="unassigned" className="text-xs h-6">
+            Ikke tildelt
+          </TabsTrigger>
+          <TabsTrigger value="all" className="text-xs h-6">
+            Alle
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
       <div className="flex items-center gap-2 ml-auto">
         <span
           className={`inline-block h-2 w-2 rounded-full ${
-            realtimeConnected ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+            realtimeConnected ? "bg-emerald-500" : "bg-muted-foreground/40"
           }`}
-          title={realtimeConnected ? 'Sanntid tilkoblet' : 'Sanntid frakoblet'}
-          aria-label={realtimeConnected ? 'Sanntid tilkoblet' : 'Sanntid frakoblet'}
+          title={realtimeConnected ? "Sanntid tilkoblet" : "Sanntid frakoblet"}
+          aria-label={realtimeConnected ? "Sanntid tilkoblet" : "Sanntid frakoblet"}
         />
-        <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="Oppdater" disabled={isFetching}>
-          <RefreshCw className={isFetching ? 'animate-spin' : ''} />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRefresh}
+          aria-label="Oppdater"
+          disabled={isFetching}
+        >
+          <RefreshCw className={isFetching ? "animate-spin" : ""} />
         </Button>
       </div>
     </div>
-  );
+  )
 }

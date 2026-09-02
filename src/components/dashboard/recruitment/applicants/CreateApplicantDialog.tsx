@@ -1,106 +1,107 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useJobPositions } from '../positions/usePositions';
-import { useCreateApplicant } from './useApplicants';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useJobPositions } from "../positions/usePositions"
+import { useCreateApplicant } from "./useApplicants"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-const LICENSE_CLASSES = ['B', 'B96', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE'];
+const LICENSE_CLASSES = ["B", "B96", "BE", "C1", "C1E", "C", "CE", "D1", "D1E", "D", "DE"]
 
 const SOURCE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'manual', label: 'Manuell' },
-  { value: 'referral', label: 'Referanse' },
-  { value: 'website', label: 'Nettside' },
-  { value: 'finn', label: 'Finn.no' },
-];
+  { value: "manual", label: "Manuell" },
+  { value: "referral", label: "Referanse" },
+  { value: "website", label: "Nettside" },
+  { value: "finn", label: "Finn.no" },
+]
 
 const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'native', label: 'Morsmål' },
-  { value: 'fluent', label: 'Flytende' },
-  { value: 'conversational', label: 'Grunnleggende' },
-  { value: 'basic', label: 'Noe' },
-  { value: 'none', label: 'Ingen' },
-];
+  { value: "native", label: "Morsmål" },
+  { value: "fluent", label: "Flytende" },
+  { value: "conversational", label: "Grunnleggende" },
+  { value: "basic", label: "Noe" },
+  { value: "none", label: "Ingen" },
+]
 
 const PERMIT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'citizen', label: 'Norsk statsborger' },
-  { value: 'permanent_resident', label: 'Permanent opphold' },
-  { value: 'work_permit', label: 'Arbeidstillatelse' },
-  { value: 'needs_sponsorship', label: 'Trenger sponsing' },
-];
+  { value: "citizen", label: "Norsk statsborger" },
+  { value: "permanent_resident", label: "Permanent opphold" },
+  { value: "work_permit", label: "Arbeidstillatelse" },
+  { value: "needs_sponsorship", label: "Trenger sponsing" },
+]
 
 const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
-  const navigate = useNavigate();
-  const createMut = useCreateApplicant();
-  const { data: positions } = useJobPositions();
-  const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+  const navigate = useNavigate()
+  const createMut = useCreateApplicant()
+  const { data: positions } = useJobPositions()
+  const openPositions = (positions ?? []).filter((p) => p.status === "open")
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [positionId, setPositionId] = useState('');
-  const [source, setSource] = useState('manual');
-  const [licenseClasses, setLicenseClasses] = useState<Set<string>>(new Set());
-  const [yearsExperience, setYearsExperience] = useState('');
-  const [availabilityDate, setAvailabilityDate] = useState('');
-  const [languageNorwegian, setLanguageNorwegian] = useState('fluent');
-  const [workPermit, setWorkPermit] = useState('citizen');
-  const [gdpr, setGdpr] = useState(false);
-  const [note, setNote] = useState('');
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [positionId, setPositionId] = useState("")
+  const [source, setSource] = useState("manual")
+  const [licenseClasses, setLicenseClasses] = useState<Set<string>>(new Set())
+  const [yearsExperience, setYearsExperience] = useState("")
+  const [availabilityDate, setAvailabilityDate] = useState("")
+  const [languageNorwegian, setLanguageNorwegian] = useState("fluent")
+  const [workPermit, setWorkPermit] = useState("citizen")
+  const [gdpr, setGdpr] = useState(false)
+  const [note, setNote] = useState("")
 
   const reset = () => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPhone('');
-    setPositionId('');
-    setSource('manual');
-    setLicenseClasses(new Set());
-    setYearsExperience('');
-    setAvailabilityDate('');
-    setLanguageNorwegian('fluent');
-    setWorkPermit('citizen');
-    setGdpr(false);
-    setNote('');
-  };
+    setFirstName("")
+    setLastName("")
+    setEmail("")
+    setPhone("")
+    setPositionId("")
+    setSource("manual")
+    setLicenseClasses(new Set())
+    setYearsExperience("")
+    setAvailabilityDate("")
+    setLanguageNorwegian("fluent")
+    setWorkPermit("citizen")
+    setGdpr(false)
+    setNote("")
+  }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) reset();
-    onOpenChange(next);
-  };
+    if (!next) reset()
+    onOpenChange(next)
+  }
 
   const toggleLicense = (cls: string) => {
     setLicenseClasses((prev) => {
-      const n = new Set(prev);
-      if (n.has(cls)) n.delete(cls);
-      else n.add(cls);
-      return n;
-    });
-  };
+      const n = new Set(prev)
+      if (n.has(cls)) n.delete(cls)
+      else n.add(cls)
+      return n
+    })
+  }
 
   const canSubmit =
     firstName.trim() &&
@@ -108,11 +109,11 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
     email.trim() &&
     positionId &&
     gdpr &&
-    !createMut.isPending;
+    !createMut.isPending
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+    e.preventDefault()
+    if (!canSubmit) return
 
     try {
       const { applicantId } = await createMut.mutateAsync({
@@ -130,14 +131,14 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           work_permit_status: workPermit,
         },
         noteContent: note,
-      });
-      reset();
-      onOpenChange(false);
-      navigate(`/operations/recruitment/applicants/${applicantId}`);
+      })
+      reset()
+      onOpenChange(false)
+      navigate(`/operations/recruitment/applicants/${applicantId}`)
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -238,10 +239,7 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               <Label>Førerkortklasser</Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {LICENSE_CLASSES.map((cls) => (
-                  <label
-                    key={cls}
-                    className="flex items-center gap-2 cursor-pointer text-sm"
-                  >
+                  <label key={cls} className="flex items-center gap-2 cursor-pointer text-sm">
                     <Checkbox
                       checked={licenseClasses.has(cls)}
                       onCheckedChange={() => toggleLicense(cls)}
@@ -317,7 +315,7 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
                 className="mt-0.5"
               />
               <span>
-                Søkeren har gitt samtykke til behandling av personopplysninger{' '}
+                Søkeren har gitt samtykke til behandling av personopplysninger{" "}
                 <span className="text-destructive">*</span>
               </span>
             </label>
@@ -352,7 +350,7 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
         </form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default CreateApplicantDialog;
+export default CreateApplicantDialog

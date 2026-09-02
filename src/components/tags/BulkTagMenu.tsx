@@ -1,17 +1,18 @@
-import React, { useMemo } from 'react';
-import { Tag as TagIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TagPickerList } from '@/components/tags/TagPicker';
-import { useTags } from '@/hooks/useTags';
-import { useEntityTags, type TaggableEntity } from '@/hooks/useEntityTags';
-import { toast } from 'sonner';
+import { Tag as TagIcon } from "lucide-react"
+import type React from "react"
+import { useMemo } from "react"
+import { toast } from "sonner"
+import { TagPickerList } from "@/components/tags/TagPicker"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { type TaggableEntity, useEntityTags } from "@/hooks/useEntityTags"
+import { useTags } from "@/hooks/useTags"
 
 interface BulkTagMenuProps {
-  entityType: TaggableEntity;
-  entityIds: string[];
-  className?: string;
-  size?: 'sm' | 'default';
+  entityType: TaggableEntity
+  entityIds: string[]
+  className?: string
+  size?: "sm" | "default"
 }
 
 /**
@@ -24,37 +25,35 @@ export const BulkTagMenu: React.FC<BulkTagMenuProps> = ({
   entityType,
   entityIds,
   className,
-  size = 'sm',
+  size = "sm",
 }) => {
-  const { getTags, addTag, removeTag } = useEntityTags(entityType);
-  const { createTag } = useTags();
+  const { getTags, addTag, removeTag } = useEntityTags(entityType)
+  const { createTag } = useTags()
 
   const commonTagIds = useMemo(() => {
-    if (entityIds.length === 0) return [];
-    const counts = new Map<string, number>();
+    if (entityIds.length === 0) return []
+    const counts = new Map<string, number>()
     entityIds.forEach((id) => {
-      getTags(id).forEach((t) => counts.set(t.id, (counts.get(t.id) ?? 0) + 1));
-    });
-    return [...counts.entries()]
-      .filter(([, n]) => n === entityIds.length)
-      .map(([tagId]) => tagId);
-  }, [entityIds, getTags]);
+      getTags(id).forEach((t) => counts.set(t.id, (counts.get(t.id) ?? 0) + 1))
+    })
+    return [...counts.entries()].filter(([, n]) => n === entityIds.length).map(([tagId]) => tagId)
+  }, [entityIds, getTags])
 
   const applyTag = async (tagId: string) => {
-    const isCommon = commonTagIds.includes(tagId);
+    const isCommon = commonTagIds.includes(tagId)
     await Promise.all(
       entityIds.map((id) => {
-        const has = getTags(id).some((t) => t.id === tagId);
-        if (isCommon) return removeTag(id, tagId);
-        return has ? Promise.resolve() : addTag(id, tagId);
+        const has = getTags(id).some((t) => t.id === tagId)
+        if (isCommon) return removeTag(id, tagId)
+        return has ? Promise.resolve() : addTag(id, tagId)
       }),
-    );
+    )
     toast.success(
       isCommon
-        ? `Tag removed from ${entityIds.length} item${entityIds.length === 1 ? '' : 's'}`
-        : `Tag added to ${entityIds.length} item${entityIds.length === 1 ? '' : 's'}`,
-    );
-  };
+        ? `Tag removed from ${entityIds.length} item${entityIds.length === 1 ? "" : "s"}`
+        : `Tag added to ${entityIds.length} item${entityIds.length === 1 ? "" : "s"}`,
+    )
+  }
 
   return (
     <Popover>
@@ -69,11 +68,11 @@ export const BulkTagMenu: React.FC<BulkTagMenuProps> = ({
           selectedIds={commonTagIds}
           onToggle={applyTag}
           onCreate={async (name, color) => {
-            const tag = await createTag.mutateAsync({ name, color });
-            await Promise.all(entityIds.map((id) => addTag(id, tag.id)));
+            const tag = await createTag.mutateAsync({ name, color })
+            await Promise.all(entityIds.map((id) => addTag(id, tag.id)))
           }}
         />
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

@@ -1,89 +1,86 @@
-import React from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { InteractionsSidebar } from '@/components/layout/InteractionsSidebar';
-import { MarketingSidebar } from '@/components/layout/MarketingSidebar';
-import { OperationsSidebar } from '@/components/layout/OperationsSidebar';
-import { EnhancedInteractionsLayout } from '@/components/dashboard/EnhancedInteractionsLayout';
-import { VoiceInterface } from '@/components/dashboard/VoiceInterface';
-import NewsletterBuilder from '@/components/dashboard/NewsletterBuilder';
-import ServiceTicketsInterface from '@/components/dashboard/ServiceTicketsInterface';
-import RecruitmentInterface from '@/components/dashboard/RecruitmentInterface';
-import VoiceAnalyticsPage from '@/pages/VoiceAnalyticsPage';
-import VoiceSettingsPage from '@/pages/VoiceSettingsPage';
-import { VoiceDashboard } from '@/components/dashboard/voice/VoiceDashboard';
-import { ResponsiveContainer } from '@/components/admin/design/components/layouts/ResponsiveContainer';
-import { ChatLayout } from '@/components/dashboard/chat';
-
+import React from "react"
+import { useLocation, useSearchParams } from "react-router-dom"
+import { ResponsiveContainer } from "@/components/admin/design/components/layouts/ResponsiveContainer"
+import { ChatLayout } from "@/components/dashboard/chat"
+import { EnhancedInteractionsLayout } from "@/components/dashboard/EnhancedInteractionsLayout"
+import NewsletterBuilder from "@/components/dashboard/NewsletterBuilder"
+import RecruitmentInterface from "@/components/dashboard/RecruitmentInterface"
+import ServiceTicketsInterface from "@/components/dashboard/ServiceTicketsInterface"
+import { VoiceDashboard } from "@/components/dashboard/voice/VoiceDashboard"
+import { InteractionsSidebar } from "@/components/layout/InteractionsSidebar"
+import { MarketingSidebar } from "@/components/layout/MarketingSidebar"
+import { OperationsSidebar } from "@/components/layout/OperationsSidebar"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import VoiceAnalyticsPage from "@/pages/VoiceAnalyticsPage"
+import VoiceSettingsPage from "@/pages/VoiceSettingsPage"
 
 const Index = () => {
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const selectedInboxId = searchParams.get('inbox') || '';
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const selectedInboxId = searchParams.get("inbox") || ""
 
   // Determine section from hierarchical path structure
   const getCurrentSection = () => {
-    const path = location.pathname;
-    if (path.startsWith('/interactions')) return 'interactions';
-    if (path.startsWith('/marketing')) return 'marketing';
-    if (path.startsWith('/operations')) return 'operations';
-    return 'interactions'; // default fallback
-  };
+    const path = location.pathname
+    if (path.startsWith("/interactions")) return "interactions"
+    if (path.startsWith("/marketing")) return "marketing"
+    if (path.startsWith("/operations")) return "operations"
+    return "interactions" // default fallback
+  }
 
   // Determine sub-section from path
   const getCurrentSubSection = () => {
-    const path = location.pathname;
-    
+    const path = location.pathname
+
     // Interactions sub-sections
-    if (path.includes('/interactions/voice/analytics')) return 'voice-analytics';
-    if (path.includes('/interactions/voice/settings')) return 'voice-settings';
-    if (path.includes('/interactions/voice')) return 'voice';
-    if (path.includes('/interactions/chat')) return 'chat';
-    if (path.includes('/interactions/text')) return 'text';
-    
+    if (path.includes("/interactions/voice/analytics")) return "voice-analytics"
+    if (path.includes("/interactions/voice/settings")) return "voice-settings"
+    if (path.includes("/interactions/voice")) return "voice"
+    if (path.includes("/interactions/chat")) return "chat"
+    if (path.includes("/interactions/text")) return "text"
+
     // Marketing sub-sections
-    if (path.includes('/marketing/newsletters')) return 'newsletters';
-    if (path.includes('/marketing/campaigns') || path === '/marketing') return 'campaigns';
-    
+    if (path.includes("/marketing/newsletters")) return "newsletters"
+    if (path.includes("/marketing/campaigns") || path === "/marketing") return "campaigns"
+
     // Operations sub-sections
-    if (path.includes('/operations/tickets')) return 'tickets';
-    if (path.includes('/operations/recruitment')) return 'recruitment';
-    if (path.includes('/operations/analytics')) return 'analytics';
-    if (path.includes('/operations/bulk-outreach')) return 'bulk-outreach';
-    
-    
-    return 'text'; // default
-  };
+    if (path.includes("/operations/tickets")) return "tickets"
+    if (path.includes("/operations/recruitment")) return "recruitment"
+    if (path.includes("/operations/analytics")) return "analytics"
+    if (path.includes("/operations/bulk-outreach")) return "bulk-outreach"
+
+    return "text" // default
+  }
 
   const renderContent = () => {
-    const section = getCurrentSection();
-    const subSection = getCurrentSubSection();
+    const section = getCurrentSection()
+    const subSection = getCurrentSubSection()
 
     switch (section) {
-      case 'interactions':
+      case "interactions":
         // Handle voice analytics and settings
-        if (subSection === 'voice-analytics') {
-          return <VoiceAnalyticsPage />;
+        if (subSection === "voice-analytics") {
+          return <VoiceAnalyticsPage />
         }
-        if (subSection === 'voice-settings') {
-          return <VoiceSettingsPage />;
+        if (subSection === "voice-settings") {
+          return <VoiceSettingsPage />
         }
         // Handle Voice - dedicated layout
-        if (subSection === 'voice') {
+        if (subSection === "voice") {
           return (
-            <ResponsiveContainer 
-              padding={{ sm: '4', md: '6', lg: '8' }}
+            <ResponsiveContainer
+              padding={{ sm: "4", md: "6", lg: "8" }}
               maxWidth="7xl"
               center={true}
               className="py-6"
             >
               <VoiceDashboard />
             </ResponsiveContainer>
-          );
+          )
         }
         // Handle Chat - dedicated layout
-        if (subSection === 'chat') {
-          return <ChatLayout />;
+        if (subSection === "chat") {
+          return <ChatLayout />
         }
         // Text Messages and Voice use EnhancedInteractionsLayout
         return (
@@ -93,51 +90,67 @@ const Index = () => {
             onTabChange={() => {}}
             selectedInboxId={selectedInboxId}
           />
-        );
-      
-      case 'marketing':
-        if (subSection === 'newsletters') {
-          const NewsletterManagementPage = React.lazy(() => import('@/pages/NewsletterManagementPage'));
+        )
+
+      case "marketing":
+        if (subSection === "newsletters") {
+          const NewsletterManagementPage = React.lazy(
+            () => import("@/pages/NewsletterManagementPage"),
+          )
           return (
             <React.Suspense fallback={<div>Loading...</div>}>
               <NewsletterManagementPage />
             </React.Suspense>
-          );
+          )
         }
         // Default to campaigns
-        return <NewsletterBuilder />;
-      
-      case 'operations':
-        if (subSection === 'tickets') {
-          const ServiceTickets = React.lazy(() => import('@/pages/ServiceTickets'));
+        return <NewsletterBuilder />
+
+      case "operations":
+        if (subSection === "tickets") {
+          const ServiceTickets = React.lazy(() => import("@/pages/ServiceTickets"))
           return (
             <React.Suspense fallback={<div>Loading...</div>}>
               <ServiceTickets />
             </React.Suspense>
-          );
+          )
         }
-        if (subSection === 'recruitment') {
-          return <RecruitmentInterface />;
+        if (subSection === "recruitment") {
+          return <RecruitmentInterface />
         }
-        if (subSection === 'analytics') {
-          const OperationsAnalyticsDashboard = React.lazy(() => import('@/components/operations/OperationsAnalyticsDashboard'));
+        if (subSection === "analytics") {
+          const OperationsAnalyticsDashboard = React.lazy(
+            () => import("@/components/operations/OperationsAnalyticsDashboard"),
+          )
           return (
-            <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+            <React.Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              }
+            >
               <OperationsAnalyticsDashboard />
             </React.Suspense>
-          );
+          )
         }
-        if (subSection === 'bulk-outreach') {
-          const BulkOutreach = React.lazy(() => import('@/pages/BulkOutreach'));
+        if (subSection === "bulk-outreach") {
+          const BulkOutreach = React.lazy(() => import("@/pages/BulkOutreach"))
           return (
-            <React.Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
+            <React.Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+                </div>
+              }
+            >
               <BulkOutreach />
             </React.Suspense>
-          );
+          )
         }
         // Default to service tickets
-        return <ServiceTicketsInterface />;
-      
+        return <ServiceTicketsInterface />
+
       default:
         return (
           <div className="flex items-center justify-center h-full p-8 text-center">
@@ -146,34 +159,31 @@ const Index = () => {
                 Welcome to Customer Support Hub
               </h2>
               <p className="text-muted-foreground">
-                Select a section from the navigation to get started with managing your customer interactions.
+                Select a section from the navigation to get started with managing your customer
+                interactions.
               </p>
             </div>
           </div>
-        );
+        )
     }
-  };
+  }
 
   const getSidebar = () => {
-    const section = getCurrentSection();
-    
+    const section = getCurrentSection()
+
     switch (section) {
-      case 'interactions':
-        return <InteractionsSidebar />;
-      case 'marketing':
-        return <MarketingSidebar />;
-      case 'operations':
-        return <OperationsSidebar />;
+      case "interactions":
+        return <InteractionsSidebar />
+      case "marketing":
+        return <MarketingSidebar />
+      case "operations":
+        return <OperationsSidebar />
       default:
-        return null;
+        return null
     }
-  };
+  }
 
-  return (
-    <UnifiedAppLayout>
-      {renderContent()}
-    </UnifiedAppLayout>
-  );
-};
+  return <UnifiedAppLayout>{renderContent()}</UnifiedAppLayout>
+}
 
-export default Index;
+export default Index

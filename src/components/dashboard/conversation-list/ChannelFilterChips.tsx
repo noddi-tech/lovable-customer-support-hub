@@ -1,14 +1,14 @@
-import { Inbox } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useConversationList } from '@/contexts/ConversationListContext';
-import { channelMeta, SOCIAL_CHANNELS } from '@/lib/conversationChannels';
+import { Inbox } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useConversationList } from "@/contexts/ConversationListContext"
+import { channelMeta, SOCIAL_CHANNELS } from "@/lib/conversationChannels"
+import { cn } from "@/lib/utils"
 
 /** Chip order in the Inbox list. 'social' folds Facebook + Instagram together. */
-const CHIP_ORDER = ['email', 'sms', 'whatsapp', 'social'] as const;
+const CHIP_ORDER = ["email", "sms", "whatsapp", "social"] as const
 
 function chipChannels(chip: string): string[] {
-  return chip === 'social' ? [...SOCIAL_CHANNELS] : [chip];
+  return chip === "social" ? [...SOCIAL_CHANNELS] : [chip]
 }
 
 /**
@@ -17,17 +17,17 @@ function chipChannels(chip: string): string[] {
  * without splitting the navigation.
  */
 export function ChannelFilterChips() {
-  const { channelCounts, state, dispatch } = useConversationList();
+  const { channelCounts, state, dispatch } = useConversationList()
 
   // Counts come from the list before the channel filter, so chips never zero out.
   const visibleChips = CHIP_ORDER.filter(
     (chip) => (channelCounts[chip] ?? 0) > 0 || state.channelFilter === chip,
-  );
+  )
 
   // Nothing to disambiguate when everything is the same channel.
-  if (visibleChips.length < 2) return null;
+  if (visibleChips.length < 2) return null
 
-  const total = Object.values(channelCounts).reduce((sum, n) => sum + n, 0);
+  const total = Object.values(channelCounts).reduce((sum, n) => sum + n, 0)
 
   const chip = (
     key: string,
@@ -40,12 +40,12 @@ export function ChannelFilterChips() {
       <TooltipTrigger asChild>
         <button
           type="button"
-          onClick={() => dispatch({ type: 'SET_CHANNEL_FILTER', payload: key })}
+          onClick={() => dispatch({ type: "SET_CHANNEL_FILTER", payload: key })}
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
+            "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
             state.channelFilter === key
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-border text-muted-foreground hover:bg-accent',
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:bg-accent",
           )}
         >
           <Icon className="h-3 w-3" />
@@ -57,22 +57,25 @@ export function ChannelFilterChips() {
         {description}
       </TooltipContent>
     </Tooltip>
-  );
+  )
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex items-center gap-1.5 overflow-x-auto border-b px-3 py-1.5">
-        {chip('all', 'All', total, 'Every conversation in this inbox, whatever channel it came from.', Inbox)}
+        {chip(
+          "all",
+          "All",
+          total,
+          "Every conversation in this inbox, whatever channel it came from.",
+          Inbox,
+        )}
         {visibleChips.map((c) => {
-          const meta = channelMeta(chipChannels(c)[0]);
-          const label = c === 'social' ? 'Social' : meta.label;
-          const description =
-            c === 'social'
-              ? 'Facebook and Instagram messages.'
-              : meta.description;
-          return chip(c, label, channelCounts[c] ?? 0, description, meta.icon);
+          const meta = channelMeta(chipChannels(c)[0])
+          const label = c === "social" ? "Social" : meta.label
+          const description = c === "social" ? "Facebook and Instagram messages." : meta.description
+          return chip(c, label, channelCounts[c] ?? 0, description, meta.icon)
         })}
       </div>
     </TooltipProvider>
-  );
+  )
 }

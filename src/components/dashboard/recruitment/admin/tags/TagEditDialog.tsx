@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Check } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,60 +8,58 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Check } from 'lucide-react';
-import { PRESET_COLORS } from '../pipeline/types';
-import { useCreateTag, useUpdateTag, type RecruitmentTag } from '@/hooks/recruitment/useTags';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { type RecruitmentTag, useCreateTag, useUpdateTag } from "@/hooks/recruitment/useTags"
+import { PRESET_COLORS } from "../pipeline/types"
 
 interface Props {
-  open: boolean;
-  tag: RecruitmentTag | null; // null = create
-  onClose: () => void;
+  open: boolean
+  tag: RecruitmentTag | null // null = create
+  onClose: () => void
 }
 
 export function TagEditDialog({ open, tag, onClose }: Props) {
-  const isCreate = !tag;
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [color, setColor] = useState<string>(PRESET_COLORS[0].value);
-  const createMut = useCreateTag();
-  const updateMut = useUpdateTag();
-  const saving = createMut.isPending || updateMut.isPending;
+  const isCreate = !tag
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [color, setColor] = useState<string>(PRESET_COLORS[0].value)
+  const createMut = useCreateTag()
+  const updateMut = useUpdateTag()
+  const saving = createMut.isPending || updateMut.isPending
 
   useEffect(() => {
     if (open) {
-      setName(tag?.name ?? '');
-      setDescription(tag?.description ?? '');
-      setColor(tag?.color ?? PRESET_COLORS[0].value);
+      setName(tag?.name ?? "")
+      setDescription(tag?.description ?? "")
+      setColor(tag?.color ?? PRESET_COLORS[0].value)
     }
-  }, [open, tag]);
+  }, [open, tag])
 
-  const trimmed = name.trim();
-  const valid = trimmed.length >= 1 && trimmed.length <= 50;
+  const trimmed = name.trim()
+  const valid = trimmed.length >= 1 && trimmed.length <= 50
 
   const handleSubmit = async () => {
-    if (!valid) return;
+    if (!valid) return
     try {
       if (isCreate) {
-        await createMut.mutateAsync({ name: trimmed, color, description });
+        await createMut.mutateAsync({ name: trimmed, color, description })
       } else {
-        await updateMut.mutateAsync({ id: tag!.id, name: trimmed, color, description });
+        await updateMut.mutateAsync({ id: tag!.id, name: trimmed, color, description })
       }
-      onClose();
+      onClose()
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isCreate ? 'Ny etikett' : 'Rediger etikett'}</DialogTitle>
+          <DialogTitle>{isCreate ? "Ny etikett" : "Rediger etikett"}</DialogTitle>
           <DialogDescription>
             Etiketter brukes til å organisere og filtrere søkere.
           </DialogDescription>
@@ -97,7 +97,7 @@ export function TagEditDialog({ open, tag, onClose }: Props) {
                   className="h-8 w-8 rounded-full border-2 flex items-center justify-center transition"
                   style={{
                     backgroundColor: c.value,
-                    borderColor: color === c.value ? 'hsl(var(--foreground))' : 'transparent',
+                    borderColor: color === c.value ? "hsl(var(--foreground))" : "transparent",
                   }}
                   aria-label={c.label}
                 >
@@ -113,10 +113,10 @@ export function TagEditDialog({ open, tag, onClose }: Props) {
             Avbryt
           </Button>
           <Button onClick={handleSubmit} disabled={!valid || saving}>
-            {isCreate ? 'Opprett' : 'Lagre'}
+            {isCreate ? "Opprett" : "Lagre"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

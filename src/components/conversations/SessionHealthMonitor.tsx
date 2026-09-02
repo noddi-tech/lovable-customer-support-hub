@@ -1,32 +1,35 @@
-import { useEffect } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, Zap, Activity, CheckCircle2, XCircle } from 'lucide-react';
-import { useAggressiveSessionRecovery } from '@/hooks/useAggressiveSessionRecovery';
+import { Activity, AlertTriangle, CheckCircle2, RefreshCw, XCircle, Zap } from "lucide-react"
+import { useEffect } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAggressiveSessionRecovery } from "@/hooks/useAggressiveSessionRecovery"
 
 interface SessionHealthMonitorProps {
-  showDetails?: boolean;
-  autoRecover?: boolean;
+  showDetails?: boolean
+  autoRecover?: boolean
 }
 
-export function SessionHealthMonitor({ showDetails = false, autoRecover = true }: SessionHealthMonitorProps) {
+export function SessionHealthMonitor({
+  showDetails = false,
+  autoRecover = true,
+}: SessionHealthMonitorProps) {
   const {
     healthState,
     isRecovering,
     performHealthCheck,
     aggressiveRecovery,
     nuclearSessionReset,
-    canRecover
-  } = useAggressiveSessionRecovery();
+    canRecover,
+  } = useAggressiveSessionRecovery()
 
   // Auto-run health check on mount when in debug/details mode
   useEffect(() => {
     if (showDetails && healthState.lastCheck === null) {
-      performHealthCheck();
+      performHealthCheck()
     }
-  }, [showDetails, healthState.lastCheck, performHealthCheck]);
+  }, [showDetails, healthState.lastCheck, performHealthCheck])
 
   // Show critical alert when session is unhealthy
   if (!healthState.isHealthy && healthState.consecutiveFailures > 0) {
@@ -35,21 +38,20 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Session synchronization issue detected. This may prevent conversations from loading properly.
+            Session synchronization issue detected. This may prevent conversations from loading
+            properly.
             {healthState.consecutiveFailures >= 3 && (
-              <span className="font-semibold"> Multiple failures detected - immediate action required.</span>
+              <span className="font-semibold">
+                {" "}
+                Multiple failures detected - immediate action required.
+              </span>
             )}
           </AlertDescription>
         </Alert>
 
         <div className="flex gap-2">
-          <Button
-            onClick={performHealthCheck}
-            disabled={isRecovering}
-            variant="outline"
-            size="sm"
-          >
-            <Activity className={`h-4 w-4 mr-2 ${isRecovering ? 'animate-spin' : ''}`} />
+          <Button onClick={performHealthCheck} disabled={isRecovering} variant="outline" size="sm">
+            <Activity className={`h-4 w-4 mr-2 ${isRecovering ? "animate-spin" : ""}`} />
             Check Health
           </Button>
 
@@ -60,7 +62,7 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
               variant="default"
               size="sm"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRecovering ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRecovering ? "animate-spin" : ""}`} />
               Recover Session
             </Button>
           )}
@@ -78,7 +80,7 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
           )}
         </div>
       </div>
-    );
+    )
   }
 
   // Show details card when requested (debug panel)
@@ -97,7 +99,7 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
           {ok ? "OK" : "FAIL"}
         </Badge>
       </div>
-    );
+    )
 
     return (
       <Card className="w-full border-border/50">
@@ -122,7 +124,8 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
 
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div>
-              <span className="font-medium">Last Check:</span> {healthState.lastCheck?.toLocaleTimeString() || 'Never'}
+              <span className="font-medium">Last Check:</span>{" "}
+              {healthState.lastCheck?.toLocaleTimeString() || "Never"}
             </div>
             <div>
               <span className="font-medium">Failures:</span> {healthState.consecutiveFailures}
@@ -137,10 +140,10 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
               size="sm"
               className="flex-1"
             >
-              <Activity className={`h-4 w-4 mr-2 ${isRecovering ? 'animate-spin' : ''}`} />
+              <Activity className={`h-4 w-4 mr-2 ${isRecovering ? "animate-spin" : ""}`} />
               Check Now
             </Button>
-            
+
             {!healthState.isHealthy && canRecover && (
               <Button
                 onClick={aggressiveRecovery}
@@ -148,12 +151,12 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
                 variant="default"
                 size="sm"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRecovering ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRecovering ? "animate-spin" : ""}`} />
                 Recover
               </Button>
             )}
           </div>
-          
+
           {healthState.consecutiveFailures >= 3 && (
             <Button
               onClick={nuclearSessionReset}
@@ -168,8 +171,8 @@ export function SessionHealthMonitor({ showDetails = false, autoRecover = true }
           )}
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  return null;
+  return null
 }

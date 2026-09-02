@@ -1,20 +1,19 @@
 #!/usr/bin/env ts-node
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs"
+import * as path from "path"
 
 interface Violation {
-  file: string;
-  line: number;
-  issue: string;
-  context: string;
+  file: string
+  line: number
+  issue: string
+  context: string
 }
 
 /** Hard failures: patterns that are known to break tab layouts. */
-const violations: Violation[] = [];
+const violations: Violation[] = []
 /** Advisory only: stylistic hints that must never fail CI. */
-const warnings: Violation[] = [];
-
+const warnings: Violation[] = []
 
 // Anti-patterns to detect near TabsList usage
 const ANTI_PATTERNS = [
@@ -24,114 +23,114 @@ const ANTI_PATTERNS = [
   /grid-cols-\[\d+px[^}]*TabsList/,
   /whitespace-nowrap[^}]*TabsTrigger/,
   /whitespace-nowrap[^}]*TabsList/,
-];
+]
 
 // Required patterns that should exist
 const REQUIRED_PATTERNS = [
   /min-w-0.*TabsList|TabsList.*min-w-0/,
   /flex-wrap.*TabsList|TabsList.*flex-wrap/,
-];
+]
 
 function scanFile(filePath: string) {
-  if (!filePath.endsWith('.tsx') && !filePath.endsWith('.ts')) return;
-  if (filePath.includes('node_modules')) return;
-  if (filePath.includes('.test.') || filePath.includes('__tests__')) return;
+  if (!filePath.endsWith(".tsx") && !filePath.endsWith(".ts")) return
+  if (filePath.includes("node_modules")) return
+  if (filePath.includes(".test.") || filePath.includes("__tests__")) return
 
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf-8")
+  const lines = content.split("\n")
 
   // Look for TabsList usage
   const tabsListLines = lines
     .map((line, idx) => ({ line, idx }))
-    .filter(({ line }) => line.includes('TabsList') || line.includes('TabsTrigger'));
+    .filter(({ line }) => line.includes("TabsList") || line.includes("TabsTrigger"))
 
-  if (tabsListLines.length === 0) return;
+  if (tabsListLines.length === 0) return
 
   // Check for anti-patterns in a 5-line window around TabsList
   tabsListLines.forEach(({ idx: tabsLineIdx }) => {
-    const start = Math.max(0, tabsLineIdx - 5);
-    const end = Math.min(lines.length, tabsLineIdx + 5);
-    const context = lines.slice(start, end).join('\n');
+    const start = Math.max(0, tabsLineIdx - 5)
+    const end = Math.min(lines.length, tabsLineIdx + 5)
+    const context = lines.slice(start, end).join("\n")
 
-    ANTI_PATTERNS.forEach(pattern => {
+    ANTI_PATTERNS.forEach((pattern) => {
       if (pattern.test(context)) {
         violations.push({
           file: filePath,
           line: tabsLineIdx + 1,
           issue: `Anti-pattern detected: ${pattern.source}`,
-          context: lines[tabsLineIdx].trim()
-        });
+          context: lines[tabsLineIdx].trim(),
+        })
       }
-    });
+    })
 
     // Advisory hints. Only opening <TabsList> tags, never imports/closing tags.
-    const isTabsListOpenTag = /<TabsList[\s/>]/.test(lines[tabsLineIdx]);
+    const isTabsListOpenTag = /<TabsList[\s/>]/.test(lines[tabsLineIdx])
     if (isTabsListOpenTag) {
-      const hasMinW0 = REQUIRED_PATTERNS[0].test(context);
-      const hasFlexWrap = REQUIRED_PATTERNS[1].test(context);
+      const hasMinW0 = REQUIRED_PATTERNS[0].test(context)
+      const hasFlexWrap = REQUIRED_PATTERNS[1].test(context)
 
       if (!hasMinW0) {
         warnings.push({
           file: filePath,
           line: tabsLineIdx + 1,
-          issue: 'Missing min-w-0 near TabsList',
-          context: lines[tabsLineIdx].trim()
-        });
+          issue: "Missing min-w-0 near TabsList",
+          context: lines[tabsLineIdx].trim(),
+        })
       }
 
       if (!hasFlexWrap) {
         warnings.push({
           file: filePath,
           line: tabsLineIdx + 1,
-          issue: 'Missing flex-wrap near TabsList',
-          context: lines[tabsLineIdx].trim()
-        });
+          issue: "Missing flex-wrap near TabsList",
+          context: lines[tabsLineIdx].trim(),
+        })
       }
     }
-  });
+  })
 }
 
 function scanDirectory(dir: string) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+
   for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    
+    const fullPath = path.join(dir, entry.name)
+
     if (entry.isDirectory()) {
-      scanDirectory(fullPath);
+      scanDirectory(fullPath)
     } else {
-      scanFile(fullPath);
+      scanFile(fullPath)
     }
   }
 }
 
 // Main execution
-console.log('🔍 Scanning for unsafe tab/button patterns...\n');
+console.log("🔍 Scanning for unsafe tab/button patterns...\n")
 
-scanDirectory('./src');
+scanDirectory("./src")
 
 if (warnings.length > 0) {
-  console.log(`⚠️  ${warnings.length} advisory hints (not failing the build):\n`);
+  console.log(`⚠️  ${warnings.length} advisory hints (not failing the build):\n`)
   warnings.slice(0, 20).forEach((w, idx) => {
-    console.log(`${idx + 1}. ${w.file}:${w.line} — ${w.issue}`);
-  });
-  if (warnings.length > 20) console.log(`   ...and ${warnings.length - 20} more`);
-  console.log();
+    console.log(`${idx + 1}. ${w.file}:${w.line} — ${w.issue}`)
+  })
+  if (warnings.length > 20) console.log(`   ...and ${warnings.length - 20} more`)
+  console.log()
 }
 
 if (violations.length === 0) {
-  console.log('✅ No unsafe tab patterns detected!');
-  process.exit(0);
+  console.log("✅ No unsafe tab patterns detected!")
+  process.exit(0)
 } else {
-  console.log(`❌ Found ${violations.length} potential issues:\n`);
-  
+  console.log(`❌ Found ${violations.length} potential issues:\n`)
+
   violations.forEach((violation, idx) => {
-    console.log(`${idx + 1}. ${violation.file}:${violation.line}`);
-    console.log(`   Issue: ${violation.issue}`);
-    console.log(`   Context: ${violation.context}`);
-    console.log();
-  });
-  
-  console.log('Run with --fix to apply automated fixes (coming soon)');
-  process.exit(1);
+    console.log(`${idx + 1}. ${violation.file}:${violation.line}`)
+    console.log(`   Issue: ${violation.issue}`)
+    console.log(`   Context: ${violation.context}`)
+    console.log()
+  })
+
+  console.log("Run with --fix to apply automated fixes (coming soon)")
+  process.exit(1)
 }

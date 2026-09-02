@@ -15,7 +15,7 @@ VITE_UI_PROBE=1 npm run dev
 ### What it detects
 
 - `whitespace-nowrap` causing horizontal overflow
-- Parent flex containers lacking `flex-wrap`  
+- Parent flex containers lacking `flex-wrap`
 - Negative margins on tabs/buttons
 - Fixed height with excessive padding
 - Overflow hidden with overflowing content
@@ -24,6 +24,7 @@ VITE_UI_PROBE=1 npm run dev
 ### Output
 
 When issues are found, UIProbe logs detailed information to the browser console including:
+
 - Element DOM path
 - Computed styles
 - Element and parent rectangles
@@ -40,11 +41,12 @@ The UIProbe automatically cleans up visual indicators on unmount and window resi
 Use these components to prevent overlap issues:
 
 ### SafeTabsWrapper
+
 ```tsx
-<SafeTabsWrapper 
+<SafeTabsWrapper
   tabs={[
-    { value: 'tab1', label: 'Tab 1', content: <div>Content</div> },
-    { value: 'tab2', label: 'Tab 2', content: <div>Content</div> }
+    { value: "tab1", label: "Tab 1", content: <div>Content</div> },
+    { value: "tab2", label: "Tab 2", content: <div>Content</div> },
   ]}
   spacing="normal" // tight | normal | loose
   wrap={true}
@@ -52,6 +54,7 @@ Use these components to prevent overlap issues:
 ```
 
 ### SafeToolbar
+
 ```tsx
 <SafeToolbar spacing="normal" justify="start" wrap={true}>
   <Button>Action 1</Button>

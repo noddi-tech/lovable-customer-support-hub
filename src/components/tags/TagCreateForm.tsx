@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { TAG_COLORS } from '@/hooks/useTags';
-import { cn } from '@/lib/utils';
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { TAG_COLORS } from "@/hooks/useTags"
+import { cn } from "@/lib/utils"
 
 interface TagCreateFormProps {
   /** Prefilled name (e.g. the current search text). */
-  initialName?: string;
-  onCancel: () => void;
+  initialName?: string
+  onCancel: () => void
   /** Create the tag. Resolves when done; the caller stays in the dropdown. */
-  onCreate: (name: string, color: string) => Promise<void> | void;
+  onCreate: (name: string, color: string) => Promise<void> | void
 }
 
 /**
@@ -16,22 +17,26 @@ interface TagCreateFormProps {
  * (detail pickers, bulk menu, right-click submenu and list filters).
  * Rendered inside the open dropdown so the user continues there afterwards.
  */
-export const TagCreateForm: React.FC<TagCreateFormProps> = ({ initialName = '', onCancel, onCreate }) => {
-  const [name, setName] = useState(initialName);
-  const [color, setColor] = useState(TAG_COLORS[0]);
-  const [saving, setSaving] = useState(false);
+export const TagCreateForm: React.FC<TagCreateFormProps> = ({
+  initialName = "",
+  onCancel,
+  onCreate,
+}) => {
+  const [name, setName] = useState(initialName)
+  const [color, setColor] = useState(TAG_COLORS[0])
+  const [saving, setSaving] = useState(false)
 
   const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed || saving) return;
-    setSaving(true);
+    const trimmed = name.trim()
+    if (!trimmed || saving) return
+    setSaving(true)
     try {
-      await onCreate(trimmed, color);
-      setName('');
+      await onCreate(trimmed, color)
+      setName("")
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   return (
     <div
@@ -41,12 +46,11 @@ export const TagCreateForm: React.FC<TagCreateFormProps> = ({ initialName = '', 
     >
       <p className="text-sm font-medium">New tag</p>
       <input
-        autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') void submit();
-          if (e.key === 'Escape') onCancel();
+          if (e.key === "Enter") void submit()
+          if (e.key === "Escape") onCancel()
         }}
         placeholder="Tag name"
         maxLength={50}
@@ -59,7 +63,10 @@ export const TagCreateForm: React.FC<TagCreateFormProps> = ({ initialName = '', 
             type="button"
             aria-label={`Color ${c}`}
             onClick={() => setColor(c)}
-            className={cn('h-5 w-5 rounded-full border', color === c ? 'ring-2 ring-ring ring-offset-1' : '')}
+            className={cn(
+              "h-5 w-5 rounded-full border",
+              color === c ? "ring-2 ring-ring ring-offset-1" : "",
+            )}
             style={{ backgroundColor: c }}
           />
         ))}
@@ -73,5 +80,5 @@ export const TagCreateForm: React.FC<TagCreateFormProps> = ({ initialName = '', 
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}

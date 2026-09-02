@@ -1,39 +1,39 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Heading } from '@/components/ui/heading';
-import { Button } from '@/components/ui/button';
-import { Settings as SettingsIcon, Clock, User, BarChart3 } from 'lucide-react';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { AuditTimelinePanel } from './timeline/AuditTimelinePanel';
-import { ApplicantAuditPanel } from './applicant/ApplicantAuditPanel';
-import { AuditAnalyticsPanel } from './analytics/AuditAnalyticsPanel';
-import { RetentionConfigDialog } from './RetentionConfigDialog';
-import { AuditEventDetailDrawer } from './timeline/AuditEventDetailDrawer';
-import { ApplicantAuditExportDialog } from './applicant/ApplicantAuditExportDialog';
-import type { UnifiedAuditEvent } from './types';
+import { BarChart3, Clock, Settings as SettingsIcon, User } from "lucide-react"
+import { useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Heading } from "@/components/ui/heading"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useOrganizationStore } from "@/stores/organizationStore"
+import { AuditAnalyticsPanel } from "./analytics/AuditAnalyticsPanel"
+import { ApplicantAuditExportDialog } from "./applicant/ApplicantAuditExportDialog"
+import { ApplicantAuditPanel } from "./applicant/ApplicantAuditPanel"
+import { RetentionConfigDialog } from "./RetentionConfigDialog"
+import { AuditEventDetailDrawer } from "./timeline/AuditEventDetailDrawer"
+import { AuditTimelinePanel } from "./timeline/AuditTimelinePanel"
+import type { UnifiedAuditEvent } from "./types"
 
-const VALID_SUBTABS = ['timeline', 'applicant', 'analytics'] as const;
-type SubTab = typeof VALID_SUBTABS[number];
+const VALID_SUBTABS = ["timeline", "applicant", "analytics"] as const
+type SubTab = (typeof VALID_SUBTABS)[number]
 
 export function AuditTab() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const sub = searchParams.get('subtab');
-  const activeSub: SubTab = (VALID_SUBTABS.includes(sub as SubTab) ? sub : 'timeline') as SubTab;
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sub = searchParams.get("subtab")
+  const activeSub: SubTab = (VALID_SUBTABS.includes(sub as SubTab) ? sub : "timeline") as SubTab
 
-  const { currentOrganizationId } = useOrganizationStore();
+  const { currentOrganizationId } = useOrganizationStore()
 
-  const [retentionOpen, setRetentionOpen] = useState(false);
-  const [detailEvent, setDetailEvent] = useState<UnifiedAuditEvent | null>(null);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exportApplicantId, setExportApplicantId] = useState<string | null>(null);
+  const [retentionOpen, setRetentionOpen] = useState(false)
+  const [detailEvent, setDetailEvent] = useState<UnifiedAuditEvent | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportApplicantId, setExportApplicantId] = useState<string | null>(null)
 
   const handleSubChange = (value: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', 'audit');
-    next.set('subtab', value);
-    setSearchParams(next, { replace: true });
-  };
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", "audit")
+    next.set("subtab", value)
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <>
@@ -44,7 +44,8 @@ export function AuditTab() {
               Revisjon
             </Heading>
             <p className="text-sm text-muted-foreground">
-              Full historikk over alle endringer, automatiseringer og innhentinger i rekrutteringsmodulen.
+              Full historikk over alle endringer, automatiseringer og innhentinger i
+              rekrutteringsmodulen.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={() => setRetentionOpen(true)}>
@@ -80,8 +81,8 @@ export function AuditTab() {
               organizationId={currentOrganizationId}
               onRowClick={setDetailEvent}
               onExport={(applicantId) => {
-                setExportApplicantId(applicantId);
-                setExportOpen(true);
+                setExportApplicantId(applicantId)
+                setExportOpen(true)
               }}
             />
           </TabsContent>
@@ -99,7 +100,9 @@ export function AuditTab() {
       />
       <AuditEventDetailDrawer
         event={detailEvent}
-        onOpenChange={(open) => { if (!open) setDetailEvent(null); }}
+        onOpenChange={(open) => {
+          if (!open) setDetailEvent(null)
+        }}
       />
       <ApplicantAuditExportDialog
         open={exportOpen}
@@ -107,5 +110,5 @@ export function AuditTab() {
         applicantId={exportApplicantId}
       />
     </>
-  );
+  )
 }

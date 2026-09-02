@@ -1,5 +1,5 @@
-import React from 'react';
-import { MessageCircle, Users } from 'lucide-react';
+import { MessageCircle, Users } from "lucide-react"
+import type React from "react"
 
 export const ChatEmptyState: React.FC = () => {
   return (
@@ -12,13 +12,12 @@ export const ChatEmptyState: React.FC = () => {
           <Users className="h-4 w-4 text-green-600" />
         </div>
       </div>
-      
-      <h2 className="text-xl font-semibold text-foreground mb-2">
-        Select a chat to start
-      </h2>
-      
+
+      <h2 className="text-xl font-semibold text-foreground mb-2">Select a chat to start</h2>
+
       <p className="text-sm text-muted-foreground text-center max-w-sm">
-        Choose a conversation from the list on the left, or claim a waiting visitor from the queue above.
+        Choose a conversation from the list on the left, or claim a waiting visitor from the queue
+        above.
       </p>
 
       <div className="mt-8 p-4 bg-muted/30 rounded-lg border border-dashed max-w-xs">
@@ -34,5 +33,5 @@ export const ChatEmptyState: React.FC = () => {
         </ul>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,18 +1,18 @@
-import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import PipelineCard from './PipelineCard';
-import type { PipelineApplication } from './usePipeline';
-import type { PipelineStage } from '../applicants/useApplicants';
+import { useDroppable } from "@dnd-kit/core"
+import type React from "react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import type { PipelineStage } from "../applicants/useApplicants"
+import PipelineCard from "./PipelineCard"
+import type { PipelineApplication } from "./usePipeline"
 
 interface Props {
-  stage: PipelineStage;
-  applications: PipelineApplication[];
+  stage: PipelineStage
+  applications: PipelineApplication[]
 }
 
 const PipelineColumn: React.FC<Props> = ({ stage, applications }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id })
 
   return (
     <div className="w-[280px] flex-shrink-0 flex flex-col bg-muted/30 rounded-lg border">
@@ -26,8 +26,8 @@ const PipelineColumn: React.FC<Props> = ({ stage, applications }) => {
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px] transition-colors',
-          isOver && 'bg-primary/5'
+          "flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px] transition-colors",
+          isOver && "bg-primary/5",
         )}
       >
         {applications.length === 0 ? (
@@ -39,7 +39,7 @@ const PipelineColumn: React.FC<Props> = ({ stage, applications }) => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PipelineColumn;
+export default PipelineColumn

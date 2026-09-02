@@ -3,204 +3,219 @@
  * Controlled by VITE_LOG_LEVEL environment variable
  */
 
-type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'SILENT';
+type LogLevel = "ERROR" | "WARN" | "INFO" | "DEBUG" | "SILENT"
 
 interface LogEntry {
-  level: LogLevel;
-  message: string;
-  data?: any;
-  timestamp: Date;
-  component?: string;
-  count?: number;
+  level: LogLevel
+  message: string
+  data?: any
+  timestamp: Date
+  component?: string
+  count?: number
 }
 
 class Logger {
-  private isDevelopment = import.meta.env.DEV;
-  private logs: LogEntry[] = [];
-  private maxLogs = 1000;
-  private logLevel: LogLevel;
-  private lastLogKey: string = '';
-  private lastLogCount: number = 0;
-  private lastLogTimer: NodeJS.Timeout | null = null;
-  
+  private isDevelopment = import.meta.env.DEV
+  private logs: LogEntry[] = []
+  private maxLogs = 1000
+  private logLevel: LogLevel
+  private lastLogKey: string = ""
+  private lastLogCount: number = 0
+  private lastLogTimer: NodeJS.Timeout | null = null
+
   constructor() {
     // Get log level from environment variable
-    const envLevel = import.meta.env.VITE_LOG_LEVEL?.toUpperCase() as LogLevel;
-    this.logLevel = envLevel || (this.isDevelopment ? 'INFO' : 'WARN');
-  }
-  
-  private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = ['SILENT', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
-    const currentIndex = levels.indexOf(this.logLevel);
-    const messageIndex = levels.indexOf(level);
-    return currentIndex >= messageIndex && currentIndex > 0; // SILENT blocks everything
-  }
-  
-  private getLogKey(message: string, component?: string): string {
-    return `${component || 'global'}:${message}`;
-  }
-  
-  private flushDuplicateLog() {
-    if (this.lastLogCount > 1) {
-      console.log(`↑ Previous message repeated ${this.lastLogCount - 1} more time(s)`);
-    }
-    this.lastLogKey = '';
-    this.lastLogCount = 0;
+    const envLevel = import.meta.env.VITE_LOG_LEVEL?.toUpperCase() as LogLevel
+    this.logLevel = envLevel || (this.isDevelopment ? "INFO" : "WARN")
   }
 
-  private createLogEntry(level: LogLevel, message: string, data?: any, component?: string): LogEntry {
+  private shouldLog(level: LogLevel): boolean {
+    const levels: LogLevel[] = ["SILENT", "ERROR", "WARN", "INFO", "DEBUG"]
+    const currentIndex = levels.indexOf(this.logLevel)
+    const messageIndex = levels.indexOf(level)
+    return currentIndex >= messageIndex && currentIndex > 0 // SILENT blocks everything
+  }
+
+  private getLogKey(message: string, component?: string): string {
+    return `${component || "global"}:${message}`
+  }
+
+  private flushDuplicateLog() {
+    if (this.lastLogCount > 1) {
+      console.log(`↑ Previous message repeated ${this.lastLogCount - 1} more time(s)`)
+    }
+    this.lastLogKey = ""
+    this.lastLogCount = 0
+  }
+
+  private createLogEntry(
+    level: LogLevel,
+    message: string,
+    data?: any,
+    component?: string,
+  ): LogEntry {
     return {
       level,
       message,
       data,
       timestamp: new Date(),
-      component
-    };
+      component,
+    }
   }
 
   private addLog(entry: LogEntry) {
-    this.logs.unshift(entry);
+    this.logs.unshift(entry)
     if (this.logs.length > this.maxLogs) {
-      this.logs.pop();
+      this.logs.pop()
     }
   }
 
   debug(message: string, data?: any, component?: string) {
-    if (!this.shouldLog('DEBUG')) return;
-    
-    const entry = this.createLogEntry('DEBUG', message, data, component);
-    this.addLog(entry);
-    
-    const logKey = this.getLogKey(message, component);
-    
+    if (!this.shouldLog("DEBUG")) return
+
+    const entry = this.createLogEntry("DEBUG", message, data, component)
+    this.addLog(entry)
+
+    const logKey = this.getLogKey(message, component)
+
     // Smart deduplication: only log if different from last message
     if (logKey === this.lastLogKey) {
-      this.lastLogCount++;
-      
+      this.lastLogCount++
+
       // Reset timer to flush after 2 seconds of silence
-      if (this.lastLogTimer) clearTimeout(this.lastLogTimer);
-      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000);
-      return;
+      if (this.lastLogTimer) clearTimeout(this.lastLogTimer)
+      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000)
+      return
     }
-    
+
     // Flush previous duplicate count
-    this.flushDuplicateLog();
-    
+    this.flushDuplicateLog()
+
     // Log new message
-    this.lastLogKey = logKey;
-    this.lastLogCount = 1;
-    
+    this.lastLogKey = logKey
+    this.lastLogCount = 1
+
     if (data !== undefined) {
-      console.log(`[DEBUG] ${component ? `[${component}] ` : ''}${message}`, data);
+      console.log(`[DEBUG] ${component ? `[${component}] ` : ""}${message}`, data)
     } else {
-      console.log(`[DEBUG] ${component ? `[${component}] ` : ''}${message}`);
+      console.log(`[DEBUG] ${component ? `[${component}] ` : ""}${message}`)
     }
   }
 
   info(message: string, data?: any, component?: string) {
-    if (!this.shouldLog('INFO')) return;
-    
-    const entry = this.createLogEntry('INFO', message, data, component);
-    this.addLog(entry);
-    
-    const logKey = this.getLogKey(message, component);
-    
+    if (!this.shouldLog("INFO")) return
+
+    const entry = this.createLogEntry("INFO", message, data, component)
+    this.addLog(entry)
+
+    const logKey = this.getLogKey(message, component)
+
     if (logKey === this.lastLogKey) {
-      this.lastLogCount++;
-      if (this.lastLogTimer) clearTimeout(this.lastLogTimer);
-      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000);
-      return;
+      this.lastLogCount++
+      if (this.lastLogTimer) clearTimeout(this.lastLogTimer)
+      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000)
+      return
     }
-    
-    this.flushDuplicateLog();
-    this.lastLogKey = logKey;
-    this.lastLogCount = 1;
-    
+
+    this.flushDuplicateLog()
+    this.lastLogKey = logKey
+    this.lastLogCount = 1
+
     if (data !== undefined) {
-      console.log(`[INFO] ${component ? `[${component}] ` : ''}${message}`, data);
+      console.log(`[INFO] ${component ? `[${component}] ` : ""}${message}`, data)
     } else {
-      console.log(`[INFO] ${component ? `[${component}] ` : ''}${message}`);
+      console.log(`[INFO] ${component ? `[${component}] ` : ""}${message}`)
     }
   }
 
   warn(message: string, data?: any, component?: string) {
-    if (!this.shouldLog('WARN')) return;
-    
-    const entry = this.createLogEntry('WARN', message, data, component);
-    this.addLog(entry);
-    
-    const logKey = this.getLogKey(message, component);
-    
+    if (!this.shouldLog("WARN")) return
+
+    const entry = this.createLogEntry("WARN", message, data, component)
+    this.addLog(entry)
+
+    const logKey = this.getLogKey(message, component)
+
     if (logKey === this.lastLogKey) {
-      this.lastLogCount++;
-      if (this.lastLogTimer) clearTimeout(this.lastLogTimer);
-      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000);
-      return;
+      this.lastLogCount++
+      if (this.lastLogTimer) clearTimeout(this.lastLogTimer)
+      this.lastLogTimer = setTimeout(() => this.flushDuplicateLog(), 2000)
+      return
     }
-    
-    this.flushDuplicateLog();
-    this.lastLogKey = logKey;
-    this.lastLogCount = 1;
-    
+
+    this.flushDuplicateLog()
+    this.lastLogKey = logKey
+    this.lastLogCount = 1
+
     if (data !== undefined) {
-      console.warn(`[WARN] ${component ? `[${component}] ` : ''}${message}`, data);
+      console.warn(`[WARN] ${component ? `[${component}] ` : ""}${message}`, data)
     } else {
-      console.warn(`[WARN] ${component ? `[${component}] ` : ''}${message}`);
+      console.warn(`[WARN] ${component ? `[${component}] ` : ""}${message}`)
     }
   }
 
   error(message: string, data?: any, component?: string) {
-    if (!this.shouldLog('ERROR')) return;
-    
-    const entry = this.createLogEntry('ERROR', message, data, component);
-    this.addLog(entry);
-    
+    if (!this.shouldLog("ERROR")) return
+
+    const entry = this.createLogEntry("ERROR", message, data, component)
+    this.addLog(entry)
+
     // Errors always show (no deduplication for errors)
-    this.flushDuplicateLog();
-    
+    this.flushDuplicateLog()
+
     if (data !== undefined) {
-      console.error(`[ERROR] ${component ? `[${component}] ` : ''}${message}`, data);
+      console.error(`[ERROR] ${component ? `[${component}] ` : ""}${message}`, data)
     } else {
-      console.error(`[ERROR] ${component ? `[${component}] ` : ''}${message}`);
+      console.error(`[ERROR] ${component ? `[${component}] ` : ""}${message}`)
     }
   }
 
   // Get recent logs for debugging
   getRecentLogs(count = 50): LogEntry[] {
-    return this.logs.slice(0, count);
+    return this.logs.slice(0, count)
   }
 
   // Clear all logs
   clearLogs() {
-    this.logs = [];
+    this.logs = []
   }
 
   // Export logs for debugging
   exportLogs(): string {
-    return JSON.stringify(this.logs, null, 2);
+    return JSON.stringify(this.logs, null, 2)
   }
 
   // Debug metrics for performance panel
   private debugMetrics = {
     componentRenders: {} as Record<string, number>,
     parseCache: { hits: 0, misses: 0, size: 0 },
-    slowOperations: [] as Array<{ label: string; duration: number; component?: string; timestamp: number }>,
+    slowOperations: [] as Array<{
+      label: string
+      duration: number
+      component?: string
+      timestamp: number
+    }>,
     memoBreaks: [] as Array<{ component: string; reason: string; timestamp: number }>,
-    parseCalls: [] as Array<{ function: string; cached: boolean; contentPreview?: string; timestamp: number }>
-  };
+    parseCalls: [] as Array<{
+      function: string
+      cached: boolean
+      contentPreview?: string
+      timestamp: number
+    }>,
+  }
 
   trackComponentRender(componentName: string) {
-    this.debugMetrics.componentRenders[componentName] = 
-      (this.debugMetrics.componentRenders[componentName] || 0) + 1;
+    this.debugMetrics.componentRenders[componentName] =
+      (this.debugMetrics.componentRenders[componentName] || 0) + 1
   }
 
   trackParseCache(hit: boolean, size: number) {
     if (hit) {
-      this.debugMetrics.parseCache.hits++;
+      this.debugMetrics.parseCache.hits++
     } else {
-      this.debugMetrics.parseCache.misses++;
+      this.debugMetrics.parseCache.misses++
     }
-    this.debugMetrics.parseCache.size = size;
+    this.debugMetrics.parseCache.size = size
   }
 
   trackSlowOperation(label: string, duration: number, component?: string) {
@@ -208,11 +223,11 @@ class Logger {
       label,
       duration,
       component,
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+    })
     // Keep only last 50
     if (this.debugMetrics.slowOperations.length > 50) {
-      this.debugMetrics.slowOperations.shift();
+      this.debugMetrics.slowOperations.shift()
     }
   }
 
@@ -220,11 +235,11 @@ class Logger {
     this.debugMetrics.memoBreaks.push({
       component,
       reason,
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+    })
     // Keep only last 50
     if (this.debugMetrics.memoBreaks.length > 50) {
-      this.debugMetrics.memoBreaks.shift();
+      this.debugMetrics.memoBreaks.shift()
     }
   }
 
@@ -233,16 +248,16 @@ class Logger {
       function: functionName,
       cached,
       contentPreview,
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+    })
     // Keep only last 50
     if (this.debugMetrics.parseCalls.length > 50) {
-      this.debugMetrics.parseCalls.shift();
+      this.debugMetrics.parseCalls.shift()
     }
   }
 
   getDebugMetrics() {
-    return { ...this.debugMetrics };
+    return { ...this.debugMetrics }
   }
 
   clearDebugMetrics() {
@@ -251,36 +266,36 @@ class Logger {
       parseCache: { hits: 0, misses: 0, size: 0 },
       slowOperations: [],
       memoBreaks: [],
-      parseCalls: []
-    };
+      parseCalls: [],
+    }
   }
 
   // Performance timing methods
-  private timers = new Map<string, number>();
-  
+  private timers = new Map<string, number>()
+
   time(label: string, component?: string) {
-    const key = `${component || 'global'}:${label}`;
-    this.timers.set(key, performance.now());
+    const key = `${component || "global"}:${label}`
+    this.timers.set(key, performance.now())
   }
-  
+
   timeEnd(label: string, component?: string) {
-    const key = `${component || 'global'}:${label}`;
-    const startTime = this.timers.get(key);
+    const key = `${component || "global"}:${label}`
+    const startTime = this.timers.get(key)
     if (startTime) {
-      const duration = performance.now() - startTime;
-      this.timers.delete(key);
-      
+      const duration = performance.now() - startTime
+      this.timers.delete(key)
+
       if (duration > 50) {
-        this.trackSlowOperation(label, duration, component);
-        this.warn(`Slow operation: ${label}`, { duration: `${duration.toFixed(2)}ms` }, component);
+        this.trackSlowOperation(label, duration, component)
+        this.warn(`Slow operation: ${label}`, { duration: `${duration.toFixed(2)}ms` }, component)
       } else {
-        this.debug(`${label} completed`, { duration: `${duration.toFixed(2)}ms` }, component);
+        this.debug(`${label} completed`, { duration: `${duration.toFixed(2)}ms` }, component)
       }
-      
-      return duration;
+
+      return duration
     }
-    return null;
+    return null
   }
 }
 
-export const logger = new Logger();
+export const logger = new Logger()

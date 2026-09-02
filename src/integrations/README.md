@@ -12,29 +12,29 @@ transport, auth and typed responses — nothing else.
 
 ## Frontend (`src/integrations/`)
 
-| Folder     | What it is                                                        |
-| ---------- | ----------------------------------------------------------------- |
-| `supabase/`| Generated Supabase client + database types (do not edit `types.ts`) |
-| `aircall/` | Browser wrapper around the Aircall Everywhere SDK + event bridge    |
-| `navio/`   | Typed invoker for the `noddi-*` edge-function proxies               |
+| Folder      | What it is                                                          |
+| ----------- | ------------------------------------------------------------------- |
+| `supabase/` | Generated Supabase client + database types (do not edit `types.ts`) |
+| `aircall/`  | Browser wrapper around the Aircall Everywhere SDK + event bridge    |
+| `navio/`    | Typed invoker for the `noddi-*` edge-function proxies               |
 
 ## Backend (`supabase/functions/_shared/integrations/`)
 
 `http.ts` provides `createHttpClient` (base URL, default headers, timeout,
 retry on 408/425/429/5xx) plus `IntegrationError` and `requireEnv`.
 
-| Folder       | Vendor                                        |
-| ------------ | --------------------------------------------- |
-| `openai/`    | Chat completions + embeddings                 |
-| `slack/`     | Web API (`chat.postMessage`, DMs, user lookup)|
-| `sendgrid/`  | Mail send v3                                  |
-| `meta/`      | Facebook Graph API (lead ads, webhooks)       |
-| `aircall/`   | Aircall REST API (contacts, tags, calls)      |
-| `navio/`     | Noddi/Navio backend API                       |
-| `google/`    | OAuth token exchange + Gmail REST             |
-| `messente/`  | SMS provider implementation                   |
-| `resend/`    | Transactional email fallback                  |
-| `helpscout/` | Mailbox API 2.0 (migration/import)            |
+| Folder       | Vendor                                         |
+| ------------ | ---------------------------------------------- |
+| `openai/`    | Chat completions + embeddings                  |
+| `slack/`     | Web API (`chat.postMessage`, DMs, user lookup) |
+| `sendgrid/`  | Mail send v3                                   |
+| `meta/`      | Facebook Graph API (lead ads, webhooks)        |
+| `aircall/`   | Aircall REST API (contacts, tags, calls)       |
+| `navio/`     | Noddi/Navio backend API                        |
+| `google/`    | OAuth token exchange + Gmail REST              |
+| `messente/`  | SMS provider implementation                    |
+| `resend/`    | Transactional email fallback                   |
+| `helpscout/` | Mailbox API 2.0 (migration/import)             |
 
 SMS providers are selected through `sms-registry.ts` (`getSmsProvider(name)`),
 with the shared contract in `sms-types.ts`.

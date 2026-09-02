@@ -1,30 +1,30 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Stage } from './types';
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical, Pencil, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import type { Stage } from "./types"
 
 interface Props {
-  stage: Stage;
-  applicationCount: number | undefined;
-  onEdit: () => void;
-  onDelete: () => void;
+  stage: Stage
+  applicationCount: number | undefined
+  onEdit: () => void
+  onDelete: () => void
 }
 
 export function StageRow({ stage, applicationCount, onEdit, onDelete }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: stage.id,
-  });
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
+  }
 
-  const count = applicationCount ?? 0;
+  const count = applicationCount ?? 0
 
   return (
     <div
@@ -64,7 +64,7 @@ export function StageRow({ stage, applicationCount, onEdit, onDelete }: Props) {
       </div>
 
       <Badge variant="secondary" className="flex-shrink-0">
-        {count === 0 ? 'Ingen søkere' : `${count} ${count === 1 ? 'søker' : 'søkere'}`}
+        {count === 0 ? "Ingen søkere" : `${count} ${count === 1 ? "søker" : "søkere"}`}
       </Badge>
 
       <Button size="icon" variant="ghost" onClick={onEdit} aria-label="Rediger stadium">
@@ -87,11 +87,9 @@ export function StageRow({ stage, applicationCount, onEdit, onDelete }: Props) {
               </Button>
             </span>
           </TooltipTrigger>
-          {stage.is_system && (
-            <TooltipContent>Systemstadier kan ikke slettes</TooltipContent>
-          )}
+          {stage.is_system && <TooltipContent>Systemstadier kan ikke slettes</TooltipContent>}
         </Tooltip>
       </TooltipProvider>
     </div>
-  );
+  )
 }

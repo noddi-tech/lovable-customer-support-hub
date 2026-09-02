@@ -1,52 +1,43 @@
-import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { 
+import { ArrowLeft, BarChart3, Send, Users } from "lucide-react"
+import type React from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
-  SidebarFooter
-} from '@/components/ui/sidebar';
-import { 
-  Briefcase,
-  Ticket, 
-  Users,
-  BarChart3,
-  Send,
-
-  ArrowLeft
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
 
 export const OperationsSidebar: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+    return location.pathname === path || location.pathname.startsWith(`${path}/`)
+  }
 
   const operationsItems = [
     {
-      title: 'Recruitment',
-      path: '/operations/recruitment',
-      icon: Users
+      title: "Recruitment",
+      path: "/operations/recruitment",
+      icon: Users,
     },
     {
-      title: 'Analytics',
-      path: '/operations/analytics',
-      icon: BarChart3
+      title: "Analytics",
+      path: "/operations/analytics",
+      icon: BarChart3,
     },
     {
-      title: 'Bulk Outreach',
-      path: '/operations/bulk-outreach',
-      icon: Send
+      title: "Bulk Outreach",
+      path: "/operations/bulk-outreach",
+      icon: Send,
     },
-  ];
+  ]
 
   return (
     <Sidebar>
@@ -55,30 +46,27 @@ export const OperationsSidebar: React.FC = () => {
           <SidebarGroupLabel>Operations</SidebarGroupLabel>
           <SidebarMenu>
             {operationsItems.map((item) => {
-              const Icon = item.icon;
+              const Icon = item.icon
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={isActive(item.path)}
-                  >
+                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
                     <Link to={item.path}>
                       <Icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
+              )
             })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => navigate('/interactions/text')}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/interactions/text")}
           className="w-full"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -86,5 +74,5 @@ export const OperationsSidebar: React.FC = () => {
         </Button>
       </SidebarFooter>
     </Sidebar>
-  );
-};
+  )
+}

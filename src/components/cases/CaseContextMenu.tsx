@@ -1,4 +1,19 @@
-import React, { useState } from 'react';
+import { Check, CircleDot, Flag, UserMinus, UserPlus } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { toast } from "sonner"
+import {
+  CASE_PRIORITY_DOT,
+  CASE_STATUS_ICON_COLORS,
+  CASE_STATUS_ICONS,
+} from "@/components/cases/CaseBadges"
+import {
+  MemberOptionContent,
+  memberLabel,
+  rememberAssignee,
+  useMemberSearch,
+} from "@/components/shared/MemberPicker"
+import { TagContextMenuItems } from "@/components/tags/TagContextMenuItems"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -9,33 +24,23 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
-import { Input } from '@/components/ui/input';
-import { Check, UserMinus, UserPlus, Flag, CircleDot } from 'lucide-react';
-import { toast } from 'sonner';
-import { MemberOptionContent, memberLabel, rememberAssignee, useMemberSearch } from '@/components/shared/MemberPicker';
-import type { TeamMember } from '@/hooks/useTeamMembers';
+} from "@/components/ui/context-menu"
+import { Input } from "@/components/ui/input"
 import {
   CASE_PRIORITY_LABELS,
   CASE_STATUS_LABELS,
-  useUpdateCase,
   type CasePriority,
   type CaseStatus,
-} from '@/hooks/useCases';
-import {
-  CASE_PRIORITY_DOT,
-  CASE_STATUS_ICONS,
-  CASE_STATUS_ICON_COLORS,
-} from '@/components/cases/CaseBadges';
-
+  useUpdateCase,
+} from "@/hooks/useCases"
+import type { TeamMember } from "@/hooks/useTeamMembers"
 
 interface CaseContextMenuProps {
-  caseId: string;
-  status: CaseStatus;
-  priority: CasePriority;
-  ownerId?: string | null;
-  children: React.ReactNode;
+  caseId: string
+  status: CaseStatus
+  priority: CasePriority
+  ownerId?: string | null
+  children: React.ReactNode
 }
 
 /** Right-click menu on a case row: quick assign owner, change status or priority. */
@@ -46,23 +51,22 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
   ownerId,
   children,
 }) => {
-  const { mutateAsync: updateCase } = useUpdateCase();
-  const [search, setSearch] = useState('');
-  const { recent, rest } = useMemberSearch(search);
+  const { mutateAsync: updateCase } = useUpdateCase()
+  const [search, setSearch] = useState("")
+  const { recent, rest } = useMemberSearch(search)
 
   const assignOwner = (member: TeamMember) => {
-    rememberAssignee(member.id);
-    return apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`);
-  };
-
+    rememberAssignee(member.id)
+    return apply({ owner_id: member.id }, `Assigned to ${memberLabel(member)}`)
+  }
 
   const apply = async (updates: Record<string, unknown>, message: string) => {
-    await updateCase({ id: caseId, updates });
-    toast.success(message);
-  };
+    await updateCase({ id: caseId, updates })
+    toast.success(message)
+  }
 
   return (
-    <ContextMenu onOpenChange={(open) => !open && setSearch('')}>
+    <ContextMenu onOpenChange={(open) => !open && setSearch("")}>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-56">
         <ContextMenuLabel className="text-xs text-muted-foreground">Assign owner</ContextMenuLabel>
@@ -95,7 +99,9 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
                       onSelect={() => assignOwner(member)}
                     >
                       <MemberOptionContent member={member} />
-                      {ownerId === member.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                      {ownerId === member.id && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      )}
                     </ContextMenuItem>
                   ))}
                   <ContextMenuSeparator />
@@ -117,7 +123,7 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
               )}
             </div>
             <ContextMenuSeparator />
-            <ContextMenuItem onSelect={() => apply({ owner_id: null }, 'Owner cleared')}>
+            <ContextMenuItem onSelect={() => apply({ owner_id: null }, "Owner cleared")}>
               <UserMinus className="mr-2 h-4 w-4" />
               Unassign
             </ContextMenuItem>
@@ -133,7 +139,7 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-52">
             {(Object.keys(CASE_STATUS_LABELS) as CaseStatus[]).map((value) => {
-              const Icon = CASE_STATUS_ICONS[value];
+              const Icon = CASE_STATUS_ICONS[value]
               return (
                 <ContextMenuItem
                   key={value}
@@ -146,9 +152,8 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
                   <span className="flex-1">{CASE_STATUS_LABELS[value]}</span>
                   {status === value && <Check className="h-3.5 w-3.5 text-primary" />}
                 </ContextMenuItem>
-              );
+              )
             })}
-
           </ContextMenuSubContent>
         </ContextMenuSub>
 
@@ -167,7 +172,10 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
                   apply({ priority: value }, `Priority set to ${CASE_PRIORITY_LABELS[value]}`)
                 }
               >
-                <span aria-hidden className={`mr-2 h-2 w-2 rounded-full ${CASE_PRIORITY_DOT[value]}`} />
+                <span
+                  aria-hidden
+                  className={`mr-2 h-2 w-2 rounded-full ${CASE_PRIORITY_DOT[value]}`}
+                />
                 <span className="flex-1">{CASE_PRIORITY_LABELS[value]}</span>
                 {priority === value && <Check className="h-3.5 w-3.5 text-primary" />}
               </ContextMenuItem>
@@ -180,5 +188,5 @@ export const CaseContextMenu: React.FC<CaseContextMenuProps> = ({
         <TagContextMenuItems entityType="case" entityId={caseId} />
       </ContextMenuContent>
     </ContextMenu>
-  );
-};
+  )
+}

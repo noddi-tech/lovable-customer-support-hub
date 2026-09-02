@@ -3,38 +3,38 @@
  * This is a frontend backup for the database strip_html_tags function
  */
 export function stripHtml(html: string | null | undefined): string {
-  if (!html) return '';
-  
+  if (!html) return ""
+
   // Remove style, script, and img tags before parsing to prevent:
   // 1) Their content from appearing in text
   // 2) Browser from attempting to load image URLs (including cid: URLs which cause console errors)
   const cleaned = html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<img[^>]*>/gi, '');
-  
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<img[^>]*>/gi, "")
+
   // Create a temporary div element to parse HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = cleaned;
-  
+  const temp = document.createElement("div")
+  temp.innerHTML = cleaned
+
   // Extract text content (automatically decodes HTML entities)
-  let text = temp.textContent || temp.innerText || '';
-  
+  let text = temp.textContent || temp.innerText || ""
+
   // Remove extra whitespace
-  text = text.replace(/\s+/g, ' ').trim();
-  
-  return text;
+  text = text.replace(/\s+/g, " ").trim()
+
+  return text
 }
 
 /**
  * Get preview text with a maximum length
  */
 export function getPreviewText(text: string | null | undefined, maxLength: number = 150): string {
-  const stripped = stripHtml(text);
-  
+  const stripped = stripHtml(text)
+
   if (stripped.length <= maxLength) {
-    return stripped;
+    return stripped
   }
-  
-  return stripped.substring(0, maxLength) + '...';
+
+  return `${stripped.substring(0, maxLength)}...`
 }

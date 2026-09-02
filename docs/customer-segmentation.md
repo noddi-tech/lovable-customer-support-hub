@@ -90,8 +90,8 @@ When a campaign is scheduled, the segment is stored as:
 const campaignData = {
   name: campaignName.trim(),
   scheduled_at: scheduledDateTime.toISOString(),
-  segment_criteria: { segment: segmentId },  // e.g., { segment: 'customers' }
-  target_count: selectedSegment?.count || 0
+  segment_criteria: { segment: segmentId }, // e.g., { segment: 'customers' }
+  target_count: selectedSegment?.count || 0,
 };
 ```
 
@@ -175,7 +175,7 @@ The current implementation uses simple segment IDs, but the JSONB structure allo
       "value": 5
     }
   ],
-  "logic": "AND"  // or "OR"
+  "logic": "AND" // or "OR"
 }
 ```
 
@@ -251,7 +251,7 @@ class SegmentationService:
         'prospects': 'Prospects',
         'vip': 'VIP Members'
     }
-    
+
     @staticmethod
     def get_customers_for_segment(
         organization_id: str,
@@ -259,33 +259,33 @@ class SegmentationService:
     ) -> List[Customer]:
         """
         Get customers matching the segment criteria.
-        
+
         Args:
             organization_id: The organization ID to filter by
             segment_criteria: Dictionary with segment criteria
                 Example: {"segment": "customers"}
-        
+
         Returns:
             QuerySet of Customer objects
         """
         segment_id = segment_criteria.get('segment', 'all')
         base_query = Customer.objects.filter(organization_id=organization_id)
-        
+
         if segment_id == 'all':
             return base_query
-        
+
         elif segment_id == 'customers':
             # Customers with at least one conversation
             return base_query.filter(
                 conversations__isnull=False
             ).distinct()
-        
+
         elif segment_id == 'prospects':
             # Customers with no conversations
             return base_query.exclude(
                 conversations__isnull=False
             ).distinct()
-        
+
         elif segment_id == 'vip':
             # VIP customers - check metadata or conversation count
             # Option 1: Check metadata for VIP flag
@@ -294,21 +294,21 @@ class SegmentationService:
                 Q(metadata__vip_status='active') |
                 Q(metadata__contains={'segment': 'vip'})
             )
-            
+
             # Option 2: High engagement customers (10+ conversations)
             high_engagement = base_query.annotate(
                 conversation_count=Count('conversations')
             ).filter(
                 conversation_count__gte=10
             )
-            
+
             # Combine both criteria
             return vip_query.union(high_engagement).distinct()
-        
+
         else:
             # Unknown segment, return empty
             return base_query.none()
-    
+
     @staticmethod
     def get_segment_count(
         organization_id: str,
@@ -333,17 +333,17 @@ class NewsletterService:
         """Send newsletter campaign to segmented customers."""
         if not campaign.segment_criteria:
             raise ValueError("Campaign must have segment criteria")
-        
+
         # Get customers for this segment
         customers = SegmentationService.get_customers_for_segment(
             organization_id=campaign.newsletter.organization_id,
             segment_criteria=campaign.segment_criteria
         )
-        
+
         # Update campaign status
         campaign.status = 'sending'
         campaign.save()
-        
+
         # Send to each customer
         sent_count = 0
         for customer in customers:
@@ -356,7 +356,7 @@ class NewsletterService:
             except Exception as e:
                 # Log error but continue
                 logger.error(f"Failed to send to {customer.email}: {e}")
-        
+
         # Update campaign stats
         campaign.sent_count = sent_count
         campaign.status = 'sent'
@@ -369,6 +369,7 @@ class NewsletterService:
 1. **Organization Scoping**: All queries must be scoped to the organization to ensure data isolation.
 
 2. **Conversations Relationship**: The segmentation logic assumes a relationship between `Customer` and `Conversation` models. Ensure this relationship exists:
+
    ```python
    class Conversation(models.Model):
        customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, related_name='conversations')
@@ -392,12 +393,12 @@ def test_all_segment_includes_all_customers():
     org = create_organization()
     customer1 = create_customer(organization=org)
     customer2 = create_customer(organization=org)
-    
+
     criteria = {"segment": "all"}
     customers = SegmentationService.get_customers_for_segment(
         org.id, criteria
     )
-    
+
     assert customer1 in customers
     assert customer2 in customers
 
@@ -406,12 +407,12 @@ def test_customers_segment_excludes_prospects():
     customer = create_customer(organization=org)
     prospect = create_customer(organization=org)
     create_conversation(customer=customer)
-    
+
     criteria = {"segment": "customers"}
     customers = SegmentationService.get_customers_for_segment(
         org.id, criteria
     )
-    
+
     assert customer in customers
     assert prospect not in customers
 ```

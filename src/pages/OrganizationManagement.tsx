@@ -1,29 +1,33 @@
-import React, { useState } from 'react';
-import { useOrganizations } from '@/hooks/useOrganizations';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Building2, Crown, Plus, Search, Users, Calendar, Info, RefreshCw } from 'lucide-react';
-import { useServiceOrganizations } from '@/hooks/useServiceOrganizations';
-import { Heading } from '@/components/ui/heading';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
-import { CreateOrganizationModal } from '@/components/organization/CreateOrganizationModal';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
+import { Building2, Calendar, Crown, Info, Plus, RefreshCw, Search, Users } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { CreateOrganizationModal } from "@/components/organization/CreateOrganizationModal"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useOrganizations } from "@/hooks/useOrganizations"
+import { useServiceOrganizations } from "@/hooks/useServiceOrganizations"
 
 export default function OrganizationManagement() {
-  const navigate = useNavigate();
-  const { organizations, isLoading } = useOrganizations();
-  const { data: serviceOrgs, isFetching: isFetchingServiceOrgs, refetch: refetchServiceOrgs } =
-    useServiceOrganizations();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const navigate = useNavigate()
+  const { organizations, isLoading } = useOrganizations()
+  const {
+    data: serviceOrgs,
+    isFetching: isFetchingServiceOrgs,
+    refetch: refetchServiceOrgs,
+  } = useServiceOrganizations()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const filteredOrgs = organizations.filter(org =>
-    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    org.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrgs = organizations.filter(
+    (org) =>
+      org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      org.slug.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   return (
     <AdminPortalLayout>
@@ -33,7 +37,10 @@ export default function OrganizationManagement() {
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <Crown className="h-8 w-8 text-yellow-600 dark:text-yellow-500" />
-              <Heading level={1} className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-500 dark:to-amber-500 bg-clip-text text-transparent">
+              <Heading
+                level={1}
+                className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 dark:from-yellow-500 dark:to-amber-500 bg-clip-text text-transparent"
+              >
                 Service Organizations
               </Heading>
             </div>
@@ -65,26 +72,40 @@ export default function OrganizationManagement() {
                 onClick={() => refetchServiceOrgs()}
                 disabled={isFetchingServiceOrgs}
               >
-                <RefreshCw className={`h-4 w-4 ${isFetchingServiceOrgs ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${isFetchingServiceOrgs ? "animate-spin" : ""}`} />
                 Refresh from Navio
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              A service organization is the tenant boundary of the Support Hub. It maps 1:1 to a service
-              organization in the Navio backend API, which stays the source of truth for the catalog.
+              A service organization is the tenant boundary of the Support Hub. It maps 1:1 to a
+              service organization in the Navio backend API, which stays the source of truth for the
+              catalog.
             </p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Every conversation, case, customer, inbox and knowledge entry belongs to one service organization.</li>
-              <li>Access is scoped by membership — users only see data from organizations they belong to.</li>
-              <li>Branding and the sending identity (colour, sender display name, email domains) are set per organization.</li>
-              <li>Service departments, brands and tickets are fetched from Navio under the same organization.</li>
+              <li>
+                Every conversation, case, customer, inbox and knowledge entry belongs to one service
+                organization.
+              </li>
+              <li>
+                Access is scoped by membership — users only see data from organizations they belong
+                to.
+              </li>
+              <li>
+                Branding and the sending identity (colour, sender display name, email domains) are
+                set per organization.
+              </li>
+              <li>
+                Service departments, brands and tickets are fetched from Navio under the same
+                organization.
+              </li>
             </ul>
             <p>
-              The Navio catalog is fetched on demand and cached for a few hours; use “Refresh from Navio” to pull it
-              again immediately. Adding one here creates the local tenant linked to its Navio id.
-              {serviceOrgs ? ` ${serviceOrgs.length} available in Navio.` : ''}
+              The Navio catalog is fetched on demand and cached for a few hours; use “Refresh from
+              Navio” to pull it again immediately. Adding one here creates the local tenant linked
+              to its Navio id.
+              {serviceOrgs ? ` ${serviceOrgs.length} available in Navio.` : ""}
             </p>
           </CardContent>
         </Card>
@@ -124,8 +145,8 @@ export default function OrganizationManagement() {
                 <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground text-center">
                   {searchQuery
-                    ? 'No service organizations found matching your search'
-                    : 'No service organizations yet'}
+                    ? "No service organizations found matching your search"
+                    : "No service organizations yet"}
                 </p>
               </CardContent>
             </Card>
@@ -179,10 +200,7 @@ export default function OrganizationManagement() {
         </div>
       </div>
 
-      <CreateOrganizationModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-      />
+      <CreateOrganizationModal open={showCreateModal} onOpenChange={setShowCreateModal} />
     </AdminPortalLayout>
-  );
+  )
 }

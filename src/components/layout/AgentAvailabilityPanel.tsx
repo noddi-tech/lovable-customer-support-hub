@@ -1,86 +1,84 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { useAgentAvailability, type AvailabilityStatus } from '@/hooks/useAgentAvailability';
-import { useOnlineAgents } from '@/hooks/useOnlineAgents';
-import { usePhoneSession } from '@/hooks/usePhoneSession';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { toast } from 'sonner';
+import { ChevronDown, Circle, Loader2, LogIn, LogOut, MessageSquare, Phone } from "lucide-react"
+import React from "react"
+import { toast } from "sonner"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Circle, ChevronDown, Loader2, Phone, MessageSquare, LogIn, LogOut }  from 'lucide-react';
+} from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { type AvailabilityStatus, useAgentAvailability } from "@/hooks/useAgentAvailability"
+import { useOnlineAgents } from "@/hooks/useOnlineAgents"
+import { usePhoneSession } from "@/hooks/usePhoneSession"
+import { cn } from "@/lib/utils"
 
 interface AgentAvailabilityPanelProps {
-  collapsed?: boolean;
-  className?: string;
+  collapsed?: boolean
+  className?: string
 }
 
-const chatStatusConfig: Record<AvailabilityStatus, { label: string; color: string; bgColor: string }> = {
-  online: { 
-    label: 'Online', 
-    color: 'text-green-500', 
-    bgColor: 'bg-green-500' 
+const chatStatusConfig: Record<
+  AvailabilityStatus,
+  { label: string; color: string; bgColor: string }
+> = {
+  online: {
+    label: "Online",
+    color: "text-green-500",
+    bgColor: "bg-green-500",
   },
-  away: { 
-    label: 'Away', 
-    color: 'text-yellow-500', 
-    bgColor: 'bg-yellow-500' 
+  away: {
+    label: "Away",
+    color: "text-yellow-500",
+    bgColor: "bg-yellow-500",
   },
-  offline: { 
-    label: 'Offline', 
-    color: 'text-muted-foreground', 
-    bgColor: 'bg-muted-foreground' 
+  offline: {
+    label: "Offline",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted-foreground",
   },
-};
+}
 
 // Get initials from a name
 const getInitials = (name: string): string => {
-  const parts = name.split(' ').filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-};
+  const parts = name.split(" ").filter(Boolean)
+  if (parts.length === 0) return "?"
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+}
 
-
-
-export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({ 
+export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
   collapsed = false,
-  className 
+  className,
 }) => {
   // Availability section is collapsed by default; choice persists per browser.
   const [sectionOpen, setSectionOpen] = React.useState<boolean>(() => {
     try {
-      return localStorage.getItem('sidebar:availability-open') === 'true';
+      return localStorage.getItem("sidebar:availability-open") === "true"
     } catch {
-      return false;
+      return false
     }
-  });
+  })
 
   React.useEffect(() => {
     try {
-      localStorage.setItem('sidebar:availability-open', String(sectionOpen));
+      localStorage.setItem("sidebar:availability-open", String(sectionOpen))
     } catch {
       /* ignore storage failures */
     }
-  }, [sectionOpen]);
+  }, [sectionOpen])
 
   // Chat availability
-  const { status: chatStatus, setStatus: setChatStatus, isLoading: chatLoading, isUpdating: chatUpdating } = useAgentAvailability();
-  const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents();
+  const {
+    status: chatStatus,
+    setStatus: setChatStatus,
+    isLoading: chatLoading,
+    isUpdating: chatUpdating,
+  } = useAgentAvailability()
+  const { data: onlineAgents = [], isLoading: agentsLoading } = useOnlineAgents()
   // Phone availability (Aircall) — shared with the command palette
   const {
     isLoggedIn: phoneLoggedIn,
@@ -89,13 +87,14 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
     error: phoneError,
     login: handlePhoneLogin,
     logout: handlePhoneLogout,
-  } = usePhoneSession();
+  } = usePhoneSession()
 
-  const currentChatConfig = chatStatusConfig[chatStatus];
+  const currentChatConfig = chatStatusConfig[chatStatus]
 
   // Filter out current user and show only other online agents
-  const otherAgents = onlineAgents.filter(a => a.chat_availability === 'online' || a.chat_availability === 'away');
-
+  const otherAgents = onlineAgents.filter(
+    (a) => a.chat_availability === "online" || a.chat_availability === "away",
+  )
 
   // Loading state
   if (chatLoading || integrationsLoading) {
@@ -106,7 +105,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
           {!collapsed && <span className="text-sm">Loading...</span>}
         </div>
       </div>
-    );
+    )
   }
 
   // Collapsed view - interactive popover with status controls
@@ -115,24 +114,32 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
       <div className={cn("flex flex-col items-center gap-2", className)}>
         <Popover>
           <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-9 w-9 relative hover:bg-muted"
-              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneLoggedIn ? "logged in" : "logged out"}` : ''}`}
+              title={`Chat: ${chatStatus}${showPhoneSection ? `, Phone: ${phoneLoggedIn ? "logged in" : "logged out"}` : ""}`}
             >
               {/* Chat status (primary) */}
               <Circle className={cn("h-4 w-4 fill-current", currentChatConfig.color)} />
               {/* Phone status indicator (small overlay) */}
               {showPhoneSection && (
-                <div className={cn(
-                  "absolute bottom-1 right-1 h-2 w-2 rounded-full border border-background",
-                  phoneLoggedIn ? "bg-green-500" : "bg-muted-foreground"
-                )} />
+                <div
+                  className={cn(
+                    "absolute bottom-1 right-1 h-2 w-2 rounded-full border border-background",
+                    phoneLoggedIn ? "bg-green-500" : "bg-muted-foreground",
+                  )}
+                />
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent side="right" align="start" alignOffset={24} sideOffset={8} className="w-56 p-3">
+          <PopoverContent
+            side="right"
+            align="start"
+            alignOffset={24}
+            sideOffset={8}
+            className="w-56 p-3"
+          >
             <div className="space-y-3">
               {/* Chat Section */}
               <div className="space-y-1.5">
@@ -141,27 +148,30 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                   <span>Chat</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  {(Object.entries(chatStatusConfig) as [AvailabilityStatus, typeof currentChatConfig][]).map(
-                    ([statusKey, config]) => (
-                      <Button
-                        key={statusKey}
-                        variant={chatStatus === statusKey ? "default" : "outline"}
-                        size="sm"
-                        className="w-full justify-start h-7 text-xs"
-                        disabled={chatUpdating}
-                        onClick={() => {
-                          setChatStatus(statusKey);
-                          toast.success(`Chat status: ${config.label}`);
-                        }}
-                      >
-                        <Circle className={cn("h-2 w-2 fill-current mr-1.5", config.color)} />
-                        {config.label}
-                      </Button>
-                    )
-                  )}
+                  {(
+                    Object.entries(chatStatusConfig) as [
+                      AvailabilityStatus,
+                      typeof currentChatConfig,
+                    ][]
+                  ).map(([statusKey, config]) => (
+                    <Button
+                      key={statusKey}
+                      variant={chatStatus === statusKey ? "default" : "outline"}
+                      size="sm"
+                      className="w-full justify-start h-7 text-xs"
+                      disabled={chatUpdating}
+                      onClick={() => {
+                        setChatStatus(statusKey)
+                        toast.success(`Chat status: ${config.label}`)
+                      }}
+                    >
+                      <Circle className={cn("h-2 w-2 fill-current mr-1.5", config.color)} />
+                      {config.label}
+                    </Button>
+                  ))}
                 </div>
               </div>
-              
+
               {/* Phone Section - only if Aircall configured */}
               {showPhoneSection && (
                 <div className="space-y-1.5 pt-2 border-t">
@@ -185,7 +195,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                       size="sm"
                       className="w-full h-7 text-xs"
                       onClick={handlePhoneLogin}
-                            >
+                    >
                       <LogIn className="h-3 w-3 mr-1" />
                       Login to Aircall
                     </Button>
@@ -201,7 +211,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
           </PopoverContent>
         </Popover>
       </div>
-    );
+    )
   }
 
   return (
@@ -212,196 +222,195 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
     >
       {/* Section header — click to expand/collapse downward */}
       <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-1 text-[9px] font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors">
-        <ChevronDown
-          className={cn(
-            "h-3 w-3 transition-transform",
-            !sectionOpen && "-rotate-90"
-          )}
-        />
+        <ChevronDown className={cn("h-3 w-3 transition-transform", !sectionOpen && "-rotate-90")} />
         <span className="flex-1 text-left">Availability</span>
         <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
         {showPhoneSection && (
-          <Phone className={cn("h-2.5 w-2.5", phoneLoggedIn ? "text-green-500" : "text-muted-foreground")} />
+          <Phone
+            className={cn(
+              "h-2.5 w-2.5",
+              phoneLoggedIn ? "text-green-500" : "text-muted-foreground",
+            )}
+          />
         )}
       </CollapsibleTrigger>
 
       <CollapsibleContent className="space-y-3 pt-2">
-      
-      
-      {/* Chat Availability Section */}
-      <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
-        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-          <MessageSquare className="h-2.5 w-2.5" />
-          <span>Chat</span>
-        </div>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 h-7"
-              disabled={chatUpdating}
-            >
-              <div className="relative flex-shrink-0">
-                <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
-                {chatStatus === 'online' && (
-                  <span className="absolute inset-0 animate-ping">
-                    <Circle className="h-2 w-2 fill-current text-green-500 opacity-50" />
-                  </span>
+        {/* Chat Availability Section */}
+        <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <MessageSquare className="h-2.5 w-2.5" />
+            <span>Chat</span>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 h-7"
+                disabled={chatUpdating}
+              >
+                <div className="relative flex-shrink-0">
+                  <Circle className={cn("h-2 w-2 fill-current", currentChatConfig.color)} />
+                  {chatStatus === "online" && (
+                    <span className="absolute inset-0 animate-ping">
+                      <Circle className="h-2 w-2 fill-current text-green-500 opacity-50" />
+                    </span>
+                  )}
+                </div>
+                <span className="flex-1 text-left text-[10px]">{currentChatConfig.label}</span>
+                {chatUpdating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 )}
-              </div>
-              <span className="flex-1 text-left text-[10px]">
-                {currentChatConfig.label}
-              </span>
-              {chatUpdating ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            {(Object.entries(chatStatusConfig) as [AvailabilityStatus, typeof currentChatConfig][]).map(
-              ([statusKey, config]) => {
-                const statusMessages: Record<AvailabilityStatus, { title: string; description: string }> = {
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {(
+                Object.entries(chatStatusConfig) as [AvailabilityStatus, typeof currentChatConfig][]
+              ).map(([statusKey, config]) => {
+                const statusMessages: Record<
+                  AvailabilityStatus,
+                  { title: string; description: string }
+                > = {
                   online: {
-                    title: 'You are now online for chat',
-                    description: 'Visitors can start live chats with you'
+                    title: "You are now online for chat",
+                    description: "Visitors can start live chats with you",
                   },
                   away: {
-                    title: 'Status set to Away',
-                    description: 'You will still receive chat notifications'
+                    title: "Status set to Away",
+                    description: "You will still receive chat notifications",
                   },
                   offline: {
-                    title: 'You are now offline',
-                    description: 'Live chat is disabled for visitors'
-                  }
-                };
-                
+                    title: "You are now offline",
+                    description: "Live chat is disabled for visitors",
+                  },
+                }
+
                 return (
                   <DropdownMenuItem
                     key={statusKey}
                     onSelect={(e) => {
-                      e.preventDefault();
-                      setChatStatus(statusKey);
+                      e.preventDefault()
+                      setChatStatus(statusKey)
                       toast.success(statusMessages[statusKey].title, {
                         description: statusMessages[statusKey].description,
-                      });
+                      })
                     }}
                     className={cn(
                       "flex items-center gap-2 cursor-pointer",
-                      chatStatus === statusKey && "bg-muted"
+                      chatStatus === statusKey && "bg-muted",
                     )}
                   >
                     <Circle className={cn("h-3 w-3 fill-current", config.color)} />
                     <span>{config.label}</span>
                   </DropdownMenuItem>
-                );
-              }
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Phone Availability Section - only show if Aircall is configured */}
+        {showPhoneSection && (
+          <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
+            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+              <Phone className="h-2.5 w-2.5" />
+              <span>Phone</span>
+            </div>
+
+            {phoneLoggedIn ? (
+              // Logged in state
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="relative flex-shrink-0">
+                    <Circle className="h-3 w-3 fill-current text-green-500" />
+                    <span className="absolute inset-0 animate-ping">
+                      <Circle className="h-3 w-3 fill-current text-green-500 opacity-50" />
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-foreground truncate">Logged in</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePhoneLogout}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-3 w-3 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              // Not logged in state
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePhoneLogin}
+                className="w-full h-7 text-[10px] justify-center gap-2"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Login to Aircall</span>
+              </Button>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      
-      {/* Phone Availability Section - only show if Aircall is configured */}
-      {showPhoneSection && (
-        <div className="space-y-1.5 p-1.5 rounded-lg bg-muted/30">
-        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-            <Phone className="h-2.5 w-2.5" />
-            <span>Phone</span>
+
+            {/* Phone error state */}
+            {phoneError && (
+              <p className="text-xs text-destructive truncate" title={phoneError}>
+                {phoneError}
+              </p>
+            )}
           </div>
-          
-          {phoneLoggedIn ? (
-            // Logged in state
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="relative flex-shrink-0">
-                  <Circle className="h-3 w-3 fill-current text-green-500" />
-                  <span className="absolute inset-0 animate-ping">
-                    <Circle className="h-3 w-3 fill-current text-green-500 opacity-50" />
+        )}
+
+        {/* Online agents list */}
+        {otherAgents.length > 0 && (
+          <div className="pt-2 mt-1 border-t border-border/50">
+            <p className="text-[9px] text-muted-foreground mb-1.5">Online now:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {otherAgents.slice(0, 3).map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 rounded-md"
+                  title={agent.full_name}
+                >
+                  <Avatar className="h-4 w-4">
+                    {agent.avatar_url && (
+                      <AvatarImage src={agent.avatar_url} alt={agent.full_name} />
+                    )}
+                    <AvatarFallback className="text-[8px] bg-primary/10">
+                      {getInitials(agent.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[9px] text-foreground truncate max-w-[60px]">
+                    {agent.full_name.split(" ")[0]}
+                  </span>
+                  <Circle
+                    className={cn(
+                      "h-1.5 w-1.5 fill-current shrink-0",
+                      agent.chat_availability === "online" ? "text-green-500" : "text-yellow-500",
+                    )}
+                  />
+                </div>
+              ))}
+              {otherAgents.length > 3 && (
+                <div className="flex items-center px-1.5 py-0.5 bg-muted/50 rounded-md">
+                  <span className="text-[9px] text-muted-foreground">
+                    +{otherAgents.length - 3} more
                   </span>
                 </div>
-                <span className="text-[10px] text-foreground truncate">Logged in</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePhoneLogout}
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-              >
-                <LogOut className="h-3 w-3 mr-1" />
-                Logout
-              </Button>
+              )}
             </div>
-          ) : (
-            // Not logged in state
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePhoneLogin}
-              className="w-full h-7 text-[10px] justify-center gap-2"
-            >
-              <LogIn className="h-3.5 w-3.5" />
-              <span>Login to Aircall</span>
-            </Button>
-          )}
-          
-          {/* Phone error state */}
-          {phoneError && (
-            <p className="text-xs text-destructive truncate" title={phoneError}>
-              {phoneError}
-            </p>
-          )}
-        </div>
-      )}
-      
-      {/* Online agents list */}
-      {otherAgents.length > 0 && (
-        <div className="pt-2 mt-1 border-t border-border/50">
-          <p className="text-[9px] text-muted-foreground mb-1.5">Online now:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {otherAgents.slice(0, 3).map(agent => (
-              <div 
-                key={agent.id} 
-                className="flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 rounded-md"
-                title={agent.full_name}
-              >
-                <Avatar className="h-4 w-4">
-                  {agent.avatar_url && (
-                    <AvatarImage src={agent.avatar_url} alt={agent.full_name} />
-                  )}
-                  <AvatarFallback className="text-[8px] bg-primary/10">
-                    {getInitials(agent.full_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-[9px] text-foreground truncate max-w-[60px]">
-                  {agent.full_name.split(' ')[0]}
-                </span>
-                <Circle className={cn(
-                  "h-1.5 w-1.5 fill-current shrink-0",
-                  agent.chat_availability === 'online' ? 'text-green-500' : 'text-yellow-500'
-                )} />
-              </div>
-            ))}
-            {otherAgents.length > 3 && (
-              <div className="flex items-center px-1.5 py-0.5 bg-muted/50 rounded-md">
-              <span className="text-[9px] text-muted-foreground">
-                  +{otherAgents.length - 3} more
-                </span>
-              </div>
-            )}
           </div>
-        </div>
-      )}
-      
-      {/* Empty state when no other agents online */}
-      {otherAgents.length === 0 && !agentsLoading && (
-        <p className="text-[9px] text-muted-foreground">
-          No other agents online
-        </p>
-      )}
+        )}
+
+        {/* Empty state when no other agents online */}
+        {otherAgents.length === 0 && !agentsLoading && (
+          <p className="text-[9px] text-muted-foreground">No other agents online</p>
+        )}
       </CollapsibleContent>
     </Collapsible>
-  );
-};
+  )
+}

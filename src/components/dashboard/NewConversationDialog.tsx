@@ -1,8 +1,8 @@
-import React from 'react';
-import { useCompose } from '@/contexts/ComposeContext';
+import type React from "react"
+import { useCompose } from "@/contexts/ComposeContext"
 
 interface NewConversationDialogProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 /**
@@ -11,18 +11,18 @@ interface NewConversationDialogProps {
  * can keep browsing the inbox and compose several emails at once.
  */
 export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ children }) => {
-  const { openCompose } = useCompose();
+  const { openCompose } = useCompose()
 
   return (
     <span
       onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        openCompose();
+        e.preventDefault()
+        e.stopPropagation()
+        openCompose()
       }}
       className="contents"
     >
       {children}
     </span>
-  );
-};
+  )
+}

@@ -1,34 +1,38 @@
-import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EntityTagPicker } from '@/components/tags/TagPicker';
-import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
-import { CustomerTimeline } from '@/components/cases/CustomerTimeline';
-import { useCustomer, useCustomerConversations } from '@/hooks/useCustomerRecord';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { ExternalLink, Mail, Phone, UserRound, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ExternalLink, Mail, Phone, UserRound, X } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { CustomerTimeline } from "@/components/cases/CustomerTimeline"
+import { NoddiCustomerDetails } from "@/components/dashboard/voice/NoddiCustomerDetails"
+import { EntityTagPicker } from "@/components/tags/TagPicker"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useCustomer, useCustomerConversations } from "@/hooks/useCustomerRecord"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { cn } from "@/lib/utils"
 
 interface CustomerDetailsSidebarProps {
-  customerId: string;
-  onClose: () => void;
-  className?: string;
+  customerId: string
+  onClose: () => void
+  className?: string
 }
 
 /**
  * Right-hand customer panel used by the customers list — mirrors the customer
  * sidebar shown in the email conversation and live chat views.
  */
-export function CustomerDetailsSidebar({ customerId, onClose, className }: CustomerDetailsSidebarProps) {
-  const navigate = useNavigate();
-  const { dateTime } = useDateFormatting();
-  const { data: customer, isLoading } = useCustomer(customerId);
-  const { data: conversations = [] } = useCustomerConversations(customerId);
+export function CustomerDetailsSidebar({
+  customerId,
+  onClose,
+  className,
+}: CustomerDetailsSidebarProps) {
+  const navigate = useNavigate()
+  const { dateTime } = useDateFormatting()
+  const { data: customer, isLoading } = useCustomer(customerId)
+  const { data: conversations = [] } = useCustomerConversations(customerId)
 
   return (
-    <aside className={cn('flex h-full min-h-0 flex-col bg-background', className)}>
+    <aside className={cn("flex h-full min-h-0 flex-col bg-background", className)}>
       <div className="flex items-start gap-2 border-b px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
           <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -38,7 +42,7 @@ export function CustomerDetailsSidebar({ customerId, onClose, className }: Custo
             <Skeleton className="h-5 w-40" />
           ) : (
             <h2 className="truncate text-sm font-semibold">
-              {customer?.full_name || customer?.email || customer?.phone || 'Customer'}
+              {customer?.full_name || customer?.email || customer?.phone || "Customer"}
             </h2>
           )}
           <div className="mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
@@ -54,7 +58,13 @@ export function CustomerDetailsSidebar({ customerId, onClose, className }: Custo
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose} aria-label="Close">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={onClose}
+          aria-label="Close"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -91,5 +101,5 @@ export function CustomerDetailsSidebar({ customerId, onClose, className }: Custo
         </Button>
       </div>
     </aside>
-  );
+  )
 }

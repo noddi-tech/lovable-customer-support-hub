@@ -1,115 +1,115 @@
 /**
  * Centralized email parsing and quoted content extraction
- * 
+ *
  * This module handles parsing of both HTML and plain text email content to:
  * 1. Extract the visible "main" content (what the sender wrote)
  * 2. Identify and separate "quoted" reply chains
  * 3. Parse structured quoted messages with metadata
- * 
+ *
  * It handles common email client patterns from Gmail, Outlook, Apple Mail, etc.
  */
 
-import { logger } from '@/utils/logger';
+import { logger } from "@/utils/logger"
 
 // ============================================================================
 // PARSE CACHE - Prevents redundant parsing of the same content
 // ============================================================================
 
 interface ParseCacheEntry {
-  result: any;
-  timestamp: number;
+  result: any
+  timestamp: number
 }
 
 class ParseCache {
-  private cache = new Map<string, ParseCacheEntry>();
-  private maxSize = 100;
-  private maxAge = 5 * 60 * 1000; // 5 minutes
+  private cache = new Map<string, ParseCacheEntry>()
+  private maxSize = 100
+  private maxAge = 5 * 60 * 1000 // 5 minutes
 
   private generateKey(content: string, type: string): string {
     // Simple hash function for cache key
-    let hash = 0;
-    const str = `${type}:${content}`;
+    let hash = 0
+    const str = `${type}:${content}`
     for (let i = 0; i < Math.min(str.length, 1000); i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+      const char = str.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32bit integer
     }
-    return `${hash}_${content.length}`;
+    return `${hash}_${content.length}`
   }
 
   get(content: string, type: string): any | null {
-    const key = this.generateKey(content, type);
-    const entry = this.cache.get(key);
-    
+    const key = this.generateKey(content, type)
+    const entry = this.cache.get(key)
+
     if (!entry) {
-      logger.trackParseCache(false, this.cache.size);
-      return null;
+      logger.trackParseCache(false, this.cache.size)
+      return null
     }
 
     // Check if expired
     if (Date.now() - entry.timestamp > this.maxAge) {
-      this.cache.delete(key);
-      logger.trackParseCache(false, this.cache.size);
-      return null;
+      this.cache.delete(key)
+      logger.trackParseCache(false, this.cache.size)
+      return null
     }
 
-    logger.trackParseCache(true, this.cache.size);
-    return entry.result;
+    logger.trackParseCache(true, this.cache.size)
+    return entry.result
   }
 
   set(content: string, type: string, result: any): void {
-    const key = this.generateKey(content, type);
-    
+    const key = this.generateKey(content, type)
+
     // LRU eviction if cache is full
     if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      const firstKey = this.cache.keys().next().value
+      this.cache.delete(firstKey)
     }
 
     this.cache.set(key, {
       result,
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+    })
   }
 
   clear(): void {
-    this.cache.clear();
+    this.cache.clear()
   }
 }
 
-const parseCache = new ParseCache();
+const parseCache = new ParseCache()
 
 // Feature flag: Enable thread extraction - expand quoted messages into separate cards
-export const ENABLE_QUOTED_EXTRACTION = false; // Disabled - synthetic cards created duplicates. Quoted content still accessible via expand toggle.
+export const ENABLE_QUOTED_EXTRACTION = false // Disabled - synthetic cards created duplicates. Quoted content still accessible via expand toggle.
 
 // Never promote quoted blocks into cards (deprecated, use ENABLE_QUOTED_EXTRACTION)
-export const ENABLE_QUOTED_SEGMENTATION = false;
+export const ENABLE_QUOTED_SEGMENTATION = false
 
 // Feature flag: library-backed cleaner (@u22n/mailtools + email-reply-parser).
 // On by default; disable per session with ?cleanv2=0 (see src/lib/emailClean.ts).
 // The original body is never discarded — it stays behind "Show original message".
-export const ENABLE_LIB_EMAIL_CLEAN = true;
+export const ENABLE_LIB_EMAIL_CLEAN = true
 
 // Feature flag for showing quoted content in UI
-const SHOW_QUOTED = true; // Always parse quoted messages so they're available for extraction
+const SHOW_QUOTED = true // Always parse quoted messages so they're available for extraction
 
 export type QuotedBlock = {
-  kind: 'gmail' | 'outlook' | 'apple' | 'yahoo' | 'blockquote' | 'header' | 'plain';
-  raw: string;
-};
-
-export interface QuotedMessage {
-  bodyHtml: string;           // HTML of the quoted email body
-  bodyText: string;           // plain text version
-  headers?: Record<string,string>; // parsed headers if available
-  fromEmail?: string;
-  fromName?: string;
-  sentAtIso?: string;         // ISO date if detected
-  vendor?: 'gmail' | 'outlook' | 'apple' | 'generic';
-  confidence: 'high'|'medium'|'low';
+  kind: "gmail" | "outlook" | "apple" | "yahoo" | "blockquote" | "header" | "plain"
+  raw: string
 }
 
-type Input = { content: string; contentType?: string };
+export interface QuotedMessage {
+  bodyHtml: string // HTML of the quoted email body
+  bodyText: string // plain text version
+  headers?: Record<string, string> // parsed headers if available
+  fromEmail?: string
+  fromName?: string
+  sentAtIso?: string // ISO date if detected
+  vendor?: "gmail" | "outlook" | "apple" | "generic"
+  confidence: "high" | "medium" | "low"
+}
+
+type Input = { content: string; contentType?: string }
 
 const WROTE_HEADERS = [
   // English
@@ -120,7 +120,7 @@ const WROTE_HEADERS = [
   /^(Den|På) .+ skrev:$/i,
   /^Fra: .+\n(?:Sendt|Dato): .+\n(?:Til|Kopi): .+\n(?:Emne|Re): .+$/i,
   /^Skrev .+:$/i,
-];
+]
 
 /**
  * Detect Outlook-style header blocks that span multiple lines.
@@ -130,21 +130,21 @@ const WROTE_HEADERS = [
  */
 function findHeaderBlockIndex(lines: string[]): number {
   for (let i = 0; i < lines.length - 1; i++) {
-    const line = lines[i].trim();
+    const line = lines[i].trim()
     if (/^(Fra|From):\s+.+/i.test(line)) {
       for (let j = 1; j <= Math.min(3, lines.length - i - 1); j++) {
-        const next = lines[i + j].trim();
+        const next = lines[i + j].trim()
         if (/^(Sendt|Sent|Date|Dato):\s+.+/i.test(next)) {
-          return i;
+          return i
         }
         // Allow other header lines (To, Subject, etc.) but stop on non-header content
         if (next.length > 0 && !/^(To|Til|Cc|Kopi|Subject|Emne|Re):\s*/i.test(next)) {
-          break;
+          break
         }
       }
     }
   }
-  return -1;
+  return -1
 }
 
 // Common email list footer patterns to strip
@@ -154,56 +154,60 @@ const EMAIL_LIST_FOOTERS = [
   /You received this message because you are subscribed to the Google Groups .+ group\./i,
   /To view this discussion (?:on the web )?visit https?:\/\/groups\.google\.com\/.+/i,
   /To post to this group, send email to .+?@.+?\./i,
-  
+
   // Generic mailing list footers
   /^--+\s*$/m, // Standard email signature delimiter
   /To unsubscribe,?\s*(?:click here|visit|send an email to).+/i,
   /^Unsubscribe:.+$/im,
   /^You (?:are receiving|received) this (?:email|message) because.+$/im,
-  
+
   // Other platforms
   /Click here to unsubscribe/i,
   /Update your email preferences/i,
   /Manage (?:your )?subscription/i,
-];
+]
 
 /**
  * Remove email list footers from text content.
  * Searches for the first matching footer pattern and removes everything from that point onward.
  */
 function stripEmailListFooters(text: string): string {
-  let cleaned = text;
-  let earliestMatch: { index: number; pattern: RegExp } | null = null;
-  
+  let cleaned = text
+  let earliestMatch: { index: number; pattern: RegExp } | null = null
+
   // Find the earliest matching footer pattern
   for (const pattern of EMAIL_LIST_FOOTERS) {
-    const match = cleaned.match(pattern);
+    const match = cleaned.match(pattern)
     if (match && match.index !== undefined) {
       if (!earliestMatch || match.index < earliestMatch.index) {
-        earliestMatch = { index: match.index, pattern };
+        earliestMatch = { index: match.index, pattern }
       }
     }
   }
-  
+
   // If we found a footer, cut at that point
   if (earliestMatch) {
-    cleaned = cleaned.slice(0, earliestMatch.index).trim();
+    cleaned = cleaned.slice(0, earliestMatch.index).trim()
   }
-  
-  return cleaned;
+
+  return cleaned
 }
 
 function stripHtmlComments(s: string) {
-  return s.replace(/<!--[\s\S]*?-->/g, '');
+  return s.replace(/<!--[\s\S]*?-->/g, "")
 }
 
 function normalizeWhitespace(s: string) {
-  return s.replace(/\r\n/g, '\n').replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').trim();
+  return s
+    .replace(/\r\n/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .trim()
 }
 
 function htmlToDocument(html: string): Document {
-  const parser = new DOMParser();
-  return parser.parseFromString(html, 'text/html');
+  const parser = new DOMParser()
+  return parser.parseFromString(html, "text/html")
 }
 
 /**
@@ -213,73 +217,84 @@ function htmlToDocument(html: string): Document {
  * Reference: Gmail API docs, Stack Overflow standard practices
  */
 export function decodeHTMLEntities(html: string): string {
-  if (!html) return html;
-  
-  const temp = document.createElement('textarea');
-  temp.innerHTML = html;
-  let decoded = temp.value;
-  
+  if (!html) return html
+
+  const temp = document.createElement("textarea")
+  temp.innerHTML = html
+  let decoded = temp.value
+
   // Iterative decoding for nested entities (max 3 passes)
-  let previousDecoded = '';
-  let iterations = 0;
+  let previousDecoded = ""
+  let iterations = 0
   while (decoded !== previousDecoded && iterations < 3) {
-    previousDecoded = decoded;
-    temp.innerHTML = decoded;
-    decoded = temp.value;
-    iterations++;
+    previousDecoded = decoded
+    temp.innerHTML = decoded
+    decoded = temp.value
+    iterations++
   }
-  
-  return decoded;
+
+  return decoded
 }
 
 /**
  * Strip email client wrapper elements (like <pre> tags) that wrap entire content
  */
 function stripEmailClientWrappers(body: HTMLElement): void {
-  logger.debug('stripEmailClientWrappers Starting', { 
-    bodyChildrenCount: body.children.length 
-  }, 'parseQuotedEmail');
-  
+  logger.debug(
+    "stripEmailClientWrappers Starting",
+    {
+      bodyChildrenCount: body.children.length,
+    },
+    "parseQuotedEmail",
+  )
+
   // Check if the entire body is wrapped in a single <pre> or <div>
-  const children = Array.from(body.children);
-  
+  const children = Array.from(body.children)
+
   // If there's only one child and it's a wrapper element, unwrap it
   if (children.length === 1) {
-    const onlyChild = children[0];
-    
-    if (onlyChild.tagName === 'PRE' && !onlyChild.querySelector('code')) {
-      logger.debug('Unwrapping single PRE wrapper', {}, 'parseQuotedEmail');
+    const onlyChild = children[0]
+
+    if (onlyChild.tagName === "PRE" && !onlyChild.querySelector("code")) {
+      logger.debug("Unwrapping single PRE wrapper", {}, "parseQuotedEmail")
       // Just unwrap - content is already decoded by extractFromHtml
-      body.innerHTML = onlyChild.innerHTML;
-      
-    } else if (onlyChild.tagName === 'DIV' && onlyChild.childElementCount === 0 && onlyChild.textContent) {
-      logger.debug('Unwrapping single DIV wrapper', {}, 'parseQuotedEmail');
-      body.innerHTML = onlyChild.innerHTML;
+      body.innerHTML = onlyChild.innerHTML
+    } else if (
+      onlyChild.tagName === "DIV" &&
+      onlyChild.childElementCount === 0 &&
+      onlyChild.textContent
+    ) {
+      logger.debug("Unwrapping single DIV wrapper", {}, "parseQuotedEmail")
+      body.innerHTML = onlyChild.innerHTML
     }
   }
-  
+
   // Handle all <pre> elements that don't contain <code> (email client formatting)
-  const preElements = Array.from(body.querySelectorAll('pre'));
-  logger.debug('Found pre elements', { count: preElements.length }, 'parseQuotedEmail');
-  
+  const preElements = Array.from(body.querySelectorAll("pre"))
+  logger.debug("Found pre elements", { count: preElements.length }, "parseQuotedEmail")
+
   preElements.forEach((pre, index) => {
-    const hasCodeChild = pre.querySelector('code') !== null;
-    logger.debug(`Pre element ${index}`, { hasCode: hasCodeChild }, 'parseQuotedEmail');
-    
+    const hasCodeChild = pre.querySelector("code") !== null
+    logger.debug(`Pre element ${index}`, { hasCode: hasCodeChild }, "parseQuotedEmail")
+
     if (!hasCodeChild) {
       // Just unwrap - content is already decoded by extractFromHtml
-      const div = document.createElement('div');
-      div.innerHTML = pre.innerHTML;
-      div.style.whiteSpace = 'pre-wrap';
-      div.className = 'email-client-content';
-      pre.replaceWith(div);
-      logger.debug(`Replaced pre ${index} with div`, {}, 'parseQuotedEmail');
+      const div = document.createElement("div")
+      div.innerHTML = pre.innerHTML
+      div.style.whiteSpace = "pre-wrap"
+      div.className = "email-client-content"
+      pre.replaceWith(div)
+      logger.debug(`Replaced pre ${index} with div`, {}, "parseQuotedEmail")
     }
-  });
-  
-  logger.debug('stripEmailClientWrappers Complete', { 
-    bodyChildrenCount: body.children.length 
-  }, 'parseQuotedEmail');
+  })
+
+  logger.debug(
+    "stripEmailClientWrappers Complete",
+    {
+      bodyChildrenCount: body.children.length,
+    },
+    "parseQuotedEmail",
+  )
 }
 
 /**
@@ -287,7 +302,10 @@ function stripEmailClientWrappers(body: HTMLElement): void {
  * Returns [visibleHTML, quotedBlocks]
  */
 function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 /**
@@ -295,15 +313,15 @@ function stripHtmlTags(html: string): string {
  * Critical fix for issue where HTML like <a href="mailto:..."> was showing in sender names
  */
 function stripHtmlSafe(html: string): string {
-  if (!html) return '';
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  let text = temp.textContent || temp.innerText || html;
+  if (!html) return ""
+  const temp = document.createElement("div")
+  temp.innerHTML = html
+  let text = temp.textContent || temp.innerText || html
   // Remove remaining angle brackets that might be plain text
-  text = text.replace(/[<>]/g, '');
+  text = text.replace(/[<>]/g, "")
   // Decode any entities
-  temp.innerHTML = text;
-  return (temp.textContent || temp.innerText || text).trim();
+  temp.innerHTML = text
+  return (temp.textContent || temp.innerText || text).trim()
 }
 
 /**
@@ -315,113 +333,113 @@ function isHeaderOnlyContent(html: string): boolean {
     /^On\s+.+wrote:?\s*$/i,
     /^From:.+Sent:.+To:.+Subject:/is,
     /^-+\s*Original Message\s*-+/i,
-    /^Le\s+.+a écrit/i,  // French
-    /^Den\s+.+skrev/i,    // Norwegian
-    /^På\s+.+skrev/i,     // Norwegian
-  ];
-  
-  const cleanText = html.replace(/<[^>]+>/g, '').trim();
-  
+    /^Le\s+.+a écrit/i, // French
+    /^Den\s+.+skrev/i, // Norwegian
+    /^På\s+.+skrev/i, // Norwegian
+  ]
+
+  const cleanText = html.replace(/<[^>]+>/g, "").trim()
+
   // Check if content matches header-only patterns
   for (const pattern of headerPatterns) {
     if (pattern.test(cleanText)) {
-      return true;
+      return true
     }
   }
-  
+
   // Check if content is very short (< 100 chars) and contains "wrote" keyword
   if (cleanText.length < 100 && /wrote|skrev|écrit/i.test(cleanText)) {
-    return true;
+    return true
   }
-  
-  return false;
+
+  return false
 }
 
-function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessage | null {
+function parseQuotedHeaders(raw: string, kind: QuotedBlock["kind"]): QuotedMessage | null {
   // Skip header-only content (e.g., just "On ... wrote:" lines)
   if (isHeaderOnlyContent(raw)) {
-    return null;
+    return null
   }
-  
+
   // CRITICAL: Strip HTML BEFORE parsing to prevent HTML leakage in sender names
-  const cleanRaw = stripHtmlSafe(raw);
-  
-  const bodyHtml = raw; // Keep original for body display
-  const bodyText = stripHtmlTags(cleanRaw); // Use cleaned version
-  
-  let fromEmail: string | undefined;
-  let fromName: string | undefined;
-  let sentAtIso: string | undefined;
-  let vendor: QuotedMessage['vendor'] = 'generic';
-  let confidence: QuotedMessage['confidence'] = 'low';
+  const cleanRaw = stripHtmlSafe(raw)
+
+  const bodyHtml = raw // Keep original for body display
+  const bodyText = stripHtmlTags(cleanRaw) // Use cleaned version
+
+  let fromEmail: string | undefined
+  let fromName: string | undefined
+  let sentAtIso: string | undefined
+  let vendor: QuotedMessage["vendor"] = "generic"
+  let confidence: QuotedMessage["confidence"] = "low"
 
   // Gmail patterns - use email regex instead of angle bracket matching
-  if (kind === 'gmail') {
-    vendor = 'gmail';
+  if (kind === "gmail") {
+    vendor = "gmail"
     // Extract email using explicit email regex (not angle brackets which match HTML tags)
-    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
-    const emailMatch = cleanRaw.match(emailRegex);
+    const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/
+    const emailMatch = cleanRaw.match(emailRegex)
     if (emailMatch) {
-      fromEmail = emailMatch[1].toLowerCase();
-      confidence = 'high';
+      fromEmail = emailMatch[1].toLowerCase()
+      confidence = "high"
     }
     // Extract name from "On ..., Name wrote:" pattern
-    const nameMatch = cleanRaw.match(/On .+?,\s*(.+?)\s+wrote:/i);
-    if (nameMatch && !nameMatch[1].includes('@')) {
-      fromName = nameMatch[1].trim();
+    const nameMatch = cleanRaw.match(/On .+?,\s*(.+?)\s+wrote:/i)
+    if (nameMatch && !nameMatch[1].includes("@")) {
+      fromName = nameMatch[1].trim()
     }
   }
-  
+
   // Outlook patterns - use email regex instead of angle bracket matching
-  else if (kind === 'outlook') {
-    vendor = 'outlook';
+  else if (kind === "outlook") {
+    vendor = "outlook"
     // Look for "From:" headers
-    const fromMatch = cleanRaw.match(/From:\s*(.+?)(?:\n|$)/i);
+    const fromMatch = cleanRaw.match(/From:\s*(.+?)(?:\n|$)/i)
     if (fromMatch) {
-      const fromValue = fromMatch[1].trim();
+      const fromValue = fromMatch[1].trim()
       // Use email regex instead of angle brackets
-      const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/;
-      const emailMatch = fromValue.match(emailRegex);
-      fromEmail = emailMatch ? emailMatch[1].toLowerCase() : undefined;
-      
+      const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/
+      const emailMatch = fromValue.match(emailRegex)
+      fromEmail = emailMatch ? emailMatch[1].toLowerCase() : undefined
+
       // Extract name (everything before email)
       if (emailMatch) {
-        const beforeEmail = fromValue.substring(0, fromValue.indexOf(emailMatch[0])).trim();
-        fromName = beforeEmail.replace(/[<>"]/g, '').trim() || undefined;
+        const beforeEmail = fromValue.substring(0, fromValue.indexOf(emailMatch[0])).trim()
+        fromName = beforeEmail.replace(/[<>"]/g, "").trim() || undefined
       }
-      confidence = emailMatch ? 'high' : 'low';
+      confidence = emailMatch ? "high" : "low"
     }
-    
+
     // Look for "Sent:" or "Date:" headers
-    const dateMatch = cleanRaw.match(/(?:Sent|Date):\s*(.+?)(?:\n|$)/i);
+    const dateMatch = cleanRaw.match(/(?:Sent|Date):\s*(.+?)(?:\n|$)/i)
     if (dateMatch) {
-      const dateStr = dateMatch[1].trim();
-      const parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        sentAtIso = parsedDate.toISOString();
+      const dateStr = dateMatch[1].trim()
+      const parsedDate = new Date(dateStr)
+      if (!Number.isNaN(parsedDate.getTime())) {
+        sentAtIso = parsedDate.toISOString()
       }
     }
   }
-  
+
   // Header-based patterns (Norwegian, English) - use cleanRaw for parsing
-  else if (kind === 'header') {
+  else if (kind === "header") {
     // Norwegian patterns
-    const norMatch = cleanRaw.match(/^(Den|På)\s+(.+?)\s+skrev\s+(.+?):/i);
+    const norMatch = cleanRaw.match(/^(Den|På)\s+(.+?)\s+skrev\s+(.+?):/i)
     if (norMatch) {
-      fromEmail = norMatch[3].trim();
-      const dateStr = norMatch[2].trim();
-      const parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        sentAtIso = parsedDate.toISOString();
+      fromEmail = norMatch[3].trim()
+      const dateStr = norMatch[2].trim()
+      const parsedDate = new Date(dateStr)
+      if (!Number.isNaN(parsedDate.getTime())) {
+        sentAtIso = parsedDate.toISOString()
       }
-      confidence = 'medium';
+      confidence = "medium"
     }
-    
+
     // Simple "Wrote ..." pattern
-    const wroteMatch = cleanRaw.match(/Skrev\s+(.+?):/i);
+    const wroteMatch = cleanRaw.match(/Skrev\s+(.+?):/i)
     if (wroteMatch) {
-      fromEmail = wroteMatch[1].trim();
-      confidence = 'medium';
+      fromEmail = wroteMatch[1].trim()
+      confidence = "medium"
     }
   }
 
@@ -432,156 +450,189 @@ function parseQuotedHeaders(raw: string, kind: QuotedBlock['kind']): QuotedMessa
     fromName,
     sentAtIso,
     vendor,
-    confidence
-  };
+    confidence,
+  }
 }
 
 /**
  * Detect email signature patterns and separate from content
  */
-function detectAndSeparateSignature(paragraphs: string[]): { contentHtml: string; signatureHtml: string } {
+function detectAndSeparateSignature(paragraphs: string[]): {
+  contentHtml: string
+  signatureHtml: string
+} {
   const signaturePatterns = [
-    /^--\s*$/,                    // Standard email signature delimiter
-    /^_{3,}$/,                    // Underscore line
-    /^sent from/i,                // "Sent from my iPhone" etc
-    /^get outlook for/i,          // Outlook mobile signature
+    /^--\s*$/, // Standard email signature delimiter
+    /^_{3,}$/, // Underscore line
+    /^sent from/i, // "Sent from my iPhone" etc
+    /^get outlook for/i, // Outlook mobile signature
     /^best regards/i,
     /^kind regards/i,
     /^regards/i,
     /^sincerely/i,
     /^cheers/i,
     /^thanks/i,
-    /^\+?\d{2,3}[-.\s]?\(?\d/,   // Phone numbers
-  ];
-  
+    /^\+?\d{2,3}[-.\s]?\(?\d/, // Phone numbers
+  ]
+
   // Search from the end for signature patterns
   for (let i = paragraphs.length - 1; i >= Math.max(0, paragraphs.length - 8); i--) {
-    const text = paragraphs[i].replace(/<[^>]+>/g, '').trim();
-    
-    if (signaturePatterns.some(pattern => pattern.test(text))) {
+    const text = paragraphs[i].replace(/<[^>]+>/g, "").trim()
+
+    if (signaturePatterns.some((pattern) => pattern.test(text))) {
       return {
-        contentHtml: paragraphs.slice(0, i).join('\n'),
-        signatureHtml: paragraphs.slice(i).join('\n')
-      };
+        contentHtml: paragraphs.slice(0, i).join("\n"),
+        signatureHtml: paragraphs.slice(i).join("\n"),
+      }
     }
   }
-  
-  return { contentHtml: paragraphs.join('\n'), signatureHtml: '' };
+
+  return { contentHtml: paragraphs.join("\n"), signatureHtml: "" }
 }
 
-function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
-  const quoted: QuotedBlock[] = [];
-  const quotedMessages: QuotedMessage[] = [];
-  
+function extractFromHtml(html: string): {
+  visibleHTML: string
+  quoted: QuotedBlock[]
+  quotedMessages: QuotedMessage[]
+} {
+  const quoted: QuotedBlock[] = []
+  const quotedMessages: QuotedMessage[] = []
+
   // CRITICAL FIX: Decode HTML entities FIRST, before any DOM operations
   // This handles &lt;br/&gt; → <br/>, &gt; → >, etc.
-  const decodedHtml = decodeHTMLEntities(html);
-  logger.debug('Decoded entities', { 
-    originalPreview: html.substring(0, 100),
-    decodedPreview: decodedHtml.substring(0, 100)
-  }, 'extractFromHtml');
-  
-  const doc = htmlToDocument(stripHtmlComments(decodedHtml));
-  const body = doc.body;
+  const decodedHtml = decodeHTMLEntities(html)
+  logger.debug(
+    "Decoded entities",
+    {
+      originalPreview: html.substring(0, 100),
+      decodedPreview: decodedHtml.substring(0, 100),
+    },
+    "extractFromHtml",
+  )
+
+  const doc = htmlToDocument(stripHtmlComments(decodedHtml))
+  const body = doc.body
 
   // STEP 0: Strip email client wrapper elements (no decoding needed, already done)
-  stripEmailClientWrappers(body);
+  stripEmailClientWrappers(body)
 
   // STEP 1: Detect Outlook-specific separators and remove everything AFTER them
   // The reply content is BEFORE the separator, quoted content is AFTER
   const outlookSeparators = [
-    body.querySelector('#divRplyFwdMsg'),
+    body.querySelector("#divRplyFwdMsg"),
     // Note: #ms-outlook-mobile-body-separator-line appears BEFORE the reply, not after
     // Note: #ms-outlook-mobile-signature is part of the reply, not a separator
     ...Array.from(body.querySelectorAll('hr[style*="display:inline-block"]')),
-    ...Array.from(body.querySelectorAll('hr[style*="width:98"]'))
-  ].filter(Boolean);
+    ...Array.from(body.querySelectorAll('hr[style*="width:98"]')),
+  ].filter(Boolean)
 
-  logger.debug('Found Outlook separators', { count: outlookSeparators.length }, 'parseQuotedEmail');
+  logger.debug("Found Outlook separators", { count: outlookSeparators.length }, "parseQuotedEmail")
 
   if (outlookSeparators.length > 0) {
     // Sort separators by DOM position to find the TRUE first separator
     const sortedSeparators = outlookSeparators.sort((a, b) => {
-      const position = (a as Element).compareDocumentPosition(b as Element);
-      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-    });
-    
-    const firstSeparator = sortedSeparators[0] as Element;
-    
-    logger.debug('First separator', { 
-      id: (firstSeparator as HTMLElement).id || firstSeparator.tagName 
-    }, 'parseQuotedEmail');
-    
+      const position = (a as Element).compareDocumentPosition(b as Element)
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    })
+
+    const firstSeparator = sortedSeparators[0] as Element
+
+    logger.debug(
+      "First separator",
+      {
+        id: (firstSeparator as HTMLElement).id || firstSeparator.tagName,
+      },
+      "parseQuotedEmail",
+    )
+
     // Collect everything AFTER the separator as quoted content
-    let quotedHTML = '';
-    let currentNode = firstSeparator.nextSibling;
-    
+    let quotedHTML = ""
+    let currentNode = firstSeparator.nextSibling
+
     // First, collect the quoted HTML
     while (currentNode) {
-      if (currentNode.nodeType === 1) { // Element node
-        quotedHTML += (currentNode as Element).outerHTML || '';
-      } else if (currentNode.nodeType === 3) { // Text node
-        quotedHTML += currentNode.textContent || '';
+      if (currentNode.nodeType === 1) {
+        // Element node
+        quotedHTML += (currentNode as Element).outerHTML || ""
+      } else if (currentNode.nodeType === 3) {
+        // Text node
+        quotedHTML += currentNode.textContent || ""
       }
-      currentNode = currentNode.nextSibling;
+      currentNode = currentNode.nextSibling
     }
-    
+
     // Now remove the separator and everything after it
-    currentNode = firstSeparator;
+    currentNode = firstSeparator
     while (currentNode) {
-      const next = currentNode.nextSibling;
-      currentNode.parentNode?.removeChild(currentNode);
-      currentNode = next;
+      const next = currentNode.nextSibling
+      currentNode.parentNode?.removeChild(currentNode)
+      currentNode = next
     }
-    
-    logger.debug('Removed separator and collected quoted HTML', { 
-      quotedHTMLLength: quotedHTML.length 
-    }, 'parseQuotedEmail');
-    
+
+    logger.debug(
+      "Removed separator and collected quoted HTML",
+      {
+        quotedHTMLLength: quotedHTML.length,
+      },
+      "parseQuotedEmail",
+    )
+
     if (quotedHTML.trim()) {
-      quoted.push({ kind: 'outlook', raw: quotedHTML });
-      const quotedMessage = parseQuotedHeaders(quotedHTML, 'outlook');
+      quoted.push({ kind: "outlook", raw: quotedHTML })
+      const quotedMessage = parseQuotedHeaders(quotedHTML, "outlook")
       if (quotedMessage) {
-        quotedMessages.push(quotedMessage);
+        quotedMessages.push(quotedMessage)
       }
     }
   }
 
   // STEP 2: Remove other known quoted containers (Gmail, Yahoo, Apple, blockquotes)
   const selectors = [
-    'div.gmail_quote', '.gmail_quote', '.gmail_extra', '.gmail_attr',
-    '.yahoo_quoted', 'div.yahoo_quoted',
-    '.AppleMailQuote', '.moz-cite-prefix', '.moz-signature',
-    'blockquote[type="cite"]', 'blockquote',
+    "div.gmail_quote",
+    ".gmail_quote",
+    ".gmail_extra",
+    ".gmail_attr",
+    ".yahoo_quoted",
+    "div.yahoo_quoted",
+    ".AppleMailQuote",
+    ".moz-cite-prefix",
+    ".moz-signature",
+    'blockquote[type="cite"]',
+    "blockquote",
     'div[style*="border-top:1px solid #ccc"]',
     'div[style*="border-top: 1px solid #ccc"]',
     'div[style*="border-top:1pt solid"]',
-  ];
+  ]
 
-  selectors.forEach(sel => {
+  selectors.forEach((sel) => {
     body.querySelectorAll(sel).forEach((node) => {
-      const raw = (node as HTMLElement).outerHTML || node.textContent || '';
-      const kind: QuotedBlock['kind'] =
-        sel.includes('gmail') ? 'gmail'
-      : sel.includes('yahoo') ? 'yahoo'
-      : sel.includes('AppleMail') ? 'apple'
-      : sel.includes('moz') ? 'apple'
-      : sel.startsWith('blockquote') ? 'blockquote'
-      : sel.includes('border-top') ? 'outlook'
-      : 'plain';
-      
+      const raw = (node as HTMLElement).outerHTML || node.textContent || ""
+      const kind: QuotedBlock["kind"] = sel.includes("gmail")
+        ? "gmail"
+        : sel.includes("yahoo")
+          ? "yahoo"
+          : sel.includes("AppleMail")
+            ? "apple"
+            : sel.includes("moz")
+              ? "apple"
+              : sel.startsWith("blockquote")
+                ? "blockquote"
+                : sel.includes("border-top")
+                  ? "outlook"
+                  : "plain"
+
       if (raw.trim()) {
-        const quotedBlock = { kind, raw };
-        quoted.push(quotedBlock);
-        const quotedMessage = parseQuotedHeaders(raw, kind);
+        const quotedBlock = { kind, raw }
+        quoted.push(quotedBlock)
+        const quotedMessage = parseQuotedHeaders(raw, kind)
         if (quotedMessage) {
-          quotedMessages.push(quotedMessage);
+          quotedMessages.push(quotedMessage)
         }
       }
-      
-      node.remove();
-    });
-  });
+
+      node.remove()
+    })
+  })
 
   // STEP 2b: Strip Gmail signature blocks silently.
   // iOS Gmail omits the "-- " separator span, so EMAIL_LIST_FOOTERS misses
@@ -592,56 +643,55 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   // restore. A short legitimate body left after signature removal (e.g.
   // "Takk!") must NOT cause STEP 5 to restore the signature.
   const signatureSelectors = [
-    '.gmail_signature',
+    ".gmail_signature",
     '[data-smartmail="gmail_signature"]',
-    '.gmail_signature_prefix',
-  ];
-  signatureSelectors.forEach(sel => {
+    ".gmail_signature_prefix",
+  ]
+  signatureSelectors.forEach((sel) => {
     body.querySelectorAll(sel).forEach((node) => {
-      node.remove();
-    });
-  });
-
+      node.remove()
+    })
+  })
 
   // STEP 3: Plain text fallback detection for remaining content
-  const remaining = body.innerText || '';
-  const lines = remaining.split('\n');
-  const headerIdx = lines.findIndex(line => WROTE_HEADERS.some(rx => rx.test(line.trim())));
-  const blockIdx = findHeaderBlockIndex(lines);
+  const remaining = body.innerText || ""
+  const lines = remaining.split("\n")
+  const headerIdx = lines.findIndex((line) => WROTE_HEADERS.some((rx) => rx.test(line.trim())))
+  const blockIdx = findHeaderBlockIndex(lines)
   // Use whichever match comes first
-  let bestIdx = -1;
-  if (headerIdx > -1) bestIdx = headerIdx;
-  if (blockIdx > -1 && (bestIdx === -1 || blockIdx < bestIdx)) bestIdx = blockIdx;
+  let bestIdx = -1
+  if (headerIdx > -1) bestIdx = headerIdx
+  if (blockIdx > -1 && (bestIdx === -1 || blockIdx < bestIdx)) bestIdx = blockIdx
   if (bestIdx > -1) {
-    const raw = lines.slice(bestIdx).join('\n');
+    const raw = lines.slice(bestIdx).join("\n")
     if (raw.trim()) {
-      const quotedBlock = { kind: 'header' as const, raw };
-      quoted.push(quotedBlock);
-      const quotedMessage = parseQuotedHeaders(raw, 'header');
+      const quotedBlock = { kind: "header" as const, raw }
+      quoted.push(quotedBlock)
+      const quotedMessage = parseQuotedHeaders(raw, "header")
       if (quotedMessage) {
-        quotedMessages.push(quotedMessage);
+        quotedMessages.push(quotedMessage)
       }
-      
-      const marker = lines[bestIdx].trim();
-      const idxInHtml = body.innerHTML.indexOf(marker);
+
+      const marker = lines[bestIdx].trim()
+      const idxInHtml = body.innerHTML.indexOf(marker)
       if (idxInHtml >= 0) {
-        body.innerHTML = body.innerHTML.slice(0, idxInHtml);
+        body.innerHTML = body.innerHTML.slice(0, idxInHtml)
       }
     }
   }
 
   // STEP 4: Strip email list footers from DOM before extracting HTML
-  const bodyTextForCheck = body.innerText || '';
-  let earliestFooterIndex: number | null = null;
-  let earliestFooterPattern: RegExp | null = null;
+  const bodyTextForCheck = body.innerText || ""
+  let earliestFooterIndex: number | null = null
+  let earliestFooterPattern: RegExp | null = null
 
   // Find the earliest footer match
   for (const pattern of EMAIL_LIST_FOOTERS) {
-    const match = bodyTextForCheck.match(pattern);
+    const match = bodyTextForCheck.match(pattern)
     if (match && match.index !== undefined) {
       if (earliestFooterIndex === null || match.index < earliestFooterIndex) {
-        earliestFooterIndex = match.index;
-        earliestFooterPattern = pattern;
+        earliestFooterIndex = match.index
+        earliestFooterPattern = pattern
       }
     }
   }
@@ -649,177 +699,194 @@ function extractFromHtml(html: string): { visibleHTML: string; quoted: QuotedBlo
   // If footer found, intelligently remove it
   if (earliestFooterIndex !== null && earliestFooterPattern) {
     // Find all text nodes and remove content after the footer
-    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
-    let currentTextPos = 0;
-    let node: Node | null;
-    
-    while (node = walker.nextNode()) {
-      const textContent = node.textContent || '';
-      const nodeStart = currentTextPos;
-      const nodeEnd = currentTextPos + textContent.length;
-      
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
+    let currentTextPos = 0
+    let node: Node | null
+
+    while ((node = walker.nextNode())) {
+      const textContent = node.textContent || ""
+      const nodeStart = currentTextPos
+      const nodeEnd = currentTextPos + textContent.length
+
       // Check if footer starts within this text node
       if (earliestFooterIndex >= nodeStart && earliestFooterIndex < nodeEnd) {
-        const cutPos = earliestFooterIndex - nodeStart;
-        node.textContent = textContent.substring(0, cutPos);
-        
+        const cutPos = earliestFooterIndex - nodeStart
+        node.textContent = textContent.substring(0, cutPos)
+
         // Remove all following siblings
-        let current = node.nextSibling;
+        let current = node.nextSibling
         while (current) {
-          const next = current.nextSibling;
-          current.parentNode?.removeChild(current);
-          current = next;
+          const next = current.nextSibling
+          current.parentNode?.removeChild(current)
+          current = next
         }
-        
+
         // Also remove following siblings of parent nodes
-        let parent = node.parentNode;
+        let parent = node.parentNode
         while (parent && parent !== body) {
-          let current = parent.nextSibling;
+          let current = parent.nextSibling
           while (current) {
-            const next = current.nextSibling;
-            current.parentNode?.removeChild(current);
-            current = next;
+            const next = current.nextSibling
+            current.parentNode?.removeChild(current)
+            current = next
           }
-          parent = parent.parentNode;
+          parent = parent.parentNode
         }
-        
-        break;
+
+        break
       }
-      
-      currentTextPos = nodeEnd;
+
+      currentTextPos = nodeEnd
     }
   }
 
   // STEP 5: Preserve original HTML structure instead of reconstructing as <p> tags
   // This keeps table layouts, CSS classes, and rich email formatting intact
-  
+
   // Get plain text for bodyText return value (used for thread extraction)
-  const bodyText = (body.textContent || body.innerText || '').trim();
-  
+  const bodyText = (body.textContent || body.innerText || "").trim()
+
   // Return the ORIGINAL HTML structure with quotes removed
-  const visibleHTML = body.innerHTML;
-  
+  const visibleHTML = body.innerHTML
+
   // SAFETY CHECK: If all content was classified as quoted and visible content is empty/trivial,
   // restore the original content. This happens with forwarded emails where the entire body IS the forward.
-  const textOnly = (body.textContent || body.innerText || '').trim();
+  const textOnly = (body.textContent || body.innerText || "").trim()
   if (textOnly.length < 20 && quoted.length > 0) {
-    console.log('[parseQuotedEmail] All content was quoted — restoring original to prevent empty render');
+    console.log(
+      "[parseQuotedEmail] All content was quoted — restoring original to prevent empty render",
+    )
     return {
       visibleHTML: html,
       quoted: [],
-      quotedMessages: []
-    };
+      quotedMessages: [],
+    }
   }
-  
-  console.log('[parseQuotedEmail] Extraction complete (preserving HTML):', {
+
+  console.log("[parseQuotedEmail] Extraction complete (preserving HTML):", {
     visibleHTMLLength: visibleHTML.length,
     bodyTextLength: bodyText.length,
     quotedBlocksCount: quoted.length,
-    visibleHTMLPreview: visibleHTML.substring(0, 200)
-  });
-  
-  return { 
-    visibleHTML: visibleHTML || bodyText, 
-    quoted, 
-    quotedMessages 
-  };
+    visibleHTMLPreview: visibleHTML.substring(0, 200),
+  })
+
+  return {
+    visibleHTML: visibleHTML || bodyText,
+    quoted,
+    quotedMessages,
+  }
 }
 
 /**
  * Extract quoted blocks from plain text.
  * Returns [visibleText, quotedBlocks]
  */
-function extractFromPlain(text: string): { visibleText: string; quoted: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
-  const quoted: QuotedBlock[] = [];
-  const quotedMessages: QuotedMessage[] = [];
-  const lines = text.split('\n');
+function extractFromPlain(text: string): {
+  visibleText: string
+  quoted: QuotedBlock[]
+  quotedMessages: QuotedMessage[]
+} {
+  const quoted: QuotedBlock[] = []
+  const quotedMessages: QuotedMessage[] = []
+  const lines = text.split("\n")
 
   // If there are any ">"-prefixed lines, treat the first block of them and below as quoted
-  const angleIdx = lines.findIndex(l => l.trim().startsWith('>'));
+  const angleIdx = lines.findIndex((l) => l.trim().startsWith(">"))
   // Or find classic header lines (On ... wrote:, Original Message, Norwegian variants)
-  const headerIdx = lines.findIndex(l => WROTE_HEADERS.some(rx => rx.test(l.trim())));
-  const blockIdx = findHeaderBlockIndex(lines);
+  const headerIdx = lines.findIndex((l) => WROTE_HEADERS.some((rx) => rx.test(l.trim())))
+  const blockIdx = findHeaderBlockIndex(lines)
 
-  let cut = -1;
-  if (headerIdx > -1) cut = headerIdx;
-  if (blockIdx > -1 && (cut === -1 || blockIdx < cut)) cut = blockIdx;
-  if (cut === -1 && angleIdx > -1) cut = angleIdx;
+  let cut = -1
+  if (headerIdx > -1) cut = headerIdx
+  if (blockIdx > -1 && (cut === -1 || blockIdx < cut)) cut = blockIdx
+  if (cut === -1 && angleIdx > -1) cut = angleIdx
 
   if (cut > -1) {
-    const kind = headerIdx > -1 ? 'header' : 'plain';
-    const raw = lines.slice(cut).join('\n');
-    const quotedBlock = { kind: kind as 'header' | 'plain', raw };
-    quoted.push(quotedBlock);
-    
+    const kind = headerIdx > -1 ? "header" : "plain"
+    const raw = lines.slice(cut).join("\n")
+    const quotedBlock = { kind: kind as "header" | "plain", raw }
+    quoted.push(quotedBlock)
+
     // Parse into structured message
-    const quotedMessage = parseQuotedHeaders(raw, kind as 'header' | 'plain');
+    const quotedMessage = parseQuotedHeaders(raw, kind as "header" | "plain")
     if (quotedMessage) {
-      quotedMessages.push(quotedMessage);
+      quotedMessages.push(quotedMessage)
     }
   }
 
-  const visible = cut > -1 ? lines.slice(0, cut).join('\n') : lines.join('\n');
+  const visible = cut > -1 ? lines.slice(0, cut).join("\n") : lines.join("\n")
 
   // Also drop any trailing quote-style lines from the visible preview
   const pruned = visible
-    .split('\n')
-    .filter(l => !l.trim().startsWith('>'))
-    .join('\n');
+    .split("\n")
+    .filter((l) => !l.trim().startsWith(">"))
+    .join("\n")
 
   // Strip email list footers from the visible text
-  const cleanedVisible = stripEmailListFooters(pruned.trim());
+  const cleanedVisible = stripEmailListFooters(pruned.trim())
 
-  return { visibleText: cleanedVisible, quoted, quotedMessages };
+  return { visibleText: cleanedVisible, quoted, quotedMessages }
 }
 
 /**
  * Public API
  */
-export function parseQuotedEmail(input: Input): { visibleContent: string; quotedBlocks: QuotedBlock[]; quotedMessages: QuotedMessage[] } {
-  const cacheType = input.contentType?.includes('html') || /<\/?[a-z][\s\S]*>/i.test(input.content || '') ? 'html' : 'text';
-  const content = input.content || '';
-  
+export function parseQuotedEmail(input: Input): {
+  visibleContent: string
+  quotedBlocks: QuotedBlock[]
+  quotedMessages: QuotedMessage[]
+} {
+  const cacheType =
+    input.contentType?.includes("html") || /<\/?[a-z][\s\S]*>/i.test(input.content || "")
+      ? "html"
+      : "text"
+  const content = input.content || ""
+
   // Check cache first
-  const cached = parseCache.get(content, cacheType);
+  const cached = parseCache.get(content, cacheType)
   if (cached) {
-    logger.trackParseCall('parseQuotedEmail', true, content.substring(0, 50));
-    logger.debug('[parseQuotedEmail] Cache hit', { 
+    logger.trackParseCall("parseQuotedEmail", true, content.substring(0, 50))
+    logger.debug("[parseQuotedEmail] Cache hit", {
       cacheType,
-      contentLength: content.length 
-    });
-    return cached;
+      contentLength: content.length,
+    })
+    return cached
   }
 
   // Cache miss - perform parsing
-  logger.trackParseCall('parseQuotedEmail', false, content.substring(0, 50));
-  logger.debug('[parseQuotedEmail] Cache miss - starting parse', { 
+  logger.trackParseCall("parseQuotedEmail", false, content.substring(0, 50))
+  logger.debug("[parseQuotedEmail] Cache miss - starting parse", {
     cacheType,
-    contentLength: content.length 
-  });
+    contentLength: content.length,
+  })
 
-  const contentType = (input.contentType || '').toLowerCase();
+  const contentType = (input.contentType || "").toLowerCase()
 
-  let result: { visibleContent: string; quotedBlocks: QuotedBlock[]; quotedMessages: QuotedMessage[] };
+  let result: {
+    visibleContent: string
+    quotedBlocks: QuotedBlock[]
+    quotedMessages: QuotedMessage[]
+  }
 
-  if (contentType.includes('html') || /<\/?[a-z][\s\S]*>/i.test(content)) {
-    const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content);
-    result = { 
-      visibleContent: visibleHTML.trim(), 
+  if (contentType.includes("html") || /<\/?[a-z][\s\S]*>/i.test(content)) {
+    const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content)
+    result = {
+      visibleContent: visibleHTML.trim(),
       quotedBlocks: quoted,
-      quotedMessages: quotedMessages
-    };
+      quotedMessages: quotedMessages,
+    }
   } else {
     // Plain text
-    const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content));
-    result = { 
-      visibleContent: visibleText, 
+    const { visibleText, quoted, quotedMessages } = extractFromPlain(normalizeWhitespace(content))
+    result = {
+      visibleContent: visibleText,
       quotedBlocks: quoted,
-      quotedMessages: quotedMessages
-    };
+      quotedMessages: quotedMessages,
+    }
   }
 
   // Store in cache
-  parseCache.set(content, cacheType, result);
+  parseCache.set(content, cacheType, result)
 
-  return result;
+  return result
 }

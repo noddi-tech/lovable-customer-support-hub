@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2, ShieldCheck } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/integrations/supabase/client"
 
 /**
  * Supabase OAuth 2.1 consent screen, routed at /.lovable/oauth/consent.
@@ -13,81 +13,82 @@ import { Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 
 // The supabase.auth.oauth namespace is beta and not in the generated types yet.
 type OAuthApi = {
-  getAuthorizationDetails: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
-  approveAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
-  denyAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
-};
+  getAuthorizationDetails: (id: string) => Promise<{ data: any; error: { message: string } | null }>
+  approveAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>
+  denyAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>
+}
 
-const oauthApi = () => (supabase.auth as unknown as { oauth: OAuthApi }).oauth;
+const oauthApi = () => (supabase.auth as unknown as { oauth: OAuthApi }).oauth
 
 export default function OAuthConsent() {
-  const [params] = useSearchParams();
-  const authorizationId = params.get("authorization_id") ?? "";
-  const [details, setDetails] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [params] = useSearchParams()
+  const authorizationId = params.get("authorization_id") ?? ""
+  const [details, setDetails] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    let active = true;
+    let active = true
 
-    (async () => {
+    ;(async () => {
       if (!authorizationId) {
-        setError("Missing authorization_id in the URL.");
-        return;
+        setError("Missing authorization_id in the URL.")
+        return
       }
 
-      const { data: sess } = await supabase.auth.getSession();
+      const { data: sess } = await supabase.auth.getSession()
       if (!sess.session) {
         // Preserve the FULL consent URL so auth returns the user here.
-        const next = window.location.pathname + window.location.search;
-        window.location.href = "/auth?next=" + encodeURIComponent(next);
-        return;
+        const next = window.location.pathname + window.location.search
+        window.location.href = `/auth?next=${encodeURIComponent(next)}`
+        return
       }
 
-      const { data, error: detailsError } = await oauthApi().getAuthorizationDetails(authorizationId);
-      if (!active) return;
+      const { data, error: detailsError } =
+        await oauthApi().getAuthorizationDetails(authorizationId)
+      if (!active) return
 
       if (detailsError) {
-        setError(detailsError.message);
-        return;
+        setError(detailsError.message)
+        return
       }
 
-      const immediate = data?.redirect_url ?? data?.redirect_to;
+      const immediate = data?.redirect_url ?? data?.redirect_to
       if (immediate && !data?.client) {
-        window.location.href = immediate;
-        return;
+        window.location.href = immediate
+        return
       }
 
-      setDetails(data);
-    })();
+      setDetails(data)
+    })()
 
     return () => {
-      active = false;
-    };
-  }, [authorizationId]);
+      active = false
+    }
+  }, [authorizationId])
 
   async function decide(approve: boolean) {
-    setBusy(true);
-    setError(null);
+    setBusy(true)
+    setError(null)
 
     const { data, error: decisionError } = approve
       ? await oauthApi().approveAuthorization(authorizationId)
-      : await oauthApi().denyAuthorization(authorizationId);
+      : await oauthApi().denyAuthorization(authorizationId)
 
     if (decisionError) {
-      setBusy(false);
-      setError(decisionError.message);
-      return;
+      setBusy(false)
+      setError(decisionError.message)
+      return
     }
 
-    const target = data?.redirect_url ?? data?.redirect_to;
+    const target = data?.redirect_url ?? data?.redirect_to
     if (!target) {
-      setBusy(false);
-      setError("No redirect returned by the authorization server.");
-      return;
+      setBusy(false)
+      setError("No redirect returned by the authorization server.")
+      return
     }
 
-    window.location.href = target;
+    window.location.href = target
   }
 
   if (error) {
@@ -109,7 +110,7 @@ export default function OAuthConsent() {
           </CardContent>
         </Card>
       </main>
-    );
+    )
   }
 
   if (!details) {
@@ -120,10 +121,10 @@ export default function OAuthConsent() {
           <span>Loading authorization request…</span>
         </div>
       </main>
-    );
+    )
   }
 
-  const clientName = details.client?.name ?? "An application";
+  const clientName = details.client?.name ?? "An application"
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
@@ -153,7 +154,12 @@ export default function OAuthConsent() {
           </p>
 
           <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" disabled={busy} onClick={() => decide(false)}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={busy}
+              onClick={() => decide(false)}
+            >
               Deny
             </Button>
             <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>
@@ -164,5 +170,5 @@ export default function OAuthConsent() {
         </CardContent>
       </Card>
     </main>
-  );
+  )
 }

@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Bell,
@@ -11,21 +9,16 @@ import {
   Pencil,
   Phone,
   Plus,
+  ShieldCheck,
+  ShieldOff,
   Trash2,
   UserCheck,
-} from 'lucide-react';
-import ScheduleFollowupDialog from './ScheduleFollowupDialog';
-import SnoozeFollowupDialog from './SnoozeFollowupDialog';
-import {
-  useApplicantFollowups,
-  useCompleteFollowup,
-  useDeleteFollowup,
-} from '@/hooks/recruitment/useFollowups';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,77 +26,86 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import ApplicantSourceBadge from './ApplicantSourceBadge';
-import ApplicantStageBadge from './ApplicantStageBadge';
-import ScoreCircle from './ScoreCircle';
-import ApplicantInfoSidebar from './ApplicantInfoSidebar';
-import ApplicantEventTimeline from './ApplicantEventTimeline';
-import ApplicantNotesTab from './ApplicantNotesTab';
-import ApplicantFilesTab from './ApplicantFilesTab';
-import LogEventForm from './LogEventForm';
-import StageMoveConfirmDialog from '../pipeline/StageMoveConfirmDialog';
-import { useStageMoveAutomation } from '../pipeline/useStageMoveAutomation';
-import { useApplicantPipeline, type PipelineStage } from './useApplicants';
+} from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  useApplicantFollowups,
+  useCompleteFollowup,
+  useDeleteFollowup,
+} from "@/hooks/recruitment/useFollowups"
+import { useAuth } from "@/hooks/useAuth"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useTeamMembers } from "@/hooks/useTeamMembers"
+import StageMoveConfirmDialog from "../pipeline/StageMoveConfirmDialog"
+import { useStageMoveAutomation } from "../pipeline/useStageMoveAutomation"
+import ApplicantEmailTab from "./ApplicantEmailTab"
+import ApplicantEventTimeline from "./ApplicantEventTimeline"
+import { ApplicantFieldValuesSection } from "./ApplicantFieldValuesSection"
+import ApplicantFilesTab from "./ApplicantFilesTab"
+import ApplicantInfoSidebar from "./ApplicantInfoSidebar"
+import ApplicantNotesTab from "./ApplicantNotesTab"
+import ApplicantScoringSection from "./ApplicantScoringSection"
+import ApplicantSmsTab from "./ApplicantSmsTab"
+import ApplicantSourceBadge from "./ApplicantSourceBadge"
+import ApplicantStageBadge from "./ApplicantStageBadge"
+import { ApplicantTagsSection } from "./ApplicantTagsSection"
+import CandidateFormHistorySection from "./CandidateFormHistorySection"
+import EditApplicantDialog from "./edit/EditApplicantDialog"
+import AnonymizedApplicantBanner from "./gdpr/AnonymizedApplicantBanner"
+import GdprRequestsHistorySection from "./gdpr/GdprRequestsHistorySection"
+import InitiateGdprErasureDialog from "./gdpr/InitiateGdprErasureDialog"
+import InitiateGdprExportDialog from "./gdpr/InitiateGdprExportDialog"
+import LogEventForm from "./LogEventForm"
+import ScheduleFollowupDialog from "./ScheduleFollowupDialog"
+import ScoreCircle from "./ScoreCircle"
+import ScoringBuiltinFieldsSection from "./ScoringBuiltinFieldsSection"
+import SendCandidateFormDialog from "./SendCandidateFormDialog"
+import SnoozeFollowupDialog from "./SnoozeFollowupDialog"
+import StageFieldsSection from "./StageFieldsSection"
+import StageRequiredFieldsModal from "./StageRequiredFieldsModal"
 import {
   useApplicantEvents,
   useApplicantProfile,
   useAssignApplication,
-} from './useApplicantProfile';
-import { useTeamMembers } from '@/hooks/useTeamMembers';
-import EditApplicantDialog from './edit/EditApplicantDialog';
-import { ApplicantFieldValuesSection } from './ApplicantFieldValuesSection';
-import { ApplicantTagsSection } from './ApplicantTagsSection';
-import ApplicantEmailTab from './ApplicantEmailTab';
-import ApplicantSmsTab from './ApplicantSmsTab';
-import ApplicantScoringSection from './ApplicantScoringSection';
-import StageFieldsSection from './StageFieldsSection';
-import ScoringBuiltinFieldsSection from './ScoringBuiltinFieldsSection';
-import StageRequiredFieldsModal from './StageRequiredFieldsModal';
-import SendCandidateFormDialog from './SendCandidateFormDialog';
-import CandidateFormHistorySection from './CandidateFormHistorySection';
-import AnonymizedApplicantBanner from './gdpr/AnonymizedApplicantBanner';
-import GdprRequestsHistorySection from './gdpr/GdprRequestsHistorySection';
-import InitiateGdprExportDialog from './gdpr/InitiateGdprExportDialog';
-import InitiateGdprErasureDialog from './gdpr/InitiateGdprErasureDialog';
-import { useAuth } from '@/hooks/useAuth';
-import { ShieldCheck, ShieldOff } from 'lucide-react';
+} from "./useApplicantProfile"
+import { useApplicantPipeline } from "./useApplicants"
 
 const ApplicantProfile: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const handleBack = () => {
     if (window.history.length > 1) {
-      navigate(-1);
+      navigate(-1)
     } else {
-      navigate('/operations/recruitment/applicants');
+      navigate("/operations/recruitment/applicants")
     }
-  };
-  const { data: applicant, isLoading } = useApplicantProfile(id);
-  const { data: events } = useApplicantEvents(id);
-  const { data: pipeline } = useApplicantPipeline();
-  const { data: team } = useTeamMembers();
-  const assignMut = useAssignApplication();
-  const automation = useStageMoveAutomation();
+  }
+  const { data: applicant, isLoading } = useApplicantProfile(id)
+  const { data: events } = useApplicantEvents(id)
+  const { data: pipeline } = useApplicantPipeline()
+  const { data: team } = useTeamMembers()
+  const assignMut = useAssignApplication()
+  const automation = useStageMoveAutomation()
 
-  const [tab, setTab] = useState('overview');
-  const [logOpen, setLogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [followupOpen, setFollowupOpen] = useState(false);
-  const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const [tab, setTab] = useState("overview")
+  const [logOpen, setLogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [followupOpen, setFollowupOpen] = useState(false)
+  const [snoozeId, setSnoozeId] = useState<string | null>(null)
   const [pendingStageMove, setPendingStageMove] = useState<{
-    stageId: string;
-    stageName: string;
-  } | null>(null);
-  const [sendFormOpen, setSendFormOpen] = useState(false);
-  const [gdprExportOpen, setGdprExportOpen] = useState(false);
-  const [gdprEraseOpen, setGdprEraseOpen] = useState(false);
-  const { isAdmin } = useAuth();
-  const { data: followups } = useApplicantFollowups(id);
-  const completeFu = useCompleteFollowup();
-  const deleteFu = useDeleteFollowup();
-  const { dateTime } = useDateFormatting();
+    stageId: string
+    stageName: string
+  } | null>(null)
+  const [sendFormOpen, setSendFormOpen] = useState(false)
+  const [gdprExportOpen, setGdprExportOpen] = useState(false)
+  const [gdprEraseOpen, setGdprEraseOpen] = useState(false)
+  const { isAdmin } = useAuth()
+  const { data: followups } = useApplicantFollowups(id)
+  const completeFu = useCompleteFollowup()
+  const deleteFu = useDeleteFollowup()
+  const { dateTime } = useDateFormatting()
 
   if (isLoading) {
     return (
@@ -113,7 +115,7 @@ const ApplicantProfile: React.FC = () => {
         <Skeleton className="h-4 w-96" />
         <Skeleton className="h-32 w-full" />
       </div>
-    );
+    )
   }
 
   if (!applicant) {
@@ -131,12 +133,12 @@ const ApplicantProfile: React.FC = () => {
           <h1 className="text-2xl font-semibold mb-2 text-foreground">Søker ikke funnet</h1>
         </div>
       </div>
-    );
+    )
   }
 
-  const apps = applicant.applications ?? [];
-  const firstApp = apps[0] ?? null;
-  const stages = pipeline?.stages ?? [];
+  const apps = applicant.applications ?? []
+  const firstApp = apps[0] ?? null
+  const stages = pipeline?.stages ?? []
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -150,8 +152,6 @@ const ApplicantProfile: React.FC = () => {
       </button>
 
       <AnonymizedApplicantBanner anonymizedAt={applicant.anonymized_at} />
-
-
 
       {/* Header */}
       <div className="space-y-3">
@@ -196,7 +196,7 @@ const ApplicantProfile: React.FC = () => {
 
         {/* Quick actions */}
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button variant="outline" size="sm" onClick={() => setTab('email')}>
+          <Button variant="outline" size="sm" onClick={() => setTab("email")}>
             <Mail />
             Send e-post
           </Button>
@@ -260,14 +260,11 @@ const ApplicantProfile: React.FC = () => {
                 <DropdownMenuItem
                   key={s.id}
                   onSelect={() => {
-                    if (!firstApp || !applicant) return;
-                    if (s.id === firstApp.current_stage_id) return;
+                    if (!firstApp || !applicant) return
+                    if (s.id === firstApp.current_stage_id) return
                     // Defer modal open so the dropdown can finish closing
                     // (memory #3: Radix dropdown→dialog freeze pattern).
-                    setTimeout(
-                      () => setPendingStageMove({ stageId: s.id, stageName: s.name }),
-                      0,
-                    );
+                    setTimeout(() => setPendingStageMove({ stageId: s.id, stageName: s.name }), 0)
                   }}
                   disabled={s.id === firstApp?.current_stage_id}
                 >
@@ -292,13 +289,13 @@ const ApplicantProfile: React.FC = () => {
                 <DropdownMenuItem
                   key={m.id}
                   onSelect={() => {
-                    if (!firstApp) return;
+                    if (!firstApp) return
                     assignMut.mutate({
                       applicationId: firstApp.id,
                       applicantId: applicant.id,
                       profileId: m.id,
                       profileName: m.full_name ?? m.email,
-                    });
+                    })
                   }}
                   disabled={firstApp?.assigned_to === m.id}
                 >
@@ -306,9 +303,7 @@ const ApplicantProfile: React.FC = () => {
                 </DropdownMenuItem>
               ))}
               {(!team || team.length === 0) && (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                  Ingen teammedlemmer
-                </div>
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">Ingen teammedlemmer</div>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -371,16 +366,35 @@ const ApplicantProfile: React.FC = () => {
                       {followups.map((f) => (
                         <li key={f.id} className="px-4 py-2.5 text-sm flex items-center gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium">{dateTime(f.snoozed_to ?? f.scheduled_for)}</div>
-                            {f.note && <div className="text-xs text-muted-foreground truncate">{f.note}</div>}
+                            <div className="font-medium">
+                              {dateTime(f.snoozed_to ?? f.scheduled_for)}
+                            </div>
+                            {f.note && (
+                              <div className="text-xs text-muted-foreground truncate">{f.note}</div>
+                            )}
                           </div>
-                          <Button size="icon" variant="ghost" onClick={() => completeFu.mutate(f.id)} title="Fullført">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => completeFu.mutate(f.id)}
+                            title="Fullført"
+                          >
                             <Check />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setSnoozeId(f.id)} title="Utsett">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setSnoozeId(f.id)}
+                            title="Utsett"
+                          >
                             <Clock />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteFu.mutate(f.id)} title="Slett">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => deleteFu.mutate(f.id)}
+                            title="Slett"
+                          >
                             <Trash2 />
                           </Button>
                         </li>
@@ -394,9 +408,7 @@ const ApplicantProfile: React.FC = () => {
                 pipelineId={pipeline?.id ?? null}
                 stageId={firstApp?.current_stage_id ?? null}
                 positionId={firstApp?.position_id ?? null}
-                stageName={
-                  stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null
-                }
+                stageName={stages.find((s) => s.id === firstApp?.current_stage_id)?.name ?? null}
               />
               <ScoringBuiltinFieldsSection applicant={applicant} />
               <ApplicantFieldValuesSection applicantId={applicant.id} />
@@ -411,17 +423,11 @@ const ApplicantProfile: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">
-          <ApplicantNotesTab
-            applicantId={applicant.id}
-            applicationId={firstApp?.id ?? null}
-          />
+          <ApplicantNotesTab applicantId={applicant.id} applicationId={firstApp?.id ?? null} />
         </TabsContent>
 
         <TabsContent value="files" className="mt-4">
-          <ApplicantFilesTab
-            applicantId={applicant.id}
-            applicationId={firstApp?.id ?? null}
-          />
+          <ApplicantFilesTab applicantId={applicant.id} applicationId={firstApp?.id ?? null} />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
@@ -467,9 +473,9 @@ const ApplicantProfile: React.FC = () => {
           targetStageId={pendingStageMove.stageId}
           targetStageName={pendingStageMove.stageName}
           onProceed={() => {
-            const move = pendingStageMove;
-            setPendingStageMove(null);
-            if (!move) return;
+            const move = pendingStageMove
+            setPendingStageMove(null)
+            if (!move) return
             // Modal already validated/overrode; skip the gate to avoid a
             // second round-trip (and to honor admin override).
             void automation.handleStageMove(
@@ -482,7 +488,7 @@ const ApplicantProfile: React.FC = () => {
                 stageName: move.stageName,
               },
               { skipValidation: true },
-            );
+            )
           }}
         />
       )}
@@ -499,7 +505,9 @@ const ApplicantProfile: React.FC = () => {
           onOpenChange={setSendFormOpen}
           applicationId={firstApp.id}
           applicantId={applicant.id}
-          applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'søkeren'}
+          applicantName={
+            `${applicant.first_name ?? ""} ${applicant.last_name ?? ""}`.trim() || "søkeren"
+          }
           hasEmail={!!applicant.email}
           hasPhone={!!applicant.phone}
         />
@@ -526,18 +534,22 @@ const ApplicantProfile: React.FC = () => {
             open={gdprExportOpen}
             onOpenChange={setGdprExportOpen}
             applicantId={applicant.id}
-            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+            applicantName={
+              `${applicant.first_name ?? ""} ${applicant.last_name ?? ""}`.trim() || "kandidaten"
+            }
           />
           <InitiateGdprErasureDialog
             open={gdprEraseOpen}
             onOpenChange={setGdprEraseOpen}
             applicantId={applicant.id}
-            applicantName={`${applicant.first_name ?? ''} ${applicant.last_name ?? ''}`.trim() || 'kandidaten'}
+            applicantName={
+              `${applicant.first_name ?? ""} ${applicant.last_name ?? ""}`.trim() || "kandidaten"
+            }
           />
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default ApplicantProfile;
+export default ApplicantProfile

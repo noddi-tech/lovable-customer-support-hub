@@ -1,38 +1,30 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { useDesignSystem } from '@/contexts/DesignSystemContext';
-import { ResponsiveGrid, ResponsiveTabs, AdaptiveSection, ResponsiveFlex } from '@/components/admin/design/components/layouts';
-import { 
-  Check, 
-  AlertTriangle, 
-  Info, 
-  X, 
-  Settings, 
-  User, 
-  Heart,
-  Star,
-  Send,
-  Trash2
-} from 'lucide-react';
+import type React from "react"
+import {
+  AdaptiveSection,
+  ResponsiveFlex,
+  ResponsiveGrid,
+  ResponsiveTabs,
+} from "@/components/admin/design/components/layouts"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useDesignSystem } from "@/contexts/DesignSystemContext"
 
 export const ComponentConfigurationPanel: React.FC = () => {
-  const { designSystem, updateDesignSystem } = useDesignSystem();
+  const { designSystem, updateDesignSystem } = useDesignSystem()
 
   // Helper function to update nested component properties
   const updateComponent = (
     componentType: keyof typeof designSystem.components,
     property: string,
-    value: any
+    value: any,
   ) => {
     updateDesignSystem({
       components: {
@@ -42,11 +34,11 @@ export const ComponentConfigurationPanel: React.FC = () => {
           [property]: value,
         },
       },
-    });
-  };
+    })
+  }
 
   // Get available color keys for dropdowns
-  const colorKeys = Object.keys(designSystem.colors) as Array<keyof typeof designSystem.colors>;
+  const colorKeys = Object.keys(designSystem.colors) as Array<keyof typeof designSystem.colors>
 
   // Component Preview Section
   const ComponentPreview = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -58,19 +50,17 @@ export const ComponentConfigurationPanel: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <AdaptiveSection spacing="4">
-          {children}
-        </AdaptiveSection>
+        <AdaptiveSection spacing="4">{children}</AdaptiveSection>
       </CardContent>
     </Card>
-  );
+  )
 
   const componentTabs = [
     {
-      value: 'buttons',
-      label: 'Buttons',
+      value: "buttons",
+      label: "Buttons",
       content: (
-        <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
+        <ResponsiveGrid cols={{ sm: "1", lg: "2" }} gap="6">
           <Card>
             <CardHeader>
               <CardTitle>Button Components</CardTitle>
@@ -80,12 +70,12 @@ export const ComponentConfigurationPanel: React.FC = () => {
             </CardHeader>
             <CardContent>
               <AdaptiveSection spacing="4">
-                <ResponsiveGrid cols={{ sm: '1', md: '2' }} gap="4">
+                <ResponsiveGrid cols={{ sm: "1", md: "2" }} gap="4">
                   <AdaptiveSection spacing="2">
                     <Label>Default Variant</Label>
                     <Select
                       value={designSystem.components.buttons.defaultVariant}
-                      onValueChange={(value) => updateComponent('buttons', 'defaultVariant', value)}
+                      onValueChange={(value) => updateComponent("buttons", "defaultVariant", value)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -105,7 +95,7 @@ export const ComponentConfigurationPanel: React.FC = () => {
                     <Label>Default Size</Label>
                     <Select
                       value={designSystem.components.buttons.defaultSize}
-                      onValueChange={(value) => updateComponent('buttons', 'defaultSize', value)}
+                      onValueChange={(value) => updateComponent("buttons", "defaultSize", value)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -139,9 +129,9 @@ export const ComponentConfigurationPanel: React.FC = () => {
             </AdaptiveSection>
           </ComponentPreview>
         </ResponsiveGrid>
-      )
-    }
-  ];
+      ),
+    },
+  ]
 
   return (
     <AdaptiveSection spacing="8">
@@ -153,5 +143,5 @@ export const ComponentConfigurationPanel: React.FC = () => {
         variant="underline"
       />
     </AdaptiveSection>
-  );
-};
+  )
+}

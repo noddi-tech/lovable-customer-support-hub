@@ -1,121 +1,130 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { renderEmailLayout, plainTextToHtml, htmlToPlainText } from '../_shared/email-layout.ts';
-import { buildPriorityHeaders } from '../_shared/email-priority.ts';
-import { resolveBrandTheme } from '../_shared/brand-theme.ts';
-import { getCompanyInfo, renderCompanyFooterHtml } from '../_shared/email-company-info.ts';
-import { buildBodyToken, buildHtmlToken, buildStructuredMessageId } from '../_shared/email-threading.ts';
-
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
+import { resolveBrandTheme } from "../_shared/brand-theme.ts"
+import { getCompanyInfo, renderCompanyFooterHtml } from "../_shared/email-company-info.ts"
+import { htmlToPlainText, plainTextToHtml, renderEmailLayout } from "../_shared/email-layout.ts"
+import { buildPriorityHeaders } from "../_shared/email-priority.ts"
+import {
+  buildBodyToken,
+  buildHtmlToken,
+  buildStructuredMessageId,
+} from "../_shared/email-threading.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+}
 
 // Extract an email address from a "Name <email>" or bare "email" string
 function extractEmail(s: string): string | null {
-  const match = s.match(/<([^>]+)>/) || s.match(/([^\s,<>"]+@[^\s,<>"]+)/);
-  return match ? match[1].trim().toLowerCase() : null;
+  const match = s.match(/<([^>]+)>/) || s.match(/([^\s,<>"]+@[^\s,<>"]+)/)
+  return match ? match[1].trim().toLowerCase() : null
 }
 
 // Parse a header value from raw email headers string
 function parseHeaderValue(raw: string, headerName: string): string | null {
-  const regex = new RegExp(`^${headerName}:\\s*(.+?)$`, 'mi');
-  const match = raw.match(regex);
-  if (!match) return null;
+  const regex = new RegExp(`^${headerName}:\\s*(.+?)$`, "mi")
+  const match = raw.match(regex)
+  if (!match) return null
   // Handle folded headers (continuation lines starting with whitespace)
-  let value = match[1];
-  const lines = raw.split('\n');
-  const idx = lines.findIndex(l => l.match(new RegExp(`^${headerName}:`, 'i')));
+  let value = match[1]
+  const lines = raw.split("\n")
+  const idx = lines.findIndex((l) => l.match(new RegExp(`^${headerName}:`, "i")))
   if (idx >= 0) {
     for (let i = idx + 1; i < lines.length; i++) {
       if (lines[i].match(/^\s+/)) {
-        value += ' ' + lines[i].trim();
+        value += ` ${lines[i].trim()}`
       } else {
-        break;
+        break
       }
     }
   }
-  return value.trim();
+  return value.trim()
 }
 
 // Extract CC recipients from conversation messages, excluding specified emails
 function extractCcRecipients(messages: any[], excludeEmails: string[]): { email: string }[] {
-  const seen = new Set(excludeEmails.map(e => e.toLowerCase()));
-  const ccList: { email: string }[] = [];
+  const seen = new Set(excludeEmails.map((e) => e.toLowerCase()))
+  const ccList: { email: string }[] = []
 
   for (const msg of messages) {
-    const headers = msg.email_headers;
-    if (!headers) continue;
+    const headers = msg.email_headers
+    if (!headers) continue
 
-    let ccRaw = '';
-    if (typeof headers.raw === 'string') {
-      ccRaw = parseHeaderValue(headers.raw, 'Cc') || parseHeaderValue(headers.raw, 'CC') || '';
-    } else if (typeof headers.cc === 'string') {
-      ccRaw = headers.cc;
-    } else if (typeof headers.Cc === 'string') {
-      ccRaw = headers.Cc;
+    let ccRaw = ""
+    if (typeof headers.raw === "string") {
+      ccRaw = parseHeaderValue(headers.raw, "Cc") || parseHeaderValue(headers.raw, "CC") || ""
+    } else if (typeof headers.cc === "string") {
+      ccRaw = headers.cc
+    } else if (typeof headers.Cc === "string") {
+      ccRaw = headers.Cc
     }
 
-    if (!ccRaw) continue;
+    if (!ccRaw) continue
 
-    for (const part of ccRaw.split(',')) {
-      const email = extractEmail(part.trim());
+    for (const part of ccRaw.split(",")) {
+      const email = extractEmail(part.trim())
       if (email && !seen.has(email)) {
-        seen.add(email);
-        ccList.push({ email });
+        seen.add(email)
+        ccList.push({ email })
       }
     }
   }
-  return ccList;
+  return ccList
 }
-
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   // Initialize Supabase client outside try so catch can use it
   const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  );
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  )
 
-  let messageId: string | undefined;
-  let isPreview = false;
+  let messageId: string | undefined
+  let isPreview = false
 
   try {
-    console.log('send-reply-email (SendGrid) called');
+    console.log("send-reply-email (SendGrid) called")
 
-    const body = await req.json();
-    messageId = body.messageId;
-    const replyAll = body.replyAll ?? true;
+    const body = await req.json()
+    messageId = body.messageId
+    const replyAll = body.replyAll ?? true
     // When true, render the email exactly as the customer sees it and return it
     // without sending or touching delivery status.
-    const previewOnly = body.preview === true;
-    isPreview = previewOnly;
-    console.log('Processing message ID:', messageId);
+    const previewOnly = body.preview === true
+    isPreview = previewOnly
+    console.log("Processing message ID:", messageId)
 
-    if (!messageId) throw new Error('Message ID is required');
+    if (!messageId) throw new Error("Message ID is required")
 
     // Retry wrapper for transient DB errors (502, network hiccups)
-    async function fetchWithRetry<T>(fn: () => Promise<{ data: T; error: any }> | { then: Function }, retries = 2, delayMs = 1000): Promise<{ data: T; error: any }> {
+    async function fetchWithRetry<T>(
+      fn: () => Promise<{ data: T; error: any }> | { then: Function },
+      retries = 2,
+      delayMs = 1000,
+    ): Promise<{ data: T; error: any }> {
       for (let attempt = 0; attempt <= retries; attempt++) {
-        const result = await fn();
-        if (!result.error) return result;
+        const result = await fn()
+        if (!result.error) return result
         if (attempt < retries) {
-          console.warn(`DB fetch attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`, result.error?.message);
-          await new Promise(r => setTimeout(r, delayMs));
+          console.warn(
+            `DB fetch attempt ${attempt + 1} failed, retrying in ${delayMs}ms...`,
+            result.error?.message,
+          )
+          await new Promise((r) => setTimeout(r, delayMs))
         }
       }
-      return fn();
+      return fn()
     }
 
     // Fetch message, conversation, customer and email account (with retry)
     const { data: message, error: messageError } = await fetchWithRetry(() =>
       supabaseClient
-        .from('messages')
+        .from("messages")
         .select(`
           *,
           conversation:conversations(
@@ -127,299 +136,316 @@ const handler = async (req: Request): Promise<Response> => {
             email_account:email_accounts(*)
           )
         `)
-        .eq('id', messageId)
-        .single()
-    );
+        .eq("id", messageId)
+        .single(),
+    )
 
     if (messageError || !message) {
-      console.error('Error fetching message:', messageError);
-      throw new Error('Message not found');
+      console.error("Error fetching message:", messageError)
+      throw new Error("Message not found")
     }
 
     // Skip internal notes and clear their email_status
     if (message.is_internal) {
-      console.log('Message is internal, skipping email send');
-      await supabaseClient.from('messages').update({ email_status: null }).eq('id', messageId);
-      return new Response(JSON.stringify({ success: true, skipped: 'internal_note' }), {
+      console.log("Message is internal, skipping email send")
+      await supabaseClient.from("messages").update({ email_status: null }).eq("id", messageId)
+      return new Response(JSON.stringify({ success: true, skipped: "internal_note" }), {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+      })
     }
 
     // For widget channel: only skip if visitor is actively in a live chat session
     const { data: convData } = await supabaseClient
-      .from('conversations')
-      .select('channel')
-      .eq('id', message.conversation_id)
-      .single();
-    
-    if (convData?.channel === 'widget') {
+      .from("conversations")
+      .select("channel")
+      .eq("id", message.conversation_id)
+      .single()
+
+    if (convData?.channel === "widget") {
       // Check for an active chat session with a recent heartbeat (within 60s)
       const { data: chatSession } = await supabaseClient
-        .from('widget_chat_sessions')
-        .select('status, last_seen_at')
-        .eq('conversation_id', message.conversation_id)
-        .eq('status', 'active')
-        .maybeSingle();
-      
-      const isActivelyLive = chatSession && chatSession.last_seen_at &&
-        (new Date().getTime() - new Date(chatSession.last_seen_at).getTime() < 60000);
-      
+        .from("widget_chat_sessions")
+        .select("status, last_seen_at")
+        .eq("conversation_id", message.conversation_id)
+        .eq("status", "active")
+        .maybeSingle()
+
+      const isActivelyLive =
+        chatSession?.last_seen_at &&
+        Date.now() - new Date(chatSession.last_seen_at).getTime() < 60000
+
       if (isActivelyLive) {
-        console.log('Widget conversation has active live chat session, skipping email send');
-        return new Response(JSON.stringify({ success: true, skipped: 'active_live_chat' }), {
+        console.log("Widget conversation has active live chat session, skipping email send")
+        return new Response(JSON.stringify({ success: true, skipped: "active_live_chat" }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        })
       }
-      console.log('Widget conversation is not actively live, proceeding with email send');
+      console.log("Widget conversation is not actively live, proceeding with email send")
     }
 
     // Get sender (agent) info
-  let senderInfo: { full_name?: string; email?: string } | null = null;
-  if (message.sender_id) {
-    const { data: sender } = await supabaseClient
-      .from('profiles')
-      .select('full_name, email')
-      .eq('user_id', message.sender_id)
-      .single();
-    senderInfo = sender;
-  }
+    let senderInfo: { full_name?: string; email?: string } | null = null
+    if (message.sender_id) {
+      const { data: sender } = await supabaseClient
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", message.sender_id)
+        .single()
+      senderInfo = sender
+    }
 
-  const customer = message.conversation?.customer;
-  const emailAccount = message.conversation?.email_account;
-  let fromEmail: string | null = null;
-  let senderDisplayName: string | null = null;
+    const customer = message.conversation?.customer
+    const emailAccount = message.conversation?.email_account
+    let fromEmail: string | null = null
+    let senderDisplayName: string | null = null
 
-  // Prefer the inbox's public group email from inbound route
-  const inboxId = (message.conversation as any)?.inbox_id || null;
-  if (inboxId) {
-    const { data: inboundRoute } = await supabaseClient
-      .from('inbound_routes')
-      .select('group_email, sender_display_name')
-      .eq('inbox_id', inboxId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .maybeSingle();
-    fromEmail = inboundRoute?.group_email || null;
-    senderDisplayName = inboundRoute?.sender_display_name || null;
-  }
+    // Prefer the inbox's public group email from inbound route
+    const inboxId = (message.conversation as any)?.inbox_id || null
+    if (inboxId) {
+      const { data: inboundRoute } = await supabaseClient
+        .from("inbound_routes")
+        .select("group_email, sender_display_name")
+        .eq("inbox_id", inboxId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .maybeSingle()
+      fromEmail = inboundRoute?.group_email || null
+      senderDisplayName = inboundRoute?.sender_display_name || null
+    }
 
-  // Priority 2: Check inbox for sender_display_name if not set by inbound route
-  if (!senderDisplayName && inboxId) {
-    const { data: inbox } = await supabaseClient
-      .from('inboxes')
-      .select('sender_display_name')
-      .eq('id', inboxId)
-      .maybeSingle();
-    senderDisplayName = inbox?.sender_display_name || null;
-  }
+    // Priority 2: Check inbox for sender_display_name if not set by inbound route
+    if (!senderDisplayName && inboxId) {
+      const { data: inbox } = await supabaseClient
+        .from("inboxes")
+        .select("sender_display_name")
+        .eq("id", inboxId)
+        .maybeSingle()
+      senderDisplayName = inbox?.sender_display_name || null
+    }
 
-  // Priority 3: Use organization's sender_display_name or name as fallback
-  if (!senderDisplayName) {
-    const { data: organization } = await supabaseClient
-      .from('organizations')
-      .select('sender_display_name, name')
-      .eq('id', message.conversation.organization_id)
-      .single();
-    senderDisplayName = organization?.sender_display_name || organization?.name || null;
-  }
+    // Priority 3: Use organization's sender_display_name or name as fallback
+    if (!senderDisplayName) {
+      const { data: organization } = await supabaseClient
+        .from("organizations")
+        .select("sender_display_name, name")
+        .eq("id", message.conversation.organization_id)
+        .single()
+      senderDisplayName = organization?.sender_display_name || organization?.name || null
+    }
 
-  // Priority 4: Use agent's full name (may be overridden below if include_agent_name is off)
-  const senderDisplayNameFromAgent = !senderDisplayName && senderInfo?.full_name;
-  if (senderDisplayNameFromAgent) {
-    senderDisplayName = senderInfo.full_name;
-  }
+    // Priority 4: Use agent's full name (may be overridden below if include_agent_name is off)
+    const senderDisplayNameFromAgent = !senderDisplayName && senderInfo?.full_name
+    if (senderDisplayNameFromAgent) {
+      senderDisplayName = senderInfo.full_name
+    }
 
-  // Final fallback for sender display name
-  senderDisplayName = senderDisplayName || 'Support';
+    // Final fallback for sender display name
+    senderDisplayName = senderDisplayName || "Support"
 
-  console.log('Sender display name:', senderDisplayName);
+    console.log("Sender display name:", senderDisplayName)
 
-    if (!customer?.email) throw new Error('Customer email not found');
-    if (!fromEmail && !emailAccount?.email_address) throw new Error('Missing sending address (set inbound route public email or connect an email account)');
+    if (!customer?.email) throw new Error("Customer email not found")
+    if (!fromEmail && !emailAccount?.email_address)
+      throw new Error(
+        "Missing sending address (set inbound route public email or connect an email account)",
+      )
 
     // Load email template: prefer inbox-specific, fall back to org default
-    let template: any = null;
+    let template: any = null
     if (inboxId) {
       const { data: inboxTemplate } = await supabaseClient
-        .from('email_templates')
-        .select('*')
-        .eq('organization_id', message.conversation.organization_id)
-        .eq('template_type', 'conversation_reply')
-        .eq('inbox_id', inboxId)
-        .maybeSingle();
-      template = inboxTemplate;
+        .from("email_templates")
+        .select("*")
+        .eq("organization_id", message.conversation.organization_id)
+        .eq("template_type", "conversation_reply")
+        .eq("inbox_id", inboxId)
+        .maybeSingle()
+      template = inboxTemplate
     }
     if (!template) {
       const { data: orgTemplate } = await supabaseClient
-        .from('email_templates')
-        .select('*')
-        .eq('organization_id', message.conversation.organization_id)
-        .eq('template_type', 'conversation_reply')
-        .is('inbox_id', null)
-        .eq('is_default', true)
-        .maybeSingle();
-      template = orgTemplate;
+        .from("email_templates")
+        .select("*")
+        .eq("organization_id", message.conversation.organization_id)
+        .eq("template_type", "conversation_reply")
+        .is("inbox_id", null)
+        .eq("is_default", true)
+        .maybeSingle()
+      template = orgTemplate
     }
 
-    const templateSettings = template || {
-      header_background_color: '',
-      header_text_color: '',
-      header_content: '',
-      footer_background_color: '',
-      footer_text_color: '',
-      footer_content: '',
-      body_background_color: '#FFFFFF',
-      body_text_color: '#1F1F1F',
-      signature_content: 'Best regards,<br>{{agent_name}}<br>Support Team',
-      include_agent_name: true
-    } as any;
+    const templateSettings =
+      template ||
+      ({
+        header_background_color: "",
+        header_text_color: "",
+        header_content: "",
+        footer_background_color: "",
+        footer_text_color: "",
+        footer_content: "",
+        body_background_color: "#FFFFFF",
+        body_text_color: "#1F1F1F",
+        signature_content: "Best regards,<br>{{agent_name}}<br>Support Team",
+        include_agent_name: true,
+      } as any)
 
     // If include_agent_name is off and senderDisplayName came from agent's name, reset it
     if (templateSettings.include_agent_name === false && senderDisplayNameFromAgent) {
-      senderDisplayName = 'Support';
-      console.log('Sender display name reset to Support (include_agent_name is off)');
+      senderDisplayName = "Support"
+      console.log("Sender display name reset to Support (include_agent_name is off)")
     }
 
     // Threading headers: build a proper References chain
-    const conversationExternalId = (message.conversation as any)?.external_id || null;
+    const conversationExternalId = (message.conversation as any)?.external_id || null
 
     // Get the last customer message for In-Reply-To
-    let inReplyToId: string | null = null;
+    let inReplyToId: string | null = null
     const { data: lastCustomer } = await supabaseClient
-      .from('messages')
-      .select('email_message_id')
-      .eq('conversation_id', message.conversation_id)
-      .eq('sender_type', 'customer')
-      .not('email_message_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    inReplyToId = lastCustomer?.[0]?.email_message_id || null;
+      .from("messages")
+      .select("email_message_id")
+      .eq("conversation_id", message.conversation_id)
+      .eq("sender_type", "customer")
+      .not("email_message_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+    inReplyToId = lastCustomer?.[0]?.email_message_id || null
 
     // Fetch ALL previous email_message_ids for the full References chain
     const { data: allPrevMessages } = await supabaseClient
-      .from('messages')
-      .select('email_message_id, email_headers')
-      .eq('conversation_id', message.conversation_id)
-      .not('email_message_id', 'is', null)
-      .neq('id', messageId)
-      .order('created_at', { ascending: true });
+      .from("messages")
+      .select("email_message_id, email_headers")
+      .eq("conversation_id", message.conversation_id)
+      .not("email_message_id", "is", null)
+      .neq("id", messageId)
+      .order("created_at", { ascending: true })
 
     // Build References: conversation external_id first, then all previous message IDs
-    const referencesChain: string[] = [];
-    const seenRefs = new Set<string>();
+    const referencesChain: string[] = []
+    const seenRefs = new Set<string>()
     const addRef = (id: string) => {
-      const normalized = id.startsWith('<') ? id : `<${id}>`;
-      const clean = id.replace(/[<>]/g, '');
+      const normalized = id.startsWith("<") ? id : `<${id}>`
+      const clean = id.replace(/[<>]/g, "")
       if (clean && !seenRefs.has(clean)) {
-        seenRefs.add(clean);
-        referencesChain.push(normalized);
+        seenRefs.add(clean)
+        referencesChain.push(normalized)
       }
-    };
+    }
     // Add the conversation's original external_id first (thread root)
-    if (conversationExternalId) addRef(conversationExternalId);
+    if (conversationExternalId) addRef(conversationExternalId)
     // Add all previous message IDs
     if (allPrevMessages) {
       for (const m of allPrevMessages) {
-        if (m.email_message_id) addRef(m.email_message_id);
+        if (m.email_message_id) addRef(m.email_message_id)
       }
     }
 
     // Check if this is the first message (new conversation) or a reply
     const { count: previousMessageCount } = await supabaseClient
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('conversation_id', message.conversation_id);
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("conversation_id", message.conversation_id)
 
     // Build signature
-    let signature = templateSettings.signature_content || '';
+    let signature = templateSettings.signature_content || ""
     if (templateSettings.include_agent_name && senderInfo?.full_name) {
-      signature = signature.replace('{{agent_name}}', senderInfo.full_name);
+      signature = signature.replace("{{agent_name}}", senderInfo.full_name)
     } else {
-      signature = signature.replace('{{agent_name}}', '').replace(/(<br\s*\/?>){2,}/g, '<br>');
+      signature = signature.replace("{{agent_name}}", "").replace(/(<br\s*\/?>){2,}/g, "<br>")
     }
 
     // Only add "Re:" prefix if there are previous messages (this is a reply)
-    const subject = previousMessageCount && previousMessageCount > 1
-      ? `Re: ${message.conversation.subject}`
-      : message.conversation.subject;
-    const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string;
-    let toEmail = customer.email as string;
+    const subject =
+      previousMessageCount && previousMessageCount > 1
+        ? `Re: ${message.conversation.subject}`
+        : message.conversation.subject
+    const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string
+    let toEmail = customer.email as string
 
     // Reply-To fallback: if customer email matches the inbox/route address (wrong attribution),
     // use the Reply-To from the original inbound message instead
-    const normalizedTo = toEmail.toLowerCase().trim();
-    const normalizedFrom = fromEmailFinal.toLowerCase().trim();
-    if (normalizedTo === normalizedFrom || (fromEmail && normalizedTo === fromEmail.toLowerCase())) {
+    const normalizedTo = toEmail.toLowerCase().trim()
+    const normalizedFrom = fromEmailFinal.toLowerCase().trim()
+    if (
+      normalizedTo === normalizedFrom ||
+      (fromEmail && normalizedTo === fromEmail.toLowerCase())
+    ) {
       // Customer email matches our sending address — likely misattributed. Check first message for Reply-To
       const { data: firstMsg } = await supabaseClient
-        .from('messages')
-        .select('email_headers')
-        .eq('conversation_id', message.conversation_id)
-        .eq('sender_type', 'customer')
-        .order('created_at', { ascending: true })
+        .from("messages")
+        .select("email_headers")
+        .eq("conversation_id", message.conversation_id)
+        .eq("sender_type", "customer")
+        .order("created_at", { ascending: true })
         .limit(1)
-        .maybeSingle();
-      
-      const rawHeaders = firstMsg?.email_headers?.raw || (typeof firstMsg?.email_headers === 'string' ? firstMsg?.email_headers : '');
+        .maybeSingle()
+
+      const rawHeaders =
+        firstMsg?.email_headers?.raw ||
+        (typeof firstMsg?.email_headers === "string" ? firstMsg?.email_headers : "")
       if (rawHeaders) {
-        const replyToHeader = parseHeaderValue(rawHeaders, 'Reply-To');
-        const replyToAddr = replyToHeader ? extractEmail(replyToHeader) : null;
+        const replyToHeader = parseHeaderValue(rawHeaders, "Reply-To")
+        const replyToAddr = replyToHeader ? extractEmail(replyToHeader) : null
         if (replyToAddr && replyToAddr.toLowerCase() !== normalizedTo) {
-          console.log(`📧 Reply-To fallback: customer email ${toEmail} matches inbox, using Reply-To: ${replyToAddr}`);
-          toEmail = replyToAddr;
+          console.log(
+            `📧 Reply-To fallback: customer email ${toEmail} matches inbox, using Reply-To: ${replyToAddr}`,
+          )
+          toEmail = replyToAddr
         }
       }
     }
 
     // Brand name for the header fallback (inbox name, else sender display name)
-    let brandName: string | null = senderDisplayName || null;
-    let inboxNameForBrand: string | null = null;
+    let brandName: string | null = senderDisplayName || null
+    let inboxNameForBrand: string | null = null
     if (inboxId) {
       const { data: brandInbox } = await supabaseClient
-        .from('inboxes')
-        .select('name')
-        .eq('id', inboxId)
-        .maybeSingle();
-      inboxNameForBrand = brandInbox?.name || null;
-      brandName = inboxNameForBrand || brandName;
+        .from("inboxes")
+        .select("name")
+        .eq("id", inboxId)
+        .maybeSingle()
+      inboxNameForBrand = brandInbox?.name || null
+      brandName = inboxNameForBrand || brandName
     }
 
     // Brand theme mirrored from noddi-frontend design tokens (Noddi / Dekkfix).
-    const brandTheme = resolveBrandTheme(inboxNameForBrand, brandName, fromEmail, senderDisplayName);
+    const brandTheme = resolveBrandTheme(inboxNameForBrand, brandName, fromEmail, senderDisplayName)
 
     // Neutral/white header colors stored on the template count as "unset" so the
     // brand colors apply; explicit brand colors still win.
     const isNeutralColor = (c?: string | null) => {
-      const v = String(c || '').trim().toLowerCase();
-      return !v || v === '#fff' || v === '#ffffff' || v === 'white' || v === 'transparent';
-    };
+      const v = String(c || "")
+        .trim()
+        .toLowerCase()
+      return !v || v === "#fff" || v === "#ffffff" || v === "white" || v === "transparent"
+    }
     const headerBackgroundColor = isNeutralColor(templateSettings.header_background_color)
       ? brandTheme.headerBg
-      : templateSettings.header_background_color;
+      : templateSettings.header_background_color
     const headerTextColor = isNeutralColor(templateSettings.header_background_color)
       ? brandTheme.headerText
-      : templateSettings.header_text_color;
+      : templateSettings.header_text_color
 
     // Build HTML content using the shared, reusable email layout
-    const rawContent = String(message.content || '');
-    const isHtmlBody = /<\/?[a-z][\s\S]*>/i.test(rawContent);
-    const bodyHtml = isHtmlBody ? rawContent : plainTextToHtml(rawContent);
+    const rawContent = String(message.content || "")
+    const isHtmlBody = /<\/?[a-z][\s\S]*>/i.test(rawContent)
+    const bodyHtml = isHtmlBody ? rawContent : plainTextToHtml(rawContent)
 
     // Informative footer (legal name, address, org. number, contact details)
     // resolved from the Noddi backend and cached for 6 hours.
-    const companyInfo = await getCompanyInfo(brandTheme.id);
+    const companyInfo = await getCompanyInfo(brandTheme.id)
     // Legacy marketing taglines are dropped in favour of the company block.
-    const LEGACY_FOOTERS = [/bilen st[åa]r parkert/i, /profesjonell dekkservice/i];
-    const templateFooter = String(templateSettings.footer_content || '').trim();
-    const keepTemplateFooter = templateFooter && !LEGACY_FOOTERS.some((re) => re.test(templateFooter));
+    const LEGACY_FOOTERS = [/bilen st[åa]r parkert/i, /profesjonell dekkservice/i]
+    const templateFooter = String(templateSettings.footer_content || "").trim()
+    const keepTemplateFooter =
+      templateFooter && !LEGACY_FOOTERS.some((re) => re.test(templateFooter))
     const footerContent = [
-      keepTemplateFooter ? `<div style="margin-bottom:14px;">${templateFooter}</div>` : '',
+      keepTemplateFooter ? `<div style="margin-bottom:14px;">${templateFooter}</div>` : "",
       renderCompanyFooterHtml(companyInfo, brandTheme, brandName),
     ]
       .filter(Boolean)
-      .join('');
+      .join("")
 
     const emailHTML = renderEmailLayout({
       bodyHtml,
@@ -434,9 +460,9 @@ const handler = async (req: Request): Promise<Response> => {
       brandName,
       brandTheme,
       preheader: htmlToPlainText(bodyHtml).slice(0, 140),
-    });
+    })
 
-    const plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent;
+    const plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent
 
     // Preview mode: render the exact customer-facing email without sending anything.
     if (previewOnly) {
@@ -449,87 +475,97 @@ const handler = async (req: Request): Promise<Response> => {
           from: fromEmailFinal,
           fromName: senderDisplayName || brandName || null,
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
     }
 
     // Hidden thread token: survives quoted replies even when headers and
     // subject are stripped, so inbound matching can still find this thread.
-    const threadTokenHtml = buildHtmlToken(message.conversation_id);
+    const threadTokenHtml = buildHtmlToken(message.conversation_id)
     const htmlWithToken = /<\/body>/i.test(emailHTML)
       ? emailHTML.replace(/<\/body>/i, `${threadTokenHtml}</body>`)
-      : `${emailHTML}${threadTokenHtml}`;
-    const plainText = `${plainTextBody}\n\n${buildBodyToken(message.conversation_id)}`;
+      : `${emailHTML}${threadTokenHtml}`
+    const plainText = `${plainTextBody}\n\n${buildBodyToken(message.conversation_id)}`
 
     // Monitor email size to prevent Gmail clipping (102KB limit)
-    const estimatedSize = htmlWithToken.length + plainText.length + 2000; // +2KB for headers
-    console.log(`📧 Email size: ${(estimatedSize/1024).toFixed(1)}KB (HTML: ${(emailHTML.length/1024).toFixed(1)}KB, Plain: ${(plainText.length/1024).toFixed(1)}KB)`);
-    
-    if (estimatedSize > 90000) {  // Warn at 90KB (before 102KB limit)
-      console.warn(`⚠️ Email approaching Gmail clip threshold: ${(estimatedSize/1024).toFixed(1)}KB - consider simplifying content`);
+    const estimatedSize = htmlWithToken.length + plainText.length + 2000 // +2KB for headers
+    console.log(
+      `📧 Email size: ${(estimatedSize / 1024).toFixed(1)}KB (HTML: ${(emailHTML.length / 1024).toFixed(1)}KB, Plain: ${(plainText.length / 1024).toFixed(1)}KB)`,
+    )
+
+    if (estimatedSize > 90000) {
+      // Warn at 90KB (before 102KB limit)
+      console.warn(
+        `⚠️ Email approaching Gmail clip threshold: ${(estimatedSize / 1024).toFixed(1)}KB - consider simplifying content`,
+      )
     }
 
     // Compose SendGrid payload
-    const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
-    if (!SENDGRID_API_KEY) throw new Error('SENDGRID_API_KEY is not configured');
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY")
+    if (!SENDGRID_API_KEY) throw new Error("SENDGRID_API_KEY is not configured")
 
     // Process attachments from message metadata
-    const sgAttachments: { content: string; filename: string; type: string; disposition: string }[] = [];
+    const sgAttachments: {
+      content: string
+      filename: string
+      type: string
+      disposition: string
+    }[] = []
     if (message.attachments && Array.isArray(message.attachments)) {
       for (const att of message.attachments as any[]) {
-        if (!att.storageKey) continue;
+        if (!att.storageKey) continue
         try {
           const { data: fileData, error: dlError } = await supabaseClient.storage
-            .from('message-attachments')
-            .download(att.storageKey);
+            .from("message-attachments")
+            .download(att.storageKey)
           if (dlError || !fileData) {
-            console.warn('Failed to download attachment:', att.storageKey, dlError);
-            continue;
+            console.warn("Failed to download attachment:", att.storageKey, dlError)
+            continue
           }
-          const arrayBuffer = await fileData.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const arrayBuffer = await fileData.arrayBuffer()
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
           sgAttachments.push({
             content: base64,
-            filename: att.filename || 'attachment',
-            type: att.mimeType || 'application/octet-stream',
-            disposition: att.isInline ? 'inline' : 'attachment',
-          });
+            filename: att.filename || "attachment",
+            type: att.mimeType || "application/octet-stream",
+            disposition: att.isInline ? "inline" : "attachment",
+          })
         } catch (attErr) {
-          console.warn('Error processing attachment:', att.storageKey, attErr);
+          console.warn("Error processing attachment:", att.storageKey, attErr)
         }
       }
     }
 
     // Structured Message-ID: one header lookup resolves the thread directly.
-    const messageIdHeader = buildStructuredMessageId(message.conversation_id, fromEmailFinal);
+    const messageIdHeader = buildStructuredMessageId(message.conversation_id, fromEmailFinal)
     const headers: Record<string, string> = {
-      'Message-ID': messageIdHeader,
-    };
+      "Message-ID": messageIdHeader,
+    }
     if (inReplyToId) {
-      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
-      headers['In-Reply-To'] = normalized;
+      const normalized = inReplyToId.startsWith("<") ? inReplyToId : `<${inReplyToId}>`
+      headers["In-Reply-To"] = normalized
     }
     // Use the full References chain instead of just In-Reply-To
     if (referencesChain.length > 0) {
-      headers['References'] = referencesChain.join(' ');
+      headers["References"] = referencesChain.join(" ")
     } else if (inReplyToId) {
-      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
-      headers['References'] = normalized;
+      const normalized = inReplyToId.startsWith("<") ? inReplyToId : `<${inReplyToId}>`
+      headers["References"] = normalized
     }
 
     // Importance flag chosen by the agent in the composer (stored on the message).
-    const outgoingPriority = (message as any)?.metadata?.email_priority as string | undefined;
-    if (outgoingPriority === 'high' || outgoingPriority === 'low') {
-      Object.assign(headers, buildPriorityHeaders(outgoingPriority));
-      console.log('Sending with email priority:', outgoingPriority);
+    const outgoingPriority = (message as any)?.metadata?.email_priority as string | undefined
+    if (outgoingPriority === "high" || outgoingPriority === "low") {
+      Object.assign(headers, buildPriorityHeaders(outgoingPriority))
+      console.log("Sending with email priority:", outgoingPriority)
     }
 
     // Extract CC recipients from conversation history for Reply All (only if replyAll is true)
     const ccRecipients = replyAll
       ? extractCcRecipients(allPrevMessages || [], [toEmail, fromEmailFinal])
-      : [];
+      : []
     if (ccRecipients.length > 0) {
-      console.log('Reply All CC recipients:', ccRecipients.map(r => r.email).join(', '));
+      console.log("Reply All CC recipients:", ccRecipients.map((r) => r.email).join(", "))
     }
 
     const sendgridBody = {
@@ -543,94 +579,99 @@ const handler = async (req: Request): Promise<Response> => {
       reply_to: { email: fromEmailFinal },
       subject,
       content: [
-        { type: 'text/plain', value: plainText },
-        { type: 'text/html', value: htmlWithToken },
+        { type: "text/plain", value: plainText },
+        { type: "text/html", value: htmlWithToken },
       ],
       headers,
       ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),
-    } as any;
+    } as any
 
-    console.log('Sending via SendGrid to:', toEmail, 'from:', fromEmailFinal);
-    const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
+    console.log("Sending via SendGrid to:", toEmail, "from:", fromEmailFinal)
+    const sgRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(sendgridBody),
-    });
+    })
 
     if (!(sgRes.status === 202)) {
-      const errTxt = await sgRes.text();
-      console.error('SendGrid error:', sgRes.status, errTxt);
-      throw new Error(`SendGrid error ${sgRes.status}: ${errTxt}`);
+      const errTxt = await sgRes.text()
+      console.error("SendGrid error:", sgRes.status, errTxt)
+      throw new Error(`SendGrid error ${sgRes.status}: ${errTxt}`)
     }
 
     // Build email headers object for storage
     const emailHeaders: Record<string, string> = {
-      'Message-ID': messageIdHeader,
-      'From': `${senderDisplayName} <${fromEmailFinal}>`,
-      'To': customer.full_name ? `${customer.full_name} <${toEmail}>` : toEmail,
-      'Subject': subject,
-      ...(ccRecipients.length > 0 ? { 'Cc': ccRecipients.map(r => r.email).join(', ') } : {}),
-    };
+      "Message-ID": messageIdHeader,
+      From: `${senderDisplayName} <${fromEmailFinal}>`,
+      To: customer.full_name ? `${customer.full_name} <${toEmail}>` : toEmail,
+      Subject: subject,
+      ...(ccRecipients.length > 0 ? { Cc: ccRecipients.map((r) => r.email).join(", ") } : {}),
+    }
     if (inReplyToId) {
-      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
-      emailHeaders['In-Reply-To'] = normalized;
+      const normalized = inReplyToId.startsWith("<") ? inReplyToId : `<${inReplyToId}>`
+      emailHeaders["In-Reply-To"] = normalized
     }
     if (referencesChain.length > 0) {
-      emailHeaders['References'] = referencesChain.join(' ');
+      emailHeaders["References"] = referencesChain.join(" ")
     } else if (inReplyToId) {
-      const normalized = inReplyToId.startsWith('<') ? inReplyToId : `<${inReplyToId}>`;
-      emailHeaders['References'] = normalized;
+      const normalized = inReplyToId.startsWith("<") ? inReplyToId : `<${inReplyToId}>`
+      emailHeaders["References"] = normalized
     }
 
     // Update message as sent, store Message-ID, thread ID, and headers
     // IMPORTANT: Store original content, not wrapped HTML, to prevent exponential growth
     const { error: updateError } = await supabaseClient
-      .from('messages')
+      .from("messages")
       .update({
-        email_status: 'sent',
-        email_message_id: messageIdHeader.replace(/[<>]/g, ''),
+        email_status: "sent",
+        email_message_id: messageIdHeader.replace(/[<>]/g, ""),
         email_thread_id: conversationExternalId || undefined,
-        content_type: 'html',
+        content_type: "html",
         content: message.content, // Keep original content, don't store wrapped HTML
         email_headers: emailHeaders,
       })
-      .eq('id', messageId);
+      .eq("id", messageId)
 
-    if (updateError) console.warn('Failed to update message status:', updateError);
+    if (updateError) console.warn("Failed to update message status:", updateError)
 
     // Update conversation received_at to move it to top of list after agent reply
     const { error: convUpdateError } = await supabaseClient
-      .from('conversations')
-      .update({ 
+      .from("conversations")
+      .update({
         received_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', message.conversation_id);
-    
-    if (convUpdateError) console.warn('Failed to update conversation received_at:', convUpdateError);
+      .eq("id", message.conversation_id)
+
+    if (convUpdateError) console.warn("Failed to update conversation received_at:", convUpdateError)
 
     return new Response(
-      JSON.stringify({ success: true, sentTo: toEmail, sentFrom: fromEmailFinal, messageId: messageIdHeader }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+      JSON.stringify({
+        success: true,
+        sentTo: toEmail,
+        sentFrom: fromEmailFinal,
+        messageId: messageIdHeader,
+      }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+    )
   } catch (error: any) {
-    console.error('Error in send-reply-email function:', error);
+    console.error("Error in send-reply-email function:", error)
     // Mark message as failed so UI shows actionable "Resend" instead of stuck "pending"
     if (messageId && !isPreview) {
       try {
-        await supabaseClient.from('messages').update({ email_status: 'failed' }).eq('id', messageId);
+        await supabaseClient.from("messages").update({ email_status: "failed" }).eq("id", messageId)
       } catch (updateErr) {
-        console.error('Failed to update email_status to failed:', updateErr);
+        console.error("Failed to update email_status to failed:", updateErr)
       }
     }
-    return new Response(
-      JSON.stringify({ error: error.message, details: error.stack }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+    return new Response(JSON.stringify({ error: error.message, details: error.stack }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    })
   }
-};
+}
 
-Deno.serve(handler);
+Deno.serve(handler)

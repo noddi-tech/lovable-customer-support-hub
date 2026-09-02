@@ -5,11 +5,12 @@ Everything in this folder is rendered inside the app at [`/docs`](/docs) for sig
 ## Architecture decisions
 
 Durable decisions live in [`docs/adr/`](./adr/README.md) as numbered Architecture Decision
-Records. Start there to understand *why* the system looks the way it does.
+Records. Start there to understand _why_ the system looks the way it does.
 
 ## Guides
 
 ### Platform
+
 - [Testing guide](./TESTING_GUIDE.md)
 - [Production testing checklist](./PRODUCTION_TESTING_CHECKLIST.md)
 - [Audit logging](./AUDIT_LOGGING.md)
@@ -17,10 +18,12 @@ Records. Start there to understand *why* the system looks the way it does.
 - [Layout panes](./layout/panes.md)
 
 ### AI and knowledge
+
 - [AI intelligence overview](./AI_INTELLIGENCE_README.md)
 - [Knowledge system](./KNOWLEDGE_SYSTEM.md)
 
 ### Channels and integrations
+
 - [Widget embed guide](./WIDGET_EMBED_GUIDE.md)
 - [Slack alerting system](./SLACK_ALERTING_SYSTEM.md)
 - [Aircall integration](./aircall-everywhere-integration.md)
@@ -30,11 +33,13 @@ Records. Start there to understand *why* the system looks the way it does.
 - [Navio SSO setup](./sso/navio-auth-setup.md)
 
 ### Product areas
+
 - [Customer segmentation](./customer-segmentation.md)
 - [Conversations configuration](./conversations/config.md)
 - [Conversations performance notes](./conversations/perf-notes.md)
 
 ### Development
+
 - [Dev tooling](./dev/README.md)
 - [Debugging](./dev/debugging.md)
 - [Logging](./dev/logging.md)

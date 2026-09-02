@@ -1,73 +1,90 @@
-import React from 'react';
-import { ResponsiveContainer, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, ResponsiveGrid, LayoutItem, ResponsiveFlex, AdaptiveSection } from '@/components/admin/design/components/layouts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
-import { Code, Copy, Eye, Grid, Layout, Layers, Box, Type, Edit } from 'lucide-react';
+import { Box, Code, Copy, Edit, Eye, Grid, Layers, Layout, Type } from "lucide-react"
+import {
+  AdaptiveSection,
+  LayoutItem,
+  ResponsiveContainer,
+  ResponsiveFlex,
+  ResponsiveGrid,
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/admin/design/components/layouts"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
 
 export default function AdminDesignComponents() {
   const componentCategories = [
     {
-      id: 'layouts',
-      name: 'Layout Components',
+      id: "layouts",
+      name: "Layout Components",
       icon: Layout,
       components: [
         {
-          name: 'ResponsiveContainer',
-          description: 'Wrapper with responsive padding and max-width constraints',
-          preview: <ResponsiveContainer className="p-4 bg-primary/10 rounded-md"><div className="text-sm">Responsive Container Content</div></ResponsiveContainer>,
-          code: '<ResponsiveContainer className="p-4">\n  <div>Content</div>\n</ResponsiveContainer>'
+          name: "ResponsiveContainer",
+          description: "Wrapper with responsive padding and max-width constraints",
+          preview: (
+            <ResponsiveContainer className="p-4 bg-primary/10 rounded-md">
+              <div className="text-sm">Responsive Container Content</div>
+            </ResponsiveContainer>
+          ),
+          code: '<ResponsiveContainer className="p-4">\n  <div>Content</div>\n</ResponsiveContainer>',
         },
         {
-          name: 'ResponsiveGrid',
-          description: 'Grid layout with responsive column configurations',
+          name: "ResponsiveGrid",
+          description: "Grid layout with responsive column configurations",
           preview: (
-            <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="2">
+            <ResponsiveGrid cols={{ sm: "1", md: "2", lg: "3" }} gap="2">
               <div className="bg-secondary p-2 rounded">Item 1</div>
               <div className="bg-secondary p-2 rounded">Item 2</div>
               <div className="bg-secondary p-2 rounded">Item 3</div>
             </ResponsiveGrid>
           ),
-          code: '<ResponsiveGrid cols={{ sm: "1", md: "2", lg: "3" }} gap="4">\n  <LayoutItem>Item 1</LayoutItem>\n  <LayoutItem>Item 2</LayoutItem>\n</ResponsiveGrid>'
+          code: '<ResponsiveGrid cols={{ sm: "1", md: "2", lg: "3" }} gap="4">\n  <LayoutItem>Item 1</LayoutItem>\n  <LayoutItem>Item 2</LayoutItem>\n</ResponsiveGrid>',
         },
         {
-          name: 'ResponsiveFlex',
-          description: 'Flexible row/column layout with responsive direction',
+          name: "ResponsiveFlex",
+          description: "Flexible row/column layout with responsive direction",
           preview: (
             <ResponsiveFlex gap="2">
               <div className="bg-accent p-2 rounded">Flex Item 1</div>
               <div className="bg-accent p-2 rounded">Flex Item 2</div>
             </ResponsiveFlex>
           ),
-          code: '<ResponsiveFlex gap="4">\n  <div>Item 1</div>\n  <div>Item 2</div>\n</ResponsiveFlex>'
+          code: '<ResponsiveFlex gap="4">\n  <div>Item 1</div>\n  <div>Item 2</div>\n</ResponsiveFlex>',
         },
         {
-          name: 'LayoutItem',
-          description: 'Individual grid/flex item with consistent spacing',
-          preview: <LayoutItem className="bg-muted p-4 rounded"><div className="text-sm">Layout Item Content</div></LayoutItem>,
-          code: '<LayoutItem className="bg-card p-4">\n  <div>Content</div>\n</LayoutItem>'
+          name: "LayoutItem",
+          description: "Individual grid/flex item with consistent spacing",
+          preview: (
+            <LayoutItem className="bg-muted p-4 rounded">
+              <div className="text-sm">Layout Item Content</div>
+            </LayoutItem>
+          ),
+          code: '<LayoutItem className="bg-card p-4">\n  <div>Content</div>\n</LayoutItem>',
         },
         {
-          name: 'AdaptiveSection',
-          description: 'Section wrapper with adaptive spacing and optional dividers',
+          name: "AdaptiveSection",
+          description: "Section wrapper with adaptive spacing and optional dividers",
           preview: (
             <AdaptiveSection spacing="4" className="bg-card/50 p-4 rounded border">
               <div className="text-sm">Section with adaptive spacing</div>
             </AdaptiveSection>
           ),
-          code: '<AdaptiveSection spacing="4">\n  <div>Section content</div>\n</AdaptiveSection>'
-        }
-      ]
+          code: '<AdaptiveSection spacing="4">\n  <div>Section content</div>\n</AdaptiveSection>',
+        },
+      ],
     },
     {
-      id: 'navigation',
-      name: 'Navigation Components',
+      id: "navigation",
+      name: "Navigation Components",
       icon: Layers,
       components: [
         {
-          name: 'ResponsiveTabs',
-          description: 'Tab navigation with responsive behavior and multiple variants',
+          name: "ResponsiveTabs",
+          description: "Tab navigation with responsive behavior and multiple variants",
           preview: (
             <ResponsiveTabs defaultValue="tab1" variant="pills" size="sm" equalWidth>
               <ResponsiveTabsList>
@@ -82,18 +99,18 @@ export default function AdminDesignComponents() {
               </ResponsiveTabsContent>
             </ResponsiveTabs>
           ),
-          code: '<ResponsiveTabs defaultValue="tab1" variant="pills" equalWidth>\n  <ResponsiveTabsList>\n    <ResponsiveTabsTrigger value="tab1">Tab 1</ResponsiveTabsTrigger>\n  </ResponsiveTabsList>\n  <ResponsiveTabsContent value="tab1">\n    Content\n  </ResponsiveTabsContent>\n</ResponsiveTabs>'
-        }
-      ]
+          code: '<ResponsiveTabs defaultValue="tab1" variant="pills" equalWidth>\n  <ResponsiveTabsList>\n    <ResponsiveTabsTrigger value="tab1">Tab 1</ResponsiveTabsTrigger>\n  </ResponsiveTabsList>\n  <ResponsiveTabsContent value="tab1">\n    Content\n  </ResponsiveTabsContent>\n</ResponsiveTabs>',
+        },
+      ],
     },
     {
-      id: 'cards',
-      name: 'Card Components',
+      id: "cards",
+      name: "Card Components",
       icon: Grid,
       components: [
         {
-          name: 'Basic Card',
-          description: 'Standard card with header, content, and footer sections',
+          name: "Basic Card",
+          description: "Standard card with header, content, and footer sections",
           preview: (
             <Card className="w-full">
               <CardHeader>
@@ -105,11 +122,11 @@ export default function AdminDesignComponents() {
               </CardContent>
             </Card>
           ),
-          code: '<Card>\n  <CardHeader>\n    <CardTitle>Title</CardTitle>\n    <CardDescription>Description</CardDescription>\n  </CardHeader>\n  <CardContent>\n    <p>Content</p>\n  </CardContent>\n</Card>'
+          code: "<Card>\n  <CardHeader>\n    <CardTitle>Title</CardTitle>\n    <CardDescription>Description</CardDescription>\n  </CardHeader>\n  <CardContent>\n    <p>Content</p>\n  </CardContent>\n</Card>",
         },
         {
-          name: 'Gradient Card',
-          description: 'Card with gradient background and enhanced styling',
+          name: "Gradient Card",
+          description: "Card with gradient background and enhanced styling",
           preview: (
             <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 border-primary/20">
               <CardHeader>
@@ -121,32 +138,42 @@ export default function AdminDesignComponents() {
               </CardContent>
             </Card>
           ),
-          code: '<Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 border-primary/20">\n  <CardHeader>\n    <CardTitle className="text-primary">Title</CardTitle>\n  </CardHeader>\n</Card>'
-        }
-      ]
+          code: '<Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 border-primary/20">\n  <CardHeader>\n    <CardTitle className="text-primary">Title</CardTitle>\n  </CardHeader>\n</Card>',
+        },
+      ],
     },
     {
-      id: 'buttons',
-      name: 'Button Components',
+      id: "buttons",
+      name: "Button Components",
       icon: Box,
       components: [
         {
-          name: 'Button Variants',
-          description: 'All available button styles and sizes',
+          name: "Button Variants",
+          description: "All available button styles and sizes",
           preview: (
             <div className="flex flex-wrap gap-2">
-              <Button variant="default" size="sm">Default</Button>
-              <Button variant="secondary" size="sm">Secondary</Button>
-              <Button variant="outline" size="sm">Outline</Button>
-              <Button variant="ghost" size="sm">Ghost</Button>
-              <Button variant="destructive" size="sm">Destructive</Button>
+              <Button variant="default" size="sm">
+                Default
+              </Button>
+              <Button variant="secondary" size="sm">
+                Secondary
+              </Button>
+              <Button variant="outline" size="sm">
+                Outline
+              </Button>
+              <Button variant="ghost" size="sm">
+                Ghost
+              </Button>
+              <Button variant="destructive" size="sm">
+                Destructive
+              </Button>
             </div>
           ),
-          code: '<Button variant="default">Default</Button>\n<Button variant="secondary">Secondary</Button>\n<Button variant="outline">Outline</Button>'
+          code: '<Button variant="default">Default</Button>\n<Button variant="secondary">Secondary</Button>\n<Button variant="outline">Outline</Button>',
         },
         {
-          name: 'Icon Buttons',
-          description: 'Buttons with icons for enhanced UX',
+          name: "Icon Buttons",
+          description: "Buttons with icons for enhanced UX",
           preview: (
             <div className="flex gap-2">
               <Button size="sm" className="gap-2">
@@ -162,30 +189,36 @@ export default function AdminDesignComponents() {
               </Button>
             </div>
           ),
-          code: '<Button className="gap-2">\n  <Eye className="h-4 w-4" />\n  View\n</Button>'
-        }
-      ]
+          code: '<Button className="gap-2">\n  <Eye className="h-4 w-4" />\n  View\n</Button>',
+        },
+      ],
     },
     {
-      id: 'typography',
-      name: 'Typography Components',
+      id: "typography",
+      name: "Typography Components",
       icon: Type,
       components: [
         {
-          name: 'Headings',
-          description: 'Semantic heading components with consistent styling',
+          name: "Headings",
+          description: "Semantic heading components with consistent styling",
           preview: (
             <div className="space-y-2">
-              <Heading level={1} className="text-xl">Heading 1</Heading>
-              <Heading level={2} className="text-lg">Heading 2</Heading>  
-              <Heading level={3} className="text-base">Heading 3</Heading>
+              <Heading level={1} className="text-xl">
+                Heading 1
+              </Heading>
+              <Heading level={2} className="text-lg">
+                Heading 2
+              </Heading>
+              <Heading level={3} className="text-base">
+                Heading 3
+              </Heading>
             </div>
           ),
-          code: '<Heading level={1}>Main Title</Heading>\n<Heading level={2}>Section Title</Heading>\n<Heading level={3}>Subsection</Heading>'
+          code: "<Heading level={1}>Main Title</Heading>\n<Heading level={2}>Section Title</Heading>\n<Heading level={3}>Subsection</Heading>",
         },
         {
-          name: 'Text Variants',
-          description: 'Different text styles and emphasis',
+          name: "Text Variants",
+          description: "Different text styles and emphasis",
           preview: (
             <div className="space-y-1 text-sm">
               <p className="text-foreground">Default text</p>
@@ -195,50 +228,65 @@ export default function AdminDesignComponents() {
               <p className="text-xs">Small text</p>
             </div>
           ),
-          code: '<p className="text-foreground">Default</p>\n<p className="text-muted-foreground">Muted</p>\n<p className="text-primary">Primary</p>'
-        }
-      ]
+          code: '<p className="text-foreground">Default</p>\n<p className="text-muted-foreground">Muted</p>\n<p className="text-primary">Primary</p>',
+        },
+      ],
     },
     {
-      id: 'forms',
-      name: 'Form Components',
+      id: "forms",
+      name: "Form Components",
       icon: Edit,
       components: [
         {
-          name: 'Input Fields',
-          description: 'Various input field types and states',
+          name: "Input Fields",
+          description: "Various input field types and states",
           preview: (
             <div className="space-y-2 w-full">
-              <input type="text" placeholder="Default input" className="w-full px-3 py-2 border rounded-md text-sm" />
-              <input type="email" placeholder="Email input" className="w-full px-3 py-2 border rounded-md text-sm" />
+              <input
+                type="text"
+                placeholder="Default input"
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              />
+              <input
+                type="email"
+                placeholder="Email input"
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              />
               <select className="w-full px-3 py-2 border rounded-md text-sm">
                 <option>Select option</option>
               </select>
             </div>
           ),
-          code: '<input type="text" placeholder="Placeholder" className="w-full px-3 py-2 border rounded-md" />'
-        }
-      ]
-    }
-  ];
+          code: '<input type="text" placeholder="Placeholder" className="w-full px-3 py-2 border rounded-md" />',
+        },
+      ],
+    },
+  ]
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 overflow-y-auto max-h-[calc(100vh-200px)]">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Box className="h-6 w-6 text-primary" />
-          <Heading level={1} className="text-2xl">Design Components Library</Heading>
+          <Heading level={1} className="text-2xl">
+            Design Components Library
+          </Heading>
           <Badge variant="secondary">v1.0</Badge>
         </div>
-        
+
         <p className="text-muted-foreground">
-          Comprehensive collection of responsive layout and navigation components built on top of shadcn/ui and Tailwind CSS.
+          Comprehensive collection of responsive layout and navigation components built on top of
+          shadcn/ui and Tailwind CSS.
         </p>
 
         <ResponsiveTabs defaultValue="layouts" variant="underline" size="md" className="min-w-0">
           <ResponsiveTabsList className="w-full flex flex-wrap gap-1 min-w-0">
             {componentCategories.map((category) => (
-              <ResponsiveTabsTrigger key={category.id} value={category.id} className="flex items-center gap-2 truncate min-w-0 shrink-0">
+              <ResponsiveTabsTrigger
+                key={category.id}
+                value={category.id}
+                className="flex items-center gap-2 truncate min-w-0 shrink-0"
+              >
                 <category.icon className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">{category.name}</span>
               </ResponsiveTabsTrigger>
@@ -247,7 +295,7 @@ export default function AdminDesignComponents() {
 
           {componentCategories.map((category) => (
             <ResponsiveTabsContent key={category.id} value={category.id} className="mt-6">
-              <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
+              <ResponsiveGrid cols={{ sm: "1", lg: "2" }} gap="6">
                 {category.components.map((component, index) => (
                   <LayoutItem key={index}>
                     <Card className="h-full">
@@ -273,7 +321,7 @@ export default function AdminDesignComponents() {
                           </div>
                           {component.preview}
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                             <Code className="h-3 w-3" />
@@ -293,5 +341,5 @@ export default function AdminDesignComponents() {
         </ResponsiveTabs>
       </div>
     </div>
-  );
+  )
 }

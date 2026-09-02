@@ -1,153 +1,151 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface JobPositionRow {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  campaign: string | null;
-  employment_type: string;
-  status: string;
-  salary_range_min: number | null;
-  salary_range_max: number | null;
-  pipeline_id: string | null;
-  requirements: any;
-  created_at: string;
-  updated_at: string;
-  organization_id: string;
-  applications: { count: number }[];
+  id: string
+  title: string
+  description: string | null
+  location: string | null
+  campaign: string | null
+  employment_type: string
+  status: string
+  salary_range_min: number | null
+  salary_range_max: number | null
+  pipeline_id: string | null
+  requirements: any
+  created_at: string
+  updated_at: string
+  organization_id: string
+  applications: { count: number }[]
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  draft: 'Utkast',
-  open: 'Åpen',
-  paused: 'Pauset',
-  closed: 'Lukket',
-};
+  draft: "Utkast",
+  open: "Åpen",
+  paused: "Pauset",
+  closed: "Lukket",
+}
 
 export function useJobPositions() {
-  const { currentOrganizationId } = useOrganizationStore();
+  const { currentOrganizationId } = useOrganizationStore()
 
   return useQuery({
-    queryKey: ['job-positions', currentOrganizationId],
+    queryKey: ["job-positions", currentOrganizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('job_positions')
-        .select('*, applications(count)')
-        .order('created_at', { ascending: false });
+        .from("job_positions")
+        .select("*, applications(count)")
+        .order("created_at", { ascending: false })
 
-      if (error) throw error;
-      return (data ?? []) as unknown as JobPositionRow[];
+      if (error) throw error
+      return (data ?? []) as unknown as JobPositionRow[]
     },
     enabled: !!currentOrganizationId,
     staleTime: 10_000,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
-  });
+  })
 }
 
 export interface JobPositionDetail {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  campaign: string | null;
-  employment_type: string;
-  status: string;
-  salary_range_min: number | null;
-  salary_range_max: number | null;
-  pipeline_id: string | null;
-  requirements: any;
-  created_at: string;
-  updated_at: string;
-  organization_id: string;
-  finn_listing_url: string | null;
-  meta_lead_form_id: string | null;
-  published_at: string | null;
-  closes_at: string | null;
-  recruitment_pipelines: { id: string; name: string } | null;
+  id: string
+  title: string
+  description: string | null
+  location: string | null
+  campaign: string | null
+  employment_type: string
+  status: string
+  salary_range_min: number | null
+  salary_range_max: number | null
+  pipeline_id: string | null
+  requirements: any
+  created_at: string
+  updated_at: string
+  organization_id: string
+  finn_listing_url: string | null
+  meta_lead_form_id: string | null
+  published_at: string | null
+  closes_at: string | null
+  recruitment_pipelines: { id: string; name: string } | null
 }
 
 export function useJobPosition(id: string | undefined) {
   return useQuery({
-    queryKey: ['job-position', id],
+    queryKey: ["job-position", id],
     queryFn: async () => {
-      if (!id) return null;
+      if (!id) return null
       const { data, error } = await supabase
-        .from('job_positions')
-        .select('*, recruitment_pipelines(id, name)')
-        .eq('id', id)
-        .maybeSingle();
+        .from("job_positions")
+        .select("*, recruitment_pipelines(id, name)")
+        .eq("id", id)
+        .maybeSingle()
 
-      if (error) throw error;
-      return (data as unknown as JobPositionDetail) ?? null;
+      if (error) throw error
+      return (data as unknown as JobPositionDetail) ?? null
     },
     enabled: !!id,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 }
 
 export interface PipelineRow {
-  id: string;
-  name: string;
-  is_default: boolean;
+  id: string
+  name: string
+  is_default: boolean
 }
 
 export function useRecruitmentPipelines() {
-  const { currentOrganizationId } = useOrganizationStore();
+  const { currentOrganizationId } = useOrganizationStore()
 
   return useQuery({
-    queryKey: ['recruitment-pipelines', currentOrganizationId],
+    queryKey: ["recruitment-pipelines", currentOrganizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recruitment_pipelines')
-        .select('id, name, is_default')
-        .order('is_default', { ascending: false })
-        .order('name', { ascending: true });
+        .from("recruitment_pipelines")
+        .select("id, name, is_default")
+        .order("is_default", { ascending: false })
+        .order("name", { ascending: true })
 
-      if (error) throw error;
-      return (data ?? []) as PipelineRow[];
+      if (error) throw error
+      return (data ?? []) as PipelineRow[]
     },
     enabled: !!currentOrganizationId,
-  });
+  })
 }
 
 export interface JobPositionFormPayload {
-  title: string;
-  description: string | null;
-  location: string | null;
-  campaign: string | null;
-  employment_type: string;
-  salary_range_min: number | null;
-  salary_range_max: number | null;
-  pipeline_id: string | null;
+  title: string
+  description: string | null
+  location: string | null
+  campaign: string | null
+  employment_type: string
+  salary_range_min: number | null
+  salary_range_max: number | null
+  pipeline_id: string | null
   requirements: {
-    drivers_license: string[];
-    min_experience_years: number | null;
-    certifications: string[];
-  };
+    drivers_license: string[]
+    min_experience_years: number | null
+    certifications: string[]
+  }
 }
 
 export function useCreateJobPosition() {
-  const queryClient = useQueryClient();
-  const { currentOrganizationId } = useOrganizationStore();
+  const queryClient = useQueryClient()
+  const { currentOrganizationId } = useOrganizationStore()
 
   return useMutation({
-    mutationFn: async (
-      input: JobPositionFormPayload & { publishImmediately?: boolean },
-    ) => {
+    mutationFn: async (input: JobPositionFormPayload & { publishImmediately?: boolean }) => {
       if (!currentOrganizationId) {
-        throw new Error('No organization selected');
+        throw new Error("No organization selected")
       }
 
-      const { publishImmediately, ...rest } = input;
-      const status = publishImmediately ? 'open' : 'draft';
+      const { publishImmediately, ...rest } = input
+      const status = publishImmediately ? "open" : "draft"
 
       const { data, error } = await supabase
-        .from('job_positions')
+        .from("job_positions")
         .insert({
           ...rest,
           status,
@@ -155,49 +153,49 @@ export function useCreateJobPosition() {
           organization_id: currentOrganizationId,
         })
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
-      toast.success('Stilling opprettet');
+      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      toast.success("Stilling opprettet")
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Kunne ikke opprette stilling');
+      toast.error(error?.message || "Kunne ikke opprette stilling")
     },
-  });
+  })
 }
 
 export function useUpdateJobPosition() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: JobPositionFormPayload }) => {
       const { data, error } = await supabase
-        .from('job_positions')
+        .from("job_positions")
         .update(payload)
-        .eq('id', id)
+        .eq("id", id)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] });
-      queryClient.invalidateQueries({ queryKey: ['job-positions'] });
-      toast.success('Lagret');
+      queryClient.invalidateQueries({ queryKey: ["job-position", vars.id] })
+      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      toast.success("Lagret")
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Kunne ikke oppdatere stilling');
+      toast.error(error?.message || "Kunne ikke oppdatere stilling")
     },
-  });
+  })
 }
 
 export function useUpdateJobPositionStatus() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({
@@ -205,39 +203,39 @@ export function useUpdateJobPositionStatus() {
       status,
       currentPublishedAt,
     }: {
-      id: string;
-      status: string;
-      currentPublishedAt: string | null;
+      id: string
+      status: string
+      currentPublishedAt: string | null
     }) => {
-      const patch: Record<string, any> = { status };
-      if (status === 'open' && !currentPublishedAt) {
-        patch.published_at = new Date().toISOString();
+      const patch: Record<string, any> = { status }
+      if (status === "open" && !currentPublishedAt) {
+        patch.published_at = new Date().toISOString()
       }
 
       const { data, error } = await supabase
-        .from('job_positions')
+        .from("job_positions")
         .update(patch)
-        .eq('id', id)
+        .eq("id", id)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: async (_data, vars) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['job-position', vars.id] }),
-        queryClient.invalidateQueries({ queryKey: ['job-positions'] }),
-      ]);
-      await queryClient.refetchQueries({ queryKey: ['job-positions'] });
-      const label = STATUS_LABELS[vars.status] ?? vars.status;
-      toast.success(`Status endret til ${label}`);
+        queryClient.invalidateQueries({ queryKey: ["job-position", vars.id] }),
+        queryClient.invalidateQueries({ queryKey: ["job-positions"] }),
+      ])
+      await queryClient.refetchQueries({ queryKey: ["job-positions"] })
+      const label = STATUS_LABELS[vars.status] ?? vars.status
+      toast.success(`Status endret til ${label}`)
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Kunne ikke endre status');
+      toast.error(error?.message || "Kunne ikke endre status")
     },
-  });
+  })
 }
 
 // Backwards-compat alias
-export type CreateJobPositionInput = JobPositionFormPayload;
+export type CreateJobPositionInput = JobPositionFormPayload

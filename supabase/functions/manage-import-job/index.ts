@@ -1,108 +1,108 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { corsHeaders } from '../_shared/cors.ts';
-import { requireOrgMember } from '../_shared/auth.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
+import { requireOrgMember } from "../_shared/auth.ts"
+import { corsHeaders } from "../_shared/cors.ts"
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { jobId, action, errorMessage } = await req.json();
+    const { jobId, action, errorMessage } = await req.json()
 
     if (!jobId || !action) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: jobId, action' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields: jobId, action" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Authorization: the job must belong to an organization the caller is a member of.
     const { data: job, error: jobError } = await supabase
-      .from('import_jobs')
-      .select('id, organization_id')
-      .eq('id', jobId)
-      .maybeSingle();
+      .from("import_jobs")
+      .select("id, organization_id")
+      .eq("id", jobId)
+      .maybeSingle()
 
     if (jobError || !job) {
-      return new Response(
-        JSON.stringify({ error: 'Import job not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Import job not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const auth = await requireOrgMember(req, job.organization_id);
-    if ('response' in auth) return auth.response;
+    const auth = await requireOrgMember(req, job.organization_id)
+    if ("response" in auth) return auth.response
 
-    let updateData: any = {
-      updated_at: new Date().toISOString()
-    };
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+    }
 
     switch (action) {
-      case 'mark_error':
-        updateData.status = 'error';
-        updateData.completed_at = new Date().toISOString();
+      case "mark_error":
+        updateData.status = "error"
+        updateData.completed_at = new Date().toISOString()
         if (errorMessage) {
-          updateData.errors = [{
-            message: errorMessage,
-            timestamp: new Date().toISOString()
-          }];
+          updateData.errors = [
+            {
+              message: errorMessage,
+              timestamp: new Date().toISOString(),
+            },
+          ]
         }
-        break;
-      
-      case 'mark_completed':
-        updateData.status = 'completed';
-        updateData.completed_at = new Date().toISOString();
-        break;
-      
-      case 'reset':
-        updateData.status = 'pending';
-        updateData.started_at = null;
-        updateData.completed_at = null;
-        updateData.conversations_imported = 0;
-        updateData.messages_imported = 0;
-        updateData.customers_imported = 0;
-        updateData.errors = null;
-        break;
-      
+        break
+
+      case "mark_completed":
+        updateData.status = "completed"
+        updateData.completed_at = new Date().toISOString()
+        break
+
+      case "reset":
+        updateData.status = "pending"
+        updateData.started_at = null
+        updateData.completed_at = null
+        updateData.conversations_imported = 0
+        updateData.messages_imported = 0
+        updateData.customers_imported = 0
+        updateData.errors = null
+        break
+
       default:
-        return new Response(
-          JSON.stringify({ error: `Unknown action: ${action}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
     }
 
     const { data, error } = await supabase
-      .from('import_jobs')
+      .from("import_jobs")
       .update(updateData)
-      .eq('id', jobId)
+      .eq("id", jobId)
       .select()
-      .single();
+      .single()
 
     if (error) {
-      console.error('Failed to update import job:', error);
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Failed to update import job:", error)
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    console.log(`Successfully updated job ${jobId} to ${action}`);
+    console.log(`Successfully updated job ${jobId} to ${action}`)
 
-    return new Response(
-      JSON.stringify({ success: true, job: data }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true, job: data }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error) {
-    console.error('Error in manage-import-job:', error);
+    console.error("Error in manage-import-job:", error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    )
   }
-});
+})

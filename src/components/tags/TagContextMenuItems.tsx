@@ -1,27 +1,30 @@
-import React from 'react';
-import { Tag as TagIcon } from 'lucide-react';
+import { Tag as TagIcon } from "lucide-react"
+import type React from "react"
+import { TagPickerList } from "@/components/tags/TagPicker"
 import {
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
-} from '@/components/ui/context-menu';
-import { useEntityTags, type TaggableEntity } from '@/hooks/useEntityTags';
-import { useTags } from '@/hooks/useTags';
-import { TagPickerList } from '@/components/tags/TagPicker';
+} from "@/components/ui/context-menu"
+import { type TaggableEntity, useEntityTags } from "@/hooks/useEntityTags"
+import { useTags } from "@/hooks/useTags"
 
 interface TagContextMenuItemsProps {
-  entityType: TaggableEntity;
-  entityId: string;
+  entityType: TaggableEntity
+  entityId: string
 }
 
 /**
  * "Tags" submenu shared by every right-click list menu (conversations, live
  * chats, calls, cases and customers).
  */
-export const TagContextMenuItems: React.FC<TagContextMenuItemsProps> = ({ entityType, entityId }) => {
-  const { getTags, toggleTag, addTag } = useEntityTags(entityType);
-  const { createTag } = useTags();
-  const assigned = getTags(entityId);
+export const TagContextMenuItems: React.FC<TagContextMenuItemsProps> = ({
+  entityType,
+  entityId,
+}) => {
+  const { getTags, toggleTag, addTag } = useEntityTags(entityType)
+  const { createTag } = useTags()
+  const assigned = getTags(entityId)
 
   return (
     <ContextMenuSub>
@@ -38,11 +41,11 @@ export const TagContextMenuItems: React.FC<TagContextMenuItemsProps> = ({ entity
           selectedIds={assigned.map((t) => t.id)}
           onToggle={(tagId) => void toggleTag(entityId, tagId)}
           onCreate={async (name, color) => {
-            const tag = await createTag.mutateAsync({ name, color });
-            await addTag(entityId, tag.id);
+            const tag = await createTag.mutateAsync({ name, color })
+            await addTag(entityId, tag.id)
           }}
         />
       </ContextMenuSubContent>
     </ContextMenuSub>
-  );
-};
+  )
+}

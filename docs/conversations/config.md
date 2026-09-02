@@ -43,6 +43,7 @@ The system uses several methods to group related messages:
 ### Quoted Content Handling
 
 Quoted email content is:
+
 - Automatically detected and stripped from the visible message body
 - Not displayed in the UI (no "Show quoted history" toggle)
 - Preserved in the database but hidden from users
@@ -60,6 +61,7 @@ Quoted email content is:
 When `VITE_QUOTED_SEGMENTATION=1` is set, the system will still parse quoted content but will not display it in the UI. This allows for future features while maintaining the clean thread-aware experience.
 
 The thread building logic handles various email client formats:
+
 - Gmail quote blocks
 - Outlook original message headers
 - Apple Mail citations
@@ -69,6 +71,7 @@ The thread building logic handles various email client formats:
 ### Database Schema
 
 The conversation threading relies on these message fields:
+
 - `email_headers`: JSON containing Message-ID, In-Reply-To, References
 - `email_subject`: Subject line for fallback threading
 - `external_id`: External system message identifier

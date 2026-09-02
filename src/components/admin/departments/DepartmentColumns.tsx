@@ -1,6 +1,5 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Building, Edit, Trash2 } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table"
+import { ArrowUpDown, Building, Edit, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,22 +10,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 
 export interface DepartmentRow {
-  id: string;
-  name: string;
-  description: string | null;
-  organization_id: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  name: string
+  description: string | null
+  organization_id: string
+  created_at: string
+  updated_at: string
 }
 
 interface DepartmentColumnsOptions {
-  onEdit: (department: DepartmentRow) => void;
-  onDelete: (departmentId: string) => void;
-  isDeleting: boolean;
-  t: (key: string) => string;
+  onEdit: (department: DepartmentRow) => void
+  onDelete: (departmentId: string) => void
+  isDeleting: boolean
+  t: (key: string) => string
 }
 
 export function getDepartmentColumns({
@@ -48,18 +48,14 @@ export function getDepartmentColumns({
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => (
-        <span className="font-medium">{row.getValue("name")}</span>
-      ),
+      cell: ({ row }) => <span className="font-medium">{row.getValue("name")}</span>,
     },
     {
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => {
-        const desc = row.getValue("description") as string | null;
-        return (
-          <span className="text-muted-foreground">{desc || "—"}</span>
-        );
+        const desc = row.getValue("description") as string | null
+        return <span className="text-muted-foreground">{desc || "—"}</span>
       },
     },
     {
@@ -74,13 +70,13 @@ export function getDepartmentColumns({
         </Button>
       ),
       cell: ({ row }) => {
-        return new Date(row.getValue("created_at") as string).toLocaleDateString();
+        return new Date(row.getValue("created_at") as string).toLocaleDateString()
       },
     },
     {
       id: "actions",
       cell: ({ row }) => {
-        const department = row.original;
+        const department = row.original
         return (
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => onEdit(department)}>
@@ -102,18 +98,15 @@ export function getDepartmentColumns({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => onDelete(department.id)}
-                    disabled={isDeleting}
-                  >
+                  <AlertDialogAction onClick={() => onDelete(department.id)} disabled={isDeleting}>
                     {isDeleting ? t("admin.deleting") : t("common.delete")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        );
+        )
       },
     },
-  ];
+  ]
 }

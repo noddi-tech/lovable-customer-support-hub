@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Loader2, X } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
+import { useApplicantPipeline } from "@/components/dashboard/recruitment/applicants/useApplicants"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -6,120 +12,114 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { AlertTriangle, CheckCircle2, Loader2, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { StepIndicator } from './wizard/StepIndicator';
-import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
-import { useApplicantPipeline } from '@/components/dashboard/recruitment/applicants/useApplicants';
+} from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  useBulkImportStart,
+  type BulkImportStartResult,
   useBulkImportExecute,
+  useBulkImportStart,
   useBulkImportStatus,
   useInvalidateApplicantsAfterImport,
-  type BulkImportStartResult,
-} from '@/hooks/recruitment/useBulkImport';
-import type { ApprovalMode } from '../types';
+} from "@/hooks/recruitment/useBulkImport"
+import { useToast } from "@/hooks/use-toast"
+import { useFormPositionMappings } from "../hooks/useFormPositionMappings"
+import type { ApprovalMode } from "../types"
+import { StepIndicator } from "./wizard/StepIndicator"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  integrationId: string;
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  integrationId: string
 }
 
 const STEPS = [
-  { id: 1, label: 'Omfang' },
-  { id: 2, label: 'Bekreft' },
-  { id: 3, label: 'Kjør' },
-];
+  { id: 1, label: "Omfang" },
+  { id: 2, label: "Bekreft" },
+  { id: 3, label: "Kjør" },
+]
 
 function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return d.toISOString().slice(0, 10)
 }
 
 export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
-  const { toast } = useToast();
-  const { mappings } = useFormPositionMappings(integrationId);
-  const { data: pipeline } = useApplicantPipeline();
-  const start = useBulkImportStart();
-  const execute = useBulkImportExecute();
-  const invalidate = useInvalidateApplicantsAfterImport();
+  const { toast } = useToast()
+  const { mappings } = useFormPositionMappings(integrationId)
+  const { data: pipeline } = useApplicantPipeline()
+  const start = useBulkImportStart()
+  const execute = useBulkImportExecute()
+  const invalidate = useInvalidateApplicantsAfterImport()
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const today = useMemo(() => new Date(), []);
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const today = useMemo(() => new Date(), [])
   const ninetyAgo = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 90);
-    return d;
-  }, []);
+    const d = new Date()
+    d.setDate(d.getDate() - 90)
+    return d
+  }, [])
 
-  const [selectedFormIds, setSelectedFormIds] = useState<string[]>([]);
-  const [sinceDate, setSinceDate] = useState<string>(isoDate(ninetyAgo));
-  const [untilDate, setUntilDate] = useState<string>(isoDate(today));
-  const [approvalMode, setApprovalMode] = useState<ApprovalMode>('quarantine');
-  const [stageId, setStageId] = useState<string>('');
+  const [selectedFormIds, setSelectedFormIds] = useState<string[]>([])
+  const [sinceDate, setSinceDate] = useState<string>(isoDate(ninetyAgo))
+  const [untilDate, setUntilDate] = useState<string>(isoDate(today))
+  const [approvalMode, setApprovalMode] = useState<ApprovalMode>("quarantine")
+  const [stageId, setStageId] = useState<string>("")
 
-  const [dryRun, setDryRun] = useState<BulkImportStartResult | null>(null);
-  const [confirmedUnmapped, setConfirmedUnmapped] = useState(false);
-  const [bulkImportId, setBulkImportId] = useState<string | null>(null);
+  const [dryRun, setDryRun] = useState<BulkImportStartResult | null>(null)
+  const [confirmedUnmapped, setConfirmedUnmapped] = useState(false)
+  const [bulkImportId, setBulkImportId] = useState<string | null>(null)
 
-  const status = useBulkImportStatus(bulkImportId, step === 3);
+  const status = useBulkImportStatus(bulkImportId, step === 3)
 
   // Default stage to first pipeline stage
   useEffect(() => {
     if (!stageId && pipeline?.stages?.length) {
-      setStageId(pipeline.stages[0].id);
+      setStageId(pipeline.stages[0].id)
     }
-  }, [pipeline, stageId]);
+  }, [pipeline, stageId])
 
   // Reset on close
   useEffect(() => {
     if (!open) {
-      setStep(1);
-      setSelectedFormIds([]);
-      setDryRun(null);
-      setConfirmedUnmapped(false);
-      setBulkImportId(null);
-      setSinceDate(isoDate(ninetyAgo));
-      setUntilDate(isoDate(today));
-      setApprovalMode('quarantine');
+      setStep(1)
+      setSelectedFormIds([])
+      setDryRun(null)
+      setConfirmedUnmapped(false)
+      setBulkImportId(null)
+      setSinceDate(isoDate(ninetyAgo))
+      setUntilDate(isoDate(today))
+      setApprovalMode("quarantine")
     }
-  }, [open, ninetyAgo, today]);
+  }, [open, ninetyAgo, today])
 
   const validateRange = () => {
-    const since = new Date(sinceDate);
-    const until = new Date(untilDate);
-    if (since > until) return 'Fra-dato må være før til-dato';
-    const diffDays = (until.getTime() - since.getTime()) / 86400000;
-    if (diffDays > 90) return 'Maks 90 dager per import';
-    return null;
-  };
+    const since = new Date(sinceDate)
+    const until = new Date(untilDate)
+    if (since > until) return "Fra-dato må være før til-dato"
+    const diffDays = (until.getTime() - since.getTime()) / 86400000
+    if (diffDays > 90) return "Maks 90 dager per import"
+    return null
+  }
 
   const handleNext1 = async () => {
     if (selectedFormIds.length === 0) {
-      toast({ title: 'Velg minst ett skjema', variant: 'destructive' });
-      return;
+      toast({ title: "Velg minst ett skjema", variant: "destructive" })
+      return
     }
-    const rangeErr = validateRange();
+    const rangeErr = validateRange()
     if (rangeErr) {
-      toast({ title: rangeErr, variant: 'destructive' });
-      return;
+      toast({ title: rangeErr, variant: "destructive" })
+      return
     }
     try {
       const res = await start.mutateAsync({
@@ -128,48 +128,52 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
         since_date: sinceDate,
         until_date: untilDate,
         approval_mode: approvalMode,
-        imported_pipeline_stage_id: approvalMode === 'direct' ? stageId || null : null,
-      });
-      setDryRun(res);
-      setStep(2);
+        imported_pipeline_stage_id: approvalMode === "direct" ? stageId || null : null,
+      })
+      setDryRun(res)
+      setStep(2)
     } catch (e: any) {
-      toast({ title: 'Forhåndsvisning feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Forhåndsvisning feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleExecute = async () => {
     if (!dryRun?.bulk_import_id) {
-      toast({ title: 'Mangler import-ID', variant: 'destructive' });
-      return;
+      toast({ title: "Mangler import-ID", variant: "destructive" })
+      return
     }
     // Optimistically advance to step 3 so the user immediately sees progress UI
-    const id = dryRun.bulk_import_id;
-    setBulkImportId(id);
-    setStep(3);
+    const id = dryRun.bulk_import_id
+    setBulkImportId(id)
+    setStep(3)
     try {
-      await execute.mutateAsync({ bulk_import_id: id });
+      await execute.mutateAsync({ bulk_import_id: id })
     } catch (e: any) {
-      toast({ title: 'Kjøring feilet', description: e?.message, variant: 'destructive' });
-      setBulkImportId(null);
-      setStep(2);
+      toast({ title: "Kjøring feilet", description: e?.message, variant: "destructive" })
+      setBulkImportId(null)
+      setStep(2)
     }
-  };
+  }
 
-  const totalsByForm = dryRun?.totals_per_form ?? [];
-  const hasUnmapped = totalsByForm.some((t) => t.mapping_status === 'missing' || t.mapping_complete === false);
+  const totalsByForm = dryRun?.totals_per_form ?? []
+  const hasUnmapped = totalsByForm.some(
+    (t) => t.mapping_status === "missing" || t.mapping_complete === false,
+  )
 
-  const importStatus = status.data?.import.status;
-  const breakdown = status.data?.breakdown;
+  const importStatus = status.data?.import.status
+  const breakdown = status.data?.breakdown
   const totalProcessed = breakdown
     ? breakdown.imported + breakdown.duplicate + breakdown.unmapped + breakdown.failed
-    : 0;
-  const totalFound = status.data?.import.total_leads_found ?? dryRun?.total_leads_found ?? 0;
-  const progressPct = totalFound > 0 ? Math.min(100, Math.round((totalProcessed / totalFound) * 100)) : 0;
-  const isFinished = importStatus === 'completed' || importStatus === 'failed' || importStatus === 'cancelled';
+    : 0
+  const totalFound = status.data?.import.total_leads_found ?? dryRun?.total_leads_found ?? 0
+  const progressPct =
+    totalFound > 0 ? Math.min(100, Math.round((totalProcessed / totalFound) * 100)) : 0
+  const isFinished =
+    importStatus === "completed" || importStatus === "failed" || importStatus === "cancelled"
 
   useEffect(() => {
-    if (isFinished) invalidate();
-  }, [isFinished, invalidate]);
+    if (isFinished) invalidate()
+  }, [isFinished, invalidate])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,11 +206,11 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                         checked={selectedFormIds.includes(m.id)}
                         onCheckedChange={(v) =>
                           setSelectedFormIds((prev) =>
-                            v ? [...prev, m.id] : prev.filter((id) => id !== m.id)
+                            v ? [...prev, m.id] : prev.filter((id) => id !== m.id),
                           )
                         }
                       />
-                      <span className="flex-1">{m.form_name ?? '(uten navn)'}</span>
+                      <span className="flex-1">{m.form_name ?? "(uten navn)"}</span>
                       <span className="text-xs text-muted-foreground font-mono">{m.form_id}</span>
                     </label>
                   ))}
@@ -268,7 +272,7 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
               </RadioGroup>
             </div>
 
-            {approvalMode === 'direct' && (
+            {approvalMode === "direct" && (
               <div className="space-y-1">
                 <Label>Pipeline-steg for nye søkere</Label>
                 <Select value={stageId} onValueChange={setStageId}>
@@ -308,16 +312,17 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                         className="flex items-center justify-between text-sm rounded border px-2 py-1.5"
                       >
                         <div className="flex items-center gap-2">
-                          <span>{t.form_name ?? t.form_id ?? '(uten navn)'}</span>
-                          {t.mapping_status === 'missing' && (
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30">
+                          <span>{t.form_name ?? t.form_id ?? "(uten navn)"}</span>
+                          {t.mapping_status === "missing" && (
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-500/10 text-amber-700 border-amber-500/30"
+                            >
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               mangler tilordninger
                             </Badge>
                           )}
-                          {t.error && (
-                            <span className="text-xs text-destructive">{t.error}</span>
-                          )}
+                          {t.error && <span className="text-xs text-destructive">{t.error}</span>}
                         </div>
                         <span className="font-mono text-xs">{t.leads_found ?? 0}</span>
                       </div>
@@ -332,8 +337,8 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                       Noen skjemaer mangler komplette tilordninger
                     </div>
                     <p className="text-xs">
-                      Leads fra disse skjemaene blir importert med kun navn/e-post/telefon — øvrige svar
-                      lagres som metadata og kan ikke filtreres på.
+                      Leads fra disse skjemaene blir importert med kun navn/e-post/telefon — øvrige
+                      svar lagres som metadata og kan ikke filtreres på.
                     </p>
                     <label className="flex items-center gap-2 text-xs cursor-pointer">
                       <Checkbox
@@ -365,7 +370,8 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                   <Progress value={5} className="animate-pulse" />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Dette kan ta noen sekunder. Du kan trygt lukke dialogen — importen fortsetter i bakgrunnen.
+                  Dette kan ta noen sekunder. Du kan trygt lukke dialogen — importen fortsetter i
+                  bakgrunnen.
                 </p>
               </div>
             ) : (
@@ -375,12 +381,12 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                     {!isFinished && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                     <span className="text-muted-foreground flex-1">
                       {isFinished
-                        ? importStatus === 'completed'
-                          ? 'Import fullført'
-                          : importStatus === 'cancelled'
-                          ? 'Import avbrutt'
-                          : 'Import feilet'
-                        : 'Importerer…'}
+                        ? importStatus === "completed"
+                          ? "Import fullført"
+                          : importStatus === "cancelled"
+                            ? "Import avbrutt"
+                            : "Import feilet"
+                        : "Importerer…"}
                     </span>
                     <span className="font-mono text-xs">
                       {totalProcessed} / {totalFound}
@@ -410,14 +416,16 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                   </div>
                 )}
 
-                {isFinished && importStatus === 'completed' && bulkImportId && (
+                {isFinished && importStatus === "completed" && bulkImportId && (
                   <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm flex items-center justify-between">
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                       <CheckCircle2 className="h-4 w-4" />
                       Ferdig
                     </div>
                     <Button asChild size="sm" variant="outline">
-                      <Link to={`/operations/recruitment/applicants?bulk_import_id=${bulkImportId}`}>
+                      <Link
+                        to={`/operations/recruitment/applicants?bulk_import_id=${bulkImportId}`}
+                      >
                         Se importerte søkere
                       </Link>
                     </Button>
@@ -458,17 +466,19 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                     Starter import…
                   </>
                 ) : (
-                  'Start import'
+                  "Start import"
                 )}
               </Button>
             </>
           )}
           {step === 3 && (
             <Button
-              variant={isFinished ? 'default' : 'outline'}
+              variant={isFinished ? "default" : "outline"}
               onClick={() => onOpenChange(false)}
             >
-              {isFinished ? 'Lukk' : (
+              {isFinished ? (
+                "Lukk"
+              ) : (
                 <>
                   <X className="h-4 w-4 mr-1" />
                   Lukk (importen fortsetter i bakgrunnen)
@@ -479,5 +489,5 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

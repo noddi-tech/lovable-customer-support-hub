@@ -1,99 +1,99 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { useSlackIntegration } from '@/hooks/useSlackIntegration';
-import { 
-  CheckCircle2, 
-  ExternalLink, 
-  Copy, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
+import { useQuery } from "@tanstack/react-query"
+import {
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Loader2,
   Slack,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { useSlackIntegration } from "@/hooks/useSlackIntegration"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface SlackSetupWizardProps {
-  onComplete?: () => void;
+  onComplete?: () => void
 }
 
 const STEPS = [
-  { title: 'Introduction', description: 'What you\'ll need' },
-  { title: 'Create Slack App', description: 'Quick setup guide' },
-  { title: 'Get Bot Token', description: 'Install & copy token' },
-  { title: 'Connect', description: 'Paste token to connect' },
-];
+  { title: "Introduction", description: "What you'll need" },
+  { title: "Create Slack App", description: "Quick setup guide" },
+  { title: "Get Bot Token", description: "Install & copy token" },
+  { title: "Connect", description: "Paste token to connect" },
+]
 
 const REQUIRED_SCOPES = [
-  'channels:read',
-  'chat:write',
-  'users:read',
-  'users:read.email',
-  'groups:read',
-  'im:write',
-];
+  "channels:read",
+  "chat:write",
+  "users:read",
+  "users:read.email",
+  "groups:read",
+  "im:write",
+]
 
 export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [botToken, setBotToken] = useState('');
-  const [showToken, setShowToken] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0)
+  const [botToken, setBotToken] = useState("")
+  const [showToken, setShowToken] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
 
-  const { currentOrganizationId } = useOrganizationStore();
-  const { saveDirectToken } = useSlackIntegration();
+  const { currentOrganizationId } = useOrganizationStore()
+  const { saveDirectToken } = useSlackIntegration()
 
   // Fetch organization name
   const { data: organization } = useQuery({
-    queryKey: ['organization', currentOrganizationId],
+    queryKey: ["organization", currentOrganizationId],
     queryFn: async () => {
-      if (!currentOrganizationId) return null;
+      if (!currentOrganizationId) return null
       const { data } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', currentOrganizationId)
-        .single();
-      return data;
+        .from("organizations")
+        .select("name")
+        .eq("id", currentOrganizationId)
+        .single()
+      return data
     },
     enabled: !!currentOrganizationId,
-  });
+  })
 
   const handleCopyScopes = () => {
-    navigator.clipboard.writeText(REQUIRED_SCOPES.join(', '));
-    toast.success('Scopes copied to clipboard');
-  };
+    navigator.clipboard.writeText(REQUIRED_SCOPES.join(", "))
+    toast.success("Scopes copied to clipboard")
+  }
 
   const handleConnect = async () => {
     if (!botToken) {
-      toast.error('Please enter your Bot Token');
-      return;
+      toast.error("Please enter your Bot Token")
+      return
     }
 
-    if (!botToken.startsWith('xoxb-')) {
-      toast.error('Bot tokens should start with xoxb-');
-      return;
+    if (!botToken.startsWith("xoxb-")) {
+      toast.error("Bot tokens should start with xoxb-")
+      return
     }
 
-    setIsConnecting(true);
+    setIsConnecting(true)
     try {
-      await saveDirectToken.mutateAsync({ bot_token: botToken });
-      onComplete?.();
+      await saveDirectToken.mutateAsync({ bot_token: botToken })
+      onComplete?.()
     } catch (error: any) {
       // Error is already handled by the mutation
     } finally {
-      setIsConnecting(false);
+      setIsConnecting(false)
     }
-  };
+  }
 
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
-  const isTokenValid = botToken.startsWith('xoxb-') && botToken.length > 20;
+  const progress = ((currentStep + 1) / STEPS.length) * 100
+  const isTokenValid = botToken.startsWith("xoxb-") && botToken.length > 20
 
   return (
     <Card>
@@ -104,9 +104,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
           </div>
           <div>
             <CardTitle>Set Up Slack Integration</CardTitle>
-            <CardDescription>
-              Post notifications to your team's Slack workspace
-            </CardDescription>
+            <CardDescription>Post notifications to your team's Slack workspace</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -127,10 +125,10 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Welcome to Slack Integration Setup</h3>
             <p className="text-muted-foreground">
-              Connect your Slack workspace to receive real-time notifications about new conversations, 
-              customer replies, and important events.
+              Connect your Slack workspace to receive real-time notifications about new
+              conversations, customer replies, and important events.
             </p>
-            
+
             <div className="bg-muted/50 p-4 rounded-lg space-y-3">
               <h4 className="font-medium">What you'll need:</h4>
               <ul className="space-y-2 text-sm">
@@ -139,8 +137,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                   Admin access to your Slack workspace
                 </li>
                 <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  5 minutes to complete the setup
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />5 minutes to complete the setup
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -196,7 +193,8 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 <div className="space-y-2">
                   <p className="font-medium">Name your app and select workspace</p>
                   <p className="text-sm text-muted-foreground">
-                    App Name: e.g., "{organization?.name || 'Company'} Notifications"<br />
+                    App Name: e.g., "{organization?.name || "Company"} Notifications"
+                    <br />
                     Workspace: Select your Slack workspace
                   </p>
                 </div>
@@ -210,12 +208,13 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 <div className="space-y-2">
                   <p className="font-medium">Add Bot Token Scopes</p>
                   <p className="text-sm text-muted-foreground">
-                    Go to "OAuth & Permissions" → Scroll to "Scopes" → "Bot Token Scopes" → Click "Add an OAuth Scope"
+                    Go to "OAuth & Permissions" → Scroll to "Scopes" → "Bot Token Scopes" → Click
+                    "Add an OAuth Scope"
                   </p>
                   <p className="text-sm text-muted-foreground">Add these scopes:</p>
                   <div className="flex items-center gap-2">
                     <code className="bg-muted px-2 py-1 rounded text-sm flex-1">
-                      {REQUIRED_SCOPES.join(', ')}
+                      {REQUIRED_SCOPES.join(", ")}
                     </code>
                     <Button variant="ghost" size="icon" onClick={handleCopyScopes}>
                       <Copy className="h-4 w-4" />
@@ -264,7 +263,8 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                   </p>
                   <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded">
                     <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                      Copy the token that starts with <code className="bg-green-100 dark:bg-green-900 px-1 rounded">xoxb-</code>
+                      Copy the token that starts with{" "}
+                      <code className="bg-green-100 dark:bg-green-900 px-1 rounded">xoxb-</code>
                     </p>
                     <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                       This is the only token you need - no redirect URLs or OAuth flow required!
@@ -290,7 +290,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                 <div className="relative">
                   <Input
                     id="bot-token"
-                    type={showToken ? 'text' : 'password'}
+                    type={showToken ? "text" : "password"}
                     value={botToken}
                     onChange={(e) => setBotToken(e.target.value)}
                     placeholder="xoxb-your-token-here"
@@ -306,7 +306,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                     {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                {botToken && !botToken.startsWith('xoxb-') && (
+                {botToken && !botToken.startsWith("xoxb-") && (
                   <p className="text-sm text-destructive">Token should start with xoxb-</p>
                 )}
                 {isTokenValid && (
@@ -338,7 +338,8 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
 
               <div className="bg-muted/50 p-3 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  Your token is securely stored and only used to send notifications to your Slack workspace.
+                  Your token is securely stored and only used to send notifications to your Slack
+                  workspace.
                 </p>
               </div>
             </div>
@@ -365,5 +366,5 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,51 +1,71 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, MessageSquare, Send, Phone, BarChart3, RefreshCw, Brain, TrendingUp } from 'lucide-react';
-import { useOperationsAnalytics } from '@/hooks/useOperationsAnalytics';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
+  BarChart3,
+  Brain,
+  Loader2,
+  MessageSquare,
+  Phone,
+  RefreshCw,
+  Send,
+  TrendingUp,
+} from "lucide-react"
+import { useState } from "react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useOperationsAnalytics } from "@/hooks/useOperationsAnalytics"
 
 const PERIOD_OPTIONS = [
-  { label: '7 days', value: 7 },
-  { label: '30 days', value: 30 },
-  { label: '90 days', value: 90 },
-];
+  { label: "7 days", value: 7 },
+  { label: "30 days", value: 30 },
+  { label: "90 days", value: 90 },
+]
 
 const CHANNEL_COLORS: Record<string, string> = {
-  email: 'hsl(var(--primary))',
-  chat: 'hsl(var(--accent-foreground))',
-  widget: '#10b981',
-  whatsapp: '#25d366',
-  facebook: '#1877f2',
-  instagram: '#e4405f',
-};
+  email: "hsl(var(--primary))",
+  chat: "hsl(var(--accent-foreground))",
+  widget: "#10b981",
+  whatsapp: "#25d366",
+  facebook: "#1877f2",
+  instagram: "#e4405f",
+}
 
 const STATUS_COLORS: Record<string, string> = {
-  open: 'hsl(var(--primary))',
-  pending: '#f59e0b',
-  closed: '#6b7280',
-};
+  open: "hsl(var(--primary))",
+  pending: "#f59e0b",
+  closed: "#6b7280",
+}
 
 const SENTIMENT_COLORS = {
-  positive: '#10b981',
-  neutral: '#6b7280',
-  negative: '#ef4444',
-};
+  positive: "#10b981",
+  neutral: "#6b7280",
+  negative: "#ef4444",
+}
 
 export default function OperationsAnalyticsDashboard() {
-  const [periodDays, setPeriodDays] = useState(30);
-  const { data, isLoading, isLoadingAI, refetch } = useOperationsAnalytics(periodDays);
+  const [periodDays, setPeriodDays] = useState(30)
+  const { data, isLoading, isLoadingAI, refetch } = useOperationsAnalytics(periodDays)
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    );
+    )
   }
 
   return (
@@ -54,13 +74,15 @@ export default function OperationsAnalyticsDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Operations Analytics</h1>
-          <p className="text-sm text-muted-foreground">Performance metrics and AI-powered insights</p>
+          <p className="text-sm text-muted-foreground">
+            Performance metrics and AI-powered insights
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          {PERIOD_OPTIONS.map(opt => (
+          {PERIOD_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
-              variant={periodDays === opt.value ? 'default' : 'outline'}
+              variant={periodDays === opt.value ? "default" : "outline"}
               size="sm"
               onClick={() => setPeriodDays(opt.value)}
             >
@@ -114,25 +136,41 @@ export default function OperationsAnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                     tickFormatter={(v) => v.slice(5)}
                   />
-                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      color: "hsl(var(--foreground))",
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="received" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="Received" />
-                  <Line type="monotone" dataKey="sent" stroke="#10b981" strokeWidth={2} dot={false} name="Sent" />
+                  <Line
+                    type="monotone"
+                    dataKey="received"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Received"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sent"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Sent"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No data for this period</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No data for this period
+              </p>
             )}
           </CardContent>
         </Card>
@@ -147,25 +185,33 @@ export default function OperationsAnalyticsDashboard() {
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={data.channelDistribution}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="channel" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                  <XAxis
+                    dataKey="channel"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))',
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      color: "hsl(var(--foreground))",
                     }}
                   />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {data.channelDistribution.map((entry, idx) => (
-                      <Cell key={idx} fill={CHANNEL_COLORS[entry.channel] || 'hsl(var(--primary))'} />
+                      <Cell
+                        key={idx}
+                        fill={CHANNEL_COLORS[entry.channel] || "hsl(var(--primary))"}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">No data for this period</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No data for this period
+              </p>
             )}
           </CardContent>
         </Card>
@@ -193,18 +239,18 @@ export default function OperationsAnalyticsDashboard() {
                       nameKey="status"
                     >
                       {data.statusDistribution.map((entry, idx) => (
-                        <Cell key={idx} fill={STATUS_COLORS[entry.status] || '#6b7280'} />
+                        <Cell key={idx} fill={STATUS_COLORS[entry.status] || "#6b7280"} />
                       ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="space-y-2">
-                  {data.statusDistribution.map(entry => (
+                  {data.statusDistribution.map((entry) => (
                     <div key={entry.status} className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: STATUS_COLORS[entry.status] || '#6b7280' }}
+                        style={{ backgroundColor: STATUS_COLORS[entry.status] || "#6b7280" }}
                       />
                       <span className="text-sm capitalize text-foreground">{entry.status}</span>
                       <span className="text-sm font-semibold text-foreground">{entry.count}</span>
@@ -248,7 +294,8 @@ export default function OperationsAnalyticsDashboard() {
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${value}%`,
-                            backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] || '#6b7280',
+                            backgroundColor:
+                              SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] || "#6b7280",
                           }}
                         />
                       </div>
@@ -259,10 +306,12 @@ export default function OperationsAnalyticsDashboard() {
                 {/* Key Drivers */}
                 {data.aiInsights.themes && data.aiInsights.themes.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Key Drivers</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Key Drivers
+                    </p>
                     <div className="space-y-1.5">
                       {data.aiInsights.themes
-                        .filter(t => t.sentiment !== 'neutral')
+                        .filter((t) => t.sentiment !== "neutral")
                         .sort((a, b) => b.count - a.count)
                         .slice(0, 5)
                         .map((theme, idx) => (
@@ -271,12 +320,17 @@ export default function OperationsAnalyticsDashboard() {
                               <span
                                 className="w-2 h-2 rounded-full shrink-0"
                                 style={{
-                                  backgroundColor: SENTIMENT_COLORS[theme.sentiment as keyof typeof SENTIMENT_COLORS] || '#6b7280',
+                                  backgroundColor:
+                                    SENTIMENT_COLORS[
+                                      theme.sentiment as keyof typeof SENTIMENT_COLORS
+                                    ] || "#6b7280",
                                 }}
                               />
                               <span className="text-foreground">{theme.topic}</span>
                             </div>
-                            <span className="text-xs text-muted-foreground">{theme.count} mentions</span>
+                            <span className="text-xs text-muted-foreground">
+                              {theme.count} mentions
+                            </span>
                           </div>
                         ))}
                     </div>
@@ -284,7 +338,7 @@ export default function OperationsAnalyticsDashboard() {
                 )}
 
                 {/* Message count context */}
-                {(data.messagesReceived > 0) && (
+                {data.messagesReceived > 0 && (
                   <p className="text-xs text-muted-foreground pt-1 border-t border-border">
                     Based on {data.messagesReceived.toLocaleString()} customer messages
                   </p>
@@ -292,7 +346,7 @@ export default function OperationsAnalyticsDashboard() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                {isLoadingAI ? 'Generating AI insights...' : 'No sentiment data available'}
+                {isLoadingAI ? "Generating AI insights..." : "No sentiment data available"}
               </p>
             )}
           </CardContent>
@@ -324,21 +378,25 @@ export default function OperationsAnalyticsDashboard() {
                         <Badge
                           variant="outline"
                           className={
-                            theme.sentiment === 'positive' ? 'border-green-500/30 text-green-600' :
-                            theme.sentiment === 'negative' ? 'border-red-500/30 text-red-600' :
-                            'border-border text-muted-foreground'
+                            theme.sentiment === "positive"
+                              ? "border-green-500/30 text-green-600"
+                              : theme.sentiment === "negative"
+                                ? "border-red-500/30 text-red-600"
+                                : "border-border text-muted-foreground"
                           }
                         >
                           {theme.sentiment}
                         </Badge>
                       </div>
-                      <span className="text-sm font-medium text-muted-foreground">{theme.count} mentions</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {theme.count} mentions
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  {isLoadingAI ? 'Analyzing themes...' : 'No theme data'}
+                  {isLoadingAI ? "Analyzing themes..." : "No theme data"}
                 </p>
               )}
             </CardContent>
@@ -361,7 +419,7 @@ export default function OperationsAnalyticsDashboard() {
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  {isLoadingAI ? 'Extracting questions...' : 'No question data'}
+                  {isLoadingAI ? "Extracting questions..." : "No question data"}
                 </p>
               )}
             </CardContent>
@@ -369,7 +427,7 @@ export default function OperationsAnalyticsDashboard() {
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function KPICard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
@@ -377,9 +435,7 @@ function KPICard({ icon, label, value }: { icon: React.ReactNode; label: string;
     <Card className="bg-card border-border">
       <CardContent className="pt-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            {icon}
-          </div>
+          <div className="p-2 rounded-lg bg-primary/10 text-primary">{icon}</div>
           <div>
             <p className="text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">{label}</p>
@@ -387,5 +443,5 @@ function KPICard({ icon, label, value }: { icon: React.ReactNode; label: string;
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

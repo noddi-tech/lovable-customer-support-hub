@@ -1,48 +1,44 @@
-import React from 'react';
-import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
-import { logger } from '@/utils/logger';
+import { RefreshCw, Wifi, WifiOff } from "lucide-react"
+import type React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { useRealtimeConnectionManager } from "@/hooks/useRealtimeConnectionManager"
+import { logger } from "@/utils/logger"
 
 interface RealTimeIndicatorProps {
-  onRefresh?: () => void;
+  onRefresh?: () => void
 }
 
 export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh }) => {
-  const { toast } = useToast();
-  const { 
-    isConnected, 
-    lastConnected, 
-    forceReconnect,
-    subscriptionCount,
-    subscriptionNames 
-  } = useRealtimeConnectionManager();
+  const { toast } = useToast()
+  const { isConnected, lastConnected, forceReconnect, subscriptionCount, subscriptionNames } =
+    useRealtimeConnectionManager()
 
   // Log connection status changes
-  logger.debug('Connection status', {
-    isConnected,
-    subscriptionCount,
-    subscriptionNames,
-    lastConnected: lastConnected?.toISOString()
-  }, 'RealTimeIndicator');
+  logger.debug(
+    "Connection status",
+    {
+      isConnected,
+      subscriptionCount,
+      subscriptionNames,
+      lastConnected: lastConnected?.toISOString(),
+    },
+    "RealTimeIndicator",
+  )
 
   const handleRefresh = () => {
-    onRefresh?.();
-    forceReconnect(); // Also force reconnection
+    onRefresh?.()
+    forceReconnect() // Also force reconnection
     toast({
       title: "Refreshing",
       description: "Updating voice interface data...",
-    });
-  };
+    })
+  }
 
   return (
     <div className="flex items-center gap-2">
-      <Badge 
-        variant={isConnected ? "default" : "destructive"} 
-        className="flex items-center gap-1"
-      >
+      <Badge variant={isConnected ? "default" : "destructive"} className="flex items-center gap-1">
         {isConnected ? (
           <>
             <Wifi className="h-3 w-3" />
@@ -55,13 +51,13 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
           </>
         )}
       </Badge>
-      
+
       {lastConnected && isConnected && (
         <span className="text-xs text-muted-foreground">
           Last update: {lastConnected.toLocaleTimeString()}
         </span>
       )}
-      
+
       <Button
         variant="ghost"
         size="sm"
@@ -72,5 +68,5 @@ export const RealTimeIndicator: React.FC<RealTimeIndicatorProps> = ({ onRefresh 
         <RefreshCw className="h-3 w-3" />
       </Button>
     </div>
-  );
-};
+  )
+}

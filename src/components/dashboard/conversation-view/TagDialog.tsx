@@ -1,33 +1,33 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
-import { useState } from "react";
+import { X } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 interface TagDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  currentTags: string[];
-  onAddTag: (tag: string) => void;
-  onRemoveTag: (tag: string) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  currentTags: string[]
+  onAddTag: (tag: string) => void
+  onRemoveTag: (tag: string) => void
 }
 
-export const TagDialog = ({ 
-  open, 
-  onOpenChange, 
-  currentTags, 
-  onAddTag, 
-  onRemoveTag 
+export const TagDialog = ({
+  open,
+  onOpenChange,
+  currentTags,
+  onAddTag,
+  onRemoveTag,
 }: TagDialogProps) => {
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("")
 
   const handleAddTag = () => {
     if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
-      onAddTag(tagInput.trim());
-      setTagInput('');
+      onAddTag(tagInput.trim())
+      setTagInput("")
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,13 +43,10 @@ export const TagDialog = ({
               {currentTags.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No tags added yet</p>
               ) : (
-                currentTags.map(tag => (
+                currentTags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="gap-1">
                     {tag}
-                    <button 
-                      onClick={() => onRemoveTag(tag)}
-                      className="hover:text-destructive"
-                    >
+                    <button onClick={() => onRemoveTag(tag)} className="hover:text-destructive">
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -67,9 +64,9 @@ export const TagDialog = ({
                 onChange={(e) => setTagInput(e.target.value)}
                 placeholder="Enter tag name..."
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTag();
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddTag()
                   }
                 }}
               />
@@ -81,5 +78,5 @@ export const TagDialog = ({
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

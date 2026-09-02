@@ -1,35 +1,35 @@
 /**
  * VoiceErrorBoundary Component
- * 
+ *
  * Error boundary specifically for voice components
  * Provides graceful fallback UI and error recovery options
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, RefreshCw, PhoneOff } from 'lucide-react';
+import { AlertTriangle, PhoneOff, RefreshCw } from "lucide-react"
+import { Component, type ErrorInfo, type ReactNode } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  hasError: boolean
+  error: Error | null
+  errorInfo: ErrorInfo | null
 }
 
 export class VoiceErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
+    super(props)
     this.state = {
       hasError: false,
       error: null,
       errorInfo: null,
-    };
+    }
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -37,49 +37,49 @@ export class VoiceErrorBoundary extends Component<Props, State> {
       hasError: true,
       error,
       errorInfo: null,
-    };
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[VoiceErrorBoundary] Error caught:', error, errorInfo);
-    
+    console.error("[VoiceErrorBoundary] Error caught:", error, errorInfo)
+
     this.setState({
       error,
       errorInfo,
-    });
+    })
 
     // Log to error tracking service if available
-    if (typeof window !== 'undefined' && (window as any).errorTracker) {
-      (window as any).errorTracker.captureException(error, {
-        context: 'VoiceInterface',
+    if (typeof window !== "undefined" && (window as any).errorTracker) {
+      ;(window as any).errorTracker.captureException(error, {
+        context: "VoiceInterface",
         errorInfo,
-      });
+      })
     }
   }
 
   handleReset = () => {
-    console.log('🔄 [VoiceErrorBoundary] Attempting recovery without reload');
+    console.log("🔄 [VoiceErrorBoundary] Attempting recovery without reload")
     this.setState({
       hasError: false,
       error: null,
       errorInfo: null,
-    });
-  };
+    })
+  }
 
   handleReload = () => {
-    console.log('🔄 [VoiceErrorBoundary] Triggering voice system reset');
+    console.log("🔄 [VoiceErrorBoundary] Triggering voice system reset")
     this.setState({
       hasError: false,
       error: null,
       errorInfo: null,
-    });
-    window.dispatchEvent(new CustomEvent('voice-error-reset'));
-  };
+    })
+    window.dispatchEvent(new CustomEvent("voice-error-reset"))
+  }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
-        return this.props.fallback;
+        return this.props.fallback
       }
 
       return (
@@ -96,17 +96,15 @@ export class VoiceErrorBoundary extends Component<Props, State> {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Something went wrong</AlertTitle>
                 <AlertDescription>
-                  The voice interface encountered an unexpected error. 
-                  You can try to recover or reload the page.
+                  The voice interface encountered an unexpected error. You can try to recover or
+                  reload the page.
                 </AlertDescription>
               </Alert>
 
               {this.state.error && (
                 <div className="bg-muted p-4 rounded-lg">
-                  <p className="text-sm font-mono text-destructive">
-                    {this.state.error.message}
-                  </p>
-                  {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
+                  <p className="text-sm font-mono text-destructive">{this.state.error.message}</p>
+                  {process.env.NODE_ENV === "development" && this.state.errorInfo && (
                     <details className="mt-2">
                       <summary className="text-xs cursor-pointer text-muted-foreground hover:text-foreground">
                         Stack trace
@@ -136,9 +134,9 @@ export class VoiceErrorBoundary extends Component<Props, State> {
             </CardContent>
           </Card>
         </div>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }

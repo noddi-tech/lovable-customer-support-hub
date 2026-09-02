@@ -1,87 +1,91 @@
-import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { Lightbulb, CheckCircle, Eye, AlertTriangle, TrendingUp } from 'lucide-react';
-import { StarRatingInput } from '@/components/ui/star-rating-input';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { format } from "date-fns"
+import { AlertTriangle, CheckCircle, TrendingUp } from "lucide-react"
+import type React from "react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
+import { StarRatingInput } from "@/components/ui/star-rating-input"
+import { supabase } from "@/integrations/supabase/client"
 
 interface KnowledgeGapDetectionProps {
-  organizationId: string | null;
+  organizationId: string | null
 }
 
 interface KnowledgeGap {
-  id: string;
-  question: string;
-  frequency: number;
-  status: string;
-  priority: number | null;
-  created_at: string;
-  last_seen_at: string;
+  id: string
+  question: string
+  frequency: number
+  status: string
+  priority: number | null
+  created_at: string
+  last_seen_at: string
 }
 
 export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ organizationId }) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   const { data: gaps = [], isLoading } = useQuery({
-    queryKey: ['knowledge-gaps', organizationId],
+    queryKey: ["knowledge-gaps", organizationId],
     queryFn: async () => {
-      if (!organizationId) return [];
+      if (!organizationId) return []
       const { data, error } = await supabase
-        .from('knowledge_gaps')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('status', 'open')
-        .order('priority', { ascending: false, nullsFirst: false })
-        .order('frequency', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data as KnowledgeGap[];
+        .from("knowledge_gaps")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("status", "open")
+        .order("priority", { ascending: false, nullsFirst: false })
+        .order("frequency", { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return data as KnowledgeGap[]
     },
     enabled: !!organizationId,
-  });
+  })
 
   const dismissMutation = useMutation({
     mutationFn: async (gapId: string) => {
       const { error } = await supabase
-        .from('knowledge_gaps')
-        .update({ status: 'dismissed', updated_at: new Date().toISOString() })
-        .eq('id', gapId);
-      if (error) throw error;
+        .from("knowledge_gaps")
+        .update({ status: "dismissed", updated_at: new Date().toISOString() })
+        .eq("id", gapId)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-gaps'] });
-      toast.success('Gap dismissed');
+      queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
+      toast.success("Gap dismissed")
     },
-  });
+  })
 
   const priorityMutation = useMutation({
     mutationFn: async ({ gapId, priority }: { gapId: string; priority: number }) => {
       const { error } = await supabase
-        .from('knowledge_gaps')
+        .from("knowledge_gaps")
         .update({ priority, updated_at: new Date().toISOString() })
-        .eq('id', gapId);
-      if (error) throw error;
+        .eq("id", gapId)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge-gaps'] });
+      queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
     },
-  });
+  })
 
-  if (!organizationId) return null;
+  if (!organizationId) return null
 
   if (isLoading) {
     return (
       <Card>
-        <CardHeader><CardTitle className="text-base">Knowledge Gaps</CardTitle></CardHeader>
-        <CardContent><Skeleton className="h-32 w-full" /></CardContent>
+        <CardHeader>
+          <CardTitle className="text-base">Knowledge Gaps</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -93,7 +97,9 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               Knowledge Gaps
             </CardTitle>
-            <CardDescription>Questions the AI couldn't answer from the knowledge base</CardDescription>
+            <CardDescription>
+              Questions the AI couldn't answer from the knowledge base
+            </CardDescription>
           </div>
           {gaps.length > 0 && (
             <Badge variant="outline" className="text-amber-600 border-amber-600">
@@ -112,8 +118,11 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
         ) : (
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-2">
-              {gaps.map(gap => (
-                <div key={gap.id} className="flex items-start justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors">
+              {gaps.map((gap) => (
+                <div
+                  key={gap.id}
+                  className="flex items-start justify-between p-3 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
+                >
                   <div className="flex-1 min-w-0 mr-3">
                     <p className="text-sm font-medium">{gap.question}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -121,12 +130,14 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
                         <TrendingUp className="h-3 w-3" />
                         Asked {gap.frequency}x
                       </span>
-                      <span>Last: {format(new Date(gap.last_seen_at), 'MMM d')}</span>
+                      <span>Last: {format(new Date(gap.last_seen_at), "MMM d")}</span>
                     </div>
                     <div className="mt-1.5">
                       <StarRatingInput
                         value={gap.priority ?? 0}
-                        onChange={(value) => priorityMutation.mutate({ gapId: gap.id, priority: value })}
+                        onChange={(value) =>
+                          priorityMutation.mutate({ gapId: gap.id, priority: value })
+                        }
                         size="sm"
                       />
                     </div>
@@ -148,5 +159,5 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

@@ -1,15 +1,15 @@
-import { CSVImportCard } from '../cards/CSVImportCard';
-import { MetaLeadAdsCard } from '../cards/MetaLeadAdsCard';
-import { ComingSoonCard } from '../cards/ComingSoonCard';
-import { Globe } from 'lucide-react';
-import type { MetaIntegration } from '../types';
+import { Globe } from "lucide-react"
+import { ComingSoonCard } from "../cards/ComingSoonCard"
+import { CSVImportCard } from "../cards/CSVImportCard"
+import { MetaLeadAdsCard } from "../cards/MetaLeadAdsCard"
+import type { MetaIntegration } from "../types"
 
 interface Props {
-  metaIntegration: MetaIntegration | null;
-  onMetaConnect: () => void;
-  onMetaEdit: () => void;
-  onMetaReconnect: () => void;
-  onMetaRefreshToken: () => void;
+  metaIntegration: MetaIntegration | null
+  onMetaConnect: () => void
+  onMetaEdit: () => void
+  onMetaReconnect: () => void
+  onMetaRefreshToken: () => void
 }
 
 export function LeadSourcesSection({
@@ -25,9 +25,7 @@ export function LeadSourcesSection({
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Lead-kilder
         </h3>
-        <p className="text-xs text-muted-foreground">
-          Hvor søkere kommer inn i systemet.
-        </p>
+        <p className="text-xs text-muted-foreground">Hvor søkere kommer inn i systemet.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <CSVImportCard />
@@ -45,5 +43,5 @@ export function LeadSourcesSection({
         />
       </div>
     </section>
-  );
+  )
 }

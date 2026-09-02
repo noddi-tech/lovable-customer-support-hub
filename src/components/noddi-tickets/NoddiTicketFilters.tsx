@@ -1,38 +1,41 @@
-import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Search, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select"
 import {
   NODDI_TICKET_CATEGORIES,
   NODDI_TICKET_PRIORITIES,
-  TICKET_CATEGORY_LABELS,
-  TICKET_PRIORITY_LABELS,
   type NoddiTicketCategory,
   type NoddiTicketPriority,
-} from '@/types/noddiTicket';
+  TICKET_CATEGORY_LABELS,
+  TICKET_PRIORITY_LABELS,
+} from "@/types/noddiTicket"
 
 export interface NoddiTicketFilterState {
-  search: string;
-  priority: NoddiTicketPriority | 'ALL';
-  category: NoddiTicketCategory | 'ALL';
-  departmentId: number | null;
+  search: string
+  priority: NoddiTicketPriority | "ALL"
+  category: NoddiTicketCategory | "ALL"
+  departmentId: number | null
 }
 
 interface Props {
-  value: NoddiTicketFilterState;
-  onChange: (next: NoddiTicketFilterState) => void;
-  departments: Array<{ id: number; name: string }>;
+  value: NoddiTicketFilterState
+  onChange: (next: NoddiTicketFilterState) => void
+  departments: Array<{ id: number; name: string }>
 }
 
 export function NoddiTicketFilters({ value, onChange, departments }: Props) {
   const hasFilters =
-    !!value.search || value.priority !== 'ALL' || value.category !== 'ALL' || value.departmentId !== null;
+    !!value.search ||
+    value.priority !== "ALL" ||
+    value.category !== "ALL" ||
+    value.departmentId !== null
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -48,7 +51,9 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
 
       <Select
         value={value.priority}
-        onValueChange={(v) => onChange({ ...value, priority: v as NoddiTicketFilterState['priority'] })}
+        onValueChange={(v) =>
+          onChange({ ...value, priority: v as NoddiTicketFilterState["priority"] })
+        }
       >
         <SelectTrigger className="h-10 w-full sm:h-9 sm:w-[150px]">
           <SelectValue placeholder="Priority" />
@@ -65,7 +70,9 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
 
       <Select
         value={value.category}
-        onValueChange={(v) => onChange({ ...value, category: v as NoddiTicketFilterState['category'] })}
+        onValueChange={(v) =>
+          onChange({ ...value, category: v as NoddiTicketFilterState["category"] })
+        }
       >
         <SelectTrigger className="h-10 w-full sm:h-9 sm:w-[180px]">
           <SelectValue placeholder="Category" />
@@ -81,8 +88,8 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
       </Select>
 
       <Select
-        value={value.departmentId ? String(value.departmentId) : 'ALL'}
-        onValueChange={(v) => onChange({ ...value, departmentId: v === 'ALL' ? null : Number(v) })}
+        value={value.departmentId ? String(value.departmentId) : "ALL"}
+        onValueChange={(v) => onChange({ ...value, departmentId: v === "ALL" ? null : Number(v) })}
       >
         <SelectTrigger className="col-span-2 h-10 w-full sm:h-9 sm:w-[200px]">
           <SelectValue placeholder="Department" />
@@ -102,11 +109,13 @@ export function NoddiTicketFilters({ value, onChange, departments }: Props) {
           variant="ghost"
           size="sm"
           className="col-span-2 sm:col-auto"
-          onClick={() => onChange({ search: '', priority: 'ALL', category: 'ALL', departmentId: null })}
+          onClick={() =>
+            onChange({ search: "", priority: "ALL", category: "ALL", departmentId: null })
+          }
         >
           <X className="mr-1 h-4 w-4" /> Clear
         </Button>
       )}
     </div>
-  );
+  )
 }

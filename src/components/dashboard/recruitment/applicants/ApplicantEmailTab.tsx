@@ -1,40 +1,41 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Mail, Plus, Link2, X, Clock, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronRight, Clock, ExternalLink, Link2, Mail, Plus, X } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   useApplicantConversations,
   useApplicantScheduledEmails,
-  useDetachConversationFromApplicant,
   useCancelScheduledEmail,
-} from '@/hooks/recruitment/useRecruitmentEmail';
-import { ComposeRecruitmentEmailDialog } from './ComposeRecruitmentEmailDialog';
-import { AttachToApplicantDialog } from './AttachToApplicantDialog';
-import { InlineEmailThread } from './InlineEmailThread';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { cleanEmailPreview } from '@/utils/emailPreviewClean';
+  useDetachConversationFromApplicant,
+} from "@/hooks/recruitment/useRecruitmentEmail"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { cn } from "@/lib/utils"
+import { cleanEmailPreview } from "@/utils/emailPreviewClean"
+import { AttachToApplicantDialog } from "./AttachToApplicantDialog"
+import { ComposeRecruitmentEmailDialog } from "./ComposeRecruitmentEmailDialog"
+import { InlineEmailThread } from "./InlineEmailThread"
 
 interface Props {
   applicant: {
-    id: string;
-    first_name?: string | null;
-    last_name?: string | null;
-    email?: string | null;
-  };
+    id: string
+    first_name?: string | null
+    last_name?: string | null
+    email?: string | null
+  }
 }
 
 export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [attachOpen, setAttachOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const { data: conversations, isLoading } = useApplicantConversations(applicant.id);
-  const { data: scheduled } = useApplicantScheduledEmails(applicant.id);
-  const detachMut = useDetachConversationFromApplicant();
-  const cancelMut = useCancelScheduledEmail();
-  const { dateTime } = useDateFormatting();
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [attachOpen, setAttachOpen] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const { data: conversations, isLoading } = useApplicantConversations(applicant.id)
+  const { data: scheduled } = useApplicantScheduledEmails(applicant.id)
+  const detachMut = useDetachConversationFromApplicant()
+  const cancelMut = useCancelScheduledEmail()
+  const { dateTime } = useDateFormatting()
 
   return (
     <div className="space-y-4">
@@ -67,8 +68,12 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
                       <div className="text-xs text-destructive mt-0.5">{s.error_message}</div>
                     )}
                   </div>
-                  {s.status === 'pending' && (
-                    <Button size="sm" variant="ghost" onClick={() => cancelMut.mutate({ id: s.id })}>
+                  {s.status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => cancelMut.mutate({ id: s.id })}
+                    >
                       <X className="h-3.5 w-3.5" /> Avbryt
                     </Button>
                   )}
@@ -91,13 +96,13 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
           ) : (
             <ul className="divide-y">
               {conversations!.map((c) => {
-                const isExpanded = expandedId === c.id;
+                const isExpanded = expandedId === c.id
                 return (
                   <li key={c.id} className="bg-background">
                     <div
                       className={cn(
-                        'flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors',
-                        isExpanded && 'bg-muted/30'
+                        "flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors",
+                        isExpanded && "bg-muted/30",
                       )}
                       onClick={() => setExpandedId(isExpanded ? null : c.id)}
                     >
@@ -108,17 +113,17 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">
-                          {c.subject || '(uten emne)'}
+                          {c.subject || "(uten emne)"}
                         </div>
                         <div className="text-xs text-muted-foreground line-clamp-2 break-words">
-                          {cleanEmailPreview(c.preview_text) || '—'}
+                          {cleanEmailPreview(c.preview_text) || "—"}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           {dateTime(c.updated_at)} • {c.status}
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[10px]">
-                        {c.last_message_sender_type || 'agent'}
+                        {c.last_message_sender_type || "agent"}
                       </Badge>
                       <Link
                         to={`/interactions/text/conversations/${c.id}`}
@@ -134,8 +139,8 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
                         variant="ghost"
                         className="h-7 w-7 p-0"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          detachMut.mutate({ conversation_id: c.id });
+                          e.stopPropagation()
+                          detachMut.mutate({ conversation_id: c.id })
                         }}
                         title="Frakoble denne samtalen"
                       >
@@ -152,7 +157,7 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
                       />
                     )}
                   </li>
-                );
+                )
               })}
             </ul>
           )}
@@ -170,7 +175,7 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
         applicantId={applicant.id}
       />
     </div>
-  );
-};
+  )
+}
 
-export default ApplicantEmailTab;
+export default ApplicantEmailTab

@@ -1,21 +1,21 @@
-import React from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+import type React from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 interface SafeTabsWrapperProps {
-  value?: string;
-  onValueChange?: (value: string) => void;
+  value?: string
+  onValueChange?: (value: string) => void
   tabs: Array<{
-    value: string;
-    label: string;
-    disabled?: boolean;
-    content?: React.ReactNode;
-  }>;
-  className?: string;
-  listClassName?: string;
-  contentClassName?: string;
-  spacing?: 'tight' | 'normal' | 'loose';
-  wrap?: boolean;
+    value: string
+    label: string
+    disabled?: boolean
+    content?: React.ReactNode
+  }>
+  className?: string
+  listClassName?: string
+  contentClassName?: string
+  spacing?: "tight" | "normal" | "loose"
+  wrap?: boolean
 }
 
 /**
@@ -31,29 +31,29 @@ export function SafeTabsWrapper({
   className,
   listClassName,
   contentClassName,
-  spacing = 'normal',
+  spacing = "normal",
   wrap = true,
   ...props
 }: SafeTabsWrapperProps) {
   const spacingClasses = {
-    tight: 'mb-2',
-    normal: 'mb-3',
-    loose: 'mb-4'
-  };
+    tight: "mb-2",
+    normal: "mb-3",
+    loose: "mb-4",
+  }
 
   return (
-    <Tabs 
-      value={value} 
-      onValueChange={onValueChange} 
-      className={cn('w-full', className)}
+    <Tabs
+      value={value}
+      onValueChange={onValueChange}
+      className={cn("w-full", className)}
       {...props}
     >
-      <TabsList 
+      <TabsList
         className={cn(
-          'h-auto min-h-[32px] p-1 gap-1 bg-muted',
-          wrap && 'flex-wrap',
+          "h-auto min-h-[32px] p-1 gap-1 bg-muted",
+          wrap && "flex-wrap",
           spacingClasses[spacing],
-          listClassName
+          listClassName,
         )}
       >
         {tabs.map((tab) => (
@@ -62,34 +62,31 @@ export function SafeTabsWrapper({
             value={tab.value}
             disabled={tab.disabled}
             className={cn(
-              'px-3 py-1.5 text-sm truncate min-w-0',
-              'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm'
+              "px-3 py-1.5 text-sm truncate min-w-0",
+              "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
             )}
           >
             {tab.label}
           </TabsTrigger>
         ))}
       </TabsList>
-      
-      {tabs.map((tab) => (
-        tab.content && (
-          <TabsContent
-            key={tab.value}
-            value={tab.value}
-            className={cn('mt-0', contentClassName)}
-          >
-            {tab.content}
-          </TabsContent>
-        )
-      ))}
+
+      {tabs.map(
+        (tab) =>
+          tab.content && (
+            <TabsContent key={tab.value} value={tab.value} className={cn("mt-0", contentClassName)}>
+              {tab.content}
+            </TabsContent>
+          ),
+      )}
     </Tabs>
-  );
+  )
 }
 
 interface SafeToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
-  spacing?: 'tight' | 'normal' | 'loose';
-  wrap?: boolean;
-  justify?: 'start' | 'center' | 'end' | 'between' | 'around';
+  spacing?: "tight" | "normal" | "loose"
+  wrap?: boolean
+  justify?: "start" | "center" | "end" | "between" | "around"
 }
 
 /**
@@ -97,38 +94,38 @@ interface SafeToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 export function SafeToolbar({
   className,
-  spacing = 'normal',
+  spacing = "normal",
   wrap = true,
-  justify = 'start',
+  justify = "start",
   children,
   ...props
 }: SafeToolbarProps) {
   const spacingClasses = {
-    tight: 'gap-1',
-    normal: 'gap-2',
-    loose: 'gap-4'
-  };
+    tight: "gap-1",
+    normal: "gap-2",
+    loose: "gap-4",
+  }
 
   const justifyClasses = {
-    start: 'justify-start',
-    center: 'justify-center',
-    end: 'justify-end',
-    between: 'justify-between',
-    around: 'justify-around'
-  };
+    start: "justify-start",
+    center: "justify-center",
+    end: "justify-end",
+    between: "justify-between",
+    around: "justify-around",
+  }
 
   return (
-    <div 
+    <div
       className={cn(
-        'flex items-center min-w-0',
-        wrap && 'flex-wrap',
+        "flex items-center min-w-0",
+        wrap && "flex-wrap",
         spacingClasses[spacing],
         justifyClasses[justify],
-        className
+        className,
       )}
       {...props}
     >
       {children}
     </div>
-  );
+  )
 }

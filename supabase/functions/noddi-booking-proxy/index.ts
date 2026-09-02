@@ -1,10 +1,9 @@
-import { corsHeaders } from "../_shared/cors.ts";
-import { isAllowedProxyCaller } from "../_shared/caller.ts";
-import { checkRateLimit, clientIp, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { navioSourceHeaders, captureNavioSourceVersion } from "../_shared/navio-source.ts";
+import { isAllowedProxyCaller } from "../_shared/caller.ts"
+import { corsHeaders } from "../_shared/cors.ts"
+import { captureNavioSourceVersion, navioSourceHeaders } from "../_shared/navio-source.ts"
+import { checkRateLimit, clientIp, rateLimitResponse } from "../_shared/rate-limit.ts"
 
-
-const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "");
+const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "")
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   wheel_services: "Dekkskift",
@@ -12,20 +11,20 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   car_wash: "Bilvask",
   tyre_hotel: "Dekkhotell",
   polering: "Polering",
-};
-const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || "";
+}
+const NODDI_TOKEN = Deno.env.get("NODDI_API_TOKEN") || ""
 
 const headers = (): HeadersInit => ({
   Authorization: `Token ${NODDI_TOKEN}`,
   Accept: "application/json",
   "Content-Type": "application/json",
   ...navioSourceHeaders(),
-});
+})
 
 Deno.serve(async (req) => {
-  captureNavioSourceVersion(req);
+  captureNavioSourceVersion(req)
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -34,39 +33,39 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      })
     }
     if (!(await checkRateLimit(`noddi-booking:${clientIp(req)}`, 60, 60))) {
-      return rateLimitResponse(corsHeaders);
+      return rateLimitResponse(corsHeaders)
     }
 
-    const body = await req.json();
-    const { action } = body;
+    const body = await req.json()
+    const { action } = body
 
     switch (action) {
       // ========== Car Lookup ==========
       case "lookup_car": {
-        const { country_code = "NO", license_plate } = body;
+        const { country_code = "NO", license_plate } = body
         if (!license_plate) {
-          return jsonResponse({ error: "license_plate required" }, 400);
+          return jsonResponse({ error: "license_plate required" }, 400)
         }
-        const url = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=${encodeURIComponent(country_code)}&number=${encodeURIComponent(license_plate)}`;
-        const res = await fetch(url, { headers: headers() });
+        const url = `${API_BASE}/v1/cars/from-license-plate-number/?brand_domains=noddi&country_code=${encodeURIComponent(country_code)}&number=${encodeURIComponent(license_plate)}`
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Car lookup error:", res.status, text);
-          return jsonResponse({ error: "Car not found" }, res.status === 404 ? 404 : 502);
+          const text = await res.text()
+          console.error("Car lookup error:", res.status, text)
+          return jsonResponse({ error: "Car not found" }, res.status === 404 ? 404 : 502)
         }
-        const car = await res.json();
-        return jsonResponse({ car });
+        const car = await res.json()
+        return jsonResponse({ car })
       }
 
       // ========== List Service Categories ==========
       case "list_services": {
-        const { address_id } = body;
+        const { address_id } = body
         if (!address_id) {
           // Return fallback services when address_id is missing instead of erroring
-          console.warn("list_services called without address_id, returning fallback");
+          console.warn("list_services called without address_id, returning fallback")
           return jsonResponse({
             services: [
               { slug: "dekkskift", name: "Dekkskift", description: "Bytte av dekk" },
@@ -74,14 +73,14 @@ Deno.serve(async (req) => {
               { slug: "dekkhotell", name: "Dekkhotell", description: "Lagring av dekk" },
             ],
             fallback: true,
-          });
+          })
         }
-        const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`;
-        const res = await fetch(url, { headers: headers() });
+        const url = `${API_BASE}/v1/sales-item-booking-categories/for-new-booking/?address_id=${encodeURIComponent(address_id)}`
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("List services error:", res.status, text);
-          console.warn("list_services endpoint failed, using fallback services");
+          const text = await res.text()
+          console.error("List services error:", res.status, text)
+          console.warn("list_services endpoint failed, using fallback services")
           return jsonResponse({
             services: [
               { slug: "dekkskift", name: "Dekkskift", description: "Bytte av dekk" },
@@ -89,110 +88,128 @@ Deno.serve(async (req) => {
               { slug: "dekkhotell", name: "Dekkhotell", description: "Lagring av dekk" },
             ],
             fallback: true,
-          });
+          })
         }
-        const data = await res.json();
-        const raw = Array.isArray(data) ? data : data.results || [];
+        const data = await res.json()
+        const raw = Array.isArray(data) ? data : data.results || []
         const services = raw.map((s: any) => ({
-          slug: s.type || s.slug || '',
-          name: SERVICE_TYPE_LABELS[s.type] || s.name || s.type || '',
-          description: s.description || '',
-          brand_name: s.brand?.name || '',
-        }));
-        return jsonResponse({ services });
+          slug: s.type || s.slug || "",
+          name: SERVICE_TYPE_LABELS[s.type] || s.name || s.type || "",
+          description: s.description || "",
+          brand_name: s.brand?.name || "",
+        }))
+        return jsonResponse({ services })
       }
 
       // ========== Available Items for Booking ==========
       case "available_items": {
-        const { address_id: aiAddr, car_ids, license_plates, sales_item_category_id, country_code: aiCountry, brand } = body;
+        const {
+          address_id: aiAddr,
+          car_ids,
+          license_plates,
+          sales_item_category_id,
+          country_code: aiCountry,
+          brand,
+        } = body
         if (!aiAddr) {
-          return jsonResponse({ error: "address_id required" }, 400);
+          return jsonResponse({ error: "address_id required" }, 400)
         }
-        const payload: any = { address_id: aiAddr, brand_domain: brand || "noddi" };
+        const payload: any = { address_id: aiAddr, brand_domain: brand || "noddi" }
         // Noddi API requires license_plates as objects: [{number, country_code}]
         if (license_plates) {
-          const lpArray = Array.isArray(license_plates) ? license_plates : [license_plates];
+          const lpArray = Array.isArray(license_plates) ? license_plates : [license_plates]
           payload.license_plates = lpArray.map((lp: any) =>
-            typeof lp === 'string' ? { number: lp, country_code: aiCountry || 'NO' } : lp
-          );
+            typeof lp === "string" ? { number: lp, country_code: aiCountry || "NO" } : lp,
+          )
         } else if (car_ids) {
-          payload.car_ids = car_ids;
+          payload.car_ids = car_ids
         }
-        if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id;
+        if (sales_item_category_id) payload.sales_item_category_id = sales_item_category_id
 
-        console.log("Available items payload:", JSON.stringify(payload));
+        console.log("Available items payload:", JSON.stringify(payload))
 
         const res = await fetch(`${API_BASE}/v1/sales-items/initial-available-for-booking/`, {
           method: "POST",
           headers: headers(),
           body: JSON.stringify(payload),
-        });
+        })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Available items error:", res.status, text, "Payload:", JSON.stringify(payload));
-          return jsonResponse({ error: "Failed to fetch available items", detail: text.slice(0, 300) }, 502);
+          const text = await res.text()
+          console.error(
+            "Available items error:",
+            res.status,
+            text,
+            "Payload:",
+            JSON.stringify(payload),
+          )
+          return jsonResponse(
+            { error: "Failed to fetch available items", detail: text.slice(0, 300) },
+            502,
+          )
         }
-        const data = await res.json();
-        return jsonResponse(data);
+        const data = await res.json()
+        return jsonResponse(data)
       }
 
       // ========== Earliest Date ==========
       case "earliest_date": {
-        const { address_id: eAddr, cars } = body;
+        const { address_id: eAddr, cars } = body
         if (!cars || !Array.isArray(cars) || cars.length === 0) {
-          return jsonResponse({ error: "cars array is required and must not be empty" }, 400);
+          return jsonResponse({ error: "cars array is required and must not be empty" }, 400)
         }
         // Noddi expects cars as objects: [{id: 13888}], not plain integers [13888]
-        const carsForApi = cars.map((c: any) => typeof c === 'number' ? { id: c } : c);
-        const edPayload: any = { address_id: eAddr, cars: carsForApi };
+        const carsForApi = cars.map((c: any) => (typeof c === "number" ? { id: c } : c))
+        const edPayload: any = { address_id: eAddr, cars: carsForApi }
         const res = await fetch(`${API_BASE}/v1/delivery-windows/earliest-date/`, {
           method: "POST",
           headers: headers(),
           body: JSON.stringify(edPayload),
-        });
+        })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Earliest date error:", res.status, text);
-          return jsonResponse({ error: "Failed to get earliest date" }, 502);
+          const text = await res.text()
+          console.error("Earliest date error:", res.status, text)
+          return jsonResponse({ error: "Failed to get earliest date" }, 502)
         }
-        const data = await res.json();
-        return jsonResponse(data);
+        const data = await res.json()
+        return jsonResponse(data)
       }
 
       // ========== Latest Date ==========
       case "latest_date": {
-        const { address_id: lAddr } = body;
-        const url = `${API_BASE}/v1/delivery-windows/latest-date/${lAddr ? `?address_id=${encodeURIComponent(lAddr)}` : ''}`;
-        const res = await fetch(url, { headers: headers() });
+        const { address_id: lAddr } = body
+        const url = `${API_BASE}/v1/delivery-windows/latest-date/${lAddr ? `?address_id=${encodeURIComponent(lAddr)}` : ""}`
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Latest date error:", res.status, text);
-          return jsonResponse({ error: "Failed to get latest date" }, 502);
+          const text = await res.text()
+          console.error("Latest date error:", res.status, text)
+          return jsonResponse({ error: "Failed to get latest date" }, 502)
         }
-        const data = await res.json();
-        return jsonResponse(data);
+        const data = await res.json()
+        return jsonResponse(data)
       }
 
       // ========== Delivery Windows ==========
       case "delivery_windows": {
-        const { address_id: dwAddr, from_date, to_date, selected_sales_item_ids } = body;
+        const { address_id: dwAddr, from_date, to_date, selected_sales_item_ids } = body
         if (!dwAddr) {
-          return jsonResponse({ error: "address_id required" }, 400);
+          return jsonResponse({ error: "address_id required" }, 400)
         }
 
         // Try MCP first (Navio MCP server)
         try {
-          const mcpArgs: Record<string, any> = { address_id: dwAddr };
-          if (from_date) mcpArgs.from_date = from_date;
-          if (to_date) mcpArgs.to_date = to_date;
+          const mcpArgs: Record<string, any> = { address_id: dwAddr }
+          if (from_date) mcpArgs.from_date = from_date
+          if (to_date) mcpArgs.to_date = to_date
           if (selected_sales_item_ids) {
-            mcpArgs.sales_item_ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
+            mcpArgs.sales_item_ids = Array.isArray(selected_sales_item_ids)
+              ? selected_sales_item_ids
+              : [selected_sales_item_ids]
           }
           const mcpResp = await fetch("https://mcp.noddi.co/mcp", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Accept": "application/json, text/event-stream",
+              Accept: "application/json, text/event-stream",
             },
             body: JSON.stringify({
               jsonrpc: "2.0",
@@ -200,96 +217,129 @@ Deno.serve(async (req) => {
               method: "tools/call",
               params: { name: "delivery_window_get", arguments: mcpArgs },
             }),
-          });
-          console.log("MCP delivery_window_get response status:", mcpResp.status);
-          const ct = mcpResp.headers.get("content-type") || "";
-          let mcpData: any;
+          })
+          console.log("MCP delivery_window_get response status:", mcpResp.status)
+          const ct = mcpResp.headers.get("content-type") || ""
+          let mcpData: any
           if (ct.includes("text/event-stream")) {
-            const text = await mcpResp.text();
-            console.log("MCP SSE raw (first 500 chars):", text.slice(0, 500));
-            const lastData = text.split("\n").filter((l: string) => l.startsWith("data: ")).pop();
-            mcpData = lastData ? JSON.parse(lastData.slice(6)) : null;
+            const text = await mcpResp.text()
+            console.log("MCP SSE raw (first 500 chars):", text.slice(0, 500))
+            const lastData = text
+              .split("\n")
+              .filter((l: string) => l.startsWith("data: "))
+              .pop()
+            mcpData = lastData ? JSON.parse(lastData.slice(6)) : null
           } else {
-            mcpData = await mcpResp.json();
+            mcpData = await mcpResp.json()
           }
-          console.log("MCP delivery_window_get parsed:", JSON.stringify(mcpData)?.slice(0, 800));
+          console.log("MCP delivery_window_get parsed:", JSON.stringify(mcpData)?.slice(0, 800))
           if (mcpResp.ok && mcpData && !mcpData.error) {
-            console.log("Delivery windows resolved via MCP");
-            const content = mcpData?.result?.content?.[0]?.text;
+            console.log("Delivery windows resolved via MCP")
+            const content = mcpData?.result?.content?.[0]?.text
             if (content) {
               try {
-                return jsonResponse(JSON.parse(content));
+                return jsonResponse(JSON.parse(content))
               } catch {
-                return jsonResponse(mcpData.result || mcpData);
+                return jsonResponse(mcpData.result || mcpData)
               }
             }
-            return jsonResponse(mcpData.result || mcpData);
+            return jsonResponse(mcpData.result || mcpData)
           }
-          console.warn("MCP delivery_window_get failed, falling back to REST. Status:", mcpResp.status);
+          console.warn(
+            "MCP delivery_window_get failed, falling back to REST. Status:",
+            mcpResp.status,
+          )
         } catch (mcpErr) {
-          console.warn("MCP delivery_window_get error, falling back to REST:", mcpErr);
+          console.warn("MCP delivery_window_get error, falling back to REST:", mcpErr)
         }
 
         // Fallback to REST API
-        let url = `${API_BASE}/v1/delivery-windows/for-new-booking/?address_id=${dwAddr}`;
-        if (from_date) url += `&from_date=${encodeURIComponent(from_date)}`;
-        if (to_date) url += `&to_date=${encodeURIComponent(to_date)}`;
-        if (selected_sales_item_ids && (Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids.length > 0 : true)) {
-          const ids = Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids : [selected_sales_item_ids];
+        let url = `${API_BASE}/v1/delivery-windows/for-new-booking/?address_id=${dwAddr}`
+        if (from_date) url += `&from_date=${encodeURIComponent(from_date)}`
+        if (to_date) url += `&to_date=${encodeURIComponent(to_date)}`
+        if (
+          selected_sales_item_ids &&
+          (Array.isArray(selected_sales_item_ids) ? selected_sales_item_ids.length > 0 : true)
+        ) {
+          const ids = Array.isArray(selected_sales_item_ids)
+            ? selected_sales_item_ids
+            : [selected_sales_item_ids]
           for (const id of ids) {
-            url += `&selected_sales_item_ids=${encodeURIComponent(id)}`;
+            url += `&selected_sales_item_ids=${encodeURIComponent(id)}`
           }
         }
-        const res = await fetch(url, { headers: headers() });
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Delivery windows REST fallback error:", res.status, text, "URL:", url);
-          return jsonResponse({ error: "Failed to fetch delivery windows", rest_status: res.status, rest_detail: text.slice(0, 300) }, 502);
+          const text = await res.text()
+          console.error("Delivery windows REST fallback error:", res.status, text, "URL:", url)
+          return jsonResponse(
+            {
+              error: "Failed to fetch delivery windows",
+              rest_status: res.status,
+              rest_detail: text.slice(0, 300),
+            },
+            502,
+          )
         }
-        const data = await res.json();
-        return jsonResponse(data);
+        const data = await res.json()
+        return jsonResponse(data)
       }
 
       // ========== Service Departments ==========
       case "service_departments": {
-        const { address_id: sdAddr, sales_items_ids } = body;
+        const { address_id: sdAddr, sales_items_ids } = body
         if (!sdAddr) {
-          return jsonResponse({ error: "address_id required" }, 400);
+          return jsonResponse({ error: "address_id required" }, 400)
         }
-        let url = `${API_BASE}/v1/service-departments/from-booking-params/?address_id=${encodeURIComponent(sdAddr)}`;
+        let url = `${API_BASE}/v1/service-departments/from-booking-params/?address_id=${encodeURIComponent(sdAddr)}`
         if (sales_items_ids) {
-          const ids = Array.isArray(sales_items_ids) ? sales_items_ids : [sales_items_ids];
+          const ids = Array.isArray(sales_items_ids) ? sales_items_ids : [sales_items_ids]
           for (const id of ids) {
-            url += `&sales_items_ids=${encodeURIComponent(id)}`;
+            url += `&sales_items_ids=${encodeURIComponent(id)}`
           }
         }
-        const res = await fetch(url, { headers: headers() });
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Service departments error:", res.status, text);
-          return jsonResponse({ error: "Failed to fetch service departments" }, 502);
+          const text = await res.text()
+          console.error("Service departments error:", res.status, text)
+          return jsonResponse({ error: "Failed to fetch service departments" }, 502)
         }
-        const data = await res.json();
-        return jsonResponse(data);
+        const data = await res.json()
+        return jsonResponse(data)
       }
 
       // ========== Create Booking ==========
       case "create_booking": {
-        const { address_id, user_id, user_group_id,
-                license_plate, country_code, sales_item_ids,
-                delivery_window_id, delivery_window_start, delivery_window_end } = body;
+        const {
+          address_id,
+          user_id,
+          user_group_id,
+          license_plate,
+          country_code,
+          sales_item_ids,
+          delivery_window_id,
+          delivery_window_start,
+          delivery_window_end,
+        } = body
 
         // Validate required fields before calling Noddi
         if (!user_id || !user_group_id || !delivery_window_id) {
-          console.error("Missing required booking fields:", { user_id, user_group_id, delivery_window_id });
-          return jsonResponse({
-            error: "Missing required fields",
-            missing: {
-              user_id: !user_id,
-              user_group_id: !user_group_id,
-              delivery_window_id: !delivery_window_id,
-            }
-          }, 400);
+          console.error("Missing required booking fields:", {
+            user_id,
+            user_group_id,
+            delivery_window_id,
+          })
+          return jsonResponse(
+            {
+              error: "Missing required fields",
+              missing: {
+                user_id: !user_id,
+                user_group_id: !user_group_id,
+                delivery_window_id: !delivery_window_id,
+              },
+            },
+            400,
+          )
         }
 
         // Noddi API expects: address, user, user_group, delivery_window ({id: int}),
@@ -298,134 +348,171 @@ Deno.serve(async (req) => {
           address_id,
           user_id: user_id,
           user_group_id: user_group_id,
-          delivery_window: { id: delivery_window_id, starts_at: delivery_window_start, ends_at: delivery_window_end },
+          delivery_window: {
+            id: delivery_window_id,
+            starts_at: delivery_window_start,
+            ends_at: delivery_window_end,
+          },
           cars: [
             {
               license_plate: {
-                country_code: country_code || 'NO',
+                country_code: country_code || "NO",
                 number: license_plate,
               },
               selected_sales_item_ids: sales_item_ids || [],
             },
           ],
-        };
+        }
 
-        console.log("Create booking payload:", JSON.stringify(cartPayload));
+        console.log("Create booking payload:", JSON.stringify(cartPayload))
 
         const res = await fetch(`${API_BASE}/v1/bookings/`, {
           method: "POST",
           headers: headers(),
           body: JSON.stringify(cartPayload),
-        });
+        })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Create booking error:", res.status, text, "Payload:", JSON.stringify(cartPayload));
-          return jsonResponse({ error: "Failed to create booking", details: text }, 502);
+          const text = await res.text()
+          console.error(
+            "Create booking error:",
+            res.status,
+            text,
+            "Payload:",
+            JSON.stringify(cartPayload),
+          )
+          return jsonResponse({ error: "Failed to create booking", details: text }, 502)
         }
-        const booking = await res.json();
-        return jsonResponse({ booking });
+        const booking = await res.json()
+        return jsonResponse({ booking })
       }
 
       // ========== Customer Lookup ==========
       case "lookup_customer": {
-        const { phone, email } = body;
+        const { phone, email } = body
         if (!phone && !email) {
-          return jsonResponse({ error: "phone or email required" }, 400);
+          return jsonResponse({ error: "phone or email required" }, 400)
         }
-        const params = new URLSearchParams();
-        if (phone) params.set("phone", phone);
-        if (email) params.set("email", email);
-        const url = `${API_BASE}/v1/users/customer-lookup-support/?${params.toString()}`;
-        const res = await fetch(url, { headers: headers() });
+        const params = new URLSearchParams()
+        if (phone) params.set("phone", phone)
+        if (email) params.set("email", email)
+        const url = `${API_BASE}/v1/users/customer-lookup-support/?${params.toString()}`
+        const res = await fetch(url, { headers: headers() })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Customer lookup error:", res.status, text);
+          const text = await res.text()
+          console.error("Customer lookup error:", res.status, text)
           // Check for user_does_not_exist 400 → treat as 404
-          let isNotFound = res.status === 404;
+          let isNotFound = res.status === 404
           if (res.status === 400) {
             try {
-              const errorData = JSON.parse(text);
-              isNotFound = (errorData?.errors || []).some((err: any) =>
-                err?.code === 'user_does_not_exist' || err?.detail?.includes('does not exist')
-              );
-              if (!isNotFound && (errorData?.error_code === 'user_does_not_exist' || errorData?.code === 'user_does_not_exist')) {
-                isNotFound = true;
+              const errorData = JSON.parse(text)
+              isNotFound = (errorData?.errors || []).some(
+                (err: any) =>
+                  err?.code === "user_does_not_exist" || err?.detail?.includes("does not exist"),
+              )
+              if (
+                !isNotFound &&
+                (errorData?.error_code === "user_does_not_exist" ||
+                  errorData?.code === "user_does_not_exist")
+              ) {
+                isNotFound = true
               }
-            } catch { /* ignore parse error */ }
+            } catch {
+              /* ignore parse error */
+            }
           }
           if (isNotFound) {
-            return jsonResponse({ error: "Customer not found", not_found: true }, 404);
+            return jsonResponse({ error: "Customer not found", not_found: true }, 404)
           }
-          return jsonResponse({ error: "Customer not found" }, res.status >= 400 && res.status < 500 ? res.status : 502);
+          return jsonResponse(
+            { error: "Customer not found" },
+            res.status >= 400 && res.status < 500 ? res.status : 502,
+          )
         }
-        const data = await res.json();
+        const data = await res.json()
         // Extract user_id and user_group_id from response
-        const results = Array.isArray(data) ? data : data.results || [data];
+        const results = Array.isArray(data) ? data : data.results || [data]
         if (results.length === 0) {
-          return jsonResponse({ error: "Customer not found" }, 404);
+          return jsonResponse({ error: "Customer not found" }, 404)
         }
-        const user = results[0];
-        const userGroupId = user.user_group?.id || user.user_group_id || null;
+        const user = results[0]
+        const userGroupId = user.user_group?.id || user.user_group_id || null
         return jsonResponse({
           customer: {
             userId: user.id || user.user_id,
             userGroupId,
-            name: user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.name || null,
-          }
-        });
+            name: user.first_name
+              ? `${user.first_name} ${user.last_name || ""}`.trim()
+              : user.name || null,
+          },
+        })
       }
 
       // ========== Update Booking (PATCH) ==========
       case "update_booking": {
-        const { booking_id, address_id: ubAddr, delivery_window_id: ubDwId,
-                delivery_window_start: ubDwStart, delivery_window_end: ubDwEnd,
-                cars: ubCars } = body;
+        const {
+          booking_id,
+          address_id: ubAddr,
+          delivery_window_id: ubDwId,
+          delivery_window_start: ubDwStart,
+          delivery_window_end: ubDwEnd,
+          cars: ubCars,
+        } = body
         if (!booking_id) {
-          return jsonResponse({ error: "booking_id required" }, 400);
+          return jsonResponse({ error: "booking_id required" }, 400)
         }
 
-        const patchPayload: any = {};
-        if (ubAddr) patchPayload.address_id = ubAddr;
+        const patchPayload: any = {}
+        if (ubAddr) patchPayload.address_id = ubAddr
         if (ubDwId) {
           if (!ubDwStart || !ubDwEnd) {
-            return jsonResponse({ error: "delivery_window_start and delivery_window_end are required when changing time" }, 400);
+            return jsonResponse(
+              {
+                error:
+                  "delivery_window_start and delivery_window_end are required when changing time",
+              },
+              400,
+            )
           }
           patchPayload.delivery_window = {
             id: ubDwId,
-            starts_at: ubDwStart && !ubDwStart.endsWith('Z') && !ubDwStart.includes('+') ? ubDwStart + 'Z' : ubDwStart,
-            ends_at: ubDwEnd && !ubDwEnd.endsWith('Z') && !ubDwEnd.includes('+') ? ubDwEnd + 'Z' : ubDwEnd,
-          };
+            starts_at:
+              ubDwStart && !ubDwStart.endsWith("Z") && !ubDwStart.includes("+")
+                ? `${ubDwStart}Z`
+                : ubDwStart,
+            ends_at:
+              ubDwEnd && !ubDwEnd.endsWith("Z") && !ubDwEnd.includes("+") ? `${ubDwEnd}Z` : ubDwEnd,
+          }
         }
-        if (ubCars) patchPayload.cars = ubCars;
+        if (ubCars) patchPayload.cars = ubCars
 
-        console.log("Update booking payload:", JSON.stringify(patchPayload));
+        console.log("Update booking payload:", JSON.stringify(patchPayload))
 
         const res = await fetch(`${API_BASE}/v1/bookings/${booking_id}/`, {
           method: "PATCH",
           headers: headers(),
           body: JSON.stringify(patchPayload),
-        });
+        })
         if (!res.ok) {
-          const text = await res.text();
-          console.error("Update booking error:", res.status, text);
-          return jsonResponse({ error: "Failed to update booking", details: text }, 502);
+          const text = await res.text()
+          console.error("Update booking error:", res.status, text)
+          return jsonResponse({ error: "Failed to update booking", details: text }, 502)
         }
-        const booking = await res.json();
-        return jsonResponse({ booking });
+        const booking = await res.json()
+        return jsonResponse({ booking })
       }
 
       default:
-        return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+        return jsonResponse({ error: `Unknown action: ${action}` }, 400)
     }
   } catch (err) {
-    console.error("noddi-booking-proxy error:", err);
-    return jsonResponse({ error: "Internal error" }, 500);
+    console.error("noddi-booking-proxy error:", err)
+    return jsonResponse({ error: "Internal error" }, 500)
   }
-});
+})
 
 function jsonResponse(data: any, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  })
 }

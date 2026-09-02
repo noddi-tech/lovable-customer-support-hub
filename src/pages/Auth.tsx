@@ -1,267 +1,267 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { signInWithNavio } from '@navio/nidp';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Lock, AlertCircle } from 'lucide-react';
-import { isPasswordLoginEnabled } from '@/lib/auth-features';
-import { logger } from '@/utils/logger';
+import { signInWithNavio } from "@navio/nidp"
+import { AlertCircle, Lock } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/components/auth/AuthContext"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { supabase } from "@/integrations/supabase/client"
+import { isPasswordLoginEnabled } from "@/lib/auth-features"
 import {
+  DEV_LOGIN_DEFAULT_EMAIL,
   disablePreviewBypass,
   enablePreviewBypass,
+  forgetDevLogin,
   getDevLoginCredentials,
   getRememberedDevLogin,
-  rememberDevLogin,
-  forgetDevLogin,
   isDevPreview,
-  DEV_LOGIN_DEFAULT_EMAIL,
-} from '@/lib/dev-preview-auth';
-
+  rememberDevLogin,
+} from "@/lib/dev-preview-auth"
+import { logger } from "@/utils/logger"
 
 // Error keys that may arrive as `?error=` when a sign-in bounces back to /auth.
 // `not_authenticated` is intentionally omitted — landing on the login page
 // already makes it obvious that signing in is required.
 const ERROR_MESSAGES: Record<string, { title: string; body: string; fix?: string }> = {
   oauth: {
-    title: 'Sign-in failed at the identity provider',
-    body: 'The IdP returned an error during the OAuth callback.',
-    fix: 'Open DevTools → Console and look for [auth] OIDC callback error.',
+    title: "Sign-in failed at the identity provider",
+    body: "The IdP returned an error during the OAuth callback.",
+    fix: "Open DevTools → Console and look for [auth] OIDC callback error.",
   },
   duplicate_email: {
-    title: 'Multiple accounts with the same email',
+    title: "Multiple accounts with the same email",
     body:
-      'Navio sign-in succeeded, but Supabase Auth found more than one auth.users row with your email in ' +
+      "Navio sign-in succeeded, but Supabase Auth found more than one auth.users row with your email in " +
       'the "default" linking domain, so it cannot link the Navio identity to a single account.',
     fix:
-      'Keep one auth.users row per email (the one with a profile/roles) and merge the rest — see ' +
-      'docs/sso/navio-auth-setup.md. Workaround: Sign in with Google if that identity already exists.',
+      "Keep one auth.users row per email (the one with a profile/roles) and merge the rest — see " +
+      "docs/sso/navio-auth-setup.md. Workaround: Sign in with Google if that identity already exists.",
   },
   no_profile: {
-    title: 'Signed in, but no app access',
-    body: 'Your identity was accepted, but there is no profile row for your user yet.',
-    fix: 'See browser console [auth] for user id + SQL. Provision migration may be missing (PGRST202).',
+    title: "Signed in, but no app access",
+    body: "Your identity was accepted, but there is no profile row for your user yet.",
+    fix: "See browser console [auth] for user id + SQL. Provision migration may be missing (PGRST202).",
   },
   no_supporthub_role: {
-    title: 'No Support Hub access',
+    title: "No Support Hub access",
     body:
-      'Your Navio account is valid, but the token does not include supporthub.access ' +
-      '(or roles/superuser).',
+      "Your Navio account is valid, but the token does not include supporthub.access " +
+      "(or roles/superuser).",
     fix:
-      'Ask a Navio administrator to grant roles/supporthub.user (or roles/supporthub.admin) ' +
-      'on your personal UserGroup, or set is_superuser and sign out/in.',
+      "Ask a Navio administrator to grant roles/supporthub.user (or roles/supporthub.admin) " +
+      "on your personal UserGroup, or set is_superuser and sign out/in.",
   },
   account_disabled: {
-    title: 'Account disabled',
-    body: 'Your profile is deactivated. Contact an administrator if this is wrong.',
+    title: "Account disabled",
+    body: "Your profile is deactivated. Contact an administrator if this is wrong.",
   },
-};
+}
 
 export const Auth: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false)
   const [devEmail, setDevEmail] = useState(
-    () => getDevLoginCredentials()?.email || getRememberedDevLogin()?.email || DEV_LOGIN_DEFAULT_EMAIL,
-  );
-  const [devPassword, setDevPassword] = useState(() => getDevLoginCredentials()?.password || '');
+    () =>
+      getDevLoginCredentials()?.email || getRememberedDevLogin()?.email || DEV_LOGIN_DEFAULT_EMAIL,
+  )
+  const [devPassword, setDevPassword] = useState(() => getDevLoginCredentials()?.password || "")
 
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
-  const passwordLoginEnabled = isPasswordLoginEnabled();
+  const passwordLoginEnabled = isPasswordLoginEnabled()
 
   // Post-login return target (e.g. an OAuth consent screen). Same-origin only.
   const nextPath = (() => {
-    const raw = new URLSearchParams(window.location.search).get('next');
-    if (!raw) return null;
-    if (!raw.startsWith('/') || raw.startsWith('//')) return null;
-    return raw;
-  })();
+    const raw = new URLSearchParams(window.location.search).get("next")
+    if (!raw) return null
+    if (!raw.startsWith("/") || raw.startsWith("//")) return null
+    return raw
+  })()
 
   const authRedirectTo = `${window.location.origin}/auth${
-    nextPath ? `?next=${encodeURIComponent(nextPath)}` : ''
-  }`;
+    nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""
+  }`
 
-  const errorKey = new URLSearchParams(window.location.search).get('error');
-  const errorDetail = errorKey ? ERROR_MESSAGES[errorKey] : undefined;
+  const errorKey = new URLSearchParams(window.location.search).get("error")
+  const errorDetail = errorKey ? ERROR_MESSAGES[errorKey] : undefined
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('type') === 'recovery') {
-      setIsRecoveryMode(true);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    if (hashParams.get("type") === "recovery") {
+      setIsRecoveryMode(true)
     }
-  }, []);
+  }, [])
 
   // Re-surface a duplicate-account fix path in the console after redirect.
   useEffect(() => {
-    if (errorKey !== 'duplicate_email') return;
-    console.groupCollapsed('[auth] login page: error=duplicate_email');
-    console.info(ERROR_MESSAGES.duplicate_email);
+    if (errorKey !== "duplicate_email") return
+    console.groupCollapsed("[auth] login page: error=duplicate_email")
+    console.info(ERROR_MESSAGES.duplicate_email)
     console.info(
-      'Diagnose (SQL editor): select * from public.admin_list_duplicate_auth_emails();\n' +
+      "Diagnose (SQL editor): select * from public.admin_list_duplicate_auth_emails();\n" +
         'Merge via admin-cleanup-users edge fn: POST {"action":"merge","from":"<dup>","to":"<canonical>"}\n' +
-        'See docs/sso/navio-auth-setup.md → Duplicate accounts.'
-    );
-    console.groupEnd();
-  }, [errorKey]);
+        "See docs/sso/navio-auth-setup.md → Duplicate accounts.",
+    )
+    console.groupEnd()
+  }, [errorKey])
 
   useEffect(() => {
-    if (window.location.hash.includes('access_token')) return; // let AuthContext process
+    if (window.location.hash.includes("access_token")) return // let AuthContext process
     if (user && !isRecoveryMode) {
-      navigate(nextPath || '/', { replace: true });
+      navigate(nextPath || "/", { replace: true })
     }
-  }, [user, navigate, isRecoveryMode, nextPath]);
+  }, [user, navigate, isRecoveryMode, nextPath])
 
   const cleanupAuthState = () => {
-    localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem("supabase.auth.token")
     Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
+      if (key.startsWith("supabase.auth.") || key.includes("sb-")) {
+        localStorage.removeItem(key)
       }
-    });
-  };
+    })
+  }
 
   // Kick off an OAuth redirect. We drive the browser navigation ourselves
   // (skipBrowserRedirect) so failures surface as an error alert instead of a
   // silent no-op (the SDK's implicit redirect swallows errors).
   const startOAuth = async (
-    provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider'],
+    provider: Parameters<typeof supabase.auth.signInWithOAuth>[0]["provider"],
     label: string,
-    extraOptions?: Parameters<typeof supabase.auth.signInWithOAuth>[0]['options']
+    extraOptions?: Parameters<typeof supabase.auth.signInWithOAuth>[0]["options"],
   ) => {
-    setLoading(true);
-    setError('');
-    logger.info(`Initiating ${label} OAuth`, { redirectTo: authRedirectTo, provider }, 'Auth');
+    setLoading(true)
+    setError("")
+    logger.info(`Initiating ${label} OAuth`, { redirectTo: authRedirectTo, provider }, "Auth")
     try {
-      cleanupAuthState();
+      cleanupAuthState()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: authRedirectTo, skipBrowserRedirect: true, ...extraOptions },
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (!data?.url) {
         throw new Error(
-          `Could not start ${label} sign-in (no redirect URL). Ensure the provider is configured in Supabase.`
-        );
+          `Could not start ${label} sign-in (no redirect URL). Ensure the provider is configured in Supabase.`,
+        )
       }
-      window.location.assign(data.url);
+      window.location.assign(data.url)
     } catch (err: any) {
-      logger.error(`${label} sign in failed`, { error: err?.message }, 'Auth');
-      setError(err?.message || `An error occurred during ${label} sign in.`);
-      setLoading(false);
+      logger.error(`${label} sign in failed`, { error: err?.message }, "Auth")
+      setError(err?.message || `An error occurred during ${label} sign in.`)
+      setLoading(false)
     }
-  };
+  }
 
   const handleGoogleSignIn = () =>
-    startOAuth('google', 'Google', {
-      queryParams: { access_type: 'offline', prompt: 'consent' },
-    });
+    startOAuth("google", "Google", {
+      queryParams: { access_type: "offline", prompt: "consent" },
+    })
 
   // "Sign in with Navio" — product IdP (auth.noddi.co/o) via @navio/nidp.
   // Data scope comes from navio SO/SD membership claims. See docs/sso/navio-auth-setup.md.
   const handleNavioSignIn = async () => {
-    setLoading(true);
-    setError('');
-    logger.info('Initiating Navio OAuth', { redirectTo: authRedirectTo }, 'Auth');
+    setLoading(true)
+    setError("")
+    logger.info("Initiating Navio OAuth", { redirectTo: authRedirectTo }, "Auth")
     try {
-      cleanupAuthState();
+      cleanupAuthState()
       const { data, error } = await signInWithNavio(supabase, authRedirectTo, {
         skipBrowserRedirect: true,
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (!data?.url) {
         throw new Error(
-          'Could not start Navio sign-in (no redirect URL). Ensure custom:navio is configured in Supabase.'
-        );
+          "Could not start Navio sign-in (no redirect URL). Ensure custom:navio is configured in Supabase.",
+        )
       }
-      window.location.assign(data.url);
+      window.location.assign(data.url)
     } catch (err: any) {
-      logger.error('Navio sign in failed', { error: err?.message }, 'Auth');
-      setError(err?.message || 'An error occurred during Navio sign in.');
-      setLoading(false);
+      logger.error("Navio sign in failed", { error: err?.message }, "Auth")
+      setError(err?.message || "An error occurred during Navio sign in.")
+      setLoading(false)
     }
-  };
+  }
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError("")
     try {
-      cleanupAuthState();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      if (data.user) navigate(nextPath || '/', { replace: true });
+      cleanupAuthState()
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      if (data.user) navigate(nextPath || "/", { replace: true })
     } catch (err: any) {
-      setError(err.message || 'An error occurred during sign in');
+      setError(err.message || "An error occurred during sign in")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Dev-only: sign in as a real user (real JWT + RLS scope) with one click.
   const handleDevSignIn = async () => {
-    const creds = { email: devEmail.trim(), password: devPassword };
-    if (!creds.email || !creds.password) return;
-    setLoading(true);
-    setError('');
+    const creds = { email: devEmail.trim(), password: devPassword }
+    if (!creds.email || !creds.password) return
+    setLoading(true)
+    setError("")
     try {
-      cleanupAuthState();
-      disablePreviewBypass();
-      const { error } = await supabase.auth.signInWithPassword(creds);
-      if (error) throw error;
-      rememberDevLogin(creds.email, creds.password);
-      navigate(nextPath || '/', { replace: true });
+      cleanupAuthState()
+      disablePreviewBypass()
+      const { error } = await supabase.auth.signInWithPassword(creds)
+      if (error) throw error
+      rememberDevLogin(creds.email, creds.password)
+      navigate(nextPath || "/", { replace: true })
     } catch (err: any) {
-      setError(err?.message || 'Dev sign-in failed — check the email/password.');
+      setError(err?.message || "Dev sign-in failed — check the email/password.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
+  }
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccessMessage('');
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    setSuccessMessage("")
     try {
       if (!password || !confirmPassword) {
-        setError('Please fill in both password fields.');
-        setLoading(false);
-        return;
+        setError("Please fill in both password fields.")
+        setLoading(false)
+        return
       }
       if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        setLoading(false);
-        return;
+        setError("Passwords do not match.")
+        setLoading(false)
+        return
       }
       if (password.length < 8) {
-        setError('Password must be at least 8 characters long.');
-        setLoading(false);
-        return;
+        setError("Password must be at least 8 characters long.")
+        setLoading(false)
+        return
       }
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      setSuccessMessage('Password updated successfully! Redirecting to login...');
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) throw error
+      setSuccessMessage("Password updated successfully! Redirecting to login...")
       setTimeout(() => {
-        window.location.href = '/auth';
-      }, 2000);
+        window.location.href = "/auth"
+      }, 2000)
     } catch (err: any) {
-      setError(err.message || 'Failed to update password. Please try again.');
+      setError(err.message || "Failed to update password. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const pageShell = (children: React.ReactNode) => (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-background via-background to-muted">
@@ -270,7 +270,7 @@ export const Auth: React.FC = () => {
         {children}
       </Card>
     </div>
-  );
+  )
 
   // Password recovery view (only reachable via a recovery link).
   if (isRecoveryMode) {
@@ -278,9 +278,15 @@ export const Auth: React.FC = () => {
       <>
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto w-16 h-16">
-            <img src="/images/logo-support-hub.png" alt="Support Hub" className="w-full h-full object-contain" />
+            <img
+              src="/images/logo-support-hub.png"
+              alt="Support Hub"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <CardTitle as="h1" className="text-2xl font-bold">Reset your password</CardTitle>
+          <CardTitle as="h1" className="text-2xl font-bold">
+            Reset your password
+          </CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -329,19 +335,21 @@ export const Auth: React.FC = () => {
               </Alert>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Updating password…' : 'Update password'}
+              {loading ? "Updating password…" : "Update password"}
             </Button>
           </form>
         </CardContent>
-      </>
-    );
+      </>,
+    )
   }
 
   // Main sign-in view — Navio + Google only.
   return pageShell(
     <>
       <CardHeader className="text-center">
-        <CardTitle as="h1" className="text-2xl font-bold">Sign in to Support Hub</CardTitle>
+        <CardTitle as="h1" className="text-2xl font-bold">
+          Sign in to Support Hub
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -369,7 +377,7 @@ export const Auth: React.FC = () => {
           disabled={loading}
         >
           <span className="mr-2 text-base font-semibold">N</span>
-          {loading ? 'Redirecting…' : 'Sign in with Navio'}
+          {loading ? "Redirecting…" : "Sign in with Navio"}
         </Button>
 
         <Button
@@ -380,10 +388,22 @@ export const Auth: React.FC = () => {
           disabled={loading}
         >
           <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
           </svg>
           Sign in with Google
         </Button>
@@ -417,15 +437,15 @@ export const Auth: React.FC = () => {
                 onClick={handleDevSignIn}
                 disabled={loading || !devEmail || !devPassword}
               >
-                Sign in as {devEmail || 'test user'}
+                Sign in as {devEmail || "test user"}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-xs text-muted-foreground"
                 onClick={() => {
-                  forgetDevLogin();
-                  setDevPassword('');
+                  forgetDevLogin()
+                  setDevPassword("")
                 }}
               >
                 Forget
@@ -434,15 +454,14 @@ export const Auth: React.FC = () => {
           </div>
         )}
 
-
         {isDevPreview() && (
           <Button
             variant="ghost"
             size="sm"
             className="w-full text-xs text-muted-foreground"
             onClick={() => {
-              enablePreviewBypass();
-              navigate(nextPath || '/', { replace: true });
+              enablePreviewBypass()
+              navigate(nextPath || "/", { replace: true })
             }}
           >
             Skip sign-in (dev preview)
@@ -456,7 +475,6 @@ export const Auth: React.FC = () => {
           </Alert>
         )}
 
-
         {passwordLoginEnabled && (
           <>
             <div className="flex items-center gap-2">
@@ -466,7 +484,9 @@ export const Auth: React.FC = () => {
             </div>
             <form onSubmit={handlePasswordSignIn} className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm">Email</Label>
+                <Label htmlFor="email" className="text-sm">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -479,7 +499,9 @@ export const Auth: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm">Password</Label>
+                <Label htmlFor="password" className="text-sm">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -492,12 +514,12 @@ export const Auth: React.FC = () => {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in'}
+                {loading ? "Signing in…" : "Sign in"}
               </Button>
             </form>
           </>
         )}
       </CardContent>
-    </>
-  );
-};
+    </>,
+  )
+}

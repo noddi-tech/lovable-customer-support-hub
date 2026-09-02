@@ -1,336 +1,324 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
-import { useAuditLog } from './useAuditLog';
-import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuditLog } from "./useAuditLog"
+import { useAuth } from "./useAuth"
 
 export interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  logo_url: string | null;
-  primary_color: string;
-  sender_display_name: string | null;
-  metadata: Record<string, any>;
-  navio_organization_id?: number | null;
-  created_at: string;
-  updated_at: string;
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+  primary_color: string
+  sender_display_name: string | null
+  metadata: Record<string, any>
+  navio_organization_id?: number | null
+  created_at: string
+  updated_at: string
 }
 
 export function useOrganizations() {
-  const { isSuperAdmin, allowedLocalOrgIds, memberships } = useAuth();
-  const queryClient = useQueryClient();
-  const { logAction } = useAuditLog();
+  const { isSuperAdmin, allowedLocalOrgIds, memberships } = useAuth()
+  const queryClient = useQueryClient()
+  const { logAction } = useAuditLog()
 
   // Fetch organizations in membership / Navio scope (not the full table for everyone)
   const { data: organizations = [], isLoading } = useQuery({
-    queryKey: ['organizations', allowedLocalOrgIds, isSuperAdmin],
+    queryKey: ["organizations", allowedLocalOrgIds, isSuperAdmin],
     queryFn: async () => {
       const ids =
         allowedLocalOrgIds.length > 0
           ? allowedLocalOrgIds
-          : memberships.map((m) => m.organization_id);
+          : memberships.map((m) => m.organization_id)
 
-      let query = supabase.from('organizations').select('*').order('name');
+      let query = supabase.from("organizations").select("*").order("name")
 
       if (isSuperAdmin) {
         // Google employees / super_admin: full org list
       } else if (ids.length > 0) {
-        query = query.in('id', ids);
+        query = query.in("id", ids)
       } else {
-        return [] as Organization[];
+        return [] as Organization[]
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching organizations:', error);
-        throw error;
+        console.error("Error fetching organizations:", error)
+        throw error
       }
 
-      return data as Organization[];
+      return data as Organization[]
     },
     enabled: isSuperAdmin || memberships.length > 0 || allowedLocalOrgIds.length > 0,
-  });
+  })
 
   // Create organization (super admin only)
   const createOrganization = useMutation({
     mutationFn: async (orgData: {
-      name: string;
-      slug: string;
-      logo_url?: string;
-      primary_color?: string;
-      sender_display_name?: string;
+      name: string
+      slug: string
+      logo_url?: string
+      primary_color?: string
+      sender_display_name?: string
       /** Link to the Navio backend service organization this tenant mirrors. */
-      navio_organization_id?: number | null;
+      navio_organization_id?: number | null
     }) => {
       if (!isSuperAdmin) {
-        throw new Error('Only super admins can create organizations');
+        throw new Error("Only super admins can create organizations")
       }
 
       const { data, error } = await supabase
-        .from('organizations')
+        .from("organizations")
         .insert({
           ...orgData,
-          primary_color: orgData.primary_color || '#3B82F6',
+          primary_color: orgData.primary_color || "#3B82F6",
         })
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: async (data, variables) => {
       // Log audit action
       try {
         await logAction(
-          'org.create',
-          'organization',
+          "org.create",
+          "organization",
           data.id,
           data.name,
-          { 
+          {
             name: variables.name,
             slug: variables.slug,
             primary_color: variables.primary_color,
-            sender_display_name: variables.sender_display_name
+            sender_display_name: variables.sender_display_name,
           },
-          data.id
-        );
+          data.id,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      toast.success('Organization created successfully');
+      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      toast.success("Organization created successfully")
     },
     onError: (error) => {
-      console.error('Error creating organization:', error);
-      toast.error('Failed to create organization');
+      console.error("Error creating organization:", error)
+      toast.error("Failed to create organization")
     },
-  });
+  })
 
   // Update organization
   const updateOrganization = useMutation({
-    mutationFn: async ({ id, updates }: { 
-      id: string; 
-      updates: Partial<Organization> 
-    }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Organization> }) => {
       const { data, error } = await supabase
-        .from('organizations')
+        .from("organizations")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: async (data, variables) => {
       // Log audit action
       try {
         await logAction(
-          'org.update',
-          'organization',
+          "org.update",
+          "organization",
           variables.id,
           data.name,
           { updates: variables.updates },
-          variables.id
-        );
+          variables.id,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      toast.success('Organization updated successfully');
+      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      toast.success("Organization updated successfully")
     },
     onError: (error) => {
-      console.error('Error updating organization:', error);
-      toast.error('Failed to update organization');
+      console.error("Error updating organization:", error)
+      toast.error("Failed to update organization")
     },
-  });
+  })
 
   // Add user to organization (super admin only)
   const addUserToOrganization = useMutation({
     mutationFn: async ({
       userId,
       organizationId,
-      role = 'user',
+      role = "user",
     }: {
-      userId: string;
-      organizationId: string;
-      role?: 'admin' | 'agent' | 'user';
+      userId: string
+      organizationId: string
+      role?: "admin" | "agent" | "user"
     }) => {
       if (!isSuperAdmin) {
-        throw new Error('Only super admins can add users to organizations');
+        throw new Error("Only super admins can add users to organizations")
       }
 
       const { data, error } = await supabase
-        .from('organization_memberships')
+        .from("organization_memberships")
         .insert({
           user_id: userId,
           organization_id: organizationId,
           role,
-          status: 'active',
+          status: "active",
           is_default: false,
         })
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: async (data, variables) => {
       // Fetch user email and organization name for audit log
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', variables.userId)
-        .single();
+        .from("profiles")
+        .select("email")
+        .eq("user_id", variables.userId)
+        .single()
 
       const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', variables.organizationId)
-        .single();
+        .from("organizations")
+        .select("name")
+        .eq("id", variables.organizationId)
+        .single()
 
       // Log audit action
       try {
         await logAction(
-          'org.member.add',
-          'user',
+          "org.member.add",
+          "user",
           variables.userId,
           profile?.email || variables.userId,
-          { 
+          {
             organizationId: variables.organizationId,
             organizationName: org?.name,
-            role: variables.role 
+            role: variables.role,
           },
-          variables.organizationId
-        );
+          variables.organizationId,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
-      toast.success('User added to organization');
+      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      toast.success("User added to organization")
     },
     onError: (error) => {
-      console.error('Error adding user to organization:', error);
-      toast.error('Failed to add user to organization');
+      console.error("Error adding user to organization:", error)
+      toast.error("Failed to add user to organization")
     },
-  });
+  })
 
   // Remove user from organization (super admin only)
   const removeUserFromOrganization = useMutation({
-    mutationFn: async ({
-      userId,
-      organizationId,
-    }: {
-      userId: string;
-      organizationId: string;
-    }) => {
+    mutationFn: async ({ userId, organizationId }: { userId: string; organizationId: string }) => {
       if (!isSuperAdmin) {
-        throw new Error('Only super admins can remove users from organizations');
+        throw new Error("Only super admins can remove users from organizations")
       }
 
       // Fetch user email and org name before deletion
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('user_id', userId)
-        .single();
+        .from("profiles")
+        .select("email")
+        .eq("user_id", userId)
+        .single()
 
       const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
+        .from("organizations")
+        .select("name")
+        .eq("id", organizationId)
+        .single()
 
       const { error } = await supabase
-        .from('organization_memberships')
+        .from("organization_memberships")
         .delete()
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId);
+        .eq("user_id", userId)
+        .eq("organization_id", organizationId)
 
-      if (error) throw error;
+      if (error) throw error
 
-      return { userId, organizationId, userEmail: profile?.email, orgName: org?.name };
+      return { userId, organizationId, userEmail: profile?.email, orgName: org?.name }
     },
     onSuccess: async (data) => {
       // Log audit action
       try {
         await logAction(
-          'org.member.remove',
-          'user',
+          "org.member.remove",
+          "user",
           data.userId,
           data.userEmail || data.userId,
-          { 
+          {
             organizationId: data.organizationId,
             organizationName: data.orgName,
-            removed: true 
+            removed: true,
           },
-          data.organizationId
-        );
+          data.organizationId,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organization-memberships'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-members'] });
-      toast.success('User removed from organization');
+      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      queryClient.invalidateQueries({ queryKey: ["organization-members"] })
+      toast.success("User removed from organization")
     },
     onError: (error) => {
-      console.error('Error removing user from organization:', error);
-      toast.error('Failed to remove user from organization');
+      console.error("Error removing user from organization:", error)
+      toast.error("Failed to remove user from organization")
     },
-  });
+  })
 
   // Delete organization (super admin only)
   const deleteOrganization = useMutation({
     mutationFn: async (organizationId: string) => {
       if (!isSuperAdmin) {
-        throw new Error('Only super admins can delete organizations');
+        throw new Error("Only super admins can delete organizations")
       }
 
       // Fetch org name before deletion
       const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
+        .from("organizations")
+        .select("name")
+        .eq("id", organizationId)
+        .single()
 
-      const { error } = await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', organizationId);
+      const { error } = await supabase.from("organizations").delete().eq("id", organizationId)
 
-      if (error) throw error;
+      if (error) throw error
 
-      return { organizationId, orgName: org?.name };
+      return { organizationId, orgName: org?.name }
     },
     onSuccess: async (data) => {
       // Log audit action
       try {
         await logAction(
-          'org.delete',
-          'organization',
+          "org.delete",
+          "organization",
           data.organizationId,
           data.orgName || data.organizationId,
           { deleted: true },
-          data.organizationId
-        );
+          data.organizationId,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organizations'] });
-      toast.success('Organization deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      toast.success("Organization deleted successfully")
     },
     onError: (error) => {
-      console.error('Error deleting organization:', error);
-      toast.error('Failed to delete organization');
+      console.error("Error deleting organization:", error)
+      toast.error("Failed to delete organization")
     },
-  });
+  })
 
   return {
     organizations,
@@ -343,5 +331,5 @@ export function useOrganizations() {
     isCreating: createOrganization.isPending,
     isUpdating: updateOrganization.isPending,
     isDeleting: deleteOrganization.isPending,
-  };
+  }
 }

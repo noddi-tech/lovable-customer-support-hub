@@ -1,330 +1,331 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from "@tanstack/react-query"
+import type React from "react"
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 // Enhanced design system interface for card-based UI with strategic theming
 interface DesignSystem {
   colors: {
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    accent: string;
-    accentForeground: string;
-    background: string; // Clean content background (#F8F9FB)
-    foreground: string;
-    muted: string; // Strategic sidebar/header background (#F1F3F7)
-    mutedForeground: string;
-    card: string; // Pure white cards (#FFFFFF)
-    cardForeground: string;
-    border: string; // Subtle borders (#E6E8EE)
-    ring: string; // Brand purple for focus (#6656D9)
-    success: string;
-    successForeground: string;
-    warning: string;
-    warningForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-  };
+    primary: string
+    primaryForeground: string
+    secondary: string
+    secondaryForeground: string
+    accent: string
+    accentForeground: string
+    background: string // Clean content background (#F8F9FB)
+    foreground: string
+    muted: string // Strategic sidebar/header background (#F1F3F7)
+    mutedForeground: string
+    card: string // Pure white cards (#FFFFFF)
+    cardForeground: string
+    border: string // Subtle borders (#E6E8EE)
+    ring: string // Brand purple for focus (#6656D9)
+    success: string
+    successForeground: string
+    warning: string
+    warningForeground: string
+    destructive: string
+    destructiveForeground: string
+  }
   typography: {
-    fontFamily: string;
+    fontFamily: string
     fontSize: {
-      xs: string;
-      sm: string;
-      base: string;
-      lg: string;
-      xl: string;
-      '2xl': string;
-      '3xl': string;
-    };
+      xs: string
+      sm: string
+      base: string
+      lg: string
+      xl: string
+      "2xl": string
+      "3xl": string
+    }
     fontWeight: {
-      normal: string;
-      medium: string;
-      semibold: string;
-      bold: string;
-    };
+      normal: string
+      medium: string
+      semibold: string
+      bold: string
+    }
     lineHeight: {
-      tight: string;
-      normal: string;
-      relaxed: string;
-    };
-  };
+      tight: string
+      normal: string
+      relaxed: string
+    }
+  }
   spacing: {
-    baseUnit: number;
-    xs: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    '2xl': string;
-  };
+    baseUnit: number
+    xs: string
+    sm: string
+    md: string
+    lg: string
+    xl: string
+    "2xl": string
+  }
   borderRadius: {
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-  };
+    sm: string
+    md: string
+    lg: string
+    xl: string
+  }
   shadows: {
-    sm: string;
-    md: string;
-    lg: string;
-    glow: string;
-  };
+    sm: string
+    md: string
+    lg: string
+    glow: string
+  }
   gradients: {
-    primary: string;
-    surface: string;
-  };
+    primary: string
+    surface: string
+  }
   components: {
     buttons: {
-      defaultVariant: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-      defaultSize: 'default' | 'sm' | 'lg' | 'icon';
-      borderRadius: string;
-      primaryColor: keyof DesignSystem['colors'];
-      secondaryColor: keyof DesignSystem['colors'];
-    };
+      defaultVariant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+      defaultSize: "default" | "sm" | "lg" | "icon"
+      borderRadius: string
+      primaryColor: keyof DesignSystem["colors"]
+      secondaryColor: keyof DesignSystem["colors"]
+    }
     cards: {
-      defaultVariant: 'default' | 'outline' | 'elevated';
-      borderRadius: string;
-      shadow: 'none' | 'sm' | 'md' | 'lg';
-      backgroundColor: keyof DesignSystem['colors'];
-      borderColor: keyof DesignSystem['colors'];
-    };
+      defaultVariant: "default" | "outline" | "elevated"
+      borderRadius: string
+      shadow: "none" | "sm" | "md" | "lg"
+      backgroundColor: keyof DesignSystem["colors"]
+      borderColor: keyof DesignSystem["colors"]
+    }
     badges: {
-      defaultVariant: 'default' | 'secondary' | 'destructive' | 'outline';
-      primaryColor: keyof DesignSystem['colors'];
-      secondaryColor: keyof DesignSystem['colors'];
-      borderRadius: string;
-    };
+      defaultVariant: "default" | "secondary" | "destructive" | "outline"
+      primaryColor: keyof DesignSystem["colors"]
+      secondaryColor: keyof DesignSystem["colors"]
+      borderRadius: string
+    }
     alerts: {
-      borderRadius: string;
-      defaultVariant: 'default' | 'destructive';
-      showIcon: boolean;
-    };
+      borderRadius: string
+      defaultVariant: "default" | "destructive"
+      showIcon: boolean
+    }
     avatars: {
-      defaultSize: 'sm' | 'md' | 'lg';
-      borderRadius: string;
-      borderWidth: string;
-      borderColor: keyof DesignSystem['colors'];
-    };
+      defaultSize: "sm" | "md" | "lg"
+      borderRadius: string
+      borderWidth: string
+      borderColor: keyof DesignSystem["colors"]
+    }
     icons: {
-      defaultSize: 'sm' | 'md' | 'lg';
-      strokeWidth: number;
-      primaryColor: keyof DesignSystem['colors'];
-    };
+      defaultSize: "sm" | "md" | "lg"
+      strokeWidth: number
+      primaryColor: keyof DesignSystem["colors"]
+    }
     headings: {
-      colorToken: keyof DesignSystem['colors'];
-      style: 'solid' | 'gradient';
-      h1Size: string;
-      h2Size: string;
-      h3Size: string;
-      fontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
-    };
+      colorToken: keyof DesignSystem["colors"]
+      style: "solid" | "gradient"
+      h1Size: string
+      h2Size: string
+      h3Size: string
+      fontWeight: "normal" | "medium" | "semibold" | "bold"
+    }
     typography: {
-      autoContrast: boolean;
-      lightBackgroundTextColor: keyof DesignSystem['colors'];
-      darkBackgroundTextColor: keyof DesignSystem['colors'];
-      primaryBackgroundTextColor: keyof DesignSystem['colors'];
-      secondaryBackgroundTextColor: keyof DesignSystem['colors'];
-      warningBackgroundTextColor: keyof DesignSystem['colors'];
-      contrastThreshold: number;
-    };
-  };
+      autoContrast: boolean
+      lightBackgroundTextColor: keyof DesignSystem["colors"]
+      darkBackgroundTextColor: keyof DesignSystem["colors"]
+      primaryBackgroundTextColor: keyof DesignSystem["colors"]
+      secondaryBackgroundTextColor: keyof DesignSystem["colors"]
+      warningBackgroundTextColor: keyof DesignSystem["colors"]
+      contrastThreshold: number
+    }
+  }
 }
 
 // Default design system values
 const defaultDesignSystem: DesignSystem = {
   colors: {
     // Noddi design language (storybook.noddi.co) — darkPurple brand
-    primary: '268 62% 22%', // darkPurple #35155a
-    primaryForeground: '0 0% 100%',
-    secondary: '255 29% 97%', // darkPurpleGrey #f7f6fa
-    secondaryForeground: '268 62% 22%',
-    accent: '264 45% 96%', // purpleBg #f3eff9
-    accentForeground: '268 62% 22%',
-    background: '0 0% 100%',
-    foreground: '0 0% 4%', // #0a0a0a
-    muted: '255 29% 97%', // #f7f6fa
-    mutedForeground: '270 1% 49%', // grey #7c7b7d
-    card: '0 0% 100%',
-    cardForeground: '0 0% 4%',
-    border: '210 6% 93%', // outlineStroke #edeeef
-    ring: '268 62% 22%',
-    success: '164 76% 30%', // #128667
-    successForeground: '0 0% 100%',
-    warning: '40 99% 42%', // #d78e01
-    warningForeground: '0 0% 100%',
-    destructive: '4 79% 60%', // #ea5147
-    destructiveForeground: '0 0% 100%',
+    primary: "268 62% 22%", // darkPurple #35155a
+    primaryForeground: "0 0% 100%",
+    secondary: "255 29% 97%", // darkPurpleGrey #f7f6fa
+    secondaryForeground: "268 62% 22%",
+    accent: "264 45% 96%", // purpleBg #f3eff9
+    accentForeground: "268 62% 22%",
+    background: "0 0% 100%",
+    foreground: "0 0% 4%", // #0a0a0a
+    muted: "255 29% 97%", // #f7f6fa
+    mutedForeground: "270 1% 49%", // grey #7c7b7d
+    card: "0 0% 100%",
+    cardForeground: "0 0% 4%",
+    border: "210 6% 93%", // outlineStroke #edeeef
+    ring: "268 62% 22%",
+    success: "164 76% 30%", // #128667
+    successForeground: "0 0% 100%",
+    warning: "40 99% 42%", // #d78e01
+    warningForeground: "0 0% 100%",
+    destructive: "4 79% 60%", // #ea5147
+    destructiveForeground: "0 0% 100%",
   },
   typography: {
-    fontFamily: 'Inter, system-ui, sans-serif',
+    fontFamily: "Inter, system-ui, sans-serif",
     fontSize: {
-      xs: '0.75rem',
-      sm: '0.875rem',
-      base: '1rem',
-      lg: '1.125rem',
-      xl: '1.25rem',
-      '2xl': '1.5rem',
-      '3xl': '1.875rem',
+      xs: "0.75rem",
+      sm: "0.875rem",
+      base: "1rem",
+      lg: "1.125rem",
+      xl: "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
     },
     fontWeight: {
-      normal: '400',
-      medium: '500',
-      semibold: '600',
-      bold: '700',
+      normal: "400",
+      medium: "500",
+      semibold: "600",
+      bold: "700",
     },
     lineHeight: {
-      tight: '1.25',
-      normal: '1.5',
-      relaxed: '1.75',
+      tight: "1.25",
+      normal: "1.5",
+      relaxed: "1.75",
     },
   },
   spacing: {
     baseUnit: 4,
-    xs: '0.25rem',
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-    xl: '2rem',
-    '2xl': '3rem',
+    xs: "0.25rem",
+    sm: "0.5rem",
+    md: "1rem",
+    lg: "1.5rem",
+    xl: "2rem",
+    "2xl": "3rem",
   },
   borderRadius: {
-    sm: '0.375rem',
-    md: '0.5rem',
-    lg: '0.75rem',
-    xl: '1rem',
+    sm: "0.375rem",
+    md: "0.5rem",
+    lg: "0.75rem",
+    xl: "1rem",
   },
   shadows: {
-    sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    md: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
-    lg: '0 8px 24px -12px rgb(53 21 90 / 0.25)',
-    glow: '0 0 0 3px hsl(268 62% 22% / 0.1)',
+    sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+    md: "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.05)",
+    lg: "0 8px 24px -12px rgb(53 21 90 / 0.25)",
+    glow: "0 0 0 3px hsl(268 62% 22% / 0.1)",
   },
   gradients: {
-    primary: 'linear-gradient(135deg, hsl(268 62% 22%), hsl(263 44% 57%))',
-    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(255 29% 97%))',
+    primary: "linear-gradient(135deg, hsl(268 62% 22%), hsl(263 44% 57%))",
+    surface: "linear-gradient(135deg, hsl(0 0% 100%), hsl(255 29% 97%))",
   },
   components: {
     buttons: {
-      defaultVariant: 'default',
-      defaultSize: 'default',
-      borderRadius: '0.5rem',
-      primaryColor: 'primary',
-      secondaryColor: 'secondary',
+      defaultVariant: "default",
+      defaultSize: "default",
+      borderRadius: "0.5rem",
+      primaryColor: "primary",
+      secondaryColor: "secondary",
     },
     cards: {
-      defaultVariant: 'default',
-      borderRadius: '0.75rem',
-      shadow: 'sm',
-      backgroundColor: 'card',
-      borderColor: 'border',
+      defaultVariant: "default",
+      borderRadius: "0.75rem",
+      shadow: "sm",
+      backgroundColor: "card",
+      borderColor: "border",
     },
     badges: {
-      defaultVariant: 'default',
-      primaryColor: 'primary',
-      secondaryColor: 'secondary',
-      borderRadius: '0.375rem',
+      defaultVariant: "default",
+      primaryColor: "primary",
+      secondaryColor: "secondary",
+      borderRadius: "0.375rem",
     },
     alerts: {
-      borderRadius: '0.5rem',
-      defaultVariant: 'default',
+      borderRadius: "0.5rem",
+      defaultVariant: "default",
       showIcon: true,
     },
     avatars: {
-      defaultSize: 'md',
-      borderRadius: '50%',
-      borderWidth: '2px',
-      borderColor: 'border',
+      defaultSize: "md",
+      borderRadius: "50%",
+      borderWidth: "2px",
+      borderColor: "border",
     },
     icons: {
-      defaultSize: 'md',
+      defaultSize: "md",
       strokeWidth: 2,
-      primaryColor: 'foreground',
+      primaryColor: "foreground",
     },
     headings: {
-      colorToken: 'primary',
-      style: 'gradient',
-      h1Size: '2.25rem',
-      h2Size: '1.875rem',
-      h3Size: '1.5rem',
-      fontWeight: 'bold',
+      colorToken: "primary",
+      style: "gradient",
+      h1Size: "2.25rem",
+      h2Size: "1.875rem",
+      h3Size: "1.5rem",
+      fontWeight: "bold",
     },
     typography: {
       autoContrast: true,
-      lightBackgroundTextColor: 'foreground',
-      darkBackgroundTextColor: 'primaryForeground',
-      primaryBackgroundTextColor: 'primaryForeground',
-      secondaryBackgroundTextColor: 'secondaryForeground',
-      warningBackgroundTextColor: 'foreground',
+      lightBackgroundTextColor: "foreground",
+      darkBackgroundTextColor: "primaryForeground",
+      primaryBackgroundTextColor: "primaryForeground",
+      secondaryBackgroundTextColor: "secondaryForeground",
+      warningBackgroundTextColor: "foreground",
       contrastThreshold: 4.5,
     },
   },
-};
-
-interface DesignSystemContextType {
-  designSystem: DesignSystem;
-  updateDesignSystem: (updates: Partial<DesignSystem>) => void;
-  saveDesignSystem: () => Promise<void>;
-  isLoading: boolean;
-  applyToDocument: () => void;
-  organizationId: string | null;
 }
 
-const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined);
+interface DesignSystemContextType {
+  designSystem: DesignSystem
+  updateDesignSystem: (updates: Partial<DesignSystem>) => void
+  saveDesignSystem: () => Promise<void>
+  isLoading: boolean
+  applyToDocument: () => void
+  organizationId: string | null
+}
+
+const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined)
 
 export const useDesignSystem = () => {
-  const context = useContext(DesignSystemContext);
+  const context = useContext(DesignSystemContext)
   if (context === undefined) {
-    throw new Error('useDesignSystem must be used within a DesignSystemProvider');
+    throw new Error("useDesignSystem must be used within a DesignSystemProvider")
   }
-  return context;
-};
+  return context
+}
 
 interface DesignSystemProviderProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
-  const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem);
+  const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem)
 
   // Get user's organization ID from auth context - handle case when auth isn't ready
-  let profile = null;
-  let loading = true;
-  
+  let profile = null
+  let loading = true
+
   try {
-    const authResult = useAuth();
-    profile = authResult.profile;
-    loading = authResult.loading;
+    const authResult = useAuth()
+    profile = authResult.profile
+    loading = authResult.loading
   } catch (error) {
     // Auth context not available yet, use defaults
-    console.log('Auth context not available, using default design system');
+    console.log("Auth context not available, using default design system")
   }
 
   // Fetch organization-specific design system from database
   const { data: organizationData, isLoading } = useQuery({
-    queryKey: ['organization-design-system', profile?.organization_id],
+    queryKey: ["organization-design-system", profile?.organization_id],
     queryFn: async () => {
-      if (!profile?.organization_id) return null;
-      
+      if (!profile?.organization_id) return null
+
       const { data, error } = await supabase
-        .from('organizations')
-        .select('metadata')
-        .eq('id', profile.organization_id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+        .from("organizations")
+        .select("metadata")
+        .eq("id", profile.organization_id)
+        .single()
+
+      if (error) throw error
+      return data
     },
     enabled: !!profile?.organization_id && !loading,
-  });
+  })
 
   // Update design system when database data changes
   useEffect(() => {
-    if (organizationData?.metadata && typeof organizationData.metadata === 'object') {
-      const metadata = organizationData.metadata as any;
+    if (organizationData?.metadata && typeof organizationData.metadata === "object") {
+      const metadata = organizationData.metadata as any
       if (metadata.designSystem) {
-        setDesignSystem(prev => {
+        setDesignSystem((prev) => {
           // Deep merge to ensure all new properties have defaults
           const merged = {
             ...prev,
@@ -351,146 +352,151 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
                 ...metadata.designSystem.components?.headings,
               },
             },
-          };
+          }
           // Force pure white backgrounds regardless of DB values
-          merged.colors.background = '0 0% 100%';
-          merged.colors.card = '0 0% 100%';
-          return merged;
-        });
+          merged.colors.background = "0 0% 100%"
+          merged.colors.card = "0 0% 100%"
+          return merged
+        })
       }
     }
-  }, [organizationData]);
+  }, [organizationData])
 
   // Apply design system to document
   const applyToDocument = () => {
-    const root = document.documentElement;
-    
+    const root = document.documentElement
+
     // Helper function to calculate luminance from HSL
     const getLuminanceFromHSL = (hslValue: string) => {
-      const [h, s, l] = hslValue.split(' ').map(val => parseFloat(val.replace('%', '')));
-      const lightness = l / 100;
-      return lightness;
-    };
-    
+      const [h, s, l] = hslValue.split(" ").map((val) => parseFloat(val.replace("%", "")))
+      const lightness = l / 100
+      return lightness
+    }
+
     // Helper function to ensure proper contrast
     const ensureContrast = (backgroundHSL: string, foregroundHSL: string) => {
-      const bgLuminance = getLuminanceFromHSL(backgroundHSL);
-      const fgLuminance = getLuminanceFromHSL(foregroundHSL);
-      
+      const bgLuminance = getLuminanceFromHSL(backgroundHSL)
+      const fgLuminance = getLuminanceFromHSL(foregroundHSL)
+
       // If contrast is poor, adjust foreground
-      const ratio = Math.max(bgLuminance, fgLuminance) / Math.min(bgLuminance, fgLuminance);
-      if (ratio < 4.5) { // WCAG AA standard
+      const ratio = Math.max(bgLuminance, fgLuminance) / Math.min(bgLuminance, fgLuminance)
+      if (ratio < 4.5) {
+        // WCAG AA standard
         // If background is light, use dark foreground; if dark, use light foreground
-        return bgLuminance > 0.5 ? '224 71% 4%' : '0 0% 98%';
+        return bgLuminance > 0.5 ? "224 71% 4%" : "0 0% 98%"
       }
-      return foregroundHSL;
-    };
-    
+      return foregroundHSL
+    }
+
     // Apply colors with proper CSS variable mapping and contrast checking
     Object.entries(designSystem.colors).forEach(([key, value]) => {
-      const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      const cssVar = `--${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`
       // Set the HSL value directly without modification
-      root.style.setProperty(cssVar, value);
-      
+      root.style.setProperty(cssVar, value)
+
       // Auto-generate proper foreground colors for backgrounds
-      if (!key.includes('Foreground') && !key.includes('foreground')) {
-        const foregroundKey = `${key}Foreground`;
-        const foregroundCssVar = `--${foregroundKey.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-        
+      if (!key.includes("Foreground") && !key.includes("foreground")) {
+        const foregroundKey = `${key}Foreground`
+        const foregroundCssVar = `--${foregroundKey.replace(/([A-Z])/g, "-$1").toLowerCase()}`
+
         // Check if we have a corresponding foreground color defined
         if (designSystem.colors[foregroundKey as keyof typeof designSystem.colors]) {
-          const foregroundValue = designSystem.colors[foregroundKey as keyof typeof designSystem.colors];
-          const adjustedForeground = ensureContrast(value, foregroundValue);
-          root.style.setProperty(foregroundCssVar, adjustedForeground);
+          const foregroundValue =
+            designSystem.colors[foregroundKey as keyof typeof designSystem.colors]
+          const adjustedForeground = ensureContrast(value, foregroundValue)
+          root.style.setProperty(foregroundCssVar, adjustedForeground)
         } else {
           // Auto-generate foreground color for good contrast
-          const autoForeground = ensureContrast(value, '224 71% 4%'); // Default dark text
-          root.style.setProperty(foregroundCssVar, autoForeground);
+          const autoForeground = ensureContrast(value, "224 71% 4%") // Default dark text
+          root.style.setProperty(foregroundCssVar, autoForeground)
         }
       }
-    });
+    })
 
     // Apply typography
-    root.style.setProperty('--font-family', designSystem.typography.fontFamily);
+    root.style.setProperty("--font-family", designSystem.typography.fontFamily)
     Object.entries(designSystem.typography.fontSize).forEach(([key, value]) => {
-      root.style.setProperty(`--font-size-${key}`, value);
-    });
+      root.style.setProperty(`--font-size-${key}`, value)
+    })
 
     // Apply spacing
     Object.entries(designSystem.spacing).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        root.style.setProperty(`--space-${key}`, value);
+      if (typeof value === "string") {
+        root.style.setProperty(`--space-${key}`, value)
       }
-    });
+    })
 
     // Apply border radius
     Object.entries(designSystem.borderRadius).forEach(([key, value]) => {
-      root.style.setProperty(`--radius-${key}`, value);
-    });
+      root.style.setProperty(`--radius-${key}`, value)
+    })
 
     // Apply shadows
     Object.entries(designSystem.shadows).forEach(([key, value]) => {
-      root.style.setProperty(`--shadow-${key}`, value);
-    });
+      root.style.setProperty(`--shadow-${key}`, value)
+    })
 
     // Apply gradients
     Object.entries(designSystem.gradients).forEach(([key, value]) => {
-      root.style.setProperty(`--gradient-${key}`, value);
-    });
+      root.style.setProperty(`--gradient-${key}`, value)
+    })
 
     // Apply component-specific styles
     Object.entries(designSystem.components.buttons).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        root.style.setProperty(`--button-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+      if (typeof value === "string") {
+        root.style.setProperty(`--button-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`, value)
       }
-    });
+    })
 
     Object.entries(designSystem.components.cards).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        root.style.setProperty(`--card-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value);
+      if (typeof value === "string") {
+        root.style.setProperty(`--card-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`, value)
       }
-    });
+    })
 
     // Apply heading styles
-    const headingColorValue = designSystem.colors[designSystem.components.headings.colorToken];
-    root.style.setProperty('--heading-color', headingColorValue);
-    root.style.setProperty('--heading-h1-size', designSystem.components.headings.h1Size);
-    root.style.setProperty('--heading-h2-size', designSystem.components.headings.h2Size);
-    root.style.setProperty('--heading-h3-size', designSystem.components.headings.h3Size);
-    root.style.setProperty('--heading-font-weight', designSystem.typography.fontWeight[designSystem.components.headings.fontWeight]);
-    root.style.setProperty('--heading-style', designSystem.components.headings.style);
-  };
+    const headingColorValue = designSystem.colors[designSystem.components.headings.colorToken]
+    root.style.setProperty("--heading-color", headingColorValue)
+    root.style.setProperty("--heading-h1-size", designSystem.components.headings.h1Size)
+    root.style.setProperty("--heading-h2-size", designSystem.components.headings.h2Size)
+    root.style.setProperty("--heading-h3-size", designSystem.components.headings.h3Size)
+    root.style.setProperty(
+      "--heading-font-weight",
+      designSystem.typography.fontWeight[designSystem.components.headings.fontWeight],
+    )
+    root.style.setProperty("--heading-style", designSystem.components.headings.style)
+  }
 
   // Apply design system whenever it changes
   useEffect(() => {
-    applyToDocument();
-  }, [designSystem]);
+    applyToDocument()
+  }, [applyToDocument])
 
   // Set up real-time updates for design system changes
   useEffect(() => {
-    if (!profile?.organization_id || loading) return;
+    if (!profile?.organization_id || loading) return
 
     const channel = supabase
-      .channel('design-system-changes')
+      .channel("design-system-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'organizations',
+          event: "UPDATE",
+          schema: "public",
+          table: "organizations",
           filter: `id=eq.${profile.organization_id}`,
         },
         (payload) => {
-          const newData = payload.new as any;
-          if (newData.metadata && newData.metadata.designSystem) {
-            setDesignSystem(prev => ({
+          const newData = payload.new as any
+          if (newData.metadata?.designSystem) {
+            setDesignSystem((prev) => ({
               ...prev,
               ...newData.metadata.designSystem,
               colors: {
                 ...prev.colors,
                 ...newData.metadata.designSystem.colors,
-                background: '0 0% 100%',
-                card: '0 0% 100%',
+                background: "0 0% 100%",
+                card: "0 0% 100%",
               },
               typography: {
                 ...prev.typography,
@@ -508,40 +514,40 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
                   ...newData.metadata.designSystem.components?.headings,
                 },
               },
-            }));
+            }))
           }
-        }
+        },
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile?.organization_id]);
+      supabase.removeChannel(channel)
+    }
+  }, [profile?.organization_id, loading])
 
   const updateDesignSystem = (updates: Partial<DesignSystem>) => {
-    setDesignSystem(prev => ({
+    setDesignSystem((prev) => ({
       ...prev,
       ...updates,
-    }));
-  };
+    }))
+  }
 
   const saveDesignSystem = async () => {
     if (!profile?.organization_id) {
-      throw new Error('No organization ID available');
+      throw new Error("No organization ID available")
     }
 
     const { error } = await supabase
-      .from('organizations')
-      .update({ 
-        metadata: { designSystem } as any
+      .from("organizations")
+      .update({
+        metadata: { designSystem } as any,
       })
-      .eq('id', profile.organization_id);
+      .eq("id", profile.organization_id)
 
     if (error) {
-      throw error;
+      throw error
     }
-  };
+  }
 
   const value: DesignSystemContextType = {
     designSystem,
@@ -550,11 +556,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
     isLoading,
     applyToDocument,
     organizationId: profile?.organization_id || null,
-  };
+  }
 
-  return (
-    <DesignSystemContext.Provider value={value}>
-      {children}
-    </DesignSystemContext.Provider>
-  );
-};
+  return <DesignSystemContext.Provider value={value}>{children}</DesignSystemContext.Provider>
+}

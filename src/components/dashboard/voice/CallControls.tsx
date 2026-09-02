@@ -1,14 +1,25 @@
 /**
  * Call Controls Component
- * 
+ *
  * Enhanced call control buttons with agent transfer selector
  * Supports both compact and full variants
- * 
+ *
  * IMPORTANT: Transfer uses profiles.id (ProfileId), not user_id
  */
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import {
+  Loader2,
+  Pause,
+  PhoneForwarded,
+  PhoneOff,
+  Play,
+  User,
+  Volume2,
+  VolumeX,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,22 +27,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Volume2, VolumeX, Pause, Play, PhoneOff, PhoneForwarded, Loader2, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { useAgents } from '@/hooks/useAgents';
+} from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
+import { useAgents } from "@/hooks/useAgents"
+import { cn } from "@/lib/utils"
 
 interface CallControlsProps {
-  onMute?: () => void;
-  onHold?: () => void;
+  onMute?: () => void
+  onHold?: () => void
   /** Callback with ProfileId when call is transferred */
-  onTransfer?: (agentId: string) => void;
-  onHangUp?: () => void;
-  isMuted?: boolean;
-  isOnHold?: boolean;
-  variant?: 'compact' | 'full';
-  className?: string;
+  onTransfer?: (agentId: string) => void
+  onHangUp?: () => void
+  isMuted?: boolean
+  isOnHold?: boolean
+  variant?: "compact" | "full"
+  className?: string
 }
 
 export const CallControls: React.FC<CallControlsProps> = ({
@@ -41,33 +51,33 @@ export const CallControls: React.FC<CallControlsProps> = ({
   onHangUp,
   isMuted = false,
   isOnHold = false,
-  variant = 'full',
+  variant = "full",
   className,
 }) => {
-  const { toast } = useToast();
-  const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const isCompact = variant === 'compact';
+  const { toast } = useToast()
+  const [isTransferOpen, setIsTransferOpen] = useState(false)
+  const isCompact = variant === "compact"
 
   // Uses shared hook - only fetch when transfer dropdown is open
-  const { data: agents = [], isLoading: loadingAgents } = useAgents({ 
-    enabled: isTransferOpen 
-  });
-  
+  const { data: agents = [], isLoading: loadingAgents } = useAgents({
+    enabled: isTransferOpen,
+  })
+
   // Filter to only agents and admins for transfer
   const transferableAgents = agents.filter(
-    agent => agent.role === 'agent' || agent.role === 'admin'
-  );
+    (agent) => agent.role === "agent" || agent.role === "admin",
+  )
 
   const handleTransfer = (agentId: string, agentName: string) => {
     if (onTransfer) {
-      onTransfer(agentId); // This is profiles.id (ProfileId)
+      onTransfer(agentId) // This is profiles.id (ProfileId)
       toast({
-        title: 'Transfer initiated',
+        title: "Transfer initiated",
         description: `Transferring call to ${agentName}`,
-      });
+      })
     }
-    setIsTransferOpen(false);
-  };
+    setIsTransferOpen(false)
+  }
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -79,7 +89,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
           variant={isMuted ? "destructive" : "outline"}
           className={cn(
             "gap-2",
-            isMuted && "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
+            isMuted && "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20",
           )}
         >
           {isMuted ? (
@@ -122,11 +132,7 @@ export const CallControls: React.FC<CallControlsProps> = ({
       {onTransfer && (
         <DropdownMenu open={isTransferOpen} onOpenChange={setIsTransferOpen}>
           <DropdownMenuTrigger asChild>
-            <Button
-              size={isCompact ? "sm" : "default"}
-              variant="outline"
-              className="gap-2"
-            >
+            <Button size={isCompact ? "sm" : "default"} variant="outline" className="gap-2">
               <PhoneForwarded className={cn("h-4 w-4", isCompact && "h-3 w-3")} />
               {!isCompact && "Transfer"}
             </Button>
@@ -175,5 +181,5 @@ export const CallControls: React.FC<CallControlsProps> = ({
         </Button>
       )}
     </div>
-  );
-};
+  )
+}

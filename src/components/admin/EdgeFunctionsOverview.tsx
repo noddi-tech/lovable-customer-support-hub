@@ -1,55 +1,59 @@
-import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ExternalLink, Search, Lock, Globe, HelpCircle } from 'lucide-react';
-import { EDGE_FUNCTIONS, EDGE_FUNCTIONS_GENERATED_AT } from '@/data/edge-functions.generated';
+import { ExternalLink, Globe, HelpCircle, Lock, Search } from "lucide-react"
+import type React from "react"
+import { useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { EDGE_FUNCTIONS, EDGE_FUNCTIONS_GENERATED_AT } from "@/data/edge-functions.generated"
 
-const SUPABASE_PROJECT_REF = 'qgfaycwsangsqzpveoup';
+const SUPABASE_PROJECT_REF = "qgfaycwsangsqzpveoup"
 
-type AuthFilter = 'all' | 'protected' | 'public' | 'unset';
+type AuthFilter = "all" | "protected" | "public" | "unset"
 
 export const EdgeFunctionsOverview: React.FC = () => {
-  const [query, setQuery] = useState('');
-  const [authFilter, setAuthFilter] = useState<AuthFilter>('all');
+  const [query, setQuery] = useState("")
+  const [authFilter, setAuthFilter] = useState<AuthFilter>("all")
 
-  const counts = useMemo(() => ({
-    all: EDGE_FUNCTIONS.length,
-    protected: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === true).length,
-    public: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === false).length,
-    unset: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === null).length,
-  }), []);
+  const counts = useMemo(
+    () => ({
+      all: EDGE_FUNCTIONS.length,
+      protected: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === true).length,
+      public: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === false).length,
+      unset: EDGE_FUNCTIONS.filter((f) => f.verifyJwt === null).length,
+    }),
+    [],
+  )
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.trim().toLowerCase()
     return EDGE_FUNCTIONS.filter((fn) => {
-      if (authFilter === 'protected' && fn.verifyJwt !== true) return false;
-      if (authFilter === 'public' && fn.verifyJwt !== false) return false;
-      if (authFilter === 'unset' && fn.verifyJwt !== null) return false;
-      if (!q) return true;
+      if (authFilter === "protected" && fn.verifyJwt !== true) return false
+      if (authFilter === "public" && fn.verifyJwt !== false) return false
+      if (authFilter === "unset" && fn.verifyJwt !== null) return false
+      if (!q) return true
       return (
         fn.name.toLowerCase().includes(q) ||
         fn.description.toLowerCase().includes(q) ||
         fn.secrets.some((s) => s.toLowerCase().includes(q))
-      );
-    });
-  }, [query, authFilter]);
+      )
+    })
+  }, [query, authFilter])
 
   const filters: { key: AuthFilter; label: string }[] = [
-    { key: 'all', label: `All (${counts.all})` },
-    { key: 'protected', label: `JWT required (${counts.protected})` },
-    { key: 'public', label: `Public (${counts.public})` },
-    { key: 'unset', label: `Not configured (${counts.unset})` },
-  ];
+    { key: "all", label: `All (${counts.all})` },
+    { key: "protected", label: `JWT required (${counts.protected})` },
+    { key: "public", label: `Public (${counts.public})` },
+    { key: "unset", label: `Not configured (${counts.unset})` },
+  ]
 
   return (
     <Card className="bg-gradient-surface border-border/50 shadow-surface">
       <CardHeader>
         <CardTitle className="text-primary">Edge Functions</CardTitle>
         <CardDescription>
-          All {EDGE_FUNCTIONS.length} Supabase edge functions in this app, with their auth mode and the
-          secrets they read. Generated from the codebase on{' '}
+          All {EDGE_FUNCTIONS.length} Supabase edge functions in this app, with their auth mode and
+          the secrets they read. Generated from the codebase on{" "}
           {new Date(EDGE_FUNCTIONS_GENERATED_AT).toLocaleDateString()}.
         </CardDescription>
       </CardHeader>
@@ -69,7 +73,7 @@ export const EdgeFunctionsOverview: React.FC = () => {
               <Button
                 key={f.key}
                 size="sm"
-                variant={authFilter === f.key ? 'default' : 'outline'}
+                variant={authFilter === f.key ? "default" : "outline"}
                 onClick={() => setAuthFilter(f.key)}
               >
                 {f.label}
@@ -80,7 +84,10 @@ export const EdgeFunctionsOverview: React.FC = () => {
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((fn) => (
-            <div key={fn.name} className="rounded-lg border border-border/60 bg-background/40 p-3 space-y-2">
+            <div
+              key={fn.name}
+              className="rounded-lg border border-border/60 bg-background/40 p-3 space-y-2"
+            >
               <div className="flex items-start justify-between gap-2">
                 <code className="text-sm font-medium break-all">{fn.name}</code>
                 <a
@@ -139,5 +146,5 @@ export const EdgeFunctionsOverview: React.FC = () => {
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}

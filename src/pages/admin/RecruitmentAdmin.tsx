@@ -1,38 +1,58 @@
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Heading } from "@/components/ui/heading";
-import { useSearchParams } from "react-router-dom";
-import { Workflow, Mail, Zap, Link2, History, FormInput, Tag, Sparkles, ListChecks } from "lucide-react";
-import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor";
-import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab";
-import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab";
-import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integrations/IntegrationsTab";
-import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab";
-import { FieldsTab } from "@/components/dashboard/recruitment/admin/fields/FieldsTab";
-import { TagsTab } from "@/components/dashboard/recruitment/admin/tags/TagsTab";
-import { ScoringBaselinesTab } from "@/components/dashboard/recruitment/admin/scoring/ScoringBaselinesTab";
-import { StageFieldRequirementsTab } from "@/components/dashboard/recruitment/admin/scoring/StageFieldRequirementsTab";
-import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner";
-import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast";
+import {
+  FormInput,
+  History,
+  Link2,
+  ListChecks,
+  Mail,
+  Sparkles,
+  Tag,
+  Workflow,
+  Zap,
+} from "lucide-react"
+import { useSearchParams } from "react-router-dom"
+import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab"
+import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner"
+import { FieldsTab } from "@/components/dashboard/recruitment/admin/fields/FieldsTab"
+import { useExecutionRealtimeToast } from "@/components/dashboard/recruitment/admin/hooks/useExecutionRealtimeToast"
+import { IntegrationsTab } from "@/components/dashboard/recruitment/admin/integrations/IntegrationsTab"
+import { PipelineEditor } from "@/components/dashboard/recruitment/admin/pipeline/PipelineEditor"
+import { RulesTab } from "@/components/dashboard/recruitment/admin/rules/RulesTab"
+import { ScoringBaselinesTab } from "@/components/dashboard/recruitment/admin/scoring/ScoringBaselinesTab"
+import { StageFieldRequirementsTab } from "@/components/dashboard/recruitment/admin/scoring/StageFieldRequirementsTab"
+import { TagsTab } from "@/components/dashboard/recruitment/admin/tags/TagsTab"
+import { EmailTemplatesTab } from "@/components/dashboard/recruitment/admin/templates/EmailTemplatesTab"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const VALID_TABS = ["pipeline", "tags", "templates", "automation", "integrations", "fields", "scoring", "stage-fields", "audit"] as const;
+const VALID_TABS = [
+  "pipeline",
+  "tags",
+  "templates",
+  "automation",
+  "integrations",
+  "fields",
+  "scoring",
+  "stage-fields",
+  "audit",
+] as const
 
 export default function RecruitmentAdmin() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const activeTab = VALID_TABS.includes(tabParam as typeof VALID_TABS[number])
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get("tab")
+  const activeTab = VALID_TABS.includes(tabParam as (typeof VALID_TABS)[number])
     ? (tabParam as string)
-    : "pipeline";
+    : "pipeline"
 
-  useExecutionRealtimeToast();
+  useExecutionRealtimeToast()
 
   const handleTabChange = (value: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', value);
-    if (value !== 'automation') next.delete('subtab');
-    setSearchParams(next, { replace: true });
-  };
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", value)
+    if (value !== "automation") next.delete("subtab")
+    setSearchParams(next, { replace: true })
+  }
 
   return (
     <div className="space-y-6">
@@ -41,7 +61,8 @@ export default function RecruitmentAdmin() {
           Rekruttering
         </Heading>
         <p className="text-sm text-muted-foreground mt-1">
-          Konfigurer pipeline, e-postmaler, automatisering og integrasjoner for rekrutteringsmodulen.
+          Konfigurer pipeline, e-postmaler, automatisering og integrasjoner for
+          rekrutteringsmodulen.
         </p>
       </div>
 
@@ -116,7 +137,7 @@ export default function RecruitmentAdmin() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }
 
 function PlaceholderTab({ title, description }: { title: string; description: string }) {
@@ -137,5 +158,5 @@ function PlaceholderTab({ title, description }: { title: string; description: st
         </p>
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,27 +1,27 @@
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
 import {
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
-  RefreshCw,
-  Loader2,
-  KeyRound,
-  Webhook,
+  CheckCircle2,
   Inbox,
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import { useMetaIntegrationHealth } from '@/hooks/useMetaIntegrationHealth';
-import { useTestMetaConnection } from '@/hooks/useTestMetaConnection';
-import { useToast } from '@/hooks/use-toast';
-import type { MetaIntegration } from './types';
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  Webhook,
+  XCircle,
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
+import { useMetaIntegrationHealth } from "@/hooks/useMetaIntegrationHealth"
+import { useTestMetaConnection } from "@/hooks/useTestMetaConnection"
+import type { MetaIntegration } from "./types"
 
 interface Props {
-  integration: MetaIntegration;
-  onRefreshToken: () => void;
-  onReconnect?: () => void;
+  integration: MetaIntegration
+  onRefreshToken: () => void
+  onReconnect?: () => void
 }
 
 function StatusRow({
@@ -30,13 +30,13 @@ function StatusRow({
   detail,
   warn,
 }: {
-  ok: boolean;
-  label: string;
-  detail?: string | null;
-  warn?: boolean;
+  ok: boolean
+  label: string
+  detail?: string | null
+  warn?: boolean
 }) {
-  const Icon = ok ? CheckCircle2 : warn ? AlertTriangle : XCircle;
-  const cls = ok ? 'text-emerald-600' : warn ? 'text-amber-600' : 'text-destructive';
+  const Icon = ok ? CheckCircle2 : warn ? AlertTriangle : XCircle
+  const cls = ok ? "text-emerald-600" : warn ? "text-amber-600" : "text-destructive"
   return (
     <div className="flex items-start gap-2 text-sm">
       <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${cls}`} />
@@ -45,64 +45,70 @@ function StatusRow({
         {detail && <div className="text-xs text-muted-foreground">{detail}</div>}
       </div>
     </div>
-  );
+  )
 }
 
 function relative(dt: string | null | undefined): string {
-  if (!dt) return 'Aldri';
+  if (!dt) return "Aldri"
   try {
-    return formatDistanceToNow(new Date(dt), { addSuffix: true, locale: nb });
+    return formatDistanceToNow(new Date(dt), { addSuffix: true, locale: nb })
   } catch {
-    return 'Ukjent';
+    return "Ukjent"
   }
 }
 
-function overallBadge(status: 'healthy' | 'degraded' | 'broken' | undefined) {
+function overallBadge(status: "healthy" | "degraded" | "broken" | undefined) {
   switch (status) {
-    case 'healthy':
+    case "healthy":
       return (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+        <Badge
+          variant="outline"
+          className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30"
+        >
           Tilkoblet og fungerer
         </Badge>
-      );
-    case 'degraded':
+      )
+    case "degraded":
       return (
         <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30">
           Fungerer med advarsler
         </Badge>
-      );
-    case 'broken':
+      )
+    case "broken":
       return (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+        <Badge
+          variant="outline"
+          className="bg-destructive/10 text-destructive border-destructive/30"
+        >
           Brutt — krever oppmerksomhet
         </Badge>
-      );
+      )
     default:
-      return <Badge variant="secondary">Ikke sjekket</Badge>;
+      return <Badge variant="secondary">Ikke sjekket</Badge>
   }
 }
 
 export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Props) {
-  const { toast } = useToast();
-  const { data, isLoading } = useMetaIntegrationHealth(integration.id);
-  const runHealth = useTestMetaConnection(integration.id);
+  const { toast } = useToast()
+  const { data, isLoading } = useMetaIntegrationHealth(integration.id)
+  const runHealth = useTestMetaConnection(integration.id)
 
-  const result = data?.result ?? null;
-  const checkedAt = data?.checked_at ?? null;
+  const result = data?.result ?? null
+  const checkedAt = data?.checked_at ?? null
 
   const handleRun = async () => {
     try {
-      await runHealth.mutateAsync();
-      toast({ title: 'Helsesjekk fullført' });
+      await runHealth.mutateAsync()
+      toast({ title: "Helsesjekk fullført" })
     } catch (e: any) {
-      toast({ title: 'Helsesjekk feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Helsesjekk feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleScrollToLog = () => {
-    const el = document.getElementById('lead-ingestion-log');
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+    const el = document.getElementById("lead-ingestion-log")
+    el?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   if (isLoading) {
     return (
@@ -111,7 +117,7 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
-    );
+    )
   }
 
   if (!result) {
@@ -134,11 +140,11 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
           )}
         </Button>
       </div>
-    );
+    )
   }
 
-  const expiry = result.token_expires_at;
-  const expired = expiry ? new Date(expiry).getTime() < Date.now() : false;
+  const expiry = result.token_expires_at
+  const expired = expiry ? new Date(expiry).getTime() < Date.now() : false
 
   return (
     <div className="space-y-4">
@@ -157,7 +163,7 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
         </Button>
       </div>
 
-      {result.status_message && result.overall_status !== 'healthy' && (
+      {result.status_message && result.overall_status !== "healthy" && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
           {result.status_message}
         </div>
@@ -172,7 +178,7 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
         <div className="space-y-1.5">
           <StatusRow
             ok={result.auth.valid}
-            label={result.auth.valid ? 'Token gyldig' : 'Token ugyldig'}
+            label={result.auth.valid ? "Token gyldig" : "Token ugyldig"}
             detail={result.auth.error ?? null}
           />
           <StatusRow
@@ -180,7 +186,7 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
             label={
               result.auth.is_page_token
                 ? `Token-type: Side-token for ${integration.page_name}`
-                : 'Token er ikke knyttet til riktig side'
+                : "Token er ikke knyttet til riktig side"
             }
             detail={
               !result.auth.is_page_token && result.auth.owner_name
@@ -193,22 +199,24 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
             warn={!!expiry && !expired}
             label={
               !expiry
-                ? 'Utløper: Aldri'
+                ? "Utløper: Aldri"
                 : expired
-                ? `Utløpt ${new Date(expiry).toLocaleDateString('nb-NO')}`
-                : `Utløper ${new Date(expiry).toLocaleDateString('nb-NO')}`
+                  ? `Utløpt ${new Date(expiry).toLocaleDateString("nb-NO")}`
+                  : `Utløper ${new Date(expiry).toLocaleDateString("nb-NO")}`
             }
           />
           <StatusRow
             ok={result.auth.scopes_missing.length === 0}
             label={
               result.auth.scopes_missing.length === 0
-                ? 'Tilganger: alle nødvendige er gitt'
-                : `Tilganger mangler: ${result.auth.scopes_missing.join(', ')}`
+                ? "Tilganger: alle nødvendige er gitt"
+                : `Tilganger mangler: ${result.auth.scopes_missing.join(", ")}`
             }
           />
         </div>
-        {(!result.auth.valid || !result.auth.is_page_token || result.auth.scopes_missing.length > 0) && (
+        {(!result.auth.valid ||
+          !result.auth.is_page_token ||
+          result.auth.scopes_missing.length > 0) && (
           <div className="mt-2 flex flex-wrap gap-2">
             {onReconnect && (
               <Button size="sm" variant="outline" onClick={onReconnect}>
@@ -233,8 +241,8 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
             ok={result.webhook.subscription_active}
             label={
               result.webhook.subscription_active
-                ? 'Side abonnert på leadgen'
-                : 'Ikke abonnert på leadgen-events'
+                ? "Side abonnert på leadgen"
+                : "Ikke abonnert på leadgen-events"
             }
           />
           <div className="text-sm text-muted-foreground">
@@ -246,10 +254,10 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
             </span>
             <span
               className={
-                'rounded-md border px-2 py-1 ' +
+                "rounded-md border px-2 py-1 " +
                 (result.webhook.events_24h.failed > 0
-                  ? 'bg-destructive/10 text-destructive border-destructive/30'
-                  : 'bg-muted text-muted-foreground')
+                  ? "bg-destructive/10 text-destructive border-destructive/30"
+                  : "bg-muted text-muted-foreground")
               }
             >
               {result.webhook.events_24h.failed} mislykkede
@@ -276,7 +284,7 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
         <div className="space-y-1.5">
           {(() => {
             const noLeadsYet =
-              result.lead_retrieval.last_error === 'Ingen tidligere mottatte leads å teste mot ennå';
+              result.lead_retrieval.last_error === "Ingen tidligere mottatte leads å teste mot ennå"
             if (noLeadsYet) {
               return (
                 <StatusRow
@@ -284,19 +292,19 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
                   warn
                   label="Ingen tidligere mottatte leads å teste mot — venter på første lead via webhook"
                 />
-              );
+              )
             }
             return (
               <StatusRow
                 ok={result.lead_retrieval.can_fetch_leads}
                 label={
                   result.lead_retrieval.can_fetch_leads
-                    ? 'Sist mottatte lead kunne hentes på nytt'
-                    : 'Klarte ikke hente leads fra Meta'
+                    ? "Sist mottatte lead kunne hentes på nytt"
+                    : "Klarte ikke hente leads fra Meta"
                 }
                 detail={result.lead_retrieval.last_error}
               />
-            );
+            )
           })()}
           {result.lead_retrieval.last_success_at && (
             <div className="text-sm text-muted-foreground">
@@ -312,5 +320,5 @@ export function MetaHealthTab({ integration, onRefreshToken, onReconnect }: Prop
         </Button>
       </div>
     </div>
-  );
+  )
 }

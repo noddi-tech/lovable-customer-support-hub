@@ -1,35 +1,35 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const url = new URL(req.url);
-    const widgetKey = url.searchParams.get('key');
+    const url = new URL(req.url)
+    const widgetKey = url.searchParams.get("key")
 
     if (!widgetKey) {
-      return new Response(
-        JSON.stringify({ error: 'Widget key is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Widget key is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Fetch widget configuration by widget_key
     const { data: config, error } = await supabase
-      .from('widget_configs')
+      .from("widget_configs")
       .select(`
         id,
         widget_key,
@@ -59,39 +59,42 @@ Deno.serve(async (req) => {
           primary_color
         )
       `)
-      .eq('widget_key', widgetKey)
-      .eq('is_active', true)
-      .single();
+      .eq("widget_key", widgetKey)
+      .eq("is_active", true)
+      .single()
 
     if (error || !config) {
-      console.error('Widget config not found:', error);
-      return new Response(
-        JSON.stringify({ error: 'Widget not found or inactive' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("Widget config not found:", error)
+      return new Response(JSON.stringify({ error: "Widget not found or inactive" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Check if any agents are online for this organization
-    const { data: onlineCount, error: countError } = await supabase
-      .rpc('get_online_agent_count', { org_id: config.organization_id });
+    const { data: onlineCount, error: countError } = await supabase.rpc("get_online_agent_count", {
+      org_id: config.organization_id,
+    })
 
     if (countError) {
-      console.error('Error fetching online agent count:', countError);
+      console.error("Error fetching online agent count:", countError)
     }
 
-    const agentsOnline = (onlineCount ?? 0) > 0;
+    const agentsOnline = (onlineCount ?? 0) > 0
 
     // Return public configuration (no sensitive data)
-    const org = Array.isArray(config.organizations) ? config.organizations[0] : config.organizations;
-    const inbox = Array.isArray(config.inboxes) ? config.inboxes[0] : config.inboxes;
+    const org = Array.isArray(config.organizations) ? config.organizations[0] : config.organizations
+    const inbox = Array.isArray(config.inboxes) ? config.inboxes[0] : config.inboxes
 
     const publicConfig = {
       widgetKey: config.widget_key,
-      primaryColor: config.primary_color || org?.primary_color || '#7c3aed',
+      primaryColor: config.primary_color || org?.primary_color || "#7c3aed",
       position: config.position,
       greetingText: config.greeting_text,
       responseTimeText: config.response_time_text,
-      dismissalMessageText: config.dismissal_message_text || "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly.",
+      dismissalMessageText:
+        config.dismissal_message_text ||
+        "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly.",
       greetingTranslations: config.greeting_translations || {},
       responseTimeTranslations: config.response_time_translations || {},
       dismissalMessageTranslations: config.dismissal_message_translations || {},
@@ -102,18 +105,17 @@ Deno.serve(async (req) => {
       companyName: config.company_name || org?.name,
       inboxName: inbox?.name,
       agentsOnline,
-      language: config.language || 'no',
-    };
+      language: config.language || "no",
+    }
 
-    return new Response(
-      JSON.stringify(publicConfig),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(publicConfig), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error) {
-    console.error('Error fetching widget config:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("Error fetching widget config:", error)
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   }
-});
+})

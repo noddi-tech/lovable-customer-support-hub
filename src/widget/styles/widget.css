@@ -2,7 +2,8 @@
 /* All styles are prefixed with .noddi-widget to avoid conflicts */
 
 .noddi-widget-container {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: #1f2937;
@@ -30,7 +31,9 @@
   justify-content: center;
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   z-index: 999998;
 }
 
@@ -311,7 +314,9 @@
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   background: white;
   color: #1f2937;
 }
@@ -420,8 +425,12 @@
 }
 
 @keyframes noddi-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .noddi-widget-results {
@@ -731,7 +740,7 @@
     bottom: 80px;
     max-height: calc(100vh - 100px);
   }
-  
+
   .noddi-widget-button {
     width: 50px;
     height: 50px;
@@ -921,7 +930,9 @@
 }
 
 @keyframes noddi-typing-bounce {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
   }
   30% {
@@ -971,7 +982,9 @@
   justify-content: center;
   color: white;
   flex-shrink: 0;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 
 .noddi-chat-send:hover:not(:disabled) {
@@ -1175,7 +1188,9 @@
   border: 1px solid #e5e7eb;
   background: white;
   overflow: hidden;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .noddi-phone-input-wrapper:focus-within {
@@ -1235,7 +1250,9 @@
   border: 1px solid #e5e7eb;
   border-left: none;
   outline: none;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
   -moz-appearance: textfield;
 }
 
@@ -1284,7 +1301,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .noddi-chat-attach:hover:not(:disabled) {
@@ -1378,7 +1397,9 @@
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .noddi-chat-resolved-option:hover {

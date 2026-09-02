@@ -1,17 +1,19 @@
-import * as React from "react";
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
+  type ColumnDef,
+  type ColumnFiltersState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
-} from "@tanstack/react-table";
-
+  type VisibilityState,
+} from "@tanstack/react-table"
+import { Search } from "lucide-react"
+import * as React from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -19,17 +21,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+} from "@/components/ui/table"
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
-  searchPlaceholder?: string;
-  searchColumnId?: string;
-  globalFilter?: boolean;
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  searchPlaceholder?: string
+  searchColumnId?: string
+  globalFilter?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -39,10 +38,10 @@ export function DataTable<TData, TValue>({
   searchColumnId,
   globalFilter = false,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [globalFilterValue, setGlobalFilterValue] = React.useState("");
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [globalFilterValue, setGlobalFilterValue] = React.useState("")
 
   const table = useReactTable({
     data,
@@ -62,7 +61,7 @@ export function DataTable<TData, TValue>({
       columnVisibility,
       globalFilter: globalFilterValue,
     },
-  });
+  })
 
   return (
     <div className="space-y-4">
@@ -74,13 +73,13 @@ export function DataTable<TData, TValue>({
             value={
               globalFilter
                 ? globalFilterValue
-                : (table.getColumn(searchColumnId ?? "")?.getFilterValue() as string) ?? ""
+                : ((table.getColumn(searchColumnId ?? "")?.getFilterValue() as string) ?? "")
             }
             onChange={(e) => {
               if (globalFilter) {
-                setGlobalFilterValue(e.target.value);
+                setGlobalFilterValue(e.target.value)
               } else if (searchColumnId) {
-                table.getColumn(searchColumnId)?.setFilterValue(e.target.value);
+                table.getColumn(searchColumnId)?.setFilterValue(e.target.value)
               }
             }}
             className="pl-10"
@@ -149,5 +148,5 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
     </div>
-  );
+  )
 }

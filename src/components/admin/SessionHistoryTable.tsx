@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { format, formatDistanceStrict } from 'date-fns';
+import { useQuery } from "@tanstack/react-query"
+import { format, formatDistanceStrict } from "date-fns"
+import { Clock, LogIn, Monitor, Smartphone, Tablet } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -8,80 +10,86 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Monitor, Smartphone, Tablet, Clock, LogIn, LogOut } from 'lucide-react';
+} from "@/components/ui/table"
+import { supabase } from "@/integrations/supabase/client"
 
 interface SessionHistoryTableProps {
-  userId: string;
-  limit?: number;
+  userId: string
+  limit?: number
 }
 
 interface UserSession {
-  id: string;
-  started_at: string;
-  ended_at: string | null;
-  last_active_at: string;
-  session_type: string;
-  device_type: string | null;
-  browser: string | null;
-  is_active: boolean;
-  end_reason: string | null;
+  id: string
+  started_at: string
+  ended_at: string | null
+  last_active_at: string
+  session_type: string
+  device_type: string | null
+  browser: string | null
+  is_active: boolean
+  end_reason: string | null
 }
 
 function getDeviceIcon(deviceType: string | null) {
   switch (deviceType) {
-    case 'mobile':
-      return <Smartphone className="h-4 w-4" />;
-    case 'tablet':
-      return <Tablet className="h-4 w-4" />;
+    case "mobile":
+      return <Smartphone className="h-4 w-4" />
+    case "tablet":
+      return <Tablet className="h-4 w-4" />
     default:
-      return <Monitor className="h-4 w-4" />;
+      return <Monitor className="h-4 w-4" />
   }
 }
 
-function getSessionDuration(startedAt: string, endedAt: string | null, lastActiveAt: string): string {
-  const start = new Date(startedAt);
-  const end = endedAt ? new Date(endedAt) : new Date(lastActiveAt);
-  return formatDistanceStrict(start, end);
+function getSessionDuration(
+  startedAt: string,
+  endedAt: string | null,
+  lastActiveAt: string,
+): string {
+  const start = new Date(startedAt)
+  const end = endedAt ? new Date(endedAt) : new Date(lastActiveAt)
+  return formatDistanceStrict(start, end)
 }
 
 function getEndReasonBadge(endReason: string | null, isActive: boolean) {
   if (isActive) {
-    return <Badge variant="default" className="bg-green-500">Active</Badge>;
+    return (
+      <Badge variant="default" className="bg-green-500">
+        Active
+      </Badge>
+    )
   }
 
   switch (endReason) {
-    case 'logout':
-      return <Badge variant="secondary">Logged out</Badge>;
-    case 'timeout':
-      return <Badge variant="outline">Timed out</Badge>;
-    case 'page_close':
-      return <Badge variant="outline">Closed tab</Badge>;
-    case 'session_replaced':
-      return <Badge variant="outline">New session</Badge>;
+    case "logout":
+      return <Badge variant="secondary">Logged out</Badge>
+    case "timeout":
+      return <Badge variant="outline">Timed out</Badge>
+    case "page_close":
+      return <Badge variant="outline">Closed tab</Badge>
+    case "session_replaced":
+      return <Badge variant="outline">New session</Badge>
     default:
-      return <Badge variant="outline">Ended</Badge>;
+      return <Badge variant="outline">Ended</Badge>
   }
 }
 
 export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableProps) {
   const { data: sessions, isLoading } = useQuery({
-    queryKey: ['user-sessions', userId, limit],
+    queryKey: ["user-sessions", userId, limit],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('started_at', { ascending: false })
-        .limit(limit);
+        .from("user_sessions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("started_at", { ascending: false })
+        .limit(limit)
 
-      if (error) throw error;
-      return data as UserSession[];
+      if (error) throw error
+      return data as UserSession[]
     },
     enabled: !!userId,
-  });
+  })
 
   if (isLoading) {
     return (
@@ -90,15 +98,11 @@ export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableP
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
-    );
+    )
   }
 
   if (!sessions || sessions.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        No login sessions recorded
-      </div>
-    );
+    return <div className="text-center py-8 text-muted-foreground">No login sessions recorded</div>
   }
 
   return (
@@ -120,10 +124,10 @@ export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableP
                 <LogIn className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div className="font-medium">
-                    {format(new Date(session.started_at), 'MMM d, yyyy')}
+                    {format(new Date(session.started_at), "MMM d, yyyy")}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {format(new Date(session.started_at), 'h:mm a')}
+                    {format(new Date(session.started_at), "h:mm a")}
                   </div>
                 </div>
               </div>
@@ -137,16 +141,14 @@ export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableP
             <TableCell>
               <div className="flex items-center gap-2">
                 {getDeviceIcon(session.device_type)}
-                <span className="capitalize">{session.device_type || 'Desktop'}</span>
+                <span className="capitalize">{session.device_type || "Desktop"}</span>
               </div>
             </TableCell>
-            <TableCell>{session.browser || 'Unknown'}</TableCell>
-            <TableCell>
-              {getEndReasonBadge(session.end_reason, session.is_active)}
-            </TableCell>
+            <TableCell>{session.browser || "Unknown"}</TableCell>
+            <TableCell>{getEndReasonBadge(session.end_reason, session.is_active)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  );
+  )
 }

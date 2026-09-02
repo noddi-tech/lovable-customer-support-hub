@@ -1,14 +1,14 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+}
 
 interface InviteRequest {
-  email: string;
-  organizationId: string;
-  role: 'super_admin' | 'admin' | 'agent' | 'user';
+  email: string
+  organizationId: string
+  role: "super_admin" | "admin" | "agent" | "user"
 }
 
 /**
@@ -16,25 +16,25 @@ interface InviteRequest {
  * Returns null if the email format is invalid.
  */
 function sanitizeEmailForQuery(email: string): string | null {
-  if (!email) return null;
-  
+  if (!email) return null
+
   const sanitized = email
-    .replace(/[,;()\\]/g, '')
+    .replace(/[,;()\\]/g, "")
     .trim()
-    .toLowerCase();
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    .toLowerCase()
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(sanitized)) {
-    return null;
+    return null
   }
-  
-  return sanitized;
+
+  return sanitized
 }
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -46,50 +46,50 @@ const handler = async (req: Request): Promise<Response> => {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
         },
-      }
-    );
+      },
+    )
 
     // Get authenticated user
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser()
 
     if (authError || !user) {
-      console.error("Authentication error:", authError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      console.error("Authentication error:", authError)
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
     // Parse request body
-    const { email, organizationId, role }: InviteRequest = await req.json();
+    const { email, organizationId, role }: InviteRequest = await req.json()
 
     // Validate inputs
     if (!email || !organizationId || !role) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: email, organizationId, role" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      )
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
     // Validate role
-    const validRoles = ['super_admin', 'admin', 'agent', 'user'];
+    const validRoles = ["super_admin", "admin", "agent", "user"]
     if (!validRoles.includes(role)) {
       return new Response(
         JSON.stringify({ error: "Invalid role. Must be one of: super_admin, admin, agent, user" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      )
     }
 
     // Check if user is admin of the organization
@@ -99,55 +99,58 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", user.id)
       .eq("organization_id", organizationId)
       .eq("status", "active")
-      .single();
+      .single()
 
     if (membershipError || !membership) {
-      console.error("Membership check error:", membershipError);
-      return new Response(
-        JSON.stringify({ error: "You are not a member of this organization" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      console.error("Membership check error:", membershipError)
+      return new Response(JSON.stringify({ error: "You are not a member of this organization" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
-    if (membership.role !== 'admin' && membership.role !== 'super_admin') {
-      return new Response(
-        JSON.stringify({ error: "Only admins can send invites" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    if (membership.role !== "admin" && membership.role !== "super_admin") {
+      return new Response(JSON.stringify({ error: "Only admins can send invites" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
-    const organizationName = (membership.organizations as any)?.[0]?.name || (membership.organizations as any)?.name || "the organization";
+    const organizationName =
+      (membership.organizations as any)?.[0]?.name ||
+      (membership.organizations as any)?.name ||
+      "the organization"
 
     // Sanitize email for safe query use
-    const safeEmail = sanitizeEmailForQuery(email);
+    const safeEmail = sanitizeEmailForQuery(email)
     if (!safeEmail) {
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
     // Check if user already exists or has pending invite
     // Use separate parameterized queries instead of .or() with string interpolation
-    let existingMembership = null;
-    
+    let existingMembership = null
+
     // First check by direct email on membership
     const { data: byDirectEmail, error: directError } = await supabaseClient
       .from("organization_memberships")
       .select("id, status, user_id, profiles(email)")
       .eq("organization_id", organizationId)
       .eq("email", safeEmail)
-      .maybeSingle();
+      .maybeSingle()
 
     if (directError) {
-      console.error("Error checking existing membership by email:", directError);
-      return new Response(
-        JSON.stringify({ error: "Failed to check existing membership" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      console.error("Error checking existing membership by email:", directError)
+      return new Response(JSON.stringify({ error: "Failed to check existing membership" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
-    existingMembership = byDirectEmail;
+    existingMembership = byDirectEmail
 
     // If not found by direct email, check by profile email
     if (!existingMembership) {
@@ -156,25 +159,25 @@ const handler = async (req: Request): Promise<Response> => {
         .select("id, status, user_id, profiles!inner(email)")
         .eq("organization_id", organizationId)
         .eq("profiles.email", safeEmail)
-        .maybeSingle();
+        .maybeSingle()
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error("Error checking existing membership by profile:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to check existing membership" }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("Error checking existing membership by profile:", profileError)
+        return new Response(JSON.stringify({ error: "Failed to check existing membership" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        })
       }
 
-      existingMembership = byProfileEmail;
+      existingMembership = byProfileEmail
     }
 
     if (existingMembership) {
-      if (existingMembership.status === 'active') {
+      if (existingMembership.status === "active") {
         return new Response(
           JSON.stringify({ error: "User is already a member of this organization" }),
-          { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+          { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } },
+        )
       }
 
       // Update existing pending invite
@@ -188,17 +191,17 @@ const handler = async (req: Request): Promise<Response> => {
         })
         .eq("id", existingMembership.id)
         .select("invite_token")
-        .single();
+        .single()
 
       if (updateError || !updatedInvite) {
-        console.error("Error updating invite:", updateError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update invite" }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+        console.error("Error updating invite:", updateError)
+        return new Response(JSON.stringify({ error: "Failed to update invite" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        })
       }
 
-      console.log("Updated existing invite for:", email);
+      console.log("Updated existing invite for:", email)
     } else {
       // Create new pending membership with invite
       const { data: newInvite, error: insertError } = await supabaseClient
@@ -207,23 +210,23 @@ const handler = async (req: Request): Promise<Response> => {
           email,
           organization_id: organizationId,
           role,
-          status: 'pending',
+          status: "pending",
           invited_by_id: user.id,
           invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           is_default: false,
         })
         .select("invite_token")
-        .single();
+        .single()
 
       if (insertError || !newInvite) {
-        console.error("Error creating invite:", insertError);
-        return new Response(
-          JSON.stringify({ error: "Failed to create invite" }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
+        console.error("Error creating invite:", insertError)
+        return new Response(JSON.stringify({ error: "Failed to create invite" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        })
       }
 
-      console.log("Created new invite for:", email);
+      console.log("Created new invite for:", email)
     }
 
     // Get the invite token for the email
@@ -233,27 +236,27 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("organization_id", organizationId)
       .eq("email", email)
       .eq("status", "pending")
-      .single();
+      .single()
 
     if (tokenError || !inviteData?.invite_token) {
-      console.error("Error getting invite token:", tokenError);
-      return new Response(
-        JSON.stringify({ error: "Failed to get invite token" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      console.error("Error getting invite token:", tokenError)
+      return new Response(JSON.stringify({ error: "Failed to get invite token" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
     // Send email via SendGrid
-    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+    const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY")
     if (!SENDGRID_API_KEY) {
-      console.error("SENDGRID_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "Email service not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      console.error("SENDGRID_API_KEY not configured")
+      return new Response(JSON.stringify({ error: "Email service not configured" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
-    const inviteLink = `${Deno.env.get("SUPABASE_URL")}/auth?invite=${inviteData.invite_token}`;
+    const inviteLink = `${Deno.env.get("SUPABASE_URL")}/auth?invite=${inviteData.invite_token}`
 
     const emailHTML = `<!DOCTYPE html>
 <html>
@@ -284,14 +287,14 @@ const handler = async (req: Request): Promise<Response> => {
     </div>
   </div>
 </body>
-</html>`;
+</html>`
 
     const plainText = `You've been invited to join ${organizationName} as a ${role}.
 
 Click the link below to accept your invitation and create your account:
 ${inviteLink}
 
-This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.`;
+This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.`
 
     const sendgridBody = {
       personalizations: [
@@ -305,28 +308,28 @@ This invitation will expire in 7 days. If you didn't expect this invitation, you
         { type: "text/plain", value: plainText },
         { type: "text/html", value: emailHTML },
       ],
-    };
+    }
 
-    console.log("Sending invitation email via SendGrid to:", email);
+    console.log("Sending invitation email via SendGrid to:", email)
     const sgRes = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(sendgridBody),
-    });
+    })
 
     if (sgRes.status !== 202) {
-      const errTxt = await sgRes.text();
-      console.error("SendGrid error:", sgRes.status, errTxt);
-      return new Response(
-        JSON.stringify({ error: `Email service error: ${sgRes.status}` }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      const errTxt = await sgRes.text()
+      console.error("SendGrid error:", sgRes.status, errTxt)
+      return new Response(JSON.stringify({ error: `Email service error: ${sgRes.status}` }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      })
     }
 
-    console.log("Email sent successfully via SendGrid");
+    console.log("Email sent successfully via SendGrid")
 
     return new Response(
       JSON.stringify({
@@ -337,18 +340,15 @@ This invitation will expire in 7 days. If you didn't expect this invitation, you
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+      },
+    )
   } catch (error: any) {
-    console.error("Error in send-organization-invite function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    console.error("Error in send-organization-invite function:", error)
+    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    })
   }
-};
+}
 
-Deno.serve(handler);
+Deno.serve(handler)

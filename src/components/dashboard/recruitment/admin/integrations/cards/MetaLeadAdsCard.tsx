@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useQuery } from "@tanstack/react-query"
+import { format, formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  ChevronDown,
+  Download,
+  Facebook,
+  KeyRound,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Settings2,
+  Trash2,
+} from "lucide-react"
+import { useState } from "react"
+import { useJobPositions } from "@/components/dashboard/recruitment/positions/usePositions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,113 +24,136 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Facebook, Plus, KeyRound, Trash2, Pencil, ChevronDown, RefreshCw, ChevronRight, Download, Settings2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { useToast } from '@/hooks/use-toast';
-import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
-import { useMetaIntegration } from '../hooks/useMetaIntegration';
-import { useJobPositions } from '@/components/dashboard/recruitment/positions/usePositions';
-import { MetaHealthTab } from '../MetaHealthTab';
-import { FormMappingEditor } from '../meta/FormMappingEditor';
-import { BulkImportDialog } from '../meta/BulkImportDialog';
-import type { MetaIntegration } from '../types';
-import { formatDistanceToNow, format } from 'date-fns';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { nb } from 'date-fns/locale';
+} from "@/components/ui/sheet"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
+import { useFormPositionMappings } from "../hooks/useFormPositionMappings"
+import { useMetaIntegration } from "../hooks/useMetaIntegration"
+import { MetaHealthTab } from "../MetaHealthTab"
+import { BulkImportDialog } from "../meta/BulkImportDialog"
+import { FormMappingEditor } from "../meta/FormMappingEditor"
+import type { MetaIntegration } from "../types"
 
 interface Props {
-  integration: MetaIntegration | null;
-  onConnect: () => void;
-  onEdit: () => void;
-  onReconnect: () => void;
-  onRefreshToken: () => void;
+  integration: MetaIntegration | null
+  onConnect: () => void
+  onEdit: () => void
+  onReconnect: () => void
+  onRefreshToken: () => void
 }
 
 function TokenStatusBadge({ integration }: { integration: MetaIntegration }) {
-  const expiresAt = integration.user_token_expires_at;
+  const expiresAt = integration.user_token_expires_at
   const neverExpires =
-    expiresAt === 'infinity' ||
-    (typeof expiresAt === 'string' && expiresAt.startsWith('infinity'));
-  const expiresDate = !neverExpires && expiresAt ? new Date(expiresAt) : null;
+    expiresAt === "infinity" || (typeof expiresAt === "string" && expiresAt.startsWith("infinity"))
+  const expiresDate = !neverExpires && expiresAt ? new Date(expiresAt) : null
   const tooltip = (() => {
-    if (neverExpires) return 'Tokenet utløper aldri.';
-    if (expiresDate && !isNaN(expiresDate.getTime())) {
-      return `Utløper ${format(expiresDate, "d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}`;
+    if (neverExpires) return "Tokenet utløper aldri."
+    if (expiresDate && !Number.isNaN(expiresDate.getTime())) {
+      return `Utløper ${format(expiresDate, "d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}`
     }
-    return integration.status_message ?? 'Ingen utløpsinformasjon tilgjengelig.';
-  })();
+    return integration.status_message ?? "Ingen utløpsinformasjon tilgjengelig."
+  })()
 
-  let badge: JSX.Element;
+  let badge: JSX.Element
   switch (integration.status) {
-    case 'configured':
+    case "configured":
       badge = (
         <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
           Klar for kobling
         </Badge>
-      );
-      break;
-    case 'connected':
+      )
+      break
+    case "connected":
       badge = (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-          {neverExpires ? 'Tilkoblet · utløper aldri' : 'Tilkoblet'}
+        <Badge
+          variant="outline"
+          className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+        >
+          {neverExpires ? "Tilkoblet · utløper aldri" : "Tilkoblet"}
         </Badge>
-      );
-      break;
-    case 'expiring_soon':
+      )
+      break
+    case "expiring_soon":
       badge = (
         <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
           Utløper snart
         </Badge>
-      );
-      break;
-    case 'expiring_critical':
+      )
+      break
+    case "expiring_critical":
       badge = (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+        <Badge
+          variant="outline"
+          className="bg-destructive/10 text-destructive border-destructive/30"
+        >
           Utløper snart
         </Badge>
-      );
-      break;
-    case 'expired':
+      )
+      break
+    case "expired":
       badge = (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+        <Badge
+          variant="outline"
+          className="bg-destructive/10 text-destructive border-destructive/30"
+        >
           Utløpt
         </Badge>
-      );
-      break;
-    case 'broken':
+      )
+      break
+    case "broken":
       badge = (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+        <Badge
+          variant="outline"
+          className="bg-destructive/10 text-destructive border-destructive/30"
+        >
           Mangler tilganger
         </Badge>
-      );
-      break;
-    case 'disconnected':
-      badge = <Badge variant="secondary">Frakoblet</Badge>;
-      break;
-    case 'error':
+      )
+      break
+    case "disconnected":
+      badge = <Badge variant="secondary">Frakoblet</Badge>
+      break
     default:
       badge = (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+        <Badge
+          variant="outline"
+          className="bg-destructive/10 text-destructive border-destructive/30"
+        >
           Feil
         </Badge>
-      );
-      break;
+      )
+      break
   }
 
   return (
@@ -142,40 +165,50 @@ function TokenStatusBadge({ integration }: { integration: MetaIntegration }) {
         {tooltip}
       </TooltipContent>
     </Tooltip>
-  );
+  )
 }
 
-function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId: string; onReconnectClick?: () => void }) {
-  const { toast } = useToast();
+function FormMappingsInline({
+  integrationId,
+  onReconnectClick,
+}: {
+  integrationId: string
+  onReconnectClick?: () => void
+}) {
+  const { toast } = useToast()
   const { mappings, createMapping, updateMapping, deleteMapping } =
-    useFormPositionMappings(integrationId);
-  const { data: positions } = useJobPositions();
-  const openPositions = (positions ?? []).filter((p) => p.status === 'open');
-  const [editingMapping, setEditingMapping] = useState<{ id: string; formName: string | null; formId: string } | null>(null);
+    useFormPositionMappings(integrationId)
+  const { data: positions } = useJobPositions()
+  const openPositions = (positions ?? []).filter((p) => p.status === "open")
+  const [editingMapping, setEditingMapping] = useState<{
+    id: string
+    formName: string | null
+    formId: string
+  } | null>(null)
 
-  const [newFormId, setNewFormId] = useState('');
-  const [newFormName, setNewFormName] = useState('');
-  const [newPositionId, setNewPositionId] = useState('');
+  const [newFormId, setNewFormId] = useState("")
+  const [newFormName, setNewFormName] = useState("")
+  const [newPositionId, setNewPositionId] = useState("")
 
   const handleAdd = async () => {
     if (!newFormId.trim()) {
-      toast({ title: 'Form ID er påkrevd', variant: 'destructive' });
-      return;
+      toast({ title: "Form ID er påkrevd", variant: "destructive" })
+      return
     }
     try {
       await createMapping.mutateAsync({
         form_id: newFormId.trim(),
         form_name: newFormName.trim() || null,
         position_id: newPositionId || null,
-      });
-      setNewFormId('');
-      setNewFormName('');
-      setNewPositionId('');
-      toast({ title: 'Skjema lagt til' });
+      })
+      setNewFormId("")
+      setNewFormName("")
+      setNewPositionId("")
+      toast({ title: "Skjema lagt til" })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke legge til', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke legge til", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <div className="space-y-4">
@@ -195,7 +228,7 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
                   <div className="space-y-1">
                     <Label className="text-xs">Form name</Label>
                     <Input
-                      value={m.form_name ?? ''}
+                      value={m.form_name ?? ""}
                       placeholder="(uten navn)"
                       onChange={(e) =>
                         updateMapping.mutate({ id: m.id, form_name: e.target.value || null })
@@ -210,7 +243,7 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
                 <div className="space-y-1">
                   <Label className="text-xs">Stilling</Label>
                   <Select
-                    value={m.position_id ?? ''}
+                    value={m.position_id ?? ""}
                     onValueChange={(v) =>
                       updateMapping.mutate({ id: m.id, position_id: v || null })
                     }
@@ -264,7 +297,9 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setEditingMapping({ id: m.id, formName: m.form_name, formId: m.form_id })}
+                    onClick={() =>
+                      setEditingMapping({ id: m.id, formName: m.form_name, formId: m.form_id })
+                    }
                   >
                     <Settings2 className="h-4 w-4 mr-2" />
                     Tilordne skjemafelt
@@ -278,13 +313,15 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
 
       <Sheet
         open={!!editingMapping}
-        onOpenChange={(o) => { if (!o) setEditingMapping(null); }}
+        onOpenChange={(o) => {
+          if (!o) setEditingMapping(null)
+        }}
       >
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Tilordne skjemafelt</SheetTitle>
             <SheetDescription>
-              {editingMapping?.formName || `Form ID: ${editingMapping?.formId ?? ''}`}
+              {editingMapping?.formName || `Form ID: ${editingMapping?.formId ?? ""}`}
             </SheetDescription>
           </SheetHeader>
           <div className="py-4">
@@ -298,7 +335,6 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
           </div>
         </SheetContent>
       </Sheet>
-
 
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <h4 className="text-sm font-medium">Legg til skjema</h4>
@@ -341,60 +377,66 @@ function FormMappingsInline({ integrationId, onReconnectClick }: { integrationId
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
-export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, onRefreshToken }: Props) {
-  const { currentOrganizationId } = useOrganizationStore();
-  const { toast } = useToast();
-  const { deleteIntegration } = useMetaIntegration();
-  const [bulkImportOpen, setBulkImportOpen] = useState(false);
-  const [backfillRunning, setBackfillRunning] = useState(false);
+export function MetaLeadAdsCard({
+  integration,
+  onConnect,
+  onEdit,
+  onReconnect,
+  onRefreshToken,
+}: Props) {
+  const { currentOrganizationId } = useOrganizationStore()
+  const { toast } = useToast()
+  const { deleteIntegration } = useMetaIntegration()
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
+  const [backfillRunning, setBackfillRunning] = useState(false)
 
   const { data: leadCount } = useQuery({
-    queryKey: ['meta-lead-count', currentOrganizationId],
+    queryKey: ["meta-lead-count", currentOrganizationId],
     enabled: !!currentOrganizationId && !!integration,
     staleTime: 30_000,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('recruitment_lead_ingestion_log' as any)
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganizationId)
-        .eq('source', 'meta_lead_ad');
-      if (error) throw error;
-      return count ?? 0;
+        .from("recruitment_lead_ingestion_log" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganizationId)
+        .eq("source", "meta_lead_ad")
+      if (error) throw error
+      return count ?? 0
     },
-  });
+  })
 
   const handleBackfill = async () => {
-    setBackfillRunning(true);
+    setBackfillRunning(true)
     try {
       const { data, error } = await supabase.functions.invoke(
-        'recruitment-backfill-form-field-keys',
+        "recruitment-backfill-form-field-keys",
         { body: { organization_id: currentOrganizationId } },
-      );
+      )
       if (error) {
         toast({
-          title: 'Backfill feilet',
-          description: error.message ?? 'Ukjent feil',
-          variant: 'destructive',
-        });
-        return;
+          title: "Backfill feilet",
+          description: error.message ?? "Ukjent feil",
+          variant: "destructive",
+        })
+        return
       }
-      const alreadySet = (data as any)?.rows_already_set ?? 0;
-      const updated = (data as any)?.rows_updated ?? 0;
-      const skipped = (data as any)?.rows_skipped ?? 0;
+      const alreadySet = (data as any)?.rows_already_set ?? 0
+      const updated = (data as any)?.rows_updated ?? 0
+      const skipped = (data as any)?.rows_skipped ?? 0
       toast({
-        title: 'Backfill ferdig',
+        title: "Backfill ferdig",
         description: `${alreadySet} mappings allerede oppdatert, ${updated} nye oppdatert, ${skipped} hoppet over (kunne ikke matche).`,
-      });
+      })
     } catch (e: any) {
-      toast({ title: 'Backfill feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Backfill feilet", description: e?.message, variant: "destructive" })
     } finally {
-      setBackfillRunning(false);
+      setBackfillRunning(false)
     }
-  };
+  }
 
   if (!integration) {
     return (
@@ -422,17 +464,17 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </Button>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   const handleDelete = async () => {
     try {
-      await deleteIntegration.mutateAsync(integration.id);
-      toast({ title: 'Tilkobling slettet' });
+      await deleteIntegration.mutateAsync(integration.id)
+      toast({ title: "Tilkobling slettet" })
     } catch (e: any) {
-      toast({ title: 'Sletting feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Sletting feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <Card>
@@ -452,7 +494,9 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
               </CardDescription>
             </div>
           </div>
-          <TooltipProvider><TokenStatusBadge integration={integration} /></TooltipProvider>
+          <TooltipProvider>
+            <TokenStatusBadge integration={integration} />
+          </TooltipProvider>
         </div>
       </CardHeader>
       <CardContent>
@@ -477,7 +521,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
                         addSuffix: true,
                         locale: nb,
                       })
-                    : 'Aldri'}
+                    : "Aldri"}
                 </div>
               </div>
             </div>
@@ -562,7 +606,7 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
                 disabled={backfillRunning}
                 title="Henter spørsmåls-nøkler fra Meta og fyller inn manglende meta_question_key på lagrede tilordninger. Trygt å kjøre flere ganger."
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${backfillRunning ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${backfillRunning ? "animate-spin" : ""}`} />
                 Kjør backfill
               </Button>
               <Button size="sm" variant="outline" onClick={() => setBulkImportOpen(true)}>
@@ -574,7 +618,11 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
           </TabsContent>
 
           <TabsContent value="health">
-            <MetaHealthTab integration={integration} onRefreshToken={onRefreshToken} onReconnect={onReconnect} />
+            <MetaHealthTab
+              integration={integration}
+              onRefreshToken={onRefreshToken}
+              onReconnect={onReconnect}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -584,5 +632,5 @@ export function MetaLeadAdsCard({ integration, onConnect, onEdit, onReconnect, o
         integrationId={integration.id}
       />
     </Card>
-  );
+  )
 }

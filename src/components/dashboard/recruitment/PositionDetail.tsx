@@ -1,64 +1,60 @@
-import React from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from "lucide-react"
+import type React from "react"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-import PositionStatusBadge from './positions/PositionStatusBadge';
-import PositionForm from './positions/PositionForm';
-import PositionScoringConfig from './positions/PositionScoringConfig';
-import PositionStageFieldRequirements from './positions/PositionStageFieldRequirements';
-import {
-  useJobPosition,
-  useUpdateJobPositionStatus,
-} from './positions/usePositions';
+} from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import PositionForm from "./positions/PositionForm"
+import PositionScoringConfig from "./positions/PositionScoringConfig"
+import PositionStageFieldRequirements from "./positions/PositionStageFieldRequirements"
+import PositionStatusBadge from "./positions/PositionStatusBadge"
+import { useJobPosition, useUpdateJobPositionStatus } from "./positions/usePositions"
 
 interface StatusTransition {
-  label: string;
-  status: string;
+  label: string
+  status: string
 }
 
 const TRANSITIONS: Record<string, StatusTransition[]> = {
-  draft: [{ label: 'Publiser', status: 'open' }],
+  draft: [{ label: "Publiser", status: "open" }],
   open: [
-    { label: 'Pause', status: 'paused' },
-    { label: 'Lukk', status: 'closed' },
+    { label: "Pause", status: "paused" },
+    { label: "Lukk", status: "closed" },
   ],
   paused: [
-    { label: 'Gjenåpne', status: 'open' },
-    { label: 'Lukk', status: 'closed' },
+    { label: "Gjenåpne", status: "open" },
+    { label: "Lukk", status: "closed" },
   ],
-  closed: [{ label: 'Gjenåpne', status: 'open' }],
-};
+  closed: [{ label: "Gjenåpne", status: "open" }],
+}
 
-const VALID_TABS = ['details', 'applicants', 'scoring', 'stage-fields'] as const;
-type TabValue = (typeof VALID_TABS)[number];
+const VALID_TABS = ["details", "applicants", "scoring", "stage-fields"] as const
+type TabValue = (typeof VALID_TABS)[number]
 
 const PositionDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const { data: position, isLoading } = useJobPosition(id);
-  const updateStatusMut = useUpdateJobPositionStatus();
+  const { id } = useParams<{ id: string }>()
+  const { data: position, isLoading } = useJobPosition(id)
+  const updateStatusMut = useUpdateJobPositionStatus()
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const rawTab = searchParams.get('tab');
-  const tab: TabValue = (VALID_TABS as readonly string[]).includes(rawTab ?? '')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawTab = searchParams.get("tab")
+  const tab: TabValue = (VALID_TABS as readonly string[]).includes(rawTab ?? "")
     ? (rawTab as TabValue)
-    : 'details';
+    : "details"
   const setTab = (next: string) => {
-    const sp = new URLSearchParams(searchParams);
-    if (next === 'details') sp.delete('tab');
-    else sp.set('tab', next);
-    setSearchParams(sp, { replace: true });
-  };
+    const sp = new URLSearchParams(searchParams)
+    if (next === "details") sp.delete("tab")
+    else sp.set("tab", next)
+    setSearchParams(sp, { replace: true })
+  }
 
   const backLink = (
     <Link
@@ -68,7 +64,7 @@ const PositionDetail: React.FC = () => {
       <ArrowLeft className="h-4 w-4" />
       Tilbake til stillinger
     </Link>
-  );
+  )
 
   if (isLoading) {
     return (
@@ -77,7 +73,7 @@ const PositionDetail: React.FC = () => {
         <Skeleton className="h-10 w-1/2" />
         <Skeleton className="h-64 w-full" />
       </div>
-    );
+    )
   }
 
   if (!position) {
@@ -91,18 +87,18 @@ const PositionDetail: React.FC = () => {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
-  const transitions = TRANSITIONS[position.status] ?? [];
+  const transitions = TRANSITIONS[position.status] ?? []
 
   const handleStatusChange = (status: string) => {
     updateStatusMut.mutate({
       id: position.id,
       status,
       currentPublishedAt: position.published_at,
-    });
-  };
+    })
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -124,10 +120,7 @@ const PositionDetail: React.FC = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {transitions.map((t) => (
-                  <DropdownMenuItem
-                    key={t.status}
-                    onClick={() => handleStatusChange(t.status)}
-                  >
+                  <DropdownMenuItem key={t.status} onClick={() => handleStatusChange(t.status)}>
                     {t.label}
                   </DropdownMenuItem>
                 ))}
@@ -175,7 +168,7 @@ const PositionDetail: React.FC = () => {
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
-export default PositionDetail;
+export default PositionDetail

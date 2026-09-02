@@ -17,6 +17,7 @@ Before troubleshooting Aircall integration issues, ensure you have:
 ### 1. Google OAuth "Origin Not Allowed" Error (CRITICAL)
 
 **Symptoms:**
+
 - Error in console: "origin is not allowed"
 - Language selector appears but is unclickable
 - Google Sign-In fails to load
@@ -27,6 +28,7 @@ Before troubleshooting Aircall integration issues, ensure you have:
 Aircall Everywhere uses Google OAuth for authentication. Google's OAuth service **strictly validates** that the requesting origin (your website's domain) is whitelisted in the OAuth client configuration. This is managed through Aircall's Voice Integration settings.
 
 **Why localhost/preview domains fail:**
+
 - `localhost:3000` - Google OAuth rejects localhost origins
 - `https://xxxx.lovableproject.com` - Temporary preview URLs change frequently and can't be reliably whitelisted
 - Google checks the exact `Origin` header: `https://example.com` ≠ `https://www.example.com`
@@ -36,7 +38,7 @@ Aircall Everywhere uses Google OAuth for authentication. Google's OAuth service 
 1. **Deploy to Production Domain:**
    - Deploy your app to a stable HTTPS domain (e.g., `https://app.noddi.co`)
    - Ensure it's using HTTPS (required for OAuth)
-   
+
 2. **Whitelist Domain in Aircall Admin Panel:**
    - Log into Aircall admin dashboard
    - Navigate to your Voice Integration settings (where you got your API ID)
@@ -55,6 +57,7 @@ Aircall Everywhere uses Google OAuth for authentication. Google's OAuth service 
    - Add tunnel URL to Aircall settings (note: changes frequently, not recommended for production)
 
 **Verification After Fix:**
+
 ```bash
 # In browser console
 console.log(window.location.origin); // Should match whitelisted domain exactly
@@ -64,6 +67,7 @@ console.log(window.location.origin); // Should match whitelisted domain exactly
 After adding domains to Aircall settings, changes can take **10-15 minutes** to propagate to Google's OAuth servers. Clear browser cache and test in incognito mode after waiting.
 
 **If Issues Persist:**
+
 - Contact Aircall support at `developer@aircall.io` with:
   - Your API ID
   - Exact domain(s) you need whitelisted
@@ -74,6 +78,7 @@ After adding domains to Aircall settings, changes can take **10-15 minutes** to 
 ### 2. Iframe Missing Required Permissions (CRITICAL) - FIXED
 
 **Symptoms:**
+
 - "resources_blocked_warning" in console
 - WebHID API errors
 - Hardware integration features don't work
@@ -81,22 +86,25 @@ After adding domains to Aircall settings, changes can take **10-15 minutes** to 
 
 **Root Cause:**
 The Aircall SDK creates an iframe with specific `allow` attributes that enable hardware integration:
+
 ```html
-<iframe allow="microphone; autoplay; clipboard-read; clipboard-write; hid">
+<iframe allow="microphone; autoplay; clipboard-read; clipboard-write; hid"></iframe>
 ```
 
 The `hid` permission is **critical** for WebHID API (hardware integration with headsets/phones). If your code intercepts iframe creation or modifies the `allow` attribute, these features will break.
 
 **Fix Applied:**
+
 - Removed custom iframe interceptor in `src/lib/aircall-phone.ts` (lines 449-504)
 - Removed `fixIframePermissions()` method that was stripping `hid` permission
 - Let SDK manage iframe creation without interference
 
 **Verification:**
+
 ```javascript
 // In browser console
 const iframe = document.querySelector('iframe[id*="aircall"]');
-console.log(iframe.getAttribute('allow'));
+console.log(iframe.getAttribute("allow"));
 // Should output: "microphone; autoplay; clipboard-read; clipboard-write; hid"
 ```
 
@@ -105,6 +113,7 @@ console.log(iframe.getAttribute('allow'));
 ### 3. SDK Not Mounting Iframe - FIXED
 
 **Symptoms:**
+
 - "Select your language" dialog visible but not clickable
 - 401 errors flooding the console from workspace.aircall.io
 - Console shows "Module 'service' is not yet registered"
@@ -113,6 +122,7 @@ console.log(iframe.getAttribute('allow'));
 
 **Root Cause:**
 The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts` were only manipulating CSS without calling the actual Aircall SDK methods. This meant the iframe was never truly mounted or authenticated. The SDK's `show()` and `hide()` methods do more than just CSS - they:
+
 - Mount/unmount the iframe properly
 - Establish WebSocket connections for real-time events
 - Trigger authentication flows
@@ -120,6 +130,7 @@ The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts
 - Register service modules
 
 **Fix Applied:**
+
 1. **Direct SDK Calls**: Updated `showWorkspace()` and `hideWorkspace()` to call the SDK's `show()` and `hide()` methods (or `open()`/`close()` for compatibility) before adjusting CSS
 2. **Method Detection**: Added logging to inspect available workspace methods after initialization
 3. **Blocking Check Removed**: Converted `!isInitialized` check to a warning so the SDK can always be attempted
@@ -127,6 +138,7 @@ The `showWorkspace()` and `hideWorkspace()` methods in `src/lib/aircall-phone.ts
 
 **Verification:**
 After the fix:
+
 1. Check console for "✅ Called workspace.show()"
 2. No more 401 errors
 3. Language selector becomes clickable
@@ -135,6 +147,7 @@ After the fix:
 ### 2. Infinite Recursion / Event Loop - FIXED
 
 **Symptoms:**
+
 - Browser freezes or becomes unresponsive
 - Console shows "Maximum call stack size exceeded"
 - Hundreds of identical log messages flooding the console
@@ -145,11 +158,13 @@ After the fix:
 The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom events that were caught by event listeners that called the same functions again, creating an infinite loop.
 
 **Fix Applied:**
+
 1. **Direct SDK Calls**: Modified methods to call SDK directly instead of dispatching events
 2. **Event Listeners Removed**: Removed the circular event listeners from `AircallContext.tsx`
 3. **Recursion Guards**: Added `isShowingWorkspaceRef` and `isHidingWorkspaceRef` flags
 
 **Verification:**
+
 - Check console logs for "✅ Called workspace.show()"
 - No more event dispatch messages
 - Workspace container should now be visible when clicking "Show Aircall"
@@ -157,6 +172,7 @@ The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom even
 ### 3. Workspace Not Loading (401 Errors)
 
 **Symptoms:**
+
 - Console shows "Workspace has not been identified yet"
 - Hundreds of 401 Unauthorized errors to workspace.aircall.io
 - "Show Aircall" button does nothing
@@ -164,12 +180,13 @@ The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom even
 **Solutions:**
 
 1. **Check API Credentials in Database:**
+
    ```sql
-   SELECT 
+   SELECT
      configuration->'aircallEverywhere'->>'apiId' as api_id,
      configuration->'aircallEverywhere'->>'apiToken' as api_token,
      configuration->'aircallEverywhere'->>'domain' as domain
-   FROM voice_integrations 
+   FROM voice_integrations
    WHERE provider = 'aircall' AND is_active = true;
    ```
 
@@ -194,6 +211,7 @@ The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom even
 ### 4. React Query Version Mismatch
 
 **Symptoms:**
+
 - Error: `_a.isStatic is not a function`
 - Aircall initialization crashes
 - Blank screen or app crash
@@ -201,6 +219,7 @@ The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom even
 **Solution:**
 
 Ensure both React Query packages are at the same version:
+
 ```bash
 npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ```
@@ -208,6 +227,7 @@ npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ### 5. SDK Not Initializing
 
 **Symptoms:**
+
 - Phone bar shows "Connecting..." indefinitely
 - Login modal never appears
 - Debug panel shows `isInitialized: false`
@@ -232,6 +252,7 @@ npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ### 6. Calls Not Showing / Answering
 
 **Symptoms:**
+
 - Incoming call notifications appear
 - "Answer" button does nothing or shows error
 - Phone bar doesn't show call status
@@ -253,6 +274,7 @@ npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ### 7. Reconnection Issues
 
 **Symptoms:**
+
 - Frequent disconnects
 - "Reconnecting..." message loops
 - Multiple simultaneous reconnection attempts
@@ -278,11 +300,11 @@ The system uses exponential backoff (1s, 2s, 4s, 8s, up to 30s) with a reconnect
 
 The Aircall integration has three key readiness states:
 
-| State | Meaning | Required For |
-|-------|---------|--------------|
-| `isInitialized` | SDK is created and workspace exists | Showing workspace |
-| `isConnected` | User is logged into Aircall | Making/receiving calls |
-| `isWorkspaceReady` | Workspace iframe is mounted and authenticated | All phone operations |
+| State              | Meaning                                       | Required For           |
+| ------------------ | --------------------------------------------- | ---------------------- |
+| `isInitialized`    | SDK is created and workspace exists           | Showing workspace      |
+| `isConnected`      | User is logged into Aircall                   | Making/receiving calls |
+| `isWorkspaceReady` | Workspace iframe is mounted and authenticated | All phone operations   |
 
 **All three must be true** before you can make or receive calls.
 
@@ -304,12 +326,14 @@ Add `?debug=aircall` to your URL in any environment, or it's automatically enabl
 - **Force Reinitialize** - Button to clear all Aircall cache and reload page (useful for stuck initialization)
 
 **When to Use Force Reinitialize:**
+
 - Workspace is stuck at "Initializing" phase
 - 401 errors persist after credential updates
 - SDK appears to be in a corrupted state
 - After making changes to voice integration settings
 
 This clears all cached state:
+
 - `aircall_login_status`
 - `aircall_connection_timestamp`
 - `aircall_connection_attempts`
@@ -346,7 +370,7 @@ If your application uses Content Security Policy headers, you **must** allow Air
 Add these to your CSP headers (in your hosting platform or server configuration):
 
 ```
-Content-Security-Policy: 
+Content-Security-Policy:
   frame-src https://workspace.aircall.io https://phone.aircall.io https://accounts.google.com https://accounts.google.com/gsi/;
   script-src 'self' https://workspace.aircall.io https://accounts.google.com https://accounts.google.com/gsi/;
   connect-src 'self' https://api.aircall.io https://workspace.aircall.io wss://workspace.aircall.io;
@@ -358,27 +382,31 @@ Content-Security-Policy:
 ### Common CSP Errors
 
 **Error: "Refused to frame 'https://workspace.aircall.io/'"**
+
 - **Cause:** Missing `frame-src` directive for Aircall
 - **Fix:** Add `frame-src https://workspace.aircall.io https://phone.aircall.io`
 
 **Error: "Refused to load script from 'https://accounts.google.com/gsi/'"**
+
 - **Cause:** Missing `script-src` directive for Google OAuth
 - **Fix:** Add `script-src https://accounts.google.com https://accounts.google.com/gsi/`
 
 **Error: "Refused to connect to 'wss://workspace.aircall.io'"**
+
 - **Cause:** Missing `connect-src` directive for WebSocket
 - **Fix:** Add `connect-src wss://workspace.aircall.io`
 
 ### Debugging CSP Issues
 
 Check browser console for CSP violation reports:
+
 ```javascript
 // Monitor CSP violations in real-time
-document.addEventListener('securitypolicyviolation', (e) => {
-  console.error('CSP Violation:', {
+document.addEventListener("securitypolicyviolation", (e) => {
+  console.error("CSP Violation:", {
     blockedURI: e.blockedURI,
     violatedDirective: e.violatedDirective,
-    originalPolicy: e.originalPolicy
+    originalPolicy: e.originalPolicy,
   });
 });
 ```
@@ -390,6 +418,7 @@ document.addEventListener('securitypolicyviolation', (e) => {
 ### Option 1: Production Domain (Recommended)
 
 Deploy to a stable HTTPS domain for development:
+
 - Use staging subdomain: `https://staging.yourdomain.com`
 - Whitelist in Aircall settings
 - Most reliable for team development
@@ -397,6 +426,7 @@ Deploy to a stable HTTPS domain for development:
 ### Option 2: Secure Tunnels (For Local Development)
 
 **Using ngrok (Recommended for tunnels):**
+
 ```bash
 # Free tier (URL changes each time)
 ngrok http 3000
@@ -406,18 +436,21 @@ ngrok http 3000 --subdomain=yourcompany-aircall
 ```
 
 **Using localtunnel:**
+
 ```bash
 npm install -g localtunnel
 lt --port 3000 --subdomain yourcompany-aircall
 ```
 
 **After setting up tunnel:**
+
 1. Note the HTTPS URL (e.g., `https://yourcompany-aircall.ngrok.io`)
 2. Add to Aircall Voice Integration settings
 3. Wait 10-15 minutes for propagation
 4. Test in incognito mode
 
 **⚠️ Tunnel Limitations:**
+
 - Free ngrok URLs change on each restart (must update Aircall settings each time)
 - Can have latency/performance issues
 - Not suitable for production
@@ -459,12 +492,12 @@ Aircall SDK **requires** third-party cookies for Google OAuth and workspace auth
 
 ```javascript
 // In browser console
-console.log('Cookies enabled:', navigator.cookieEnabled);
+console.log("Cookies enabled:", navigator.cookieEnabled);
 
 // Test third-party cookie access
-fetch('https://workspace.aircall.io', { credentials: 'include' })
-  .then(() => console.log('Third-party cookies working'))
-  .catch(() => console.error('Third-party cookies blocked'));
+fetch("https://workspace.aircall.io", { credentials: "include" })
+  .then(() => console.log("Third-party cookies working"))
+  .catch(() => console.error("Third-party cookies blocked"));
 ```
 
 ---
@@ -472,16 +505,19 @@ fetch('https://workspace.aircall.io', { credentials: 'include' })
 ## Browser Compatibility
 
 ### Recommended
+
 - **Chrome 90+** - Best compatibility, recommended for Aircall
 - **Edge 90+** - Good compatibility (Chromium-based)
 - **Firefox 88+** - Good compatibility
 
 ### Limited Support
+
 - **Safari** - WebRTC limitations, third-party cookie restrictions
 - **Brave** - Privacy features may block Aircall by default
 - **Mobile browsers** - Limited WebRTC support
 
 ### Not Supported
+
 - **Internet Explorer** - Not supported by Aircall SDK
 - **Opera Mini** - Proxy architecture incompatible
 

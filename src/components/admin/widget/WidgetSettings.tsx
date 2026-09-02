@@ -1,202 +1,222 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
-import { Plus, Settings, Eye, Code, MessageCircle, Search, Mail, RefreshCw, BarChart3, Globe } from 'lucide-react';
-import { WidgetPreview } from './WidgetPreview';
-import { WidgetEmbedCode } from './WidgetEmbedCode';
-import { WidgetAnalytics } from './WidgetAnalytics';
-import { WidgetTranslationEditor } from './WidgetTranslationEditor';
-import { Heading } from '@/components/ui/heading';
-import { Badge } from '@/components/ui/badge';
-import { WidgetDeployPanel } from './WidgetDeployPanel';
-import { SUPPORTED_WIDGET_LANGUAGES } from '@/widget/translations';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  BarChart3,
+  Code,
+  Eye,
+  Globe,
+  Mail,
+  MessageCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+} from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { supabase } from "@/integrations/supabase/client"
+import { SUPPORTED_WIDGET_LANGUAGES } from "@/widget/translations"
+import { WidgetAnalytics } from "./WidgetAnalytics"
+import { WidgetDeployPanel } from "./WidgetDeployPanel"
+import { WidgetEmbedCode } from "./WidgetEmbedCode"
+import { WidgetPreview } from "./WidgetPreview"
+import { WidgetTranslationEditor } from "./WidgetTranslationEditor"
 
 interface WidgetConfig {
-  id: string;
-  widget_key: string;
-  inbox_id: string;
-  organization_id: string;
-  primary_color: string;
-  position: string;
-  greeting_text: string;
-  response_time_text: string;
-  dismissal_message_text: string;
-  greeting_translations: Record<string, string>;
-  response_time_translations: Record<string, string>;
-  dismissal_message_translations: Record<string, string>;
-  enable_chat: boolean;
-  enable_contact_form: boolean;
-  enable_knowledge_search: boolean;
-  logo_url: string | null;
-  company_name: string | null;
-  is_active: boolean;
-  created_at: string;
-  language: string;
-  inboxes?: { name: string } | null;
+  id: string
+  widget_key: string
+  inbox_id: string
+  organization_id: string
+  primary_color: string
+  position: string
+  greeting_text: string
+  response_time_text: string
+  dismissal_message_text: string
+  greeting_translations: Record<string, string>
+  response_time_translations: Record<string, string>
+  dismissal_message_translations: Record<string, string>
+  enable_chat: boolean
+  enable_contact_form: boolean
+  enable_knowledge_search: boolean
+  logo_url: string | null
+  company_name: string | null
+  is_active: boolean
+  created_at: string
+  language: string
+  inboxes?: { name: string } | null
 }
 
 export const WidgetSettings: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const queryClient = useQueryClient()
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null)
 
   // Fetch organization ID
   const { data: organizationId } = useQuery({
-    queryKey: ['user-organization-id'],
+    queryKey: ["user-organization-id"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_user_organization_id');
-      if (error) throw error;
-      return data as string;
+      const { data, error } = await supabase.rpc("get_user_organization_id")
+      if (error) throw error
+      return data as string
     },
-  });
+  })
 
   // Fetch inboxes for the organization
   const { data: inboxes = [] } = useQuery({
-    queryKey: ['inboxes', organizationId],
+    queryKey: ["inboxes", organizationId],
     queryFn: async () => {
-      if (!organizationId) return [];
+      if (!organizationId) return []
       const { data, error } = await supabase
-        .from('inboxes')
-        .select('id, name, is_active')
-        .eq('organization_id', organizationId)
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
+        .from("inboxes")
+        .select("id, name, is_active")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true)
+        .order("name")
+      if (error) throw error
+      return data
     },
     enabled: !!organizationId,
-  });
+  })
 
   // Fetch widget configs
   const { data: widgetConfigs = [], isLoading } = useQuery({
-    queryKey: ['widget-configs', organizationId],
+    queryKey: ["widget-configs", organizationId],
     queryFn: async () => {
-      if (!organizationId) return [];
+      if (!organizationId) return []
       const { data, error } = await supabase
-        .from('widget_configs')
+        .from("widget_configs")
         .select(`
           *,
           inboxes (name)
         `)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as WidgetConfig[];
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
+      if (error) throw error
+      return data as WidgetConfig[]
     },
     enabled: !!organizationId,
-  });
+  })
 
   // Create widget config mutation
   const createWidgetMutation = useMutation({
     mutationFn: async (inboxId: string) => {
-      if (!organizationId) throw new Error('No organization');
-      
-      const widgetKey = crypto.randomUUID();
-      
+      if (!organizationId) throw new Error("No organization")
+
+      const widgetKey = crypto.randomUUID()
+
       const { data, error } = await supabase
-        .from('widget_configs')
+        .from("widget_configs")
         .insert({
           inbox_id: inboxId,
           organization_id: organizationId,
           widget_key: widgetKey,
-          greeting_text: 'Hi there! 👋 How can we help you today?',
-          response_time_text: 'We usually respond within a few hours',
+          greeting_text: "Hi there! 👋 How can we help you today?",
+          response_time_text: "We usually respond within a few hours",
         })
         .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+        .single()
+
+      if (error) throw error
+      return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['widget-configs'] });
-      setSelectedWidgetId(data.id);
-      toast.success('Widget created successfully');
+      queryClient.invalidateQueries({ queryKey: ["widget-configs"] })
+      setSelectedWidgetId(data.id)
+      toast.success("Widget created successfully")
     },
     onError: (error: any) => {
-      toast.error(`Failed to create widget: ${error.message}`);
+      toast.error(`Failed to create widget: ${error.message}`)
     },
-  });
+  })
 
   // Update widget config mutation with optimistic updates
   const updateWidgetMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WidgetConfig> }) => {
       const { data, error } = await supabase
-        .from('widget_configs')
+        .from("widget_configs")
         .update(updates)
-        .eq('id', id)
+        .eq("id", id)
         .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+        .single()
+
+      if (error) throw error
+      return data
     },
     onMutate: async ({ id, updates }) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['widget-configs', organizationId] });
-      
+      await queryClient.cancelQueries({ queryKey: ["widget-configs", organizationId] })
+
       // Snapshot previous value
-      const previousConfigs = queryClient.getQueryData<WidgetConfig[]>(['widget-configs', organizationId]);
-      
+      const previousConfigs = queryClient.getQueryData<WidgetConfig[]>([
+        "widget-configs",
+        organizationId,
+      ])
+
       // Optimistically update the cache
-      queryClient.setQueryData<WidgetConfig[]>(['widget-configs', organizationId], (old) =>
-        old?.map(widget => widget.id === id ? { ...widget, ...updates } : widget)
-      );
-      
-      return { previousConfigs };
+      queryClient.setQueryData<WidgetConfig[]>(["widget-configs", organizationId], (old) =>
+        old?.map((widget) => (widget.id === id ? { ...widget, ...updates } : widget)),
+      )
+
+      return { previousConfigs }
     },
     onError: (error: any, _variables, context) => {
       // Rollback on error
       if (context?.previousConfigs) {
-        queryClient.setQueryData(['widget-configs', organizationId], context.previousConfigs);
+        queryClient.setQueryData(["widget-configs", organizationId], context.previousConfigs)
       }
-      toast.error(`Failed to update widget: ${error.message}`);
+      toast.error(`Failed to update widget: ${error.message}`)
     },
     onSuccess: () => {
-      toast.success('Widget updated');
+      toast.success("Widget updated")
     },
     onSettled: () => {
       // Refetch to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: ['widget-configs', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ["widget-configs", organizationId] })
     },
-  });
+  })
 
-  const selectedWidget = widgetConfigs.find(w => w.id === selectedWidgetId);
-  
+  const selectedWidget = widgetConfigs.find((w) => w.id === selectedWidgetId)
+
   // Local state for language to prevent race conditions
-  const [selectedLanguage, setSelectedLanguage] = useState(selectedWidget?.language || 'no');
-  
+  const [selectedLanguage, setSelectedLanguage] = useState(selectedWidget?.language || "no")
+
   // Sync local language state when selected widget changes
   useEffect(() => {
     if (selectedWidget?.language) {
-      setSelectedLanguage(selectedWidget.language);
+      setSelectedLanguage(selectedWidget.language)
     }
-  }, [selectedWidget?.id, selectedWidget?.language]);
-  
+  }, [selectedWidget?.language])
+
   const handleLanguageChange = (value: string) => {
-    setSelectedLanguage(value); // Update local state immediately
-    handleUpdateWidget({ language: value }); // Send to server
-  };
+    setSelectedLanguage(value) // Update local state immediately
+    handleUpdateWidget({ language: value }) // Send to server
+  }
 
   const handleUpdateWidget = (updates: Partial<WidgetConfig>) => {
-    if (!selectedWidgetId) return;
-    updateWidgetMutation.mutate({ id: selectedWidgetId, updates });
-  };
+    if (!selectedWidgetId) return
+    updateWidgetMutation.mutate({ id: selectedWidgetId, updates })
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
-    );
+    )
   }
 
   return (
@@ -235,7 +255,9 @@ export const WidgetSettings: React.FC = () => {
                       {widgetConfigs.map((widget) => (
                         <SelectItem key={widget.id} value={widget.id}>
                           <span className="flex items-center gap-2">
-                            <span className="truncate">{widget.inboxes?.name || 'Unknown Inbox'}</span>
+                            <span className="truncate">
+                              {widget.inboxes?.name || "Unknown Inbox"}
+                            </span>
                             <span className="text-xs text-muted-foreground font-mono">
                               {widget.widget_key.slice(0, 8)}…
                             </span>
@@ -257,13 +279,16 @@ export const WidgetSettings: React.FC = () => {
               <div className="flex items-center gap-3">
                 {selectedWidget && (
                   <Badge
-                    variant={selectedWidget.is_active ? 'default' : 'secondary'}
-                    className={selectedWidget.is_active ? 'bg-green-500 hover:bg-green-500 text-white' : ''}
+                    variant={selectedWidget.is_active ? "default" : "secondary"}
+                    className={
+                      selectedWidget.is_active ? "bg-green-500 hover:bg-green-500 text-white" : ""
+                    }
                   >
-                    {selectedWidget.is_active ? 'Active' : 'Inactive'}
+                    {selectedWidget.is_active ? "Active" : "Inactive"}
                   </Badge>
                 )}
-                {inboxes.filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id)).length > 0 && (
+                {inboxes.filter((inbox) => !widgetConfigs.some((w) => w.inbox_id === inbox.id))
+                  .length > 0 && (
                   <Select onValueChange={(inboxId) => createWidgetMutation.mutate(inboxId)}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                       <Plus className="h-4 w-4 mr-2" />
@@ -271,7 +296,7 @@ export const WidgetSettings: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {inboxes
-                        .filter(inbox => !widgetConfigs.some(w => w.inbox_id === inbox.id))
+                        .filter((inbox) => !widgetConfigs.some((w) => w.inbox_id === inbox.id))
                         .map((inbox) => (
                           <SelectItem key={inbox.id} value={inbox.id}>
                             {inbox.name}
@@ -293,11 +318,9 @@ export const WidgetSettings: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <CardTitle className="text-lg">
-                      {selectedWidget.inboxes?.name || 'Widget'} Configuration
+                      {selectedWidget.inboxes?.name || "Widget"} Configuration
                     </CardTitle>
-                    <CardDescription>
-                      Customize your widget settings and appearance
-                    </CardDescription>
+                    <CardDescription>Customize your widget settings and appearance</CardDescription>
                   </div>
                 </div>
 
@@ -330,7 +353,7 @@ export const WidgetSettings: React.FC = () => {
                       <Eye className="h-4 w-4 text-muted-foreground" />
                       Appearance
                     </h4>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Primary Color</Label>
@@ -348,7 +371,7 @@ export const WidgetSettings: React.FC = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label>Position</Label>
                         <Select
@@ -370,10 +393,7 @@ export const WidgetSettings: React.FC = () => {
                           <Globe className="h-4 w-4" />
                           Language
                         </Label>
-                        <Select
-                          value={selectedLanguage}
-                          onValueChange={handleLanguageChange}
-                        >
+                        <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -392,7 +412,7 @@ export const WidgetSettings: React.FC = () => {
                       <div className="space-y-2">
                         <Label>Company Name</Label>
                         <Input
-                          value={selectedWidget.company_name || ''}
+                          value={selectedWidget.company_name || ""}
                           onChange={(e) => handleUpdateWidget({ company_name: e.target.value })}
                           placeholder="Your Company"
                         />
@@ -401,7 +421,7 @@ export const WidgetSettings: React.FC = () => {
                       <div className="space-y-2">
                         <Label>Logo URL</Label>
                         <Input
-                          value={selectedWidget.logo_url || ''}
+                          value={selectedWidget.logo_url || ""}
                           onChange={(e) => handleUpdateWidget({ logo_url: e.target.value })}
                           placeholder="https://..."
                         />
@@ -415,7 +435,7 @@ export const WidgetSettings: React.FC = () => {
                     <p className="text-xs text-muted-foreground">
                       These are used as fallback when no per-language customization exists.
                     </p>
-                    
+
                     <div className="space-y-2">
                       <Label>Default Greeting Text</Label>
                       <Textarea
@@ -440,17 +460,22 @@ export const WidgetSettings: React.FC = () => {
                   <WidgetTranslationEditor
                     greetingText={selectedWidget.greeting_text}
                     responseTimeText={selectedWidget.response_time_text}
-                    dismissalMessageText={selectedWidget.dismissal_message_text || "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly."}
+                    dismissalMessageText={
+                      selectedWidget.dismissal_message_text ||
+                      "Due to high demand, we can't connect you with an agent right now. We'll follow up with you via email shortly."
+                    }
                     greetingTranslations={selectedWidget.greeting_translations || {}}
                     responseTimeTranslations={selectedWidget.response_time_translations || {}}
-                    dismissalMessageTranslations={selectedWidget.dismissal_message_translations || {}}
+                    dismissalMessageTranslations={
+                      selectedWidget.dismissal_message_translations || {}
+                    }
                     onUpdate={handleUpdateWidget}
                   />
 
                   {/* Features */}
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm">Features</h4>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                         <div className="space-y-0.5">
@@ -464,7 +489,9 @@ export const WidgetSettings: React.FC = () => {
                         </div>
                         <Switch
                           checked={selectedWidget.enable_chat}
-                          onCheckedChange={(checked) => handleUpdateWidget({ enable_chat: checked })}
+                          onCheckedChange={(checked) =>
+                            handleUpdateWidget({ enable_chat: checked })
+                          }
                         />
                       </div>
 
@@ -480,7 +507,9 @@ export const WidgetSettings: React.FC = () => {
                         </div>
                         <Switch
                           checked={selectedWidget.enable_contact_form}
-                          onCheckedChange={(checked) => handleUpdateWidget({ enable_contact_form: checked })}
+                          onCheckedChange={(checked) =>
+                            handleUpdateWidget({ enable_contact_form: checked })
+                          }
                         />
                       </div>
 
@@ -496,7 +525,9 @@ export const WidgetSettings: React.FC = () => {
                         </div>
                         <Switch
                           checked={selectedWidget.enable_knowledge_search}
-                          onCheckedChange={(checked) => handleUpdateWidget({ enable_knowledge_search: checked })}
+                          onCheckedChange={(checked) =>
+                            handleUpdateWidget({ enable_knowledge_search: checked })
+                          }
                         />
                       </div>
                     </div>
@@ -547,5 +578,5 @@ export const WidgetSettings: React.FC = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}

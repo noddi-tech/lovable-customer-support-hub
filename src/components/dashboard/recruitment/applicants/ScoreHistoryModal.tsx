@@ -1,47 +1,50 @@
-import React, { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, ChevronDown, ChevronRight } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useScoreHistory, type ScoreHistoryEntry } from '@/hooks/recruitment/useScoreHistory';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { scoreTier, TIER_PILL } from './scoreTier';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
+import { type ScoreHistoryEntry, useScoreHistory } from "@/hooks/recruitment/useScoreHistory"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { cn } from "@/lib/utils"
+import { scoreTier, TIER_PILL } from "./scoreTier"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  applicationId: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  applicationId: string
 }
 
 const REASON_LABEL: Record<string, string> = {
-  initial: 'Første scoring',
-  stage_change: 'Faseendring',
-  manual: 'Manuell',
-  data_change: 'Data oppdatert',
-  re_run: 'Re-score',
-};
+  initial: "Første scoring",
+  stage_change: "Faseendring",
+  manual: "Manuell",
+  data_change: "Data oppdatert",
+  re_run: "Re-score",
+}
 
 function fmtCost(cost?: number | null) {
-  if (cost == null) return null;
-  return `$${cost.toFixed(4)}`;
+  if (cost == null) return null
+  return `$${cost.toFixed(4)}`
 }
 
 const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx: number }> = ({
   entry,
   prev,
 }) => {
-  const [open, setOpen] = useState(false);
-  const { dateTime } = useDateFormatting();
-  const tier = scoreTier(entry.score);
+  const [open, setOpen] = useState(false)
+  const { dateTime } = useDateFormatting()
+  const tier = scoreTier(entry.score)
   const delta =
-    entry.score != null && prev?.score != null ? Number((entry.score - prev.score).toFixed(2)) : null;
-  const tokens = entry.token_usage ?? {};
+    entry.score != null && prev?.score != null
+      ? Number((entry.score - prev.score).toFixed(2))
+      : null
+  const tokens = entry.token_usage ?? {}
 
   return (
     <li className="border rounded-md">
@@ -57,21 +60,21 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
         )}
         <span
           className={cn(
-            'inline-flex items-center justify-center min-w-[2.25rem] h-7 px-2 rounded border text-sm font-semibold tabular-nums',
+            "inline-flex items-center justify-center min-w-[2.25rem] h-7 px-2 rounded border text-sm font-semibold tabular-nums",
             TIER_PILL[tier],
           )}
         >
-          {entry.score != null ? entry.score.toFixed(1) : '–'}
+          {entry.score != null ? entry.score.toFixed(1) : "–"}
         </span>
         {delta != null && delta !== 0 && (
           <span
             className={cn(
-              'inline-flex items-center gap-0.5 text-xs font-medium',
-              delta > 0 ? 'text-green-600' : 'text-red-600',
+              "inline-flex items-center gap-0.5 text-xs font-medium",
+              delta > 0 ? "text-green-600" : "text-red-600",
             )}
           >
             {delta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            {delta > 0 ? '+' : ''}
+            {delta > 0 ? "+" : ""}
             {delta}
           </span>
         )}
@@ -82,7 +85,7 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
         )}
         <div className="flex-1 min-w-0 flex items-center gap-2 text-sm">
           <span className="text-foreground">
-            {REASON_LABEL[entry.trigger_reason ?? ''] ?? entry.trigger_reason ?? 'Ukjent'}
+            {REASON_LABEL[entry.trigger_reason ?? ""] ?? entry.trigger_reason ?? "Ukjent"}
           </span>
         </div>
         <span className="text-xs text-muted-foreground flex-shrink-0">
@@ -122,7 +125,7 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
                   <div key={k} className="flex justify-between gap-2">
                     <span className="text-muted-foreground truncate">{k}</span>
                     <span className="tabular-nums">
-                      {typeof v === 'number' ? v.toFixed(1) : '–'}
+                      {typeof v === "number" ? v.toFixed(1) : "–"}
                     </span>
                   </div>
                 ))}
@@ -141,11 +144,11 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
         </div>
       )}
     </li>
-  );
-};
+  )
+}
 
 const ScoreHistoryModal: React.FC<Props> = ({ open, onOpenChange, applicationId }) => {
-  const { data, isLoading } = useScoreHistory(open ? applicationId : null);
+  const { data, isLoading } = useScoreHistory(open ? applicationId : null)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -164,9 +167,7 @@ const ScoreHistoryModal: React.FC<Props> = ({ open, onOpenChange, applicationId 
               <Skeleton className="h-12 w-full" />
             </div>
           ) : !data || data.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">
-              Ingen historikk ennå.
-            </p>
+            <p className="text-sm text-muted-foreground py-8 text-center">Ingen historikk ennå.</p>
           ) : (
             <ul className="space-y-2">
               {data.map((entry, i) => (
@@ -177,7 +178,7 @@ const ScoreHistoryModal: React.FC<Props> = ({ open, onOpenChange, applicationId 
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default ScoreHistoryModal;
+export default ScoreHistoryModal

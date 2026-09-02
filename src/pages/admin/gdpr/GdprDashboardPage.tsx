@@ -1,56 +1,53 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Download, ShieldCheck, ShieldOff, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
-import { format } from 'date-fns';
-import { useAuth } from '@/hooks/useAuth';
-import {
-  useOrgGdprRequests,
-  type GdprRequestRow,
-} from '@/hooks/recruitment/useGdprRequests';
+import { format } from "date-fns"
+import { AlertCircle, Download, ExternalLink, Loader2, ShieldCheck, ShieldOff } from "lucide-react"
+import type React from "react"
+import { Link } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { type GdprRequestRow, useOrgGdprRequests } from "@/hooks/recruitment/useGdprRequests"
+import { useAuth } from "@/hooks/useAuth"
 
 function fmt(ts: string | null | undefined) {
-  if (!ts) return '—';
+  if (!ts) return "—"
   try {
-    return format(new Date(ts), 'dd.MM.yyyy HH:mm');
+    return format(new Date(ts), "dd.MM.yyyy HH:mm")
   } catch {
-    return ts;
+    return ts
   }
 }
 
-function StatusBadge({ status }: { status: GdprRequestRow['status'] }) {
-  if (status === 'fulfilled') {
+function StatusBadge({ status }: { status: GdprRequestRow["status"] }) {
+  if (status === "fulfilled") {
     return (
       <Badge variant="outline" className="text-green-700 border-green-700/40 bg-green-500/10">
         Fullført
       </Badge>
-    );
+    )
   }
-  if (status === 'failed') return <Badge variant="destructive">Feilet</Badge>;
+  if (status === "failed") return <Badge variant="destructive">Feilet</Badge>
   return (
     <Badge variant="outline">
       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
       Behandler
     </Badge>
-  );
+  )
 }
 
 const GdprDashboardPage: React.FC = () => {
-  const { organizationId } = useAuth();
-  const { data, isLoading } = useOrgGdprRequests(organizationId ?? undefined);
-  const rows = data ?? [];
-  const exports = rows.filter((r) => r.request_type === 'export');
-  const erasures = rows.filter((r) => r.request_type === 'erasure');
+  const { organizationId } = useAuth()
+  const { data, isLoading } = useOrgGdprRequests(organizationId ?? undefined)
+  const rows = data ?? []
+  const exports = rows.filter((r) => r.request_type === "export")
+  const erasures = rows.filter((r) => r.request_type === "erasure")
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">GDPR-forespørsler</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Oversikt over alle eksport- og sletteforespørsler i organisasjonen.
-          Forespørsler bevares som revisjonshistorikk og kan ikke slettes.
+          Oversikt over alle eksport- og sletteforespørsler i organisasjonen. Forespørsler bevares
+          som revisjonshistorikk og kan ikke slettes.
         </p>
       </div>
 
@@ -113,23 +110,23 @@ const GdprDashboardPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y">
                   {rows.map((row) => {
-                    const summary = (row.fulfillment_summary ?? {}) as any;
+                    const summary = (row.fulfillment_summary ?? {}) as any
                     const downloadUrl: string | null =
-                      row.request_type === 'export' &&
-                      row.status === 'fulfilled' &&
+                      row.request_type === "export" &&
+                      row.status === "fulfilled" &&
                       !summary.expired
-                        ? summary.download_url ?? null
-                        : null;
+                        ? (summary.download_url ?? null)
+                        : null
                     return (
                       <tr key={row.id} className="hover:bg-muted/30">
                         <td className="px-4 py-2.5">
                           <span className="inline-flex items-center gap-1.5">
-                            {row.request_type === 'export' ? (
+                            {row.request_type === "export" ? (
                               <ShieldCheck className="h-4 w-4 text-primary" />
                             ) : (
                               <ShieldOff className="h-4 w-4 text-destructive" />
                             )}
-                            {row.request_type === 'export' ? 'Eksport' : 'Sletting'}
+                            {row.request_type === "export" ? "Eksport" : "Sletting"}
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
@@ -145,7 +142,7 @@ const GdprDashboardPage: React.FC = () => {
                         <td className="px-4 py-2.5">
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={row.status} />
-                            {row.status === 'failed' && row.error_message && (
+                            {row.status === "failed" && row.error_message && (
                               <span className="text-xs text-destructive inline-flex items-start gap-1">
                                 <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
                                 {row.error_message}
@@ -180,7 +177,7 @@ const GdprDashboardPage: React.FC = () => {
                           </div>
                         </td>
                       </tr>
-                    );
+                    )
                   })}
                 </tbody>
               </table>
@@ -189,7 +186,7 @@ const GdprDashboardPage: React.FC = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default GdprDashboardPage;
+export default GdprDashboardPage

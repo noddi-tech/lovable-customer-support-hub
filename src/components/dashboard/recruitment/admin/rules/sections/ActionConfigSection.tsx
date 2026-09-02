@@ -1,56 +1,48 @@
-import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { ACTION_OPTIONS, type ActionType } from '../types';
-import {
-  useActiveTemplatesForOrg,
-  useAssignableUsersForOrg,
-} from '../hooks/useRules';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useActiveTemplatesForOrg, useAssignableUsersForOrg } from "../hooks/useRules"
+import { ACTION_OPTIONS, type ActionType } from "../types"
 
 interface Props {
-  actionType: ActionType;
-  actionConfig: Record<string, unknown>;
-  onActionTypeChange: (value: ActionType) => void;
-  onActionConfigChange: (config: Record<string, unknown>) => void;
+  actionType: ActionType
+  actionConfig: Record<string, unknown>
+  onActionTypeChange: (value: ActionType) => void
+  onActionConfigChange: (config: Record<string, unknown>) => void
   errors?: {
-    template_id?: { message?: string };
-    user_id?: { message?: string };
-    url?: { message?: string };
-  };
+    template_id?: { message?: string }
+    user_id?: { message?: string }
+    url?: { message?: string }
+  }
 }
 
 interface HeaderRow {
-  key: string;
-  value: string;
+  key: string
+  value: string
 }
 
 function headersObjectToRows(obj: unknown): HeaderRow[] {
-  if (!obj || typeof obj !== 'object') return [];
+  if (!obj || typeof obj !== "object") return []
   return Object.entries(obj as Record<string, unknown>).map(([key, value]) => ({
     key,
-    value: typeof value === 'string' ? value : JSON.stringify(value),
-  }));
+    value: typeof value === "string" ? value : JSON.stringify(value),
+  }))
 }
 
 function rowsToHeadersObject(rows: HeaderRow[]): Record<string, string> | undefined {
-  const filtered = rows.filter((r) => r.key.trim());
-  if (filtered.length === 0) return undefined;
-  return Object.fromEntries(filtered.map((r) => [r.key.trim(), r.value]));
+  const filtered = rows.filter((r) => r.key.trim())
+  if (filtered.length === 0) return undefined
+  return Object.fromEntries(filtered.map((r) => [r.key.trim(), r.value]))
 }
 
 export function ActionConfigSection({
@@ -60,36 +52,34 @@ export function ActionConfigSection({
   onActionConfigChange,
   errors,
 }: Props) {
-  const { data: templates, isLoading: templatesLoading } = useActiveTemplatesForOrg();
-  const { data: users, isLoading: usersLoading } = useAssignableUsersForOrg();
+  const { data: templates, isLoading: templatesLoading } = useActiveTemplatesForOrg()
+  const { data: users, isLoading: usersLoading } = useAssignableUsersForOrg()
 
   const setConfigField = (key: string, value: unknown) => {
-    const next = { ...actionConfig };
-    if (value === undefined || value === '' || value === null) {
-      delete next[key];
+    const next = { ...actionConfig }
+    if (value === undefined || value === "" || value === null) {
+      delete next[key]
     } else {
-      next[key] = value;
+      next[key] = value
     }
-    onActionConfigChange(next);
-  };
+    onActionConfigChange(next)
+  }
 
-  const headerRows = headersObjectToRows(actionConfig.headers);
+  const headerRows = headersObjectToRows(actionConfig.headers)
 
   const updateHeaderRows = (rows: HeaderRow[]) => {
-    const obj = rowsToHeadersObject(rows);
-    const next = { ...actionConfig };
-    if (obj) next.headers = obj;
-    else delete next.headers;
-    onActionConfigChange(next);
-  };
+    const obj = rowsToHeadersObject(rows)
+    const next = { ...actionConfig }
+    if (obj) next.headers = obj
+    else delete next.headers
+    onActionConfigChange(next)
+  }
 
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Handling</h3>
-        <p className="text-xs text-muted-foreground">
-          Hva skal skje når utløseren matcher?
-        </p>
+        <p className="text-xs text-muted-foreground">Hva skal skje når utløseren matcher?</p>
       </div>
 
       <div className="space-y-1.5">
@@ -99,9 +89,9 @@ export function ActionConfigSection({
         <Select
           value={actionType}
           onValueChange={(v) => {
-            const opt = ACTION_OPTIONS.find((o) => o.value === v);
-            if (opt?.disabled) return;
-            onActionTypeChange(v as ActionType);
+            const opt = ACTION_OPTIONS.find((o) => o.value === v)
+            if (opt?.disabled) return
+            onActionTypeChange(v as ActionType)
           }}
         >
           <SelectTrigger id="rule-action-type">
@@ -111,16 +101,12 @@ export function ActionConfigSection({
             <TooltipProvider delayDuration={200}>
               {ACTION_OPTIONS.map((opt) => {
                 const item = (
-                  <SelectItem
-                    key={opt.value}
-                    value={opt.value}
-                    disabled={opt.disabled}
-                  >
+                  <SelectItem key={opt.value} value={opt.value} disabled={opt.disabled}>
                     <span
                       className={
                         opt.disabled
-                          ? 'flex items-center gap-2 text-muted-foreground'
-                          : 'flex items-center gap-2'
+                          ? "flex items-center gap-2 text-muted-foreground"
+                          : "flex items-center gap-2"
                       }
                     >
                       {opt.label}
@@ -131,25 +117,23 @@ export function ActionConfigSection({
                       )}
                     </span>
                   </SelectItem>
-                );
-                if (!opt.comingSoon) return item;
+                )
+                if (!opt.comingSoon) return item
                 return (
                   <Tooltip key={opt.value}>
                     <TooltipTrigger asChild>
                       <span>{item}</span>
                     </TooltipTrigger>
-                    <TooltipContent side="right">
-                      Kommer i en senere fase.
-                    </TooltipContent>
+                    <TooltipContent side="right">Kommer i en senere fase.</TooltipContent>
                   </Tooltip>
-                );
+                )
               })}
             </TooltipProvider>
           </SelectContent>
         </Select>
       </div>
 
-      {actionType === 'send_email' && (
+      {actionType === "send_email" && (
         <div className="space-y-1.5">
           <Label htmlFor="rule-action-template" className="text-xs font-medium">
             E-postmal <span className="text-destructive">*</span>
@@ -165,8 +149,8 @@ export function ActionConfigSection({
             </p>
           ) : (
             <Select
-              value={(actionConfig.template_id as string) ?? ''}
-              onValueChange={(v) => setConfigField('template_id', v)}
+              value={(actionConfig.template_id as string) ?? ""}
+              onValueChange={(v) => setConfigField("template_id", v)}
             >
               <SelectTrigger id="rule-action-template">
                 <SelectValue placeholder="Velg mal..." />
@@ -191,7 +175,7 @@ export function ActionConfigSection({
         </div>
       )}
 
-      {actionType === 'assign_to' && (
+      {actionType === "assign_to" && (
         <div className="space-y-1.5">
           <Label htmlFor="rule-action-user" className="text-xs font-medium">
             Tildel til <span className="text-destructive">*</span>
@@ -203,8 +187,8 @@ export function ActionConfigSection({
             </div>
           ) : (
             <Select
-              value={(actionConfig.user_id as string) ?? ''}
-              onValueChange={(v) => setConfigField('user_id', v)}
+              value={(actionConfig.user_id as string) ?? ""}
+              onValueChange={(v) => setConfigField("user_id", v)}
             >
               <SelectTrigger id="rule-action-user">
                 <SelectValue placeholder="Velg bruker..." />
@@ -212,7 +196,7 @@ export function ActionConfigSection({
               <SelectContent>
                 {(users ?? []).map((u) => (
                   <SelectItem key={u.id} value={u.id}>
-                    {(u.full_name ?? '(uten navn)') + ` (${u.role})`}
+                    {`${u.full_name ?? "(uten navn)"} (${u.role})`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -224,7 +208,7 @@ export function ActionConfigSection({
         </div>
       )}
 
-      {actionType === 'webhook' && (
+      {actionType === "webhook" && (
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="rule-action-url" className="text-xs font-medium">
@@ -233,8 +217,8 @@ export function ActionConfigSection({
             <Input
               id="rule-action-url"
               type="url"
-              value={(actionConfig.url as string) ?? ''}
-              onChange={(e) => setConfigField('url', e.target.value)}
+              value={(actionConfig.url as string) ?? ""}
+              onChange={(e) => setConfigField("url", e.target.value)}
               placeholder="https://hooks.slack.com/services/..."
             />
             {errors?.url?.message && (
@@ -249,18 +233,16 @@ export function ActionConfigSection({
             </p>
             <div className="space-y-2">
               {headerRows.length === 0 && (
-                <p className="text-[11px] text-muted-foreground italic">
-                  Ingen headers lagt til.
-                </p>
+                <p className="text-[11px] text-muted-foreground italic">Ingen headers lagt til.</p>
               )}
               {headerRows.map((row, idx) => (
                 <div key={idx} className="flex gap-2 items-start">
                   <Input
                     value={row.key}
                     onChange={(e) => {
-                      const copy = [...headerRows];
-                      copy[idx] = { ...copy[idx], key: e.target.value };
-                      updateHeaderRows(copy);
+                      const copy = [...headerRows]
+                      copy[idx] = { ...copy[idx], key: e.target.value }
+                      updateHeaderRows(copy)
                     }}
                     placeholder="Header-navn"
                     className="flex-1"
@@ -268,9 +250,9 @@ export function ActionConfigSection({
                   <Input
                     value={row.value}
                     onChange={(e) => {
-                      const copy = [...headerRows];
-                      copy[idx] = { ...copy[idx], value: e.target.value };
-                      updateHeaderRows(copy);
+                      const copy = [...headerRows]
+                      copy[idx] = { ...copy[idx], value: e.target.value }
+                      updateHeaderRows(copy)
                     }}
                     placeholder="Verdi"
                     className="flex-1"
@@ -281,8 +263,8 @@ export function ActionConfigSection({
                     size="icon"
                     aria-label="Fjern header"
                     onClick={() => {
-                      const copy = headerRows.filter((_, i) => i !== idx);
-                      updateHeaderRows(copy);
+                      const copy = headerRows.filter((_, i) => i !== idx)
+                      updateHeaderRows(copy)
                     }}
                   >
                     <Trash2 />
@@ -293,7 +275,7 @@ export function ActionConfigSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => updateHeaderRows([...headerRows, { key: '', value: '' }])}
+                onClick={() => updateHeaderRows([...headerRows, { key: "", value: "" }])}
               >
                 <Plus />
                 Legg til header
@@ -306,27 +288,27 @@ export function ActionConfigSection({
               Meldingsmal (valgfritt)
             </Label>
             <p className="text-[11px] text-muted-foreground">
-              For Slack-webhooks: hvis angitt, erstattes hele bodyen med {'{text: rendered}'}. Bruk{' '}
-              <code className="font-mono">{'{{context.to_stage_id}}'}</code> og{' '}
-              <code className="font-mono">{'{{rule.name}}'}</code> som plassholdere.
+              For Slack-webhooks: hvis angitt, erstattes hele bodyen med {"{text: rendered}"}. Bruk{" "}
+              <code className="font-mono">{"{{context.to_stage_id}}"}</code> og{" "}
+              <code className="font-mono">{"{{rule.name}}"}</code> som plassholdere.
             </p>
             <Textarea
               id="rule-action-msg"
               rows={3}
               emojiAutocomplete={false}
-              value={(actionConfig.message_template as string) ?? ''}
-              onChange={(e) => setConfigField('message_template', e.target.value)}
+              value={(actionConfig.message_template as string) ?? ""}
+              onChange={(e) => setConfigField("message_template", e.target.value)}
               placeholder="Valgfri melding..."
             />
           </div>
         </div>
       )}
 
-      {actionType === 'send_candidate_form' && (
+      {actionType === "send_candidate_form" && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Søkeren får en e-post med lenke til kandidatskjemaet. Lenken er
-            personlig og krever bekreftelse av telefonnummer.
+            Søkeren får en e-post med lenke til kandidatskjemaet. Lenken er personlig og krever
+            bekreftelse av telefonnummer.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Gyldighet (dager)</Label>
@@ -336,8 +318,8 @@ export function ActionConfigSection({
               max={14}
               value={(actionConfig.expiry_days as number | undefined) ?? 7}
               onChange={(e) => {
-                const v = Number(e.target.value);
-                setConfigField('expiry_days', Number.isFinite(v) ? Math.max(1, Math.min(14, v)) : 7);
+                const v = Number(e.target.value)
+                setConfigField("expiry_days", Number.isFinite(v) ? Math.max(1, Math.min(14, v)) : 7)
               }}
             />
             <p className="text-[11px] text-muted-foreground">
@@ -347,5 +329,5 @@ export function ActionConfigSection({
         </div>
       )}
     </div>
-  );
+  )
 }

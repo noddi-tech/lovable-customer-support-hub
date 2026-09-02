@@ -1,37 +1,37 @@
-import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { LucideIcon } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import type { ReactNode } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
-export const METRICS_RANGES = [7, 30, 90] as const;
-export type MetricsRange = (typeof METRICS_RANGES)[number];
+export const METRICS_RANGES = [7, 30, 90] as const
+export type MetricsRange = (typeof METRICS_RANGES)[number]
 
 export interface MetricsDialogShellProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   /** Channel icon shown next to the title. */
-  icon: LucideIcon;
-  title: string;
-  description: string;
+  icon: LucideIcon
+  title: string
+  description: string
   /** Selected range in days — omit the pair to hide the range switcher. */
-  days?: number;
-  onDaysChange?: (days: number) => void;
-  isLoading?: boolean;
-  loadingLabel?: string;
-  error?: Error | null;
+  days?: number
+  onDaysChange?: (days: number) => void
+  isLoading?: boolean
+  loadingLabel?: string
+  error?: Error | null
   /** Extra controls rendered on the right of the range switcher. */
-  toolbarExtra?: ReactNode;
-  footer?: ReactNode;
-  className?: string;
-  children: ReactNode;
+  toolbarExtra?: ReactNode
+  footer?: ReactNode
+  className?: string
+  children: ReactNode
 }
 
 /**
@@ -47,18 +47,18 @@ export function MetricsDialogShell({
   days,
   onDaysChange,
   isLoading,
-  loadingLabel = 'Calculating metrics…',
+  loadingLabel = "Calculating metrics…",
   error,
   toolbarExtra,
   footer,
   className,
   children,
 }: MetricsDialogShellProps) {
-  const showRanges = typeof days === 'number' && !!onDaysChange;
+  const showRanges = typeof days === "number" && !!onDaysChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn('sm:max-w-2xl max-h-[85vh] overflow-y-auto', className)}>
+      <DialogContent className={cn("sm:max-w-2xl max-h-[85vh] overflow-y-auto", className)}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Icon className="h-4 w-4" /> {title}
@@ -73,7 +73,7 @@ export function MetricsDialogShell({
                 <Button
                   key={r}
                   size="sm"
-                  variant={days === r ? 'secondary' : 'ghost'}
+                  variant={days === r ? "secondary" : "ghost"}
                   className="h-7 px-2 text-xs"
                   onClick={() => onDaysChange?.(r)}
                 >
@@ -99,7 +99,7 @@ export function MetricsDialogShell({
         {footer && !isLoading && <div className="text-[11px] text-muted-foreground">{footer}</div>}
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 
-export default MetricsDialogShell;
+export default MetricsDialogShell

@@ -1,76 +1,82 @@
-import React, { useEffect, useState } from 'react';
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
-  useCreateScoringBaseline,
-  useUpdateScoringBaseline,
   type ScoringBaseline,
   type ScoringRubric,
-} from '@/hooks/recruitment/useScoringBaselines';
-import { RubricBuilder, emptyRubric } from './RubricBuilder';
+  useCreateScoringBaseline,
+  useUpdateScoringBaseline,
+} from "@/hooks/recruitment/useScoringBaselines"
+import { useToast } from "@/hooks/use-toast"
+import { emptyRubric, RubricBuilder } from "./RubricBuilder"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  baseline: ScoringBaseline | null;
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  baseline: ScoringBaseline | null
 }
 
 export const ScoringBaselineDialog: React.FC<Props> = ({ open, onOpenChange, baseline }) => {
-  const { toast } = useToast();
-  const create = useCreateScoringBaseline();
-  const update = useUpdateScoringBaseline();
-  const isEdit = !!baseline;
+  const { toast } = useToast()
+  const create = useCreateScoringBaseline()
+  const update = useUpdateScoringBaseline()
+  const isEdit = !!baseline
 
-  const [name, setName] = useState('');
-  const [isDefault, setIsDefault] = useState(false);
-  const [rubric, setRubric] = useState<ScoringRubric>(emptyRubric());
+  const [name, setName] = useState("")
+  const [isDefault, setIsDefault] = useState(false)
+  const [rubric, setRubric] = useState<ScoringRubric>(emptyRubric())
 
   useEffect(() => {
     if (open) {
-      setName(baseline?.name ?? '');
-      setIsDefault(baseline?.is_default ?? false);
-      setRubric((baseline?.rubric as ScoringRubric) ?? emptyRubric());
+      setName(baseline?.name ?? "")
+      setIsDefault(baseline?.is_default ?? false)
+      setRubric((baseline?.rubric as ScoringRubric) ?? emptyRubric())
     }
-  }, [open, baseline]);
+  }, [open, baseline])
 
-  const totalWeight = rubric.criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0);
+  const totalWeight = rubric.criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0)
   const canSave =
     name.trim().length > 0 &&
     rubric.criteria.length > 0 &&
     rubric.criteria.every((c) => c.name.trim().length > 0) &&
-    totalWeight === 100;
+    totalWeight === 100
 
   const handleSave = async () => {
     try {
       if (isEdit && baseline) {
-        await update.mutateAsync({ id: baseline.id, name: name.trim(), rubric, is_default: isDefault });
-        toast({ title: 'Baseline oppdatert' });
+        await update.mutateAsync({
+          id: baseline.id,
+          name: name.trim(),
+          rubric,
+          is_default: isDefault,
+        })
+        toast({ title: "Baseline oppdatert" })
       } else {
-        await create.mutateAsync({ name: name.trim(), rubric, is_default: isDefault });
-        toast({ title: 'Baseline opprettet' });
+        await create.mutateAsync({ name: name.trim(), rubric, is_default: isDefault })
+        toast({ title: "Baseline opprettet" })
       }
-      onOpenChange(false);
+      onOpenChange(false)
     } catch (e: any) {
-      toast({ title: 'Kunne ikke lagre', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke lagre", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Rediger baseline' : 'Ny scoring-baseline'}</DialogTitle>
+          <DialogTitle>{isEdit ? "Rediger baseline" : "Ny scoring-baseline"}</DialogTitle>
           <DialogDescription>
             En baseline er et gjenbrukbart sett kriterier som stillinger kan kopiere fra.
           </DialogDescription>
@@ -104,14 +110,11 @@ export const ScoringBaselineDialog: React.FC<Props> = ({ open, onOpenChange, bas
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!canSave || create.isPending || update.isPending}
-          >
-            {isEdit ? 'Lagre endringer' : 'Opprett baseline'}
+          <Button onClick={handleSave} disabled={!canSave || create.isPending || update.isPending}>
+            {isEdit ? "Lagre endringer" : "Opprett baseline"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

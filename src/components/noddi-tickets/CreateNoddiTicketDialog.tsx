@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,84 +8,82 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { useCreateNoddiTicket, useNoddiServiceDepartments } from '@/hooks/useNoddiTickets';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useCreateNoddiTicket, useNoddiServiceDepartments } from "@/hooks/useNoddiTickets"
 import {
   NODDI_TICKET_CATEGORIES,
   NODDI_TICKET_PRIORITIES,
   NODDI_TICKET_TYPES,
-  TICKET_CATEGORY_LABELS,
-  TICKET_PRIORITY_LABELS,
-  TICKET_TYPE_LABELS,
   type NoddiTicketCategory,
   type NoddiTicketPriority,
   type NoddiTicketType,
-} from '@/types/noddiTicket';
+  TICKET_CATEGORY_LABELS,
+  TICKET_PRIORITY_LABELS,
+  TICKET_TYPE_LABELS,
+} from "@/types/noddiTicket"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  defaultTitle?: string;
-  defaultDescription?: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultTitle?: string
+  defaultDescription?: string
   /** Noddi user group the ticket relates to (links the ticket to the customer). */
-  userGroupId?: number | null;
+  userGroupId?: number | null
   /** Noddi booking the ticket relates to. */
-  bookingId?: number | null;
-  defaultCategory?: NoddiTicketCategory;
-  defaultPriority?: NoddiTicketPriority;
-  onCreated?: (ticketId: number) => void;
+  bookingId?: number | null
+  defaultCategory?: NoddiTicketCategory
+  defaultPriority?: NoddiTicketPriority
+  onCreated?: (ticketId: number) => void
 }
 
 export function CreateNoddiTicketDialog({
   open,
   onOpenChange,
-  defaultTitle = '',
-  defaultDescription = '',
+  defaultTitle = "",
+  defaultDescription = "",
   userGroupId,
   bookingId,
-  defaultCategory = 'CUSTOMER_ISSUE',
-  defaultPriority = 'NORMAL',
+  defaultCategory = "CUSTOMER_ISSUE",
+  defaultPriority = "NORMAL",
   onCreated,
 }: Props) {
-  const { data: departments = [], isLoading: loadingDepartments } = useNoddiServiceDepartments();
-  const createTicket = useCreateNoddiTicket();
+  const { data: departments = [], isLoading: loadingDepartments } = useNoddiServiceDepartments()
+  const createTicket = useCreateNoddiTicket()
 
-  const [title, setTitle] = useState(defaultTitle);
-  const [description, setDescription] = useState(defaultDescription);
-  const [departmentId, setDepartmentId] = useState<string>('');
-  const [category, setCategory] = useState<NoddiTicketCategory>(defaultCategory);
-  const [priority, setPriority] = useState<NoddiTicketPriority>(defaultPriority);
-  const [type, setType] = useState<NoddiTicketType>('TASK');
+  const [title, setTitle] = useState(defaultTitle)
+  const [description, setDescription] = useState(defaultDescription)
+  const [departmentId, setDepartmentId] = useState<string>("")
+  const [category, setCategory] = useState<NoddiTicketCategory>(defaultCategory)
+  const [priority, setPriority] = useState<NoddiTicketPriority>(defaultPriority)
+  const [type, setType] = useState<NoddiTicketType>("TASK")
 
   useEffect(() => {
     if (open) {
-      setTitle(defaultTitle);
-      setDescription(defaultDescription);
-      setCategory(defaultCategory);
-      setPriority(defaultPriority);
+      setTitle(defaultTitle)
+      setDescription(defaultDescription)
+      setCategory(defaultCategory)
+      setPriority(defaultPriority)
     }
-  }, [open, defaultTitle, defaultDescription, defaultCategory, defaultPriority]);
+  }, [open, defaultTitle, defaultDescription, defaultCategory, defaultPriority])
 
   useEffect(() => {
-    if (!departmentId && departments.length) setDepartmentId(String(departments[0].id));
-  }, [departments, departmentId]);
+    if (!departmentId && departments.length) setDepartmentId(String(departments[0].id))
+  }, [departments, departmentId])
 
-  const canSubmit = title.trim().length > 0 && !!departmentId && !createTicket.isPending;
+  const canSubmit = title.trim().length > 0 && !!departmentId && !createTicket.isPending
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) return
     const ticket = await createTicket.mutateAsync({
       title: title.trim(),
       description: description.trim(),
@@ -93,13 +93,13 @@ export function CreateNoddiTicketDialog({
       type,
       ...(userGroupId ? { user_group_id: userGroupId } : {}),
       ...(bookingId ? { booking_id: bookingId } : {}),
-    });
-    onOpenChange(false);
-    setTitle('');
-    setDescription('');
-    const id = (ticket as { id?: number } | undefined)?.id;
-    if (id && onCreated) onCreated(id);
-  };
+    })
+    onOpenChange(false)
+    setTitle("")
+    setDescription("")
+    const id = (ticket as { id?: number } | undefined)?.id
+    if (id && onCreated) onCreated(id)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,9 +108,9 @@ export function CreateNoddiTicketDialog({
           <DialogTitle>Create ops ticket</DialogTitle>
           <DialogDescription>
             This creates an operational ticket for a service department in Navio. It is created
-            directly in the Navio backend and will show up in their app — Support Hub only displays it.
+            directly in the Navio backend and will show up in their app — Support Hub only displays
+            it.
           </DialogDescription>
-
         </DialogHeader>
 
         <div className="space-y-4">
@@ -138,9 +138,15 @@ export function CreateNoddiTicketDialog({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Service department</Label>
-              <Select value={departmentId} onValueChange={setDepartmentId} disabled={loadingDepartments}>
+              <Select
+                value={departmentId}
+                onValueChange={setDepartmentId}
+                disabled={loadingDepartments}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder={loadingDepartments ? 'Loading…' : 'Select department'} />
+                  <SelectValue
+                    placeholder={loadingDepartments ? "Loading…" : "Select department"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((d) => (
@@ -213,5 +219,5 @@ export function CreateNoddiTicketDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

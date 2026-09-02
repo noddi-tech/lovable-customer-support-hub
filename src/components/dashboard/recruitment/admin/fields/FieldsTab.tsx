@@ -1,23 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,42 +11,53 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Copy, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  type CustomFieldWithType,
   useCustomFields,
   useDeleteCustomField,
-  type CustomFieldWithType,
-} from '@/hooks/recruitment/useCustomFields';
+} from "@/hooks/recruitment/useCustomFields"
 import {
-  useFieldMappingTemplates,
   useCreateTemplate,
   useDeleteTemplate,
+  useFieldMappingTemplates,
   useForkTemplate,
-} from '@/hooks/recruitment/useFieldMappingTemplates';
-import { CustomFieldDialog } from './CustomFieldDialog';
+} from "@/hooks/recruitment/useFieldMappingTemplates"
+import { useToast } from "@/hooks/use-toast"
+import { CustomFieldDialog } from "./CustomFieldDialog"
 
 export function FieldsTab() {
-  const fieldsQ = useCustomFields();
-  const deleteField = useDeleteCustomField();
-  const { toast } = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<CustomFieldWithType | null>(null);
+  const fieldsQ = useCustomFields()
+  const deleteField = useDeleteCustomField()
+  const { toast } = useToast()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<CustomFieldWithType | null>(null)
 
   const handleEdit = (f: CustomFieldWithType) => {
-    setEditing(f);
-    setDialogOpen(true);
-  };
+    setEditing(f)
+    setDialogOpen(true)
+  }
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteField.mutateAsync(id);
-      toast({ title: 'Felt slettet' });
+      await deleteField.mutateAsync(id)
+      toast({ title: "Felt slettet" })
     } catch (e: any) {
-      toast({ title: 'Sletting feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Sletting feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -79,8 +73,8 @@ export function FieldsTab() {
             <Button
               size="sm"
               onClick={() => {
-                setEditing(null);
-                setDialogOpen(true);
+                setEditing(null)
+                setDialogOpen(true)
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -123,7 +117,11 @@ export function FieldsTab() {
                       </TableCell>
                       <TableCell className="text-sm">{f.type_display_name}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {f.show_on_card && <Badge variant="secondary" className="mr-1">Kort</Badge>}
+                        {f.show_on_card && (
+                          <Badge variant="secondary" className="mr-1">
+                            Kort
+                          </Badge>
+                        )}
                         {f.show_on_profile && <Badge variant="secondary">Profil</Badge>}
                       </TableCell>
                       <TableCell className="text-right">
@@ -144,8 +142,9 @@ export function FieldsTab() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Slett feltet «{f.display_name}»?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Alle eksisterende svar på dette feltet hos søkere blir slettet. Skjema-mappinger
-                                som peker på feltet vil ikke lenger lagre svar. Denne handlingen kan ikke angres.
+                                Alle eksisterende svar på dette feltet hos søkere blir slettet.
+                                Skjema-mappinger som peker på feltet vil ikke lenger lagre svar.
+                                Denne handlingen kan ikke angres.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -171,53 +170,50 @@ export function FieldsTab() {
 
       <TemplatesSection />
 
-      <CustomFieldDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        field={editing}
-      />
+      <CustomFieldDialog open={dialogOpen} onOpenChange={setDialogOpen} field={editing} />
     </div>
-  );
+  )
 }
 
 function TemplatesSection() {
-  const orgQ = useFieldMappingTemplates('org');
-  const sysQ = useFieldMappingTemplates('system');
-  const createTpl = useCreateTemplate();
-  const deleteTpl = useDeleteTemplate();
-  const forkTpl = useForkTemplate();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [newName, setNewName] = useState('');
+  const orgQ = useFieldMappingTemplates("org")
+  const sysQ = useFieldMappingTemplates("system")
+  const createTpl = useCreateTemplate()
+  const deleteTpl = useDeleteTemplate()
+  const forkTpl = useForkTemplate()
+  const { toast } = useToast()
+  const navigate = useNavigate()
+  const [newName, setNewName] = useState("")
 
   const handleCreate = async () => {
-    const name = newName.trim() || 'Ny mal';
+    const name = newName.trim() || "Ny mal"
     try {
-      const created = await createTpl.mutateAsync({ name, scope: 'org' });
-      setNewName('');
-      toast({ title: 'Mal opprettet' });
-      navigate(`/admin/recruitment/templates/${(created as any).id}`);
+      const created = await createTpl.mutateAsync({ name, scope: "org" })
+      setNewName("")
+      toast({ title: "Mal opprettet" })
+      navigate(`/admin/recruitment/templates/${(created as any).id}`)
     } catch (e: any) {
-      toast({ title: 'Kunne ikke opprette', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke opprette", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   const handleFork = async (id: string, name: string) => {
     try {
-      const created = await forkTpl.mutateAsync({ sourceTemplateId: id });
-      toast({ title: `«${name}» kopiert til organisasjonen` });
-      navigate(`/admin/recruitment/templates/${(created as any).id}`);
+      const created = await forkTpl.mutateAsync({ sourceTemplateId: id })
+      toast({ title: `«${name}» kopiert til organisasjonen` })
+      navigate(`/admin/recruitment/templates/${(created as any).id}`)
     } catch (e: any) {
-      toast({ title: 'Kopiering feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kopiering feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Maler</CardTitle>
         <CardDescription>
-          Maler grupperer vanlige tilordninger fra Meta-skjemaspørsmål til standard- og egendefinerte felt.
+          Maler grupperer vanlige tilordninger fra Meta-skjemaspørsmål til standard- og
+          egendefinerte felt.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -273,7 +269,7 @@ function TemplatesSection() {
                           <AlertDialogAction
                             onClick={() =>
                               deleteTpl.mutate(t.id, {
-                                onSuccess: () => toast({ title: 'Mal slettet' }),
+                                onSuccess: () => toast({ title: "Mal slettet" }),
                               })
                             }
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -344,5 +340,5 @@ function TemplatesSection() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

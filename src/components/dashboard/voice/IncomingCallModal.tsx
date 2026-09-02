@@ -1,143 +1,148 @@
-import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Phone, PhoneOff, PhoneCall, Calendar, AlertCircle, Package, Loader2 } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { VoiceCustomerSidebar } from './VoiceCustomerSidebar';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
-import { useAircallPhone } from '@/hooks/useAircallPhone';
-import { useCallCustomerContext } from '@/hooks/useCallCustomerContext';
-import { useToast } from '@/hooks/use-toast';
-import type { Call } from '@/hooks/useCalls';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
+import { useQueryClient } from "@tanstack/react-query"
+import { AlertCircle, Calendar, Loader2, Package, Phone, PhoneCall, PhoneOff } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { useAircallPhone } from "@/hooks/useAircallPhone"
+import { useCallCustomerContext } from "@/hooks/useCallCustomerContext"
+import type { Call } from "@/hooks/useCalls"
+import { supabase } from "@/integrations/supabase/client"
+import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
+import { VoiceCustomerSidebar } from "./VoiceCustomerSidebar"
 
 interface IncomingCallModalProps {
-  call: Call | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onAnswerContext: (callId: string) => void;
+  call: Call | null
+  isOpen: boolean
+  onClose: () => void
+  onAnswerContext: (callId: string) => void
 }
 
-export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: IncomingCallModalProps) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const { 
-    answerCall, 
-    isInitialized: isAircallReady, 
+export const IncomingCallModal = ({
+  call,
+  isOpen,
+  onClose,
+  onAnswerContext,
+}: IncomingCallModalProps) => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const {
+    answerCall,
+    isInitialized: isAircallReady,
     showAircallWorkspace,
     isWorkspaceReady,
-    initializePhone
-  } = useAircallPhone();
-  const { noddiData } = useCallCustomerContext();
-  const [currentCall, setCurrentCall] = useState<Call | null>(call);
-  const [isLoadingPhone, setIsLoadingPhone] = useState(false);
-  const [quickNote, setQuickNote] = useState('');
+    initializePhone,
+  } = useAircallPhone()
+  const { noddiData } = useCallCustomerContext()
+  const [currentCall, setCurrentCall] = useState<Call | null>(call)
+  const [isLoadingPhone, setIsLoadingPhone] = useState(false)
+  const [quickNote, setQuickNote] = useState("")
 
   // Update current call when prop changes
   useEffect(() => {
-    setCurrentCall(call);
-  }, [call]);
+    setCurrentCall(call)
+  }, [call])
 
   // Subscribe to real-time updates for this call
   useEffect(() => {
-    if (!currentCall?.id) return;
+    if (!currentCall?.id) return
 
-    console.log('[IncomingCallModal] 📡 Subscribing to real-time updates for call:', currentCall.id);
+    console.log("[IncomingCallModal] 📡 Subscribing to real-time updates for call:", currentCall.id)
 
     const channel = supabase
       .channel(`incoming-call-${currentCall.id}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'calls',
-          filter: `id=eq.${currentCall.id}`
+          event: "UPDATE",
+          schema: "public",
+          table: "calls",
+          filter: `id=eq.${currentCall.id}`,
         },
         (payload) => {
-          const updatedCall = payload.new as Call;
-          console.log('[IncomingCallModal] 🔄 Call updated:', {
+          const updatedCall = payload.new as Call
+          console.log("[IncomingCallModal] 🔄 Call updated:", {
             old_status: currentCall.status,
-            new_status: updatedCall.status
-          });
-          
-          setCurrentCall(updatedCall);
+            new_status: updatedCall.status,
+          })
+
+          setCurrentCall(updatedCall)
 
           // Auto-close if call has ended (completed or failed) - give user time to see who called
-          if (updatedCall.status === 'completed' || updatedCall.status === 'failed') {
-            console.log('[IncomingCallModal] 🚪 Auto-closing modal in 10s - call ended');
+          if (updatedCall.status === "completed" || updatedCall.status === "failed") {
+            console.log("[IncomingCallModal] 🚪 Auto-closing modal in 10s - call ended")
             setTimeout(() => {
-              onClose();
-            }, 10000); // 10 seconds to see who called
+              onClose()
+            }, 10000) // 10 seconds to see who called
           }
 
           // Invalidate queries
-          queryClient.invalidateQueries({ queryKey: ['calls'] });
-        }
+          queryClient.invalidateQueries({ queryKey: ["calls"] })
+        },
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentCall?.id, onClose, queryClient]);
+      supabase.removeChannel(channel)
+    }
+  }, [currentCall?.id, onClose, queryClient, currentCall.status])
 
   // PHASE 1: Force pointer-events on dialog to ensure it's interactive
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
     // Force pointer-events on all dialog-related elements
     const forcePointerEvents = () => {
       // Find dialog overlay and content
-      const dialogOverlay = document.querySelector('[data-radix-dialog-overlay]') as HTMLElement;
-      const dialogContent = document.querySelector('[data-radix-dialog-content]') as HTMLElement;
-      
+      const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]") as HTMLElement
+      const dialogContent = document.querySelector("[data-radix-dialog-content]") as HTMLElement
+
       if (dialogOverlay) {
-        dialogOverlay.style.pointerEvents = 'auto';
-        console.log('[IncomingCallModal] ✅ Forced pointer-events on dialog overlay');
+        dialogOverlay.style.pointerEvents = "auto"
+        console.log("[IncomingCallModal] ✅ Forced pointer-events on dialog overlay")
       }
-      
+
       if (dialogContent) {
-        dialogContent.style.pointerEvents = 'auto';
-        console.log('[IncomingCallModal] ✅ Forced pointer-events on dialog content');
+        dialogContent.style.pointerEvents = "auto"
+        console.log("[IncomingCallModal] ✅ Forced pointer-events on dialog content")
       }
-    };
+    }
 
     // Apply immediately and after a short delay
-    forcePointerEvents();
-    const timer = setTimeout(forcePointerEvents, 100);
+    forcePointerEvents()
+    const timer = setTimeout(forcePointerEvents, 100)
 
-    return () => clearTimeout(timer);
-  }, [isOpen]);
+    return () => clearTimeout(timer)
+  }, [isOpen])
 
   // Auto-close after 60 seconds if still open (safety timeout)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
 
-    console.log('[IncomingCallModal] ⏱️ Setting safety timeout (60s)');
+    console.log("[IncomingCallModal] ⏱️ Setting safety timeout (60s)")
     const timer = setTimeout(() => {
-      console.log('[IncomingCallModal] ⏰ Safety timeout reached - closing modal');
-      onClose();
-    }, 60000);
+      console.log("[IncomingCallModal] ⏰ Safety timeout reached - closing modal")
+      onClose()
+    }, 60000)
 
-    return () => clearTimeout(timer);
-  }, [isOpen, onClose]);
+    return () => clearTimeout(timer)
+  }, [isOpen, onClose])
 
-  if (!currentCall) return null;
+  if (!currentCall) return null
 
-  const uiMeta = noddiData?.data?.ui_meta;
-  const priorityBooking = noddiData?.data?.priority_booking;
+  const uiMeta = noddiData?.data?.ui_meta
+  const priorityBooking = noddiData?.data?.priority_booking
 
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={(open) => {
-        console.log('[IncomingCallModal] 🔄 Dialog onOpenChange triggered:', { open });
+        console.log("[IncomingCallModal] 🔄 Dialog onOpenChange triggered:", { open })
         if (!open) {
-          onClose();
+          onClose()
         }
       }}
     >
@@ -164,7 +169,7 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
               )}
             </div>
             <div className="flex items-center gap-2">
-              {currentCall.status === 'completed' || currentCall.status === 'failed' ? (
+              {currentCall.status === "completed" || currentCall.status === "failed" ? (
                 <>
                   <div className="h-3 w-3 bg-gray-400 rounded-full" />
                   <span className="text-sm font-medium text-muted-foreground">Call Ended</span>
@@ -213,8 +218,8 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
             <Alert variant="destructive">
               <Package className="h-4 w-4" />
               <AlertDescription className="font-medium">
-                ⚠️ {uiMeta.unpaid_count} unpaid booking{uiMeta.unpaid_count > 1 ? 's' : ''} - 
-                Total outstanding: {uiMeta.money?.currency} {uiMeta.money?.outstanding}
+                ⚠️ {uiMeta.unpaid_count} unpaid booking{uiMeta.unpaid_count > 1 ? "s" : ""} - Total
+                outstanding: {uiMeta.money?.currency} {uiMeta.money?.outstanding}
               </AlertDescription>
             </Alert>
           )}
@@ -237,37 +242,37 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
           </div>
 
           {/* Action Buttons */}
-          {currentCall.status !== 'completed' && currentCall.status !== 'failed' ? (
+          {currentCall.status !== "completed" && currentCall.status !== "failed" ? (
             <div className="flex gap-2">
               {/* Show Aircall Button - Always available */}
               <Button
                 type="button"
                 onClick={async (e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  
+                  e.stopPropagation()
+                  e.preventDefault()
+
                   if (!isWorkspaceReady && !isAircallReady) {
-                    setIsLoadingPhone(true);
+                    setIsLoadingPhone(true)
                     toast({
                       title: "Initializing Phone System",
-                      description: "Please wait while we load Aircall..."
-                    });
+                      description: "Please wait while we load Aircall...",
+                    })
                     try {
-                      await initializePhone();
+                      await initializePhone()
                     } catch (error) {
-                      console.error('Failed to initialize phone:', error);
+                      console.error("Failed to initialize phone:", error)
                       toast({
                         title: "Initialization Failed",
                         description: "Please try again or refresh the page",
-                        variant: "destructive"
-                      });
+                        variant: "destructive",
+                      })
                     } finally {
-                      setIsLoadingPhone(false);
+                      setIsLoadingPhone(false)
                     }
                   }
-                  
-                  showAircallWorkspace(true);
-                  console.log('[IncomingCallModal] 📱 Opening Aircall workspace');
+
+                  showAircallWorkspace(true)
+                  console.log("[IncomingCallModal] 📱 Opening Aircall workspace")
                 }}
                 variant="outline"
                 size="lg"
@@ -279,43 +284,43 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 ) : (
                   <Phone className="h-4 w-4 mr-2" />
                 )}
-                {isLoadingPhone ? 'Loading...' : 'Show Aircall'}
+                {isLoadingPhone ? "Loading..." : "Show Aircall"}
               </Button>
-              
+
               {/* Answer via Aircall - Opens workspace (SDK v2 requires manual interaction) */}
               <Button
                 type="button"
                 onClick={async (e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  
+                  e.stopPropagation()
+                  e.preventDefault()
+
                   if (!isWorkspaceReady && !isAircallReady) {
-                    setIsLoadingPhone(true);
+                    setIsLoadingPhone(true)
                     toast({
                       title: "Initializing Phone System",
-                      description: "Loading Aircall so you can answer..."
-                    });
+                      description: "Loading Aircall so you can answer...",
+                    })
                     try {
-                      await initializePhone();
+                      await initializePhone()
                     } catch (error) {
-                      console.error('Failed to initialize phone:', error);
+                      console.error("Failed to initialize phone:", error)
                       toast({
                         title: "Initialization Failed",
                         description: "Please try again or refresh the page",
-                        variant: "destructive"
-                      });
+                        variant: "destructive",
+                      })
                     } finally {
-                      setIsLoadingPhone(false);
+                      setIsLoadingPhone(false)
                     }
                   }
-                  
-                  showAircallWorkspace(true);
-                  console.log('[IncomingCallModal] Opening Aircall workspace for user to answer');
+
+                  showAircallWorkspace(true)
+                  console.log("[IncomingCallModal] Opening Aircall workspace for user to answer")
                   if (isAircallReady) {
                     toast({
                       title: "Answer in Aircall Phone",
-                      description: "Click the green Answer button in the Aircall interface"
-                    });
+                      description: "Click the green Answer button in the Aircall interface",
+                    })
                   }
                 }}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
@@ -327,16 +332,16 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 ) : (
                   <PhoneCall className="h-4 w-4 mr-2" />
                 )}
-                {isLoadingPhone ? 'Loading Phone...' : 'Open Aircall to Answer'}
+                {isLoadingPhone ? "Loading Phone..." : "Open Aircall to Answer"}
               </Button>
-              
+
               {/* View Full Context */}
               <Button
                 type="button"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onAnswerContext(currentCall.id);
+                  e.stopPropagation()
+                  e.preventDefault()
+                  onAnswerContext(currentCall.id)
                 }}
                 variant="outline"
                 size="lg"
@@ -344,14 +349,14 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 <Phone className="h-4 w-4 mr-2" />
                 View Details
               </Button>
-              
+
               {/* Dismiss */}
               <Button
                 type="button"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onClose();
+                  e.stopPropagation()
+                  e.preventDefault()
+                  onClose()
                 }}
                 variant="outline"
                 size="lg"
@@ -369,9 +374,9 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 <Button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onAnswerContext(currentCall.id);
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onAnswerContext(currentCall.id)
                   }}
                   variant="outline"
                   className="flex-1"
@@ -383,9 +388,9 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
                 <Button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onClose();
+                    e.stopPropagation()
+                    e.preventDefault()
+                    onClose()
                   }}
                   variant="outline"
                   size="lg"
@@ -399,5 +404,5 @@ export const IncomingCallModal = ({ call, isOpen, onClose, onAnswerContext }: In
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

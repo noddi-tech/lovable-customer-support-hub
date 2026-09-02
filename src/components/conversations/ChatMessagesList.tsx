@@ -1,29 +1,23 @@
-import { Fragment, useRef, useEffect, useState, useCallback } from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import type { NormalizedMessage } from '@/lib/normalizeMessage';
-import { useQueryClient } from '@tanstack/react-query';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { EmailPreviewDialog } from '@/components/conversations/EmailPreviewDialog';
-import { MoreHorizontal, Copy, Trash2, Check, CheckCheck, Paperclip, Image, Mail, MessageSquare, AlertCircle, RefreshCw, Loader2, Lock, Edit3, Languages, Star } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { EmailRender } from '@/components/ui/email-render';
-import { MentionRenderer } from '@/components/ui/mention-renderer';
-import { toast } from 'sonner';
-import { getLanguageFlag, getLanguageLabel, normalizeLocale } from '@/utils/languageLabels';
-import { InlineNoteEditor } from './InlineNoteEditor';
-import { useNoteMutations } from '@/hooks/useNoteMutations';
-import { useChatCsat } from '@/hooks/useChatCsat';
-
-import { noteDebug } from '@/utils/noteInteractionDebug';
+import { useQueryClient } from "@tanstack/react-query"
+import {
+  AlertCircle,
+  CheckCheck,
+  Copy,
+  Edit3,
+  Languages,
+  Loader2,
+  Lock,
+  Mail,
+  MessageSquare,
+  MoreHorizontal,
+  Paperclip,
+  RefreshCw,
+  Star,
+  Trash2,
+} from "lucide-react"
+import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
+import { EmailPreviewDialog } from "@/components/conversations/EmailPreviewDialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,146 +27,170 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { EmailRender } from "@/components/ui/email-render"
+import { MentionRenderer } from "@/components/ui/mention-renderer"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useChatCsat } from "@/hooks/useChatCsat"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNoteMutations } from "@/hooks/useNoteMutations"
+import { supabase } from "@/integrations/supabase/client"
+import type { NormalizedMessage } from "@/lib/normalizeMessage"
+import { cn } from "@/lib/utils"
+import { getLanguageFlag, getLanguageLabel, normalizeLocale } from "@/utils/languageLabels"
+
+import { noteDebug } from "@/utils/noteInteractionDebug"
+import { InlineNoteEditor } from "./InlineNoteEditor"
 
 interface ChatMessagesListProps {
-  messages: NormalizedMessage[];
-  customerName?: string;
-  customerEmail?: string;
-  customerTyping?: boolean; // Renamed from agentTyping for clarity
-  conversationId?: string;
+  messages: NormalizedMessage[]
+  customerName?: string
+  customerEmail?: string
+  customerTyping?: boolean // Renamed from agentTyping for clarity
+  conversationId?: string
 }
 
-export const ChatMessagesList = ({ 
-  messages, 
-  customerName, 
+export const ChatMessagesList = ({
+  messages,
+  customerName,
   customerEmail,
   customerTyping = false,
-  conversationId
+  conversationId,
 }: ChatMessagesListProps) => {
-  const { relative: formatRelative } = useDateFormatting();
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [emailPreviewId, setEmailPreviewId] = useState<string | null>(null);
-  const { canEditNote, deleteNote } = useNoteMutations();
-  const { data: csat } = useChatCsat(conversationId);
-
+  const { relative: formatRelative } = useDateFormatting()
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [emailPreviewId, setEmailPreviewId] = useState<string | null>(null)
+  const { canEditNote, deleteNote } = useNoteMutations()
+  const { data: csat } = useChatCsat(conversationId)
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, customerTyping]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [])
 
   // Poll for new messages every 2 seconds during live chat
   // Pause polling while editing or confirming delete to prevent re-render interference
   useEffect(() => {
-    if (!conversationId) return;
-    
+    if (!conversationId) return
+
     const interval = setInterval(() => {
-      if (editingNoteId || confirmDeleteId) return;
-      queryClient.invalidateQueries({ 
-        queryKey: ['thread-messages', conversationId] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['messages', conversationId] 
-      });
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [conversationId, queryClient, editingNoteId, confirmDeleteId]);
+      if (editingNoteId || confirmDeleteId) return
+      queryClient.invalidateQueries({
+        queryKey: ["thread-messages", conversationId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["messages", conversationId],
+      })
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [conversationId, queryClient, editingNoteId, confirmDeleteId])
 
   // Sort messages by date (oldest first for chat view)
   const sortedMessages = [...messages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
 
   // Widget language per customer message — flag the first one and every switch after it.
-  const languageMarkers = new Map<string, { from: string | null; to: string }>();
-  let previousLocale: string | null = null;
+  const languageMarkers = new Map<string, { from: string | null; to: string }>()
+  let previousLocale: string | null = null
   for (const message of sortedMessages) {
-    if (message.authorType !== 'customer' || message.isInternalNote) continue;
-    const locale = normalizeLocale((message.originalMessage as any)?.metadata?.locale);
-    if (!locale) continue;
+    if (message.authorType !== "customer" || message.isInternalNote) continue
+    const locale = normalizeLocale((message.originalMessage as any)?.metadata?.locale)
+    if (!locale) continue
     if (locale !== previousLocale) {
-      languageMarkers.set(message.id, { from: previousLocale, to: locale });
-      previousLocale = locale;
+      languageMarkers.set(message.id, { from: previousLocale, to: locale })
+      previousLocale = locale
     }
   }
 
-
   const getInitials = (name?: string, email?: string) => {
     if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     }
     if (email) {
-      return email[0].toUpperCase();
+      return email[0].toUpperCase()
     }
-    return '?';
-  };
+    return "?"
+  }
 
   const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content);
-    toast.success('Message copied');
-  }, []);
+    navigator.clipboard.writeText(content)
+    toast.success("Message copied")
+  }, [])
 
-  const handleDeleteMessage = useCallback(async (messageId: string) => {
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', messageId);
-      if (error) throw error;
-      toast.success('Message deleted');
-      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-    } catch (error) {
-      console.error('Failed to delete message:', error);
-      toast.error('Failed to delete message');
-    }
-  }, [conversationId, queryClient]);
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        const { error } = await supabase.from("messages").delete().eq("id", messageId)
+        if (error) throw error
+        toast.success("Message deleted")
+        queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+        queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      } catch (error) {
+        console.error("Failed to delete message:", error)
+        toast.error("Failed to delete message")
+      }
+    },
+    [conversationId, queryClient],
+  )
 
   const handleResendEmail = useCallback(async (messageId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('send-reply-email', {
-        body: { messageId }
-      });
-      if (error) throw error;
-      toast.success('Email sent successfully');
+      const { error } = await supabase.functions.invoke("send-reply-email", {
+        body: { messageId },
+      })
+      if (error) throw error
+      toast.success("Email sent successfully")
     } catch (error) {
-      toast.error('Failed to send email');
+      toast.error("Failed to send email")
     }
-  }, []);
+  }, [])
 
   // Render attachments
   const renderAttachments = (attachments: any[] | null | undefined) => {
-    if (!attachments || attachments.length === 0) return null;
-    
+    if (!attachments || attachments.length === 0) return null
+
     return (
       <div className="flex flex-wrap gap-2 mt-2">
         {attachments.map((attachment, index) => {
-          const isImage = attachment.type?.startsWith('image/');
-          
+          const isImage = attachment.type?.startsWith("image/")
+
           if (isImage) {
             return (
-              <a 
+              <a
                 key={index}
-                href={attachment.url} 
-                target="_blank" 
+                href={attachment.url}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="block"
               >
-                <img 
-                  src={attachment.url} 
-                  alt={attachment.name || 'Attachment'}
+                <img
+                  src={attachment.url}
+                  alt={attachment.name || "Attachment"}
                   className="max-w-[200px] max-h-[150px] rounded-lg object-cover border"
                 />
               </a>
-            );
+            )
           }
-          
+
           return (
             <a
               key={index}
@@ -183,359 +201,401 @@ export const ChatMessagesList = ({
             >
               <Paperclip className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm truncate max-w-[150px]">
-                {attachment.name || 'Download file'}
+                {attachment.name || "Download file"}
               </span>
             </a>
-          );
+          )
         })}
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <>
-    <ScrollArea className="flex-1" ref={scrollAreaRef}>
-      <div className="flex flex-col gap-4 p-4">
-        {sortedMessages.length === 0 && (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-            No messages yet
-          </div>
-        )}
-        
-        {sortedMessages.map((message) => {
-          const isAgent = message.authorType === 'agent';
-          const isSystem = message.authorType === 'system';
-          const isInternal = message.isInternalNote;
-          const senderName = message.from?.name || message.from?.email;
-          const attachments = (message as any).attachments;
-          const languageChange = languageMarkers.get(message.id);
-          const languageBanner = languageChange ? (
-            <div className="flex justify-center py-1 self-center">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-[3px] text-[11px] text-muted-foreground"
-                title={
-                  languageChange.from
-                    ? `Visitor switched the widget language from ${getLanguageLabel(languageChange.from)} to ${getLanguageLabel(languageChange.to)}`
-                    : `Widget language: ${getLanguageLabel(languageChange.to)}`
-                }
-              >
-                <Languages className="h-3 w-3" />
-                {languageChange.from
-                  ? `Language changed: ${getLanguageFlag(languageChange.from)} ${getLanguageLabel(languageChange.from)} → ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`
-                  : `Widget language: ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`}
-              </span>
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+        <div className="flex flex-col gap-4 p-4">
+          {sortedMessages.length === 0 && (
+            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+              No messages yet
             </div>
-          ) : null;
+          )}
 
-          if (isSystem) {
+          {sortedMessages.map((message) => {
+            const isAgent = message.authorType === "agent"
+            const isSystem = message.authorType === "system"
+            const isInternal = message.isInternalNote
+            const senderName = message.from?.name || message.from?.email
+            const attachments = (message as any).attachments
+            const languageChange = languageMarkers.get(message.id)
+            const languageBanner = languageChange ? (
+              <div className="flex justify-center py-1 self-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-[3px] text-[11px] text-muted-foreground"
+                  title={
+                    languageChange.from
+                      ? `Visitor switched the widget language from ${getLanguageLabel(languageChange.from)} to ${getLanguageLabel(languageChange.to)}`
+                      : `Widget language: ${getLanguageLabel(languageChange.to)}`
+                  }
+                >
+                  <Languages className="h-3 w-3" />
+                  {languageChange.from
+                    ? `Language changed: ${getLanguageFlag(languageChange.from)} ${getLanguageLabel(languageChange.from)} → ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`
+                    : `Widget language: ${getLanguageFlag(languageChange.to)} ${getLanguageLabel(languageChange.to)}`}
+                </span>
+              </div>
+            ) : null
+
+            if (isSystem) {
+              return (
+                <Fragment key={message.id}>
+                  {languageBanner}
+                  <div className="flex justify-center py-2">
+                    <div className="bg-muted/50 text-muted-foreground text-xs px-4 py-2 rounded-full">
+                      {message.visibleBody}
+                    </div>
+                  </div>
+                </Fragment>
+              )
+            }
+
             return (
               <Fragment key={message.id}>
                 {languageBanner}
-                <div className="flex justify-center py-2">
-                  <div className="bg-muted/50 text-muted-foreground text-xs px-4 py-2 rounded-full">
-                    {message.visibleBody}
+                <div
+                  className={cn(
+                    "flex gap-3 max-w-[85%] group",
+                    isAgent ? "self-end flex-row-reverse" : "self-start",
+                  )}
+                >
+                  {/* Avatar */}
+                  <Avatar
+                    className={cn(
+                      "h-8 w-8 shrink-0",
+                      isAgent ? "ring-2 ring-primary/20" : "ring-2 ring-muted",
+                    )}
+                  >
+                    <AvatarFallback
+                      className={cn(
+                        "text-xs font-medium",
+                        isAgent
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {isAgent ? getInitials(senderName) : getInitials(customerName, customerEmail)}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Message content */}
+                  <div
+                    className={cn("flex flex-col relative", isAgent ? "items-end" : "items-start")}
+                  >
+                    {/* Sender name / internal note label */}
+                    {isInternal ? (
+                      <span className="text-xs text-yellow-700 mb-1 px-1 flex items-center gap-1">
+                        <Lock className="h-3 w-3" />
+                        Internal note
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground mb-1 px-1">
+                        {isAgent
+                          ? senderName || "Agent"
+                          : customerName || customerEmail || "Customer"}
+                      </span>
+                    )}
+
+                    {/* Message bubble with action menu */}
+                    <div className="relative">
+                      {/* Action menu - visible on hover */}
+                      <div
+                        className={cn(
+                          "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10",
+                          isAgent ? "-left-8" : "-right-8",
+                        )}
+                      >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 bg-background shadow-sm border"
+                            >
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align={isAgent ? "end" : "start"}>
+                            <DropdownMenuItem
+                              onClick={() => handleCopyMessage(message.visibleBody)}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy
+                            </DropdownMenuItem>
+                            {/* Edit + Delete for internal notes (author or admin) */}
+                            {isInternal &&
+                              canEditNote({
+                                is_internal: true,
+                                sender_id: message.originalMessage?.sender_id,
+                              }) && (
+                                <>
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      noteDebug(
+                                        "note_editor_open_requested",
+                                        {
+                                          source: "ChatMessagesList",
+                                          messageId: message.id,
+                                        },
+                                        "ChatMessagesList",
+                                      )
+                                      // Let the dropdown close naturally; setTimeout defers
+                                      // the state update until after Radix's close animation
+                                      // starts unwinding, avoiding overlay stacking.
+                                      setTimeout(() => setEditingNoteId(message.id), 0)
+                                    }}
+                                  >
+                                    <Edit3 className="h-4 w-4 mr-2" />
+                                    Edit note
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      noteDebug(
+                                        "delete_dialog_open_requested",
+                                        {
+                                          source: "ChatMessagesList",
+                                          messageId: message.id,
+                                        },
+                                        "ChatMessagesList",
+                                      )
+                                      setTimeout(() => setConfirmDeleteId(message.id), 0)
+                                    }}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete note
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            {isAgent && !isInternal && (
+                              <DropdownMenuItem onClick={() => handleResendEmail(message.id)}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Resend Email
+                              </DropdownMenuItem>
+                            )}
+                            {isAgent &&
+                              !isInternal &&
+                              (message.emailStatus === "failed" ||
+                                message.emailStatus === "retry") && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteMessage(message.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* Message bubble */}
+                      <div
+                        className={cn(
+                          "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content overflow-hidden max-w-[280px] md:max-w-md [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
+                          isInternal
+                            ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
+                            : isAgent
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-muted text-foreground rounded-bl-md",
+                        )}
+                      >
+                        {isInternal ? (
+                          editingNoteId === message.id ? (
+                            <InlineNoteEditor
+                              messageId={message.id}
+                              initialContent={
+                                message.originalMessage?.content || message.visibleBody
+                              }
+                              conversationId={conversationId}
+                              context={{
+                                type: "internal_note",
+                                conversation_id: conversationId,
+                                message_id: message.id,
+                              }}
+                              onCancel={() => setEditingNoteId(null)}
+                              compact
+                            />
+                          ) : (
+                            <>
+                              <MentionRenderer content={message.visibleBody} className="text-sm" />
+                              {message.originalMessage?.updated_at &&
+                                message.originalMessage?.created_at &&
+                                new Date(message.originalMessage.updated_at).getTime() -
+                                  new Date(message.originalMessage.created_at).getTime() >
+                                  2000 && (
+                                  <span className="ml-2 text-[10px] text-muted-foreground italic">
+                                    (edited)
+                                  </span>
+                                )}
+                            </>
+                          )
+                        ) : (
+                          <EmailRender
+                            content={message.visibleBody}
+                            contentType={message.originalMessage?.content_type || "text/plain"}
+                            attachments={attachments}
+                            messageId={message.id}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timestamp + delivery channel + delivery status */}
+                    <div className="flex items-center gap-1 mt-1 px-1">
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelative(new Date(message.createdAt))}
+                      </span>
+                      {isAgent &&
+                        !isInternal &&
+                        (message.emailStatus ? (
+                          <button
+                            type="button"
+                            onClick={() => setEmailPreviewId(message.id)}
+                            className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-[1px] text-[10px] font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                            title="Sent as email — click to see how it looked for the customer"
+                          >
+                            <Mail className="h-2.5 w-2.5" />
+                            Sent as email
+                          </button>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-1.5 py-[1px] text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
+                            title="Delivered live in the chat widget"
+                          >
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            In chat
+                          </span>
+                        ))}
+                      {isAgent &&
+                        !isInternal &&
+                        (!message.emailStatus || message.emailStatus === "sent") && (
+                          <CheckCheck className="h-3 w-3 text-primary" />
+                        )}
+                    </div>
+                    {/* Sending indicator */}
+                    {isAgent && message.emailStatus === "sending" && (
+                      <div className="flex items-center gap-1.5 mt-1 px-1">
+                        <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
+                        <span className="text-xs text-muted-foreground">Sending email...</span>
+                      </div>
+                    )}
+                    {/* Inline resend for failed/pending emails */}
+                    {isAgent &&
+                      (message.emailStatus === "failed" || message.emailStatus === "retry") && (
+                        <div className="flex items-center gap-1.5 mt-1 px-1">
+                          <AlertCircle className="h-3 w-3 text-destructive" />
+                          <span className="text-xs text-destructive font-medium">
+                            Email not sent
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-5 text-[10px] px-2 py-0 gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => handleResendEmail(message.id)}
+                          >
+                            <RefreshCw className="h-2.5 w-2.5" />
+                            Resend
+                          </Button>
+                        </div>
+                      )}
                   </div>
                 </div>
               </Fragment>
-            );
-          }
-          
-          return (
-            <Fragment key={message.id}>
-            {languageBanner}
-            <div 
-              className={cn(
+            )
+          })}
 
-                "flex gap-3 max-w-[85%] group",
-                isAgent ? "self-end flex-row-reverse" : "self-start"
-              )}
-            >
-              {/* Avatar */}
-              <Avatar className={cn(
-                "h-8 w-8 shrink-0",
-                isAgent ? "ring-2 ring-primary/20" : "ring-2 ring-muted"
-              )}>
-                <AvatarFallback className={cn(
-                  "text-xs font-medium",
-                  isAgent ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {isAgent 
-                    ? getInitials(senderName) 
-                    : getInitials(customerName, customerEmail)
-                  }
+          {/* Typing indicator - shows when customer is typing */}
+          {customerTyping && (
+            <div className="flex gap-3 max-w-[85%] self-start">
+              <Avatar className="h-8 w-8 shrink-0 ring-2 ring-muted">
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  {getInitials(customerName, customerEmail)}
                 </AvatarFallback>
               </Avatar>
-              
-              {/* Message content */}
-              <div className={cn(
-                "flex flex-col relative",
-                isAgent ? "items-end" : "items-start"
-              )}>
-                {/* Sender name / internal note label */}
-                {isInternal ? (
-                  <span className="text-xs text-yellow-700 mb-1 px-1 flex items-center gap-1">
-                    <Lock className="h-3 w-3" />
-                    Internal note
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground mb-1 px-1">
-                    {isAgent ? senderName || 'Agent' : customerName || customerEmail || 'Customer'}
-                  </span>
-                )}
-                
-                {/* Message bubble with action menu */}
-                <div className="relative">
-                  {/* Action menu - visible on hover */}
-                  <div className={cn(
-                    "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10",
-                    isAgent ? "-left-8" : "-right-8"
-                  )}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 bg-background shadow-sm border">
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align={isAgent ? "end" : "start"}>
-                        <DropdownMenuItem onClick={() => handleCopyMessage(message.visibleBody)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy
-                        </DropdownMenuItem>
-                        {/* Edit + Delete for internal notes (author or admin) */}
-                        {isInternal && canEditNote({
-                          is_internal: true,
-                          sender_id: message.originalMessage?.sender_id,
-                        }) && (
-                          <>
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                noteDebug('note_editor_open_requested', {
-                                  source: 'ChatMessagesList',
-                                  messageId: message.id,
-                                }, 'ChatMessagesList');
-                                // Let the dropdown close naturally; setTimeout defers
-                                // the state update until after Radix's close animation
-                                // starts unwinding, avoiding overlay stacking.
-                                setTimeout(() => setEditingNoteId(message.id), 0);
-                              }}
-                            >
-                              <Edit3 className="h-4 w-4 mr-2" />
-                              Edit note
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                noteDebug('delete_dialog_open_requested', {
-                                  source: 'ChatMessagesList',
-                                  messageId: message.id,
-                                }, 'ChatMessagesList');
-                                setTimeout(() => setConfirmDeleteId(message.id), 0);
-                              }}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete note
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {isAgent && !isInternal && (
-                          <DropdownMenuItem onClick={() => handleResendEmail(message.id)}>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Resend Email
-                          </DropdownMenuItem>
-                        )}
-                        {isAgent && !isInternal && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteMessage(message.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  
-                  {/* Message bubble */}
-                  <div className={cn(
-                    "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content overflow-hidden max-w-[280px] md:max-w-md [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
-                    isInternal
-                      ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
-                      : isAgent 
-                        ? "bg-primary text-primary-foreground rounded-br-md" 
-                        : "bg-muted text-foreground rounded-bl-md"
-                  )}>
-                    {isInternal ? (
-                      editingNoteId === message.id ? (
-                        <InlineNoteEditor
-                          messageId={message.id}
-                          initialContent={message.originalMessage?.content || message.visibleBody}
-                          conversationId={conversationId}
-                          context={{
-                            type: 'internal_note',
-                            conversation_id: conversationId,
-                            message_id: message.id,
-                          }}
-                          onCancel={() => setEditingNoteId(null)}
-                          compact
-                        />
-                      ) : (
-                        <>
-                          <MentionRenderer content={message.visibleBody} className="text-sm" />
-                          {message.originalMessage?.updated_at &&
-                            message.originalMessage?.created_at &&
-                            new Date(message.originalMessage.updated_at).getTime() -
-                              new Date(message.originalMessage.created_at).getTime() >
-                              2000 && (
-                              <span className="ml-2 text-[10px] text-muted-foreground italic">(edited)</span>
-                            )}
-                        </>
-                      )
-                    ) : (
-                      <EmailRender
-                        content={message.visibleBody}
-                        contentType={message.originalMessage?.content_type || 'text/plain'}
-                        attachments={attachments}
-                        messageId={message.id}
-                      />
-                    )}
-                  </div>
-                </div>
-                
-                {/* Timestamp + delivery channel + delivery status */}
-                <div className="flex items-center gap-1 mt-1 px-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelative(new Date(message.createdAt))}
-                  </span>
-                  {isAgent && !isInternal && (
-                    message.emailStatus ? (
-                      <button
-                        type="button"
-                        onClick={() => setEmailPreviewId(message.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-1.5 py-[1px] text-[10px] font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                        title="Sent as email — click to see how it looked for the customer"
-                      >
-                        <Mail className="h-2.5 w-2.5" />
-                        Sent as email
-                      </button>
-                    ) : (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-1.5 py-[1px] text-[10px] font-medium text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
-                        title="Delivered live in the chat widget"
-                      >
-                        <MessageSquare className="h-2.5 w-2.5" />
-                        In chat
-                      </span>
-                    )
-                  )}
-                  {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === 'sent') && (
-                    <CheckCheck className="h-3 w-3 text-primary" />
-                  )}
-                </div>
-                {/* Sending indicator */}
-                {isAgent && message.emailStatus === 'sending' && (
-                  <div className="flex items-center gap-1.5 mt-1 px-1">
-                    <Loader2 className="h-3 w-3 text-muted-foreground animate-spin" />
-                    <span className="text-xs text-muted-foreground">Sending email...</span>
-                  </div>
-                )}
-                {/* Inline resend for failed/pending emails */}
-                {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
-                  <div className="flex items-center gap-1.5 mt-1 px-1">
-                    <AlertCircle className="h-3 w-3 text-destructive" />
-                    <span className="text-xs text-destructive font-medium">Email not sent</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-5 text-[10px] px-2 py-0 gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-                      onClick={() => handleResendEmail(message.id)}
-                    >
-                      <RefreshCw className="h-2.5 w-2.5" />
-                      Resend
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-            </Fragment>
-          );
-
-        })}
-        
-        {/* Typing indicator - shows when customer is typing */}
-        {customerTyping && (
-          <div className="flex gap-3 max-w-[85%] self-start">
-            <Avatar className="h-8 w-8 shrink-0 ring-2 ring-muted">
-              <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                {getInitials(customerName, customerEmail)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col items-start">
-              <span className="text-xs text-muted-foreground mb-1 px-1">
-                {customerName || 'Customer'}
-              </span>
-              <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
-                <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Post-chat survey answers from the widget */}
-        {csat && (
-          <div className="self-center w-full max-w-md rounded-lg border bg-muted/40 px-3 py-2.5 my-2">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Star className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs font-medium">Post-chat survey</span>
-              {csat.rated_at && (
-                <span className="text-[11px] text-muted-foreground ml-auto">
-                  {formatRelative(csat.rated_at)}
+              <div className="flex flex-col items-start">
+                <span className="text-xs text-muted-foreground mb-1 px-1">
+                  {customerName || "Customer"}
                 </span>
+                <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="flex items-center gap-1">
+                    <span
+                      className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Post-chat survey answers from the widget */}
+          {csat && (
+            <div className="self-center w-full max-w-md rounded-lg border bg-muted/40 px-3 py-2.5 my-2">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Star className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-medium">Post-chat survey</span>
+                {csat.rated_at && (
+                  <span className="text-[11px] text-muted-foreground ml-auto">
+                    {formatRelative(csat.rated_at)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Rating</span>
+                <span className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        n <= csat.rating
+                          ? "text-amber-500 fill-amber-500"
+                          : "text-muted-foreground/30",
+                      )}
+                    />
+                  ))}
+                </span>
+                <span className="font-medium">{csat.rating}/5</span>
+              </div>
+              {csat.resolved !== null && csat.resolved !== undefined && (
+                <div className="flex items-center gap-2 text-xs mt-1">
+                  <span className="text-muted-foreground">Problem solved</span>
+                  <span
+                    className={cn(
+                      "font-medium",
+                      csat.resolved ? "text-emerald-600" : "text-destructive",
+                    )}
+                  >
+                    {csat.resolved ? "Yes" : "No"}
+                  </span>
+                </div>
+              )}
+              {csat.comment && (
+                <p className="text-xs text-muted-foreground mt-1.5 italic">"{csat.comment}"</p>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Rating</span>
-              <span className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Star
-                    key={n}
-                    className={cn(
-                      'h-3.5 w-3.5',
-                      n <= csat.rating ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground/30'
-                    )}
-                  />
-                ))}
-              </span>
-              <span className="font-medium">{csat.rating}/5</span>
-            </div>
-            {csat.resolved !== null && csat.resolved !== undefined && (
-              <div className="flex items-center gap-2 text-xs mt-1">
-                <span className="text-muted-foreground">Problem solved</span>
-                <span
-                  className={cn(
-                    'font-medium',
-                    csat.resolved ? 'text-emerald-600' : 'text-destructive'
-                  )}
-                >
-                  {csat.resolved ? 'Yes' : 'No'}
-                </span>
-              </div>
-            )}
-            {csat.comment && (
-              <p className="text-xs text-muted-foreground mt-1.5 italic">"{csat.comment}"</p>
-            )}
-          </div>
-        )}
+          )}
 
-        <div ref={messagesEndRef} />
-
-      </div>
-
-    </ScrollArea>
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
 
       <EmailPreviewDialog
         messageId={emailPreviewId}
@@ -546,8 +606,12 @@ export const ChatMessagesList = ({
       <AlertDialog
         open={!!confirmDeleteId}
         onOpenChange={(o) => {
-          noteDebug('delete_dialog_open_changed', { source: 'ChatMessagesList', open: o, messageId: confirmDeleteId }, 'ChatMessagesList');
-          if (!o) setConfirmDeleteId(null);
+          noteDebug(
+            "delete_dialog_open_changed",
+            { source: "ChatMessagesList", open: o, messageId: confirmDeleteId },
+            "ChatMessagesList",
+          )
+          if (!o) setConfirmDeleteId(null)
         }}
       >
         <AlertDialogContent>
@@ -561,16 +625,20 @@ export const ChatMessagesList = ({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const idToDelete = confirmDeleteId;
-                noteDebug('delete_confirm_clicked', { source: 'ChatMessagesList', messageId: idToDelete }, 'ChatMessagesList');
+                const idToDelete = confirmDeleteId
+                noteDebug(
+                  "delete_confirm_clicked",
+                  { source: "ChatMessagesList", messageId: idToDelete },
+                  "ChatMessagesList",
+                )
                 // 1. Close dialog synchronously so Radix completes focus return + body unlock
-                setConfirmDeleteId(null);
-                if (!idToDelete) return;
+                setConfirmDeleteId(null)
+                if (!idToDelete) return
                 // 2. Defer the mutation by one tick so the cache invalidation
                 //    (which unmounts the deleted bubble) runs AFTER Radix cleanup.
                 setTimeout(() => {
-                  void deleteNote(idToDelete, conversationId);
-                }, 0);
+                  void deleteNote(idToDelete, conversationId)
+                }, 0)
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -580,5 +648,5 @@ export const ChatMessagesList = ({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-};
+  )
+}

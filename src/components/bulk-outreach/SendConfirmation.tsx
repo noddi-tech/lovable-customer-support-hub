@@ -1,18 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { Recipient } from "./RecipientReview";
+import { AlertCircle, CheckCircle2, Loader2, Send } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import type { Recipient } from "./RecipientReview"
 
 interface SendConfirmationProps {
-  recipients: Recipient[];
-  subject: string;
-  messageTemplate: string;
-  onSend: () => void;
-  isSending: boolean;
+  recipients: Recipient[]
+  subject: string
+  messageTemplate: string
+  onSend: () => void
+  isSending: boolean
   sendResult: {
-    sent_count: number;
-    failed_count: number;
-  } | null;
+    sent_count: number
+    failed_count: number
+  } | null
 }
 
 export function SendConfirmation({
@@ -23,7 +23,7 @@ export function SendConfirmation({
   isSending,
   sendResult,
 }: SendConfirmationProps) {
-  const selected = recipients.filter((r) => r.selected);
+  const selected = recipients.filter((r) => r.selected)
 
   if (sendResult) {
     return (
@@ -36,9 +36,7 @@ export function SendConfirmation({
           )}
           <h3 className="text-lg font-semibold">Bulk Send Complete</h3>
           <div className="flex justify-center gap-6 text-sm">
-            <span className="text-primary font-medium">
-              ✓ {sendResult.sent_count} sent
-            </span>
+            <span className="text-primary font-medium">✓ {sendResult.sent_count} sent</span>
             {sendResult.failed_count > 0 && (
               <span className="text-destructive font-medium">
                 ✗ {sendResult.failed_count} failed
@@ -50,7 +48,7 @@ export function SendConfirmation({
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -88,5 +86,5 @@ export function SendConfirmation({
         {isSending ? "Sending..." : `Send to ${selected.length} Customers`}
       </Button>
     </div>
-  );
+  )
 }

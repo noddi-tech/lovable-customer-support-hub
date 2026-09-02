@@ -1,40 +1,33 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Megaphone, 
-  Users, 
-  Wrench, 
-  Star, 
-  FileText, 
-  Plus 
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useToast } from '@/hooks/use-toast';
-import { useNewsletterStore } from './useNewsletterStore';
+import { FileText, Megaphone, Plus, Star } from "lucide-react"
+import React from "react"
+import { useTranslation } from "react-i18next"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { useNewsletterStore } from "./useNewsletterStore"
 
 // Tire service header template
 const TIRE_HEADER_TEMPLATE = {
-  id: 'tire-header',
-  type: 'html' as const,
-  content: { 
+  id: "tire-header",
+  type: "html" as const,
+  content: {
     html: `
       <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%); padding: 24px; text-align: center;">
         <img src="/placeholder.svg" alt="{{company_name}} Logo" style="height: 48px; margin-bottom: 16px;" />
         <h1 style="color: #ffffff; font-size: 28px; font-weight: bold; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{company_name}}</h1>
         <p style="color: #e2e8f0; font-size: 14px; margin: 8px 0 0 0;">Your trusted tire & automotive service partner</p>
       </div>
-    `
+    `,
   },
-  styles: { margin: '0', padding: '0' }
-};
+  styles: { margin: "0", padding: "0" },
+}
 
 // Tire service footer template
 const TIRE_FOOTER_TEMPLATE = {
-  id: 'tire-footer',
-  type: 'html' as const,
-  content: { 
+  id: "tire-footer",
+  type: "html" as const,
+  content: {
     html: `
       <div style="background: #f8fafc; padding: 32px 24px; border-top: 1px solid #e2e8f0;">
         <div style="text-align: center; margin-bottom: 24px;">
@@ -52,19 +45,19 @@ const TIRE_FOOTER_TEMPLATE = {
           <a href="{{unsubscribe_url}}" style="color: #dc2626; text-decoration: none; font-size: 12px;">Unsubscribe from tire service updates</a>
         </div>
       </div>
-    `
+    `,
   },
-  styles: { margin: '0', padding: '0' }
-};
+  styles: { margin: "0", padding: "0" },
+}
 
 const TEMPLATE_BLOCKS = {
   // INFORMATIONAL TEMPLATES
-  'tire-winter-safety': [
+  "tire-winter-safety": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'winter-hero',
-      type: 'html' as const,
-      content: { 
+      id: "winter-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #1e3a8a 0%, #93c5fd 100%); padding: 48px 24px; text-align: center; color: white; position: relative;">
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="white" opacity="0.3"/><circle cx="80" cy="40" r="1.5" fill="white" opacity="0.5"/><circle cx="60" cy="70" r="1" fill="white" opacity="0.4"/></svg>') repeat; opacity: 0.3;"></div>
@@ -73,20 +66,30 @@ const TEMPLATE_BLOCKS = {
               <p style="font-size: 18px; margin: 0; opacity: 0.9;">Essential tips to keep you safe on winter roads</p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'winter-intro',
-      type: 'text' as const,
-      content: { text: 'Hello {{first_name}}, as winter approaches, ensuring your {{vehicle_type}} is equipped with proper winter tires becomes crucial for your safety and the safety of your loved ones.', tag: 'p' },
-      styles: { fontSize: '16px', color: '#374151', textAlign: 'left', margin: '0', padding: '32px 24px 16px 24px', lineHeight: '1.6' }
+      id: "winter-intro",
+      type: "text" as const,
+      content: {
+        text: "Hello {{first_name}}, as winter approaches, ensuring your {{vehicle_type}} is equipped with proper winter tires becomes crucial for your safety and the safety of your loved ones.",
+        tag: "p",
+      },
+      styles: {
+        fontSize: "16px",
+        color: "#374151",
+        textAlign: "left",
+        margin: "0",
+        padding: "32px 24px 16px 24px",
+        lineHeight: "1.6",
+      },
     },
     {
-      id: 'safety-checklist',
-      type: 'html' as const,
-      content: { 
+      id: "safety-checklist",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 0 24px 32px 24px;">
             <h2 style="color: #1e40af; font-size: 24px; margin: 0 0 24px 0; border-bottom: 3px solid #dbeafe; padding-bottom: 8px;">🔍 Pre-Winter Safety Checklist</h2>
@@ -108,38 +111,49 @@ const TEMPLATE_BLOCKS = {
               </div>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'winter-cta',
-      type: 'button' as const,
-      content: { text: '📅 Book Winter Tire Change', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#1e40af', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 4px 15px rgba(30, 64, 175, 0.3)' }
+      id: "winter-cta",
+      type: "button" as const,
+      content: { text: "📅 Book Winter Tire Change", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#1e40af",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 4px 15px rgba(30, 64, 175, 0.3)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-spring-maintenance': [
+  "tire-spring-maintenance": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'spring-hero',
-      type: 'html' as const,
-      content: { 
+      id: "spring-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #059669 0%, #6ee7b7 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🌱 Spring Tire Transition Guide</h1>
             <p style="font-size: 18px; margin: 0; opacity: 0.9;">Time to switch back to summer tires and maintain your vehicle</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'spring-content',
-      type: 'html' as const,
-      content: { 
+      id: "spring-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -161,38 +175,48 @@ const TEMPLATE_BLOCKS = {
               Perfect time for comprehensive vehicle inspection, alignment check, and general maintenance.
             </p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'spring-cta',
-      type: 'button' as const,
-      content: { text: '🌸 Schedule Spring Change & Storage', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#059669', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "spring-cta",
+      type: "button" as const,
+      content: { text: "🌸 Schedule Spring Change & Storage", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#059669",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-midseason-check': [
+  "tire-midseason-check": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'check-hero',
-      type: 'html' as const,
-      content: { 
+      id: "check-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #dc2626 0%, #fca5a5 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🔍 Mid-Season Tire Health Check</h1>
             <p style="font-size: 18px; margin: 0; opacity: 0.9;">Keep your tires in optimal condition year-round</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'health-check-content',
-      type: 'html' as const,
-      content: { 
+      id: "health-check-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
@@ -228,38 +252,48 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'check-cta',
-      type: 'button' as const,
-      content: { text: '🔧 Book Free Inspection', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "check-cta",
+      type: "button" as const,
+      content: { text: "🔧 Book Free Inspection", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#dc2626",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-yearround-care': [
+  "tire-yearround-care": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'care-hero',
-      type: 'html' as const,
-      content: { 
+      id: "care-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #7c3aed 0%, #c4b5fd 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🛡️ Year-Round Tire Care Guide</h1>
             <p style="font-size: 18px; margin: 0; opacity: 0.9;">Maximize tire life with proper maintenance and storage</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'care-tips',
-      type: 'html' as const,
-      content: { 
+      id: "care-tips",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
@@ -293,26 +327,36 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'care-cta',
-      type: 'button' as const,
-      content: { text: '📋 Set Up Maintenance Reminders', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#7c3aed', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "care-cta",
+      type: "button" as const,
+      content: { text: "📋 Set Up Maintenance Reminders", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#7c3aed",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // PROMOTIONAL TEMPLATES
-  'tire-early-bird-winter': [
+  "tire-early-bird-winter": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'early-bird-hero',
-      type: 'html' as const,
-      content: { 
+      id: "early-bird-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(45deg, #dc2626, #f97316); padding: 48px 24px; text-align: center; color: white; position: relative; overflow: hidden;">
             <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; animation: pulse 2s infinite;"></div>
@@ -323,14 +367,14 @@ const TEMPLATE_BLOCKS = {
               <p style="margin: 8px 0 0 0; font-size: 16px;">Book before November 1st</p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'early-bird-content',
-      type: 'html' as const,
-      content: { 
+      id: "early-bird-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 18px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
@@ -357,38 +401,49 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'early-bird-cta',
-      type: 'button' as const,
-      content: { text: '🎯 Book Now & Save 25%', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '30px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(220, 38, 38, 0.4)' }
+      id: "early-bird-cta",
+      type: "button" as const,
+      content: { text: "🎯 Book Now & Save 25%", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#dc2626",
+        color: "#ffffff",
+        borderRadius: "30px",
+        padding: "18px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 6px 20px rgba(220, 38, 38, 0.4)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-spring-bundle': [
+  "tire-spring-bundle": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'bundle-hero',
-      type: 'html' as const,
-      content: { 
+      id: "bundle-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🌸 Spring Service Bundle</h1>
             <p style="font-size: 20px; margin: 0; opacity: 0.9;">Complete care package for your vehicle</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'bundle-packages',
-      type: 'html' as const,
-      content: { 
+      id: "bundle-packages",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
@@ -435,38 +490,48 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'bundle-cta',
-      type: 'button' as const,
-      content: { text: '🌸 Choose Your Spring Package', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#10b981', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "bundle-cta",
+      type: "button" as const,
+      content: { text: "🌸 Choose Your Spring Package", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#10b981",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-loyalty-club': [
+  "tire-loyalty-club": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'loyalty-hero',
-      type: 'html' as const,
-      content: { 
+      id: "loyalty-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">👑 VIP Tire Club Membership</h1>
             <p style="font-size: 18px; margin: 0; opacity: 0.9;">Exclusive benefits for tire care enthusiasts</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'loyalty-benefits',
-      type: 'html' as const,
-      content: { 
+      id: "loyalty-benefits",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
@@ -518,38 +583,49 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'loyalty-cta',
-      type: 'button' as const,
-      content: { text: '👑 Join VIP Club FREE', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#7c3aed', color: '#ffffff', borderRadius: '25px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(124, 58, 237, 0.4)' }
+      id: "loyalty-cta",
+      type: "button" as const,
+      content: { text: "👑 Join VIP Club FREE", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#7c3aed",
+        color: "#ffffff",
+        borderRadius: "25px",
+        padding: "18px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 6px 20px rgba(124, 58, 237, 0.4)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
-  'tire-annual-package': [
+  "tire-annual-package": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'annual-hero',
-      type: 'html' as const,
-      content: { 
+      id: "annual-hero",
+      type: "html" as const,
+      content: {
         html: `
           <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 48px 24px; text-align: center; color: white;">
             <h1 style="font-size: 36px; font-weight: bold; margin: 0 0 16px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">🎯 Complete Annual Care Package</h1>
             <p style="font-size: 18px; margin: 0; opacity: 0.9;">Everything your vehicle needs, all year round</p>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'annual-content',
-      type: 'html' as const,
-      content: { 
+      id: "annual-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;">
@@ -597,38 +673,49 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'annual-cta',
-      type: 'button' as const,
-      content: { text: '🎯 Secure My Annual Package', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#1f2937', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(31, 41, 55, 0.3)' }
+      id: "annual-cta",
+      type: "button" as const,
+      content: { text: "🎯 Secure My Annual Package", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#1f2937",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "18px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 6px 20px rgba(31, 41, 55, 0.3)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // WHEEL STORAGE TEMPLATES
 
   // Storage Benefits
-  'storage-benefits': [
+  "storage-benefits": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'storage-benefits-hero',
-      type: 'image' as const,
-      content: { 
-        url: '/api/placeholder/600/300',
-        alt: 'Clean, organized tire storage facility with stacked wheels',
-        caption: 'Professional wheel storage that protects your investment'
+      id: "storage-benefits-hero",
+      type: "image" as const,
+      content: {
+        url: "/api/placeholder/600/300",
+        alt: "Clean, organized tire storage facility with stacked wheels",
+        caption: "Professional wheel storage that protects your investment",
       },
-      styles: { borderRadius: '12px', margin: '32px 0' }
+      styles: { borderRadius: "12px", margin: "32px 0" },
     },
     {
-      id: 'storage-benefits-content',
-      type: 'html' as const,
-      content: { 
+      id: "storage-benefits-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🏠 Professional Wheel Storage Benefits</h2>
@@ -665,36 +752,46 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'storage-benefits-cta',
-      type: 'button' as const,
-      content: { text: '🏠 Learn About Our Storage', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#0ea5e9', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "storage-benefits-cta",
+      type: "button" as const,
+      content: { text: "🏠 Learn About Our Storage", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#0ea5e9",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // Storage Care
-  'storage-care': [
+  "storage-care": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'storage-care-hero',
-      type: 'image' as const,
-      content: { 
-        url: '/api/placeholder/600/300',
-        alt: 'Professional cleaning equipment and organized storage racks',
-        caption: 'Our professional care standards ensure your wheels stay perfect'
+      id: "storage-care-hero",
+      type: "image" as const,
+      content: {
+        url: "/api/placeholder/600/300",
+        alt: "Professional cleaning equipment and organized storage racks",
+        caption: "Our professional care standards ensure your wheels stay perfect",
       },
-      styles: { borderRadius: '12px', margin: '32px 0' }
+      styles: { borderRadius: "12px", margin: "32px 0" },
     },
     {
-      id: 'storage-care-content',
-      type: 'html' as const,
-      content: { 
+      id: "storage-care-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🔧 How We Care for Your Stored Wheels</h2>
@@ -734,36 +831,46 @@ const TEMPLATE_BLOCKS = {
               <p style="color: #374151; margin: 0; font-weight: 500;">We guarantee your wheels will be in the same condition as when stored - or your money back!</p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'storage-care-cta',
-      type: 'button' as const,
-      content: { text: '🔧 View Our Care Process', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#10b981', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "storage-care-cta",
+      type: "button" as const,
+      content: { text: "🔧 View Our Care Process", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#10b981",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // Storage Promotion
-  'storage-promotion': [
+  "storage-promotion": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'storage-promo-hero',
-      type: 'image' as const,
-      content: { 
-        url: '/api/placeholder/600/300',
-        alt: 'Modern storage facility with promotional banner',
-        caption: 'Limited time offer - act now!'
+      id: "storage-promo-hero",
+      type: "image" as const,
+      content: {
+        url: "/api/placeholder/600/300",
+        alt: "Modern storage facility with promotional banner",
+        caption: "Limited time offer - act now!",
       },
-      styles: { borderRadius: '12px', margin: '32px 0' }
+      styles: { borderRadius: "12px", margin: "32px 0" },
     },
     {
-      id: 'storage-promo-content',
-      type: 'html' as const,
-      content: { 
+      id: "storage-promo-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <h2 style="color: #dc2626; font-size: 36px; margin: 0 0 16px 0; text-align: center;">🎉 FREE First Month Storage!</h2>
@@ -799,36 +906,47 @@ const TEMPLATE_BLOCKS = {
               </p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'storage-promo-cta',
-      type: 'button' as const,
-      content: { text: '🎉 Claim FREE Storage Month', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#dc2626', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(220, 38, 38, 0.3)' }
+      id: "storage-promo-cta",
+      type: "button" as const,
+      content: { text: "🎉 Claim FREE Storage Month", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#dc2626",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "18px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 6px 20px rgba(220, 38, 38, 0.3)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // Seasonal Storage
-  'storage-seasonal': [
+  "storage-seasonal": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'seasonal-hero',
-      type: 'image' as const,
-      content: { 
-        url: '/api/placeholder/600/300',
-        alt: 'Split image showing winter and summer tires in storage',
-        caption: 'Seamless seasonal transitions with our storage service'
+      id: "seasonal-hero",
+      type: "image" as const,
+      content: {
+        url: "/api/placeholder/600/300",
+        alt: "Split image showing winter and summer tires in storage",
+        caption: "Seamless seasonal transitions with our storage service",
       },
-      styles: { borderRadius: '12px', margin: '32px 0' }
+      styles: { borderRadius: "12px", margin: "32px 0" },
     },
     {
-      id: 'seasonal-content',
-      type: 'html' as const,
-      content: { 
+      id: "seasonal-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">🔄 Seasonal Storage Made Simple</h2>
@@ -866,36 +984,46 @@ const TEMPLATE_BLOCKS = {
               <p style="color: #065f46; margin: 0; font-weight: 500;">Complete seasonal package with priority booking</p>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'seasonal-cta',
-      type: 'button' as const,
-      content: { text: '🔄 Start Seasonal Storage', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#a855f7', color: '#ffffff', borderRadius: '8px', padding: '16px 32px', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none' }
+      id: "seasonal-cta",
+      type: "button" as const,
+      content: { text: "🔄 Start Seasonal Storage", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#a855f7",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "16px 32px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
+    TIRE_FOOTER_TEMPLATE,
   ],
 
   // Premium Storage
-  'storage-premium': [
+  "storage-premium": [
     TIRE_HEADER_TEMPLATE,
     {
-      id: 'premium-hero',
-      type: 'image' as const,
-      content: { 
-        url: '/api/placeholder/600/300',
-        alt: 'Luxury storage facility with premium wheel display',
-        caption: 'Premium care for your valuable wheels and tires'
+      id: "premium-hero",
+      type: "image" as const,
+      content: {
+        url: "/api/placeholder/600/300",
+        alt: "Luxury storage facility with premium wheel display",
+        caption: "Premium care for your valuable wheels and tires",
       },
-      styles: { borderRadius: '12px', margin: '32px 0' }
+      styles: { borderRadius: "12px", margin: "32px 0" },
     },
     {
-      id: 'premium-content',
-      type: 'html' as const,
-      content: { 
+      id: "premium-content",
+      type: "html" as const,
+      content: {
         html: `
           <div style="padding: 32px 24px;">
             <h2 style="color: #1f2937; font-size: 32px; margin: 0 0 24px 0; text-align: center;">👑 Premium Wheel Storage Service</h2>
@@ -941,198 +1069,210 @@ const TEMPLATE_BLOCKS = {
               </div>
             </div>
           </div>
-        `
+        `,
       },
-      styles: { margin: '0', padding: '0' }
+      styles: { margin: "0", padding: "0" },
     },
     {
-      id: 'premium-cta',
-      type: 'button' as const,
-      content: { text: '👑 Explore Premium Storage', href: '#', target: '_blank' },
-      styles: { backgroundColor: '#1f2937', color: '#ffffff', borderRadius: '8px', padding: '18px 36px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', margin: '0 auto 32px auto', border: 'none', boxShadow: '0 6px 20px rgba(31, 41, 55, 0.3)' }
+      id: "premium-cta",
+      type: "button" as const,
+      content: { text: "👑 Explore Premium Storage", href: "#", target: "_blank" },
+      styles: {
+        backgroundColor: "#1f2937",
+        color: "#ffffff",
+        borderRadius: "8px",
+        padding: "18px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        textAlign: "center",
+        margin: "0 auto 32px auto",
+        border: "none",
+        boxShadow: "0 6px 20px rgba(31, 41, 55, 0.3)",
+      },
     },
-    TIRE_FOOTER_TEMPLATE
-  ]
-};
+    TIRE_FOOTER_TEMPLATE,
+  ],
+}
 
 const TEMPLATES = [
   // TIRE SERVICE INFORMATIONAL TEMPLATES
   {
-    id: 'tire-winter-safety',
-    name: 'Winter Safety Guide',
-    description: 'Essential winter tire safety tips and preparation checklist',
-    category: 'tire-info',
+    id: "tire-winter-safety",
+    name: "Winter Safety Guide",
+    description: "Essential winter tire safety tips and preparation checklist",
+    category: "tire-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-spring-maintenance',
-    name: 'Spring Transition Guide',
-    description: 'Spring tire change and proper winter tire storage tips',
-    category: 'tire-info',
+    id: "tire-spring-maintenance",
+    name: "Spring Transition Guide",
+    description: "Spring tire change and proper winter tire storage tips",
+    category: "tire-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-midseason-check',
-    name: 'Mid-Season Health Check',
-    description: 'Professional tire inspection and maintenance reminders',
-    category: 'tire-info',
+    id: "tire-midseason-check",
+    name: "Mid-Season Health Check",
+    description: "Professional tire inspection and maintenance reminders",
+    category: "tire-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-yearround-care',
-    name: 'Year-Round Care Guide',
-    description: 'Complete tire maintenance and storage best practices',
-    category: 'tire-info',
+    id: "tire-yearround-care",
+    name: "Year-Round Care Guide",
+    description: "Complete tire maintenance and storage best practices",
+    category: "tire-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
-  
+
   // TIRE SERVICE PROMOTIONAL TEMPLATES
   {
-    id: 'tire-early-bird-winter',
-    name: 'Early Bird Winter Special',
-    description: 'Pre-November booking discount for winter tire changes',
-    category: 'tire-promo',
+    id: "tire-early-bird-winter",
+    name: "Early Bird Winter Special",
+    description: "Pre-November booking discount for winter tire changes",
+    category: "tire-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-spring-bundle',
-    name: 'Spring Service Bundle',
-    description: 'Complete spring packages with tire change and car wash',
-    category: 'tire-promo',
+    id: "tire-spring-bundle",
+    name: "Spring Service Bundle",
+    description: "Complete spring packages with tire change and car wash",
+    category: "tire-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-loyalty-club',
-    name: 'VIP Tire Club Membership',
-    description: 'Exclusive membership benefits with storage and discounts',
-    category: 'tire-promo',
+    id: "tire-loyalty-club",
+    name: "VIP Tire Club Membership",
+    description: "Exclusive membership benefits with storage and discounts",
+    category: "tire-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'tire-annual-package',
-    name: 'Annual Care Package',
-    description: 'Complete yearly tire service with seasonal changes',
-    category: 'tire-promo',
+    id: "tire-annual-package",
+    name: "Annual Care Package",
+    description: "Complete yearly tire service with seasonal changes",
+    category: "tire-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
 
   // WHEEL STORAGE TEMPLATES
   {
-    id: 'storage-benefits',
-    name: 'Storage Benefits Guide',
-    description: 'Comprehensive guide to professional wheel storage advantages',
-    category: 'storage-info',
+    id: "storage-benefits",
+    name: "Storage Benefits Guide",
+    description: "Comprehensive guide to professional wheel storage advantages",
+    category: "storage-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'storage-care',
-    name: 'Storage Care Standards',
-    description: 'How we maintain and protect your stored wheels',
-    category: 'storage-info',
+    id: "storage-care",
+    name: "Storage Care Standards",
+    description: "How we maintain and protect your stored wheels",
+    category: "storage-info",
     icon: FileText,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'storage-promotion',
-    name: 'Free First Month Storage',
-    description: 'Limited time promotional offer for new storage customers',
-    category: 'storage-promo',
+    id: "storage-promotion",
+    name: "Free First Month Storage",
+    description: "Limited time promotional offer for new storage customers",
+    category: "storage-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'storage-seasonal',
-    name: 'Seasonal Storage Package',
-    description: 'Complete seasonal storage solutions with savings',
-    category: 'storage-promo',
+    id: "storage-seasonal",
+    name: "Seasonal Storage Package",
+    description: "Complete seasonal storage solutions with savings",
+    category: "storage-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
+    preview: "/api/placeholder/300/200",
   },
   {
-    id: 'storage-premium',
-    name: 'Premium Storage Service',
-    description: 'VIP storage service for luxury and performance vehicles',
-    category: 'storage-promo',
+    id: "storage-premium",
+    name: "Premium Storage Service",
+    description: "VIP storage service for luxury and performance vehicles",
+    category: "storage-promo",
     icon: Megaphone,
-    preview: '/api/placeholder/300/200'
-  }
-];
+    preview: "/api/placeholder/300/200",
+  },
+]
 
 const CATEGORIES = [
-  { id: 'all', name: 'All Templates', icon: Star },
-  { id: 'tire-info', name: 'Tire Information', icon: FileText },
-  { id: 'tire-promo', name: 'Tire Promotions', icon: Megaphone },
-  { id: 'storage-info', name: 'Storage Information', icon: FileText },
-  { id: 'storage-promo', name: 'Storage Promotions', icon: Megaphone }
-];
+  { id: "all", name: "All Templates", icon: Star },
+  { id: "tire-info", name: "Tire Information", icon: FileText },
+  { id: "tire-promo", name: "Tire Promotions", icon: Megaphone },
+  { id: "storage-info", name: "Storage Information", icon: FileText },
+  { id: "storage-promo", name: "Storage Promotions", icon: Megaphone },
+]
 
 export const TemplateLibrary: React.FC = () => {
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  const { clearNewsletter, addBlock, updateBlock } = useNewsletterStore();
-  const [selectedCategory, setSelectedCategory] = React.useState('all');
+  const { t } = useTranslation()
+  const { toast } = useToast()
+  const { clearNewsletter, addBlock, updateBlock } = useNewsletterStore()
+  const [selectedCategory, setSelectedCategory] = React.useState("all")
 
-  const filteredTemplates = selectedCategory === 'all' 
-    ? TEMPLATES 
-    : TEMPLATES.filter(template => template.category === selectedCategory);
+  const filteredTemplates =
+    selectedCategory === "all"
+      ? TEMPLATES
+      : TEMPLATES.filter((template) => template.category === selectedCategory)
 
   const handleUseTemplate = (templateId: string) => {
-    const templateBlocks = TEMPLATE_BLOCKS[templateId as keyof typeof TEMPLATE_BLOCKS];
-    
+    const templateBlocks = TEMPLATE_BLOCKS[templateId as keyof typeof TEMPLATE_BLOCKS]
+
     if (templateBlocks) {
       // Clear existing blocks and load template
-      clearNewsletter();
-      
+      clearNewsletter()
+
       // Load template blocks into the store
-      useNewsletterStore.setState(state => ({
+      useNewsletterStore.setState((state) => ({
         ...state,
         blocks: templateBlocks,
-        selectedBlockId: null
-      }));
-      
+        selectedBlockId: null,
+      }))
+
       toast({
-        title: t('templateLoaded'),
-        description: t('templateLoadedDescription'),
-      });
+        title: t("templateLoaded"),
+        description: t("templateLoadedDescription"),
+      })
     }
-  };
+  }
 
   const handleCreateTemplate = () => {
     toast({
-      title: t('createTemplate'),
-      description: t('createTemplateDescription'),
-    });
+      title: t("createTemplate"),
+      description: t("createTemplateDescription"),
+    })
     // TODO: Save current newsletter as template
-  };
+  }
 
   return (
     <div className="pane">
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">{t('templates')}</h3>
+          <h3 className="font-medium text-sm">{t("templates")}</h3>
           <Button variant="outline" size="sm" onClick={handleCreateTemplate}>
             <Plus className="h-4 w-4 mr-1" />
-            {t('create')}
+            {t("create")}
           </Button>
         </div>
 
         {/* Category Filter */}
         <div className="space-y-2">
           {CATEGORIES.map((category) => {
-            const Icon = category.icon;
+            const Icon = category.icon
             return (
               <Button
                 key={category.id}
-                variant={selectedCategory === category.id ? 'default' : 'ghost'}
+                variant={selectedCategory === category.id ? "default" : "ghost"}
                 size="sm"
                 className="w-full justify-start text-xs"
                 onClick={() => setSelectedCategory(category.id)}
@@ -1140,14 +1280,14 @@ export const TemplateLibrary: React.FC = () => {
                 <Icon className="h-4 w-4 mr-2" />
                 {category.name}
               </Button>
-            );
+            )
           })}
         </div>
 
         {/* Templates */}
         <div className="space-y-3">
           {filteredTemplates.map((template) => {
-            const Icon = template.icon;
+            const Icon = template.icon
             return (
               <Card key={template.id} className="overflow-hidden">
                 <div className="aspect-video bg-muted/20 flex items-center justify-center">
@@ -1157,9 +1297,7 @@ export const TemplateLibrary: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-sm">{template.name}</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {template.description}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{template.description}</p>
                     </div>
                     <Badge variant="secondary" className="text-xs capitalize">
                       {template.category}
@@ -1173,20 +1311,20 @@ export const TemplateLibrary: React.FC = () => {
                     className="w-full text-xs"
                     onClick={() => handleUseTemplate(template.id)}
                   >
-                    {t('useTemplate')}
+                    {t("useTemplate")}
                   </Button>
                 </CardContent>
               </Card>
-            );
+            )
           })}
         </div>
 
         {filteredTemplates.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">{t('noTemplatesFound')}</p>
+            <p className="text-sm">{t("noTemplatesFound")}</p>
           </div>
         )}
       </div>
     </div>
-  );
-};
+  )
+}

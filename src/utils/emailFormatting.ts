@@ -1,170 +1,200 @@
 // Email formatting utilities for rendering emails with correct formatting
 // Enhanced email processing for Apple Mail-like appearance
-import DOMPurify from 'dompurify';
-import { convertShortcodesToEmojis } from './emojiUtils';
-import { formatPlainTextEmail } from './plainTextEmailFormatter';
-import { createPlaceholder, rewriteImageSources } from './imageAssetHandler';
-import { parseQuotedEmail } from '@/lib/parseQuotedEmail';
-import { logger } from '@/utils/logger';
-import { buildAttachmentUrl, buildEmailImageProxyUrl } from '@/utils/attachmentUrl';
+import DOMPurify from "dompurify"
+import { parseQuotedEmail } from "@/lib/parseQuotedEmail"
+import { buildAttachmentUrl, buildEmailImageProxyUrl } from "@/utils/attachmentUrl"
+import { logger } from "@/utils/logger"
+import { createPlaceholder } from "./imageAssetHandler"
+import { formatPlainTextEmail } from "./plainTextEmailFormatter"
 
 /**
  * Detect signature-like blocks at the end of HTML emails and wrap in .email-signature.
  */
 function wrapHtmlSignature(html: string): string {
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  const children = Array.from(temp.children);
-  if (children.length === 0) return html;
-  let signatureStartIndex = -1;
+  const temp = document.createElement("div")
+  temp.innerHTML = html
+  const children = Array.from(temp.children)
+  if (children.length === 0) return html
+  let signatureStartIndex = -1
   for (let i = children.length - 1; i >= 0; i--) {
-    const el = children[i] as HTMLElement;
-    if (!el.tagName) continue;
-    const tag = el.tagName.toLowerCase();
-    const elHtml = el.innerHTML || '';
-    if (!elHtml.trim()) continue;
-    const isTable = tag === 'table' || el.querySelector?.('table') !== null;
-    const hasImage = el.querySelector?.('img') !== null;
-    const hasContactLink = el.querySelector?.('a[href^="tel:"], a[href^="mailto:"]') !== null;
-    const hasWebLink = /\b\w+\.\w{2,}\b/.test(el.textContent || '');
+    const el = children[i] as HTMLElement
+    if (!el.tagName) continue
+    const tag = el.tagName.toLowerCase()
+    const elHtml = el.innerHTML || ""
+    if (!elHtml.trim()) continue
+    const isTable = tag === "table" || el.querySelector?.("table") !== null
+    const hasImage = el.querySelector?.("img") !== null
+    const hasContactLink = el.querySelector?.('a[href^="tel:"], a[href^="mailto:"]') !== null
+    const hasWebLink = /\b\w+\.\w{2,}\b/.test(el.textContent || "")
     if (isTable && (hasImage || hasContactLink) && (hasContactLink || hasWebLink)) {
-      signatureStartIndex = i;
-      continue;
+      signatureStartIndex = i
+      continue
     }
-    if (tag === 'hr') {
-      signatureStartIndex = i;
-      continue;
+    if (tag === "hr") {
+      signatureStartIndex = i
+      continue
     }
-    if (signatureStartIndex !== -1) break;
+    if (signatureStartIndex !== -1) break
   }
-  if (signatureStartIndex === -1) return html;
-  const sigDiv = document.createElement('div');
-  sigDiv.className = 'email-signature';
-  const elemsToWrap = children.slice(signatureStartIndex);
-  elemsToWrap.forEach(el => sigDiv.appendChild(el));
-  temp.appendChild(sigDiv);
-  return temp.innerHTML;
+  if (signatureStartIndex === -1) return html
+  const sigDiv = document.createElement("div")
+  sigDiv.className = "email-signature"
+  const elemsToWrap = children.slice(signatureStartIndex)
+  elemsToWrap.forEach((el) => sigDiv.appendChild(el))
+  temp.appendChild(sigDiv)
+  return temp.innerHTML
 }
 
 export interface EmailAttachment {
-  filename: string;
-  mimeType: string;
-  attachmentId?: string; // Legacy Gmail attachment ID
-  storageKey?: string | null; // Supabase Storage path (new)
-  size: number;
-  contentId?: string;
-  contentLocation?: string;
-  isInline?: boolean;
-  contentDisposition?: string;
+  filename: string
+  mimeType: string
+  attachmentId?: string // Legacy Gmail attachment ID
+  storageKey?: string | null // Supabase Storage path (new)
+  size: number
+  contentId?: string
+  contentLocation?: string
+  isInline?: boolean
+  contentDisposition?: string
 }
 
 // Asset indexes for efficient image resolution
 interface AssetInfo {
-  attachment: EmailAttachment;
-  signedUrl?: string;
-  blobUrl?: string;
+  attachment: EmailAttachment
+  signedUrl?: string
+  blobUrl?: string
 }
 
 // Normalize CID for consistent lookups
 const normalizeCid = (cid: string): string => {
-  return cid.replace(/^cid:/i, '').replace(/[<>]/g, '').toLowerCase();
-};
+  return cid.replace(/^cid:/i, "").replace(/[<>]/g, "").toLowerCase()
+}
 
 // Normalize Content-Location for consistent lookups
 const normalizeContentLocation = (location: string): string => {
-  if (location.startsWith('http://') || location.startsWith('https://')) {
-    return location.toLowerCase();
+  if (location.startsWith("http://") || location.startsWith("https://")) {
+    return location.toLowerCase()
   }
-  return location.split('/').pop()?.toLowerCase() || location.toLowerCase();
-};
+  return location.split("/").pop()?.toLowerCase() || location.toLowerCase()
+}
 
 // Build asset indexes from attachments
 const buildAssetIndexes = (attachments: EmailAttachment[]) => {
-  const byContentId = new Map<string, AssetInfo>();
-  const byContentLocation = new Map<string, AssetInfo>();
-  
-  const callStack = new Error().stack?.split('\n').slice(2, 4).join(' | ') || 'unknown';
-  logger.debug('Building asset indexes from attachments', { 
-    attachmentsCount: attachments.length,
-    callStack
-  }, 'EmailFormatting');
-  
+  const byContentId = new Map<string, AssetInfo>()
+  const byContentLocation = new Map<string, AssetInfo>()
+
+  const callStack = new Error().stack?.split("\n").slice(2, 4).join(" | ") || "unknown"
+  logger.debug(
+    "Building asset indexes from attachments",
+    {
+      attachmentsCount: attachments.length,
+      callStack,
+    },
+    "EmailFormatting",
+  )
+
   attachments.forEach((attachment, index) => {
-    const assetInfo: AssetInfo = { attachment };
-    
-    logger.debug(`Processing attachment ${index}`, {
-      filename: attachment.filename,
-      contentId: attachment.contentId,
-      contentLocation: attachment.contentLocation,
-      isInline: attachment.isInline,
-      mimeType: attachment.mimeType
-    }, 'EmailFormatting');
-    
+    const assetInfo: AssetInfo = { attachment }
+
+    logger.debug(
+      `Processing attachment ${index}`,
+      {
+        filename: attachment.filename,
+        contentId: attachment.contentId,
+        contentLocation: attachment.contentLocation,
+        isInline: attachment.isInline,
+        mimeType: attachment.mimeType,
+      },
+      "EmailFormatting",
+    )
+
     if (attachment.contentId) {
-      const normalizedCid = normalizeCid(attachment.contentId);
-      logger.debug(`Adding to byContentId: "${normalizedCid}"`, { 
-        filename: attachment.filename 
-      }, 'EmailFormatting');
-      byContentId.set(normalizedCid, assetInfo);
+      const normalizedCid = normalizeCid(attachment.contentId)
+      logger.debug(
+        `Adding to byContentId: "${normalizedCid}"`,
+        {
+          filename: attachment.filename,
+        },
+        "EmailFormatting",
+      )
+      byContentId.set(normalizedCid, assetInfo)
     }
-    
+
     if (attachment.contentLocation) {
-      const normalizedLocation = normalizeContentLocation(attachment.contentLocation);
-      logger.debug(`Adding to byContentLocation: "${normalizedLocation}"`, { 
-        filename: attachment.filename 
-      }, 'EmailFormatting');
-      byContentLocation.set(normalizedLocation, assetInfo);
+      const normalizedLocation = normalizeContentLocation(attachment.contentLocation)
+      logger.debug(
+        `Adding to byContentLocation: "${normalizedLocation}"`,
+        {
+          filename: attachment.filename,
+        },
+        "EmailFormatting",
+      )
+      byContentLocation.set(normalizedLocation, assetInfo)
     }
-  });
-  
-  logger.debug('Final asset indexes', {
-    byContentIdCount: byContentId.size,
-    byContentLocationCount: byContentLocation.size
-  }, 'EmailFormatting');
-  
-  return { byContentId, byContentLocation };
-};
+  })
+
+  logger.debug(
+    "Final asset indexes",
+    {
+      byContentIdCount: byContentId.size,
+      byContentLocationCount: byContentLocation.size,
+    },
+    "EmailFormatting",
+  )
+
+  return { byContentId, byContentLocation }
+}
 
 /**
  * Enhanced email HTML sanitization with strict security and formatting controls
  */
 export const sanitizeEmailHTML = (
-  htmlContent: string, 
-  attachments: EmailAttachment[] = [], 
+  htmlContent: string,
+  attachments: EmailAttachment[] = [],
   preserveOriginalStyles: boolean = true,
-  messageId?: string
+  messageId?: string,
 ): string => {
   // STEP 1: Parse quoted email to strip <pre> wrappers and decode HTML entities
-  const callStack = new Error().stack?.split('\n').slice(2, 4).join(' | ') || 'unknown';
-  logger.time('parseQuotedEmail', 'EmailFormatting');
-  logger.debug('Parsing quoted email structure', { 
-    messageId,
-    contentLength: htmlContent.length,
-    callStack
-  }, 'EmailFormatting');
-  
+  const callStack = new Error().stack?.split("\n").slice(2, 4).join(" | ") || "unknown"
+  logger.time("parseQuotedEmail", "EmailFormatting")
+  logger.debug(
+    "Parsing quoted email structure",
+    {
+      messageId,
+      contentLength: htmlContent.length,
+      callStack,
+    },
+    "EmailFormatting",
+  )
+
   const parsed = parseQuotedEmail({
     content: htmlContent,
-    contentType: 'text/html' // Force HTML processing to trigger stripEmailClientWrappers
-  });
-  
-  logger.timeEnd('parseQuotedEmail', 'EmailFormatting');
-  logger.debug('Parsed result', {
-    originalLength: htmlContent.length,
-    visibleLength: parsed.visibleContent.length,
-    quotedBlocks: parsed.quotedBlocks.length,
-    messageId
-  }, 'EmailFormatting');
-  
-  // Use the visible content (with <pre> wrappers removed and entities decoded)
-  let processedContent = parsed.visibleContent || htmlContent;
+    contentType: "text/html", // Force HTML processing to trigger stripEmailClientWrappers
+  })
 
-  console.log('[NL-CONVERT] pre-conversion processedContent:', JSON.stringify(processedContent.slice(0, 300)));
-  console.log('[NL-CONVERT] guard:', {
-    hasNewline: processedContent.includes('\n'),
+  logger.timeEnd("parseQuotedEmail", "EmailFormatting")
+  logger.debug(
+    "Parsed result",
+    {
+      originalLength: htmlContent.length,
+      visibleLength: parsed.visibleContent.length,
+      quotedBlocks: parsed.quotedBlocks.length,
+      messageId,
+    },
+    "EmailFormatting",
+  )
+
+  // Use the visible content (with <pre> wrappers removed and entities decoded)
+  let processedContent = parsed.visibleContent || htmlContent
+
+  console.log(
+    "[NL-CONVERT] pre-conversion processedContent:",
+    JSON.stringify(processedContent.slice(0, 300)),
+  )
+  console.log("[NL-CONVERT] guard:", {
+    hasNewline: processedContent.includes("\n"),
     hasBr: /<br[\s/>]/i.test(processedContent),
     hasBlock: /<(p|div|table|ul|ol|blockquote|pre|h[1-6])[\s>]/i.test(processedContent),
-  });
+  })
 
   // Newline-only bodies arriving on the HTML path (e.g. agent replies stored
   // with content_type='html' but no markup) collapse to a single line under
@@ -172,268 +202,365 @@ export const sanitizeEmailHTML = (
   // ONLY when the body is plain text with newlines and no existing markup.
   // Customer Gmail bodies (which already use <br>/block tags) are skipped.
   if (
-    processedContent.includes('\n') &&
+    processedContent.includes("\n") &&
     !/<br[\s/>]/i.test(processedContent) &&
     !/<(p|div|table|ul|ol|blockquote|pre|h[1-6])[\s>]/i.test(processedContent)
   ) {
     processedContent = processedContent
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{2,}/g, '<br><br>')
-      .replace(/\n/g, '<br>');
+      .replace(/\r\n/g, "\n")
+      .replace(/\n{2,}/g, "<br><br>")
+      .replace(/\n/g, "<br>")
   }
-
-
 
   // STEP 2: Continue with existing sanitization logic
 
   // Strict email HTML configuration following security best practices
   const config = {
     ALLOWED_TAGS: [
-      'a', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'img', 
-      'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
-      'span', 'div', 'pre', 'code',
-      'b', 'i', 'u', 's', 'sub', 'sup', 'address', 'center', 'font',
-      'caption', 'colgroup', 'col', 'hr', 'style'
+      "a",
+      "p",
+      "br",
+      "strong",
+      "em",
+      "ul",
+      "ol",
+      "li",
+      "blockquote",
+      "img",
+      "table",
+      "thead",
+      "tbody",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "span",
+      "div",
+      "pre",
+      "code",
+      "b",
+      "i",
+      "u",
+      "s",
+      "sub",
+      "sup",
+      "address",
+      "center",
+      "font",
+      "caption",
+      "colgroup",
+      "col",
+      "hr",
+      "style",
     ],
     ALLOWED_ATTR: [
-      'href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan', 
-      'align', 'cellpadding', 'cellspacing', 'style', 'dir',
-      'valign', 'border', 'bgcolor', 'background', 'class',
-      'color', 'face', 'size',
-      'data-attachment', 'data-attachment-index'
+      "href",
+      "src",
+      "alt",
+      "title",
+      "width",
+      "height",
+      "colspan",
+      "rowspan",
+      "align",
+      "cellpadding",
+      "cellspacing",
+      "style",
+      "dir",
+      "valign",
+      "border",
+      "bgcolor",
+      "background",
+      "class",
+      "color",
+      "face",
+      "size",
+      "data-attachment",
+      "data-attachment-index",
     ],
     ALLOWED_URI_REGEXP: /^(?:https:|data:|mailto:|tel:|#)/i,
-    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'iframe', 'meta', 'link'],
-    FORBID_ATTR: ['javascript:', 'vbscript:', 'on*'],
+    FORBID_TAGS: ["script", "object", "embed", "form", "input", "iframe", "meta", "link"],
+    FORBID_ATTR: ["javascript:", "vbscript:", "on*"],
     // Enhanced data URL filtering - only allow safe image data URLs
     KEEP_CONTENT: true, // Preserve text content even if tags/attributes are removed
-    ADD_ATTR: ['target', 'rel'],
+    ADD_ATTR: ["target", "rel"],
     ALLOW_DATA_ATTR: true,
-  };
+  }
 
   // Register DOMPurify hooks properly via addHook API (not config.HOOKS which is ignored)
-  DOMPurify.addHook('afterSanitizeAttributes', function (node: Element) {
+  DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
     // Enhanced link security validation
-    if (node.tagName === 'A') {
-      const href = node.getAttribute('href');
+    if (node.tagName === "A") {
+      const href = node.getAttribute("href")
       if (href) {
-        const safeUrlPattern = /^(https?:\/\/|mailto:|tel:|#)/i;
+        const safeUrlPattern = /^(https?:\/\/|mailto:|tel:|#)/i
         if (!safeUrlPattern.test(href)) {
-          node.removeAttribute('href');
+          node.removeAttribute("href")
         } else {
-          node.setAttribute('target', '_blank');
-          node.setAttribute('rel', 'noopener noreferrer nofollow');
+          node.setAttribute("target", "_blank")
+          node.setAttribute("rel", "noopener noreferrer nofollow")
         }
       }
     }
-    
+
     // Enhanced image security and performance
-    if (node.tagName === 'IMG') {
-      const src = node.getAttribute('src');
-      
+    if (node.tagName === "IMG") {
+      const src = node.getAttribute("src")
+
       // Handle data URLs with strict filtering and size limit
-      if (src?.startsWith('data:')) {
-        const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i;
-        const dataSizeInBytes = src.length * 0.75;
-        const maxSizeInBytes = 1024 * 1024;
-        
+      if (src?.startsWith("data:")) {
+        const safeDataPattern = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i
+        const dataSizeInBytes = src.length * 0.75
+        const maxSizeInBytes = 1024 * 1024
+
         if (!safeDataPattern.test(src) || dataSizeInBytes > maxSizeInBytes) {
-          node.setAttribute('src', createPlaceholder('data-rejected'));
-          node.setAttribute('alt', node.getAttribute('alt') || 'Data image rejected');
-          node.setAttribute('data-error', 'data-rejected');
+          node.setAttribute("src", createPlaceholder("data-rejected"))
+          node.setAttribute("alt", node.getAttribute("alt") || "Data image rejected")
+          node.setAttribute("data-error", "data-rejected")
         }
       }
-      
+
       // Set performance and security attributes
-      node.setAttribute('loading', 'lazy');
-      node.setAttribute('style', 'max-width: 100%; height: auto; display: block;');
-      node.setAttribute('referrerpolicy', 'no-referrer');
-      
+      node.setAttribute("loading", "lazy")
+      node.setAttribute("style", "max-width: 100%; height: auto; display: block;")
+      node.setAttribute("referrerpolicy", "no-referrer")
+
       // Remote images are fetched server-side through email-image-proxy, so
       // anything already pointing at our functions is allowed through.
-      const isAppOwned = !!src && (
-        src.includes('/functions/v1/get-attachment') ||
-        src.includes('/functions/v1/email-image-proxy')
-      );
+      const isAppOwned =
+        !!src &&
+        (src.includes("/functions/v1/get-attachment") ||
+          src.includes("/functions/v1/email-image-proxy"))
 
       // Block anything remote that somehow escaped the proxy rewrite
-      if (!isAppOwned && src &&
-               !src.startsWith('cid:') && 
-               !src.startsWith('/') && 
-               !src.startsWith('data:') && 
-               !src.startsWith('blob:')) {
-        node.setAttribute('data-original-src', src);
-        node.setAttribute('src', '');
-        node.setAttribute('alt', node.getAttribute('alt') || 'Image blocked for privacy');
-        node.setAttribute('data-blocked', 'true');
+      if (
+        !isAppOwned &&
+        src &&
+        !src.startsWith("cid:") &&
+        !src.startsWith("/") &&
+        !src.startsWith("data:") &&
+        !src.startsWith("blob:")
+      ) {
+        node.setAttribute("data-original-src", src)
+        node.setAttribute("src", "")
+        node.setAttribute("alt", node.getAttribute("alt") || "Image blocked for privacy")
+        node.setAttribute("data-blocked", "true")
       }
     }
-    
-    // Sanitize style attributes to only allow safe properties
-    if (node.hasAttribute('style')) {
-      const style = node.getAttribute('style') || '';
-      const isTableElement = ['TABLE', 'TR', 'TD', 'TH', 'THEAD', 'TBODY', 'TFOOT'].includes(node.tagName);
-      
-      const safeStyles = style
-        .split(';')
-        .filter(rule => {
-          const property = rule.split(':')[0]?.trim().toLowerCase();
-          const baseProperties = [
-            'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight',
-            'font-style', 'text-decoration', 'text-align', 'text-transform', 'letter-spacing',
-            'word-spacing', 'white-space', 'margin', 'padding', 'border',
-            'border-color', 'border-width', 'border-style', 'border-radius', 'line-height',
-            'width', 'min-width', 'max-width',
-            'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
-            'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
-            'border-top', 'border-bottom', 'border-left', 'border-right',
-            'height', 'min-height', 'max-height', 'display', 'vertical-align',
-            'background-image', 'background-repeat', 'background-position', 'background-size',
-            'list-style', 'list-style-type', 'opacity', 'overflow'
-          ];
-          
-          const tableProperties = [
-            'border-collapse', 'border-spacing', 'table-layout',
-            'text-indent', 'visibility',
-            'cellpadding', 'cellspacing'
-          ];
-          
-          const allowedProperties = isTableElement 
-            ? [...baseProperties, ...tableProperties]
-            : baseProperties;
 
-          
-          return allowedProperties.includes(property);
+    // Sanitize style attributes to only allow safe properties
+    if (node.hasAttribute("style")) {
+      const style = node.getAttribute("style") || ""
+      const isTableElement = ["TABLE", "TR", "TD", "TH", "THEAD", "TBODY", "TFOOT"].includes(
+        node.tagName,
+      )
+
+      const safeStyles = style
+        .split(";")
+        .filter((rule) => {
+          const property = rule.split(":")[0]?.trim().toLowerCase()
+          const baseProperties = [
+            "color",
+            "background-color",
+            "background",
+            "font-family",
+            "font-size",
+            "font-weight",
+            "font-style",
+            "text-decoration",
+            "text-align",
+            "text-transform",
+            "letter-spacing",
+            "word-spacing",
+            "white-space",
+            "margin",
+            "padding",
+            "border",
+            "border-color",
+            "border-width",
+            "border-style",
+            "border-radius",
+            "line-height",
+            "width",
+            "min-width",
+            "max-width",
+            "margin-top",
+            "margin-bottom",
+            "margin-left",
+            "margin-right",
+            "padding-top",
+            "padding-bottom",
+            "padding-left",
+            "padding-right",
+            "border-top",
+            "border-bottom",
+            "border-left",
+            "border-right",
+            "height",
+            "min-height",
+            "max-height",
+            "display",
+            "vertical-align",
+            "background-image",
+            "background-repeat",
+            "background-position",
+            "background-size",
+            "list-style",
+            "list-style-type",
+            "opacity",
+            "overflow",
+          ]
+
+          const tableProperties = [
+            "border-collapse",
+            "border-spacing",
+            "table-layout",
+            "text-indent",
+            "visibility",
+            "cellpadding",
+            "cellspacing",
+          ]
+
+          const allowedProperties = isTableElement
+            ? [...baseProperties, ...tableProperties]
+            : baseProperties
+
+          return allowedProperties.includes(property)
         })
-        .join(';');
-      
+        .join(";")
+
       if (safeStyles) {
-        node.setAttribute('style', safeStyles);
+        node.setAttribute("style", safeStyles)
       } else {
-        node.removeAttribute('style');
+        node.removeAttribute("style")
       }
     }
-  });
+  })
 
   // Build asset indexes for efficient lookups
-  const { byContentId, byContentLocation } = buildAssetIndexes(attachments);
-  
+  const { byContentId, byContentLocation } = buildAssetIndexes(attachments)
+
   // Extract and scope <style> tags instead of stripping them
-  const styleMatches = processedContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-  let scopedStyles = '';
+  const styleMatches = processedContent.match(/<style[^>]*>([\s\S]*?)<\/style>/gi)
+  let scopedStyles = ""
   if (styleMatches) {
-    styleMatches.forEach(style => {
-      const cssContent = style.replace(/<\/?style[^>]*>/gi, '');
+    styleMatches.forEach((style) => {
+      const cssContent = style.replace(/<\/?style[^>]*>/gi, "")
       // Scope all selectors to .email-render__html-content
-      const scopedCSS = cssContent.replace(
-        /([^{}@]+)(\{[^}]+\})/g, 
-        (match, selector, rules) => {
-          // Skip @-rules like @media, @font-face
-          if (selector.trim().startsWith('@')) {
-            return match;
-          }
-          // Handle each comma-separated selector
-          const scopedSelectors = selector.split(',')
-            .map((s: string) => {
-              const trimmed = s.trim();
-              if (!trimmed) return '';
-              return `.email-render__html-content ${trimmed}`;
-            })
-            .filter(Boolean)
-            .join(', ');
-          return scopedSelectors ? scopedSelectors + rules : '';
+      const scopedCSS = cssContent.replace(/([^{}@]+)(\{[^}]+\})/g, (match, selector, rules) => {
+        // Skip @-rules like @media, @font-face
+        if (selector.trim().startsWith("@")) {
+          return match
         }
-      );
-      scopedStyles += scopedCSS;
-    });
+        // Handle each comma-separated selector
+        const scopedSelectors = selector
+          .split(",")
+          .map((s: string) => {
+            const trimmed = s.trim()
+            if (!trimmed) return ""
+            return `.email-render__html-content ${trimmed}`
+          })
+          .filter(Boolean)
+          .join(", ")
+        return scopedSelectors ? scopedSelectors + rules : ""
+      })
+      scopedStyles += scopedCSS
+    })
   }
-  
+
   // Strip original <style> tags - we'll add scoped version back
-  processedContent = processedContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-  
+  processedContent = processedContent.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+
   // Strip script tags
-  processedContent = processedContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-  
+  processedContent = processedContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+
   // Add scoped styles back at the start
   if (scopedStyles) {
-    processedContent = `<style>${scopedStyles}</style>` + processedContent;
+    processedContent = `<style>${scopedStyles}</style>${processedContent}`
   }
-  
+
   // Initial CID rewriting for immediate resolution
-  processedContent = processedContent.replace(
-    /src=["']cid:([^"']+)["']/gi,
-    (match, cidId) => {
-      console.log(`[EmailFormatting] Processing CID reference: "${cidId}"`);
-      const normalizedCid = normalizeCid(cidId);
-      console.log(`[EmailFormatting] Normalized CID: "${normalizedCid}"`);
-      const assetInfo = byContentId.get(normalizedCid);
-      
-      if (assetInfo) {
-        // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
-        const inlineClass = ' email-inline-image'; // All CID-referenced images are inline by definition
-        if (!assetInfo.attachment.storageKey) {
-          console.warn(`[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`);
-          // CID images without data: hide instead of showing placeholder
-          return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
-        }
-        
-        // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
-        const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey });
-        console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
+  processedContent = processedContent.replace(/src=["']cid:([^"']+)["']/gi, (match, cidId) => {
+    console.log(`[EmailFormatting] Processing CID reference: "${cidId}"`)
+    const normalizedCid = normalizeCid(cidId)
+    console.log(`[EmailFormatting] Normalized CID: "${normalizedCid}"`)
+    const assetInfo = byContentId.get(normalizedCid)
+
+    if (assetInfo) {
+      // Check if attachment has no binary data stored (no storageKey = data was never uploaded)
+      const inlineClass = " email-inline-image" // All CID-referenced images are inline by definition
+      if (!assetInfo.attachment.storageKey) {
+        console.warn(
+          `[EmailFormatting] Attachment has no binary data stored: "${assetInfo.attachment.filename}"`,
+        )
+        // CID images without data: hide instead of showing placeholder
+        return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`
+        return `src="${createPlaceholder("data-missing")}" data-attachment="true" class="email-attachment-image${inlineClass}"`
       }
-      
-      // CID miss - hide for likely inline/signature images
-      console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`);
-      return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
+
+      // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
+      const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey })
+      console.log(`[EmailFormatting] Found CID match, using URL: ${attachmentUrl}`)
+      return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`
     }
-  );
-  
+
+    // CID miss - hide for likely inline/signature images
+    console.log(`[EmailFormatting] CID miss for: "${normalizedCid}"`)
+    return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`
+  })
+
   // Handle Content-Location references
-  processedContent = processedContent.replace(
-    /src=["']([^"']+)["']/gi,
-    (match, src) => {
-      // Skip if already processed or is absolute URL
-      if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:') || src.includes('get-attachment')) {
-        return match;
-      }
-      
-      console.log(`[EmailFormatting] Processing potential Content-Location: "${src}"`);
-      const normalizedLocation = normalizeContentLocation(src);
-      console.log(`[EmailFormatting] Normalized location: "${normalizedLocation}"`);
-      const assetInfo = byContentLocation.get(normalizedLocation);
-      
-      if (assetInfo) {
-        // Check if attachment has no binary data stored
-        const inlineClass = assetInfo.attachment.isInline ? ' email-inline-image' : '';
-        if (!assetInfo.attachment.storageKey) {
-          console.warn(`[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`);
-          // For inline/signature images, hide instead of showing placeholder
-          if (assetInfo.attachment.isInline) {
-            return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`;
-          }
-          return `src="${createPlaceholder('data-missing')}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
-        }
-        
-        // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
-        const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey });
-        console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`);
-        return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`;
-      }
-      
-      console.log(`[EmailFormatting] Content-Location miss for: "${normalizedLocation}"`);
-      return match; // Keep original if no match found
+  processedContent = processedContent.replace(/src=["']([^"']+)["']/gi, (match, src) => {
+    // Skip if already processed or is absolute URL
+    if (
+      src.startsWith("http") ||
+      src.startsWith("data:") ||
+      src.startsWith("blob:") ||
+      src.includes("get-attachment")
+    ) {
+      return match
     }
-  );
+
+    console.log(`[EmailFormatting] Processing potential Content-Location: "${src}"`)
+    const normalizedLocation = normalizeContentLocation(src)
+    console.log(`[EmailFormatting] Normalized location: "${normalizedLocation}"`)
+    const assetInfo = byContentLocation.get(normalizedLocation)
+
+    if (assetInfo) {
+      // Check if attachment has no binary data stored
+      const inlineClass = assetInfo.attachment.isInline ? " email-inline-image" : ""
+      if (!assetInfo.attachment.storageKey) {
+        console.warn(
+          `[EmailFormatting] Content-Location attachment has no binary data: "${assetInfo.attachment.filename}"`,
+        )
+        // For inline/signature images, hide instead of showing placeholder
+        if (assetInfo.attachment.isInline) {
+          return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`
+        }
+        return `src="${createPlaceholder("data-missing")}" data-attachment="true" class="email-attachment-image${inlineClass}"`
+      }
+
+      // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
+      const attachmentUrl = buildAttachmentUrl({ key: assetInfo.attachment.storageKey })
+      console.log(`[EmailFormatting] Found Content-Location match, using URL: ${attachmentUrl}`)
+      return `src="${attachmentUrl}" data-attachment="true" class="email-attachment-image${inlineClass}"`
+    }
+
+    console.log(`[EmailFormatting] Content-Location miss for: "${normalizedLocation}"`)
+    return match // Keep original if no match found
+  })
 
   // Strip empty spacer paragraphs (Outlook generates these)
-  processedContent = processedContent
-    .replace(/<p[^>]*>\s*(?:&nbsp;|\s|<br\s*\/?>)*\s*<\/p>/gi, '');
+  processedContent = processedContent.replace(/<p[^>]*>\s*(?:&nbsp;|\s|<br\s*\/?>)*\s*<\/p>/gi, "")
 
   // Detect and wrap HTML signature blocks
-  processedContent = wrapHtmlSignature(processedContent);
+  processedContent = wrapHtmlSignature(processedContent)
 
   // Fix common email HTML issues
   processedContent = processedContent
@@ -447,334 +574,361 @@ export const sanitizeEmailHTML = (
     .replace(/valign=(\w+)/g, 'valign="$1"')
     .replace(/bgcolor=([#\w]+)/g, 'bgcolor="$1"')
     // SPACING FIX: Strip empty divs containing only <br> or whitespace
-    .replace(/<div[^>]*>\s*<br\s*\/?>\s*<\/div>/gi, '')
-    .replace(/<div[^>]*>\s*&nbsp;\s*<\/div>/gi, '')
-    .replace(/<div[^>]*>\s*<\/div>/gi, '')
+    .replace(/<div[^>]*>\s*<br\s*\/?>\s*<\/div>/gi, "")
+    .replace(/<div[^>]*>\s*&nbsp;\s*<\/div>/gi, "")
+    .replace(/<div[^>]*>\s*<\/div>/gi, "")
     // SPACING FIX: Collapse multiple consecutive <br> tags to single
-    .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>')
+    .replace(/(<br\s*\/?>\s*){2,}/gi, "<br>")
     // Ensure all images are responsive
     .replace(/<img([^>]*?)>/gi, (match, attrs) => {
-      if (!attrs.includes('style=')) {
-        return `<img${attrs} style="max-width: 100%; height: auto; display: block;">`;
-      } else if (!attrs.includes('max-width')) {
-        const styleMatch = attrs.match(/style=["']([^"']*?)["']/);
+      if (!attrs.includes("style=")) {
+        return `<img${attrs} style="max-width: 100%; height: auto; display: block;">`
+      } else if (!attrs.includes("max-width")) {
+        const styleMatch = attrs.match(/style=["']([^"']*?)["']/)
         if (styleMatch) {
-          const existingStyle = styleMatch[1];
-          const newStyle = `${existingStyle}; max-width: 100%; height: auto;`;
-          return match.replace(styleMatch[0], `style="${newStyle}"`);
+          const existingStyle = styleMatch[1]
+          const newStyle = `${existingStyle}; max-width: 100%; height: auto;`
+          return match.replace(styleMatch[0], `style="${newStyle}"`)
         }
       }
-      return match;
-    });
+      return match
+    })
 
   // Route remote images through the server-side proxy so emails render with
   // their original artwork (logos, banners, spacers) without exposing the
   // agent's IP/cookies to the sender. Runs before sanitization so the final
   // src is an https URL DOMPurify accepts.
-  processedContent = processedContent.replace(
-    /<img\b[^>]*>/gi,
-    (imgTag) => {
-      const srcMatch = imgTag.match(/\ssrc=["']([^"']+)["']/i);
-      const src = srcMatch?.[1];
-      if (!src) return imgTag;
-      if (!/^https?:\/\//i.test(src)) return imgTag;
+  processedContent = processedContent
+    .replace(/<img\b[^>]*>/gi, (imgTag) => {
+      const srcMatch = imgTag.match(/\ssrc=["']([^"']+)["']/i)
+      const src = srcMatch?.[1]
+      if (!src) return imgTag
+      if (!/^https?:\/\//i.test(src)) return imgTag
       // Already an app-owned URL (attachments / proxy) — leave alone.
-      if (src.includes('/functions/v1/get-attachment') || src.includes('/functions/v1/email-image-proxy')) {
-        return imgTag;
+      if (
+        src.includes("/functions/v1/get-attachment") ||
+        src.includes("/functions/v1/email-image-proxy")
+      ) {
+        return imgTag
       }
-      const proxied = buildEmailImageProxyUrl(src);
-      return imgTag
+      const proxied = buildEmailImageProxyUrl(src)
+      return `${imgTag
         .replace(srcMatch![0], ` src="${proxied}"`)
         // srcset would bypass the proxy, so drop it.
-        .replace(/\ssrcset=["'][^"']*["']/gi, '')
-        + '';
-    }
-  ).replace(/\sdata-proxied-src=["'][^"']*["']/gi, '');
+        .replace(/\ssrcset=["'][^"']*["']/gi, "")}`
+    })
+    .replace(/\sdata-proxied-src=["'][^"']*["']/gi, "")
 
   // Same treatment for CSS background images and legacy background attributes.
   processedContent = processedContent
-    .replace(/\sbackground=["'](https?:\/\/[^"']+)["']/gi, (_m, url) =>
-      ` background="${buildEmailImageProxyUrl(url)}"`)
+    .replace(
+      /\sbackground=["'](https?:\/\/[^"']+)["']/gi,
+      (_m, url) => ` background="${buildEmailImageProxyUrl(url)}"`,
+    )
     .replace(/url\(\s*(['"]?)(https?:\/\/[^'")]+)\1\s*\)/gi, (match, _q, url) => {
-      if (String(url).includes('/functions/v1/')) return match;
-      return `url("${buildEmailImageProxyUrl(url)}")`;
-    });
+      if (String(url).includes("/functions/v1/")) return match
+      return `url("${buildEmailImageProxyUrl(url)}")`
+    })
 
   // Sanitize the HTML
-  const sanitized = DOMPurify.sanitize(processedContent, config);
+  const sanitized = DOMPurify.sanitize(processedContent, config)
   // Clean up hooks to avoid leaking across calls
-  DOMPurify.removeAllHooks();
+  DOMPurify.removeAllHooks()
 
   // Strip trailing spacer nodes (br, empty div/p, whitespace text) so messages
   // don't reserve a blank line at the bottom. Only TRAILING nodes — spacers
   // between text blocks are preserved.
-  const finalResult = stripTrailingSpacers(sanitized);
-  console.log('[NL-FINAL] sanitizeEmailHTML returning:', JSON.stringify(finalResult.slice(0, 300)));
-  return finalResult;
-};
+  const finalResult = stripTrailingSpacers(sanitized)
+  console.log("[NL-FINAL] sanitizeEmailHTML returning:", JSON.stringify(finalResult.slice(0, 300)))
+  return finalResult
+}
 
 const stripTrailingSpacers = (html: string): string => {
-  if (typeof document === 'undefined') return html;
+  if (typeof document === "undefined") return html
   try {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
+    const temp = document.createElement("div")
+    temp.innerHTML = html
     const isSpacer = (node: Node): boolean => {
-      if (node.nodeType === Node.TEXT_NODE) return !node.textContent?.trim();
-      if (node.nodeType !== Node.ELEMENT_NODE) return true; // comments etc.
-      const el = node as Element;
-      if (el.tagName === 'BR') return true;
-      if ((el.tagName === 'DIV' || el.tagName === 'P') &&
-          !el.textContent?.trim() &&
-          !el.querySelector('img,table,hr')) {
-        return true;
+      if (node.nodeType === Node.TEXT_NODE) return !node.textContent?.trim()
+      if (node.nodeType !== Node.ELEMENT_NODE) return true // comments etc.
+      const el = node as Element
+      if (el.tagName === "BR") return true
+      if (
+        (el.tagName === "DIV" || el.tagName === "P") &&
+        !el.textContent?.trim() &&
+        !el.querySelector("img,table,hr")
+      ) {
+        return true
       }
-      return false;
-    };
-    let last = temp.lastChild;
-    while (last && isSpacer(last)) {
-      const prev = last.previousSibling;
-      temp.removeChild(last);
-      last = prev;
+      return false
     }
-    return temp.innerHTML;
+    let last = temp.lastChild
+    while (last && isSpacer(last)) {
+      const prev = last.previousSibling
+      temp.removeChild(last)
+      last = prev
+    }
+    return temp.innerHTML
   } catch {
-    return html;
+    return html
   }
-};
+}
 
 /**
  * Improved text extraction from HTML with better formatting preservation
  */
 export const extractTextFromHTML = (htmlContent: string): string => {
   // Create a temporary DOM element to parse HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = htmlContent;
-  
+  const temp = document.createElement("div")
+  temp.innerHTML = htmlContent
+
   // Remove script and style elements
-  const scripts = temp.querySelectorAll('script, style');
-  scripts.forEach(el => el.remove());
-  
+  const scripts = temp.querySelectorAll("script, style")
+  scripts.forEach((el) => el.remove())
+
   // Get text content with some formatting preservation
-  let text = temp.textContent || temp.innerText || '';
-  
+  let text = temp.textContent || temp.innerText || ""
+
   // Clean up the text
   text = text
     // Remove excessive whitespace
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     // Remove common email artifacts
-    .replace(/\[.*?\]/g, '')
+    .replace(/\[.*?\]/g, "")
     // Normalize line breaks
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
     // Remove quoted sections (lines starting with >)
-    .replace(/^>.*$/gm, '')
+    .replace(/^>.*$/gm, "")
     // Remove email signatures (text after "Best regards", "Sincerely", etc.)
-    .replace(/(\n|^)(Best regards|Sincerely|Thank you|Thanks|Cheers|BR|--)[^]*$/i, '')
-    .trim();
-  
-  return text;
-};
+    .replace(/(\n|^)(Best regards|Sincerely|Thank you|Thanks|Cheers|BR|--)[^]*$/i, "")
+    .trim()
+
+  return text
+}
 
 /**
  * Enhanced content type detection with better heuristics
  */
 export const shouldRenderAsHTML = (content: string, contentType: string): boolean => {
   // If explicitly HTML content type, check for HTML elements
-  if (contentType.toLowerCase().includes('html')) {
-    return true;
+  if (contentType.toLowerCase().includes("html")) {
+    return true
   }
-  
+
   // Check for actual HTML elements (be more lenient)
   const htmlIndicators = [
-    /<[^>]+>/g // Any HTML tag
-  ];
-  
-  const hasHtmlTags = htmlIndicators.some(pattern => pattern.test(content));
-  
+    /<[^>]+>/g, // Any HTML tag
+  ]
+
+  const hasHtmlTags = htmlIndicators.some((pattern) => pattern.test(content))
+
   // If it has HTML tags and doesn't look like markdown, render as HTML
-  const isMarkdown = content.includes('**') || content.includes('*') || content.includes('#') || content.includes('[') || content.includes('](');
-  
-  return hasHtmlTags && !isMarkdown;
-};
+  const isMarkdown =
+    content.includes("**") ||
+    content.includes("*") ||
+    content.includes("#") ||
+    content.includes("[") ||
+    content.includes("](")
+
+  return hasHtmlTags && !isMarkdown
+}
 
 /**
  * Enhanced text formatting for newsletter-style content
  */
 export const formatEmailText = (content: string): string => {
   // Split content into lines for better processing
-  const lines = content.split('\n');
-  const formattedLines: string[] = [];
-  
+  const lines = content.split("\n")
+  const formattedLines: string[] = []
+
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-    
+    let line = lines[i]
+
     // Skip empty lines but preserve them for spacing
-    if (line.trim() === '') {
-      formattedLines.push('<br>');
-      continue;
+    if (line.trim() === "") {
+      formattedLines.push("<br>")
+      continue
     }
-    
+
     // Convert asterisk headers to proper headings
     if (/^\*{3,}(.+?)\*{3,}$/.test(line)) {
-      const headerText = line.replace(/^\*{3,}(.+?)\*{3,}$/, '$1').trim();
-      formattedLines.push(`<h2 style="margin: 24px 0 12px 0; font-weight: 600; font-size: 1.25em; color: #1d1d1f; line-height: 1.3;">${headerText}</h2>`);
-      continue;
+      const headerText = line.replace(/^\*{3,}(.+?)\*{3,}$/, "$1").trim()
+      formattedLines.push(
+        `<h2 style="margin: 24px 0 12px 0; font-weight: 600; font-size: 1.25em; color: #1d1d1f; line-height: 1.3;">${headerText}</h2>`,
+      )
+      continue
     }
-    
+
     // Convert dash separators to horizontal rules
     if (/^-{3,}/.test(line)) {
-      formattedLines.push('<hr style="margin: 20px 0; border: none; border-top: 1px solid #d1d1d6;">');
-      continue;
+      formattedLines.push(
+        '<hr style="margin: 20px 0; border: none; border-top: 1px solid #d1d1d6;">',
+      )
+      continue
     }
-    
+
     // Convert [Link text ( url )] to proper links
-    line = line.replace(/\[([^\]]+)\s+\(\s*(https?:\/\/[^\)]+)\s*\)\s*\]/g, '<a href="$2" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
-    
+    line = line.replace(
+      /\[([^\]]+)\s+\(\s*(https?:\/\/[^)]+)\s*\)\s*\]/g,
+      '<a href="$2" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>',
+    )
+
     // Convert simple links like https://example.com to clickable links
-    line = line.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>');
-    
+    line = line.replace(
+      /(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" target="_blank" style="color: #007aff; text-decoration: underline;">$1</a>',
+    )
+
     // Convert bullet points with asterisks
     if (/^\*\s+/.test(line)) {
-      line = line.replace(/^\*\s+(.+)$/, '• $1');
+      line = line.replace(/^\*\s+(.+)$/, "• $1")
     }
-    
+
     // Wrap regular text in paragraph tags
-    if (!line.startsWith('<h') && !line.startsWith('<hr') && !line.startsWith('<br>')) {
-      line = `<p style="margin: 8px 0; line-height: 1.6; color: inherit;">${line}</p>`;
+    if (!line.startsWith("<h") && !line.startsWith("<hr") && !line.startsWith("<br>")) {
+      line = `<p style="margin: 8px 0; line-height: 1.6; color: inherit;">${line}</p>`
     }
-    
-    formattedLines.push(line);
+
+    formattedLines.push(line)
   }
-  
-  return formattedLines.join('\n');
-};
+
+  return formattedLines.join("\n")
+}
 
 /**
  * Enhanced encoding fixes for Norwegian and international characters
  */
 export const fixEncodingIssues = (content: string): string => {
-  let fixed = content;
-  
+  let fixed = content
+
   // Fix Norwegian character encoding issues (UTF-8 decoded as Latin-1)
   const norwegianFixes: Record<string, string> = {
-    'Ã¸': 'ø',
-    'Ã¥': 'å', 
-    'Ã¦': 'æ',
-    'Ã˜': 'Ø',
-    'Ã…': 'Å',
-    'Ã†': 'Æ',
-    'â€™': "'",
-    'â€œ': '"',
-    'â€': '"',
-    'â€"': '–',
-    'â€•': '—',
-    'Â': ' '
-  };
+    "Ã¸": "ø",
+    "Ã¥": "å",
+    "Ã¦": "æ",
+    "Ã˜": "Ø",
+    "Ã…": "Å",
+    "Ã†": "Æ",
+    "â€™": "'",
+    "â€œ": '"',
+    "â€": '"',
+    'â€"': "–",
+    "â€•": "—",
+    Â: " ",
+  }
 
   // Apply Norwegian character fixes
   for (const [wrong, correct] of Object.entries(norwegianFixes)) {
-    fixed = fixed.replace(new RegExp(wrong, 'g'), correct);
+    fixed = fixed.replace(new RegExp(wrong, "g"), correct)
   }
-  
+
   // Fix HTML entities
   fixed = fixed
-    .replace(/&amp;([a-zA-Z]+);/g, '&$1;')
-    .replace(/[^\S\r\n]+/g, ' ')
-    .trim();
-    
-  return fixed;
-};
+    .replace(/&amp;([a-zA-Z]+);/g, "&$1;")
+    .replace(/[^\S\r\n]+/g, " ")
+    .trim()
+
+  return fixed
+}
 
 /**
  * Comprehensive HTML content preprocessing
  */
 export const preprocessHTMLContent = (content: string): string => {
-  let processedContent = fixEncodingIssues(content);
-  
+  const processedContent = fixEncodingIssues(content)
+
   return processedContent
     .replace(/&([a-zA-Z]+);/g, (match, entity) => {
       const entities: Record<string, string> = {
-        'nbsp': ' ',
-        'amp': '&',
-        'lt': '<',
-        'gt': '>',
-        'quot': '"',
-        'apos': "'",
-        'hellip': '...',
-        'mdash': '—',
-        'ndash': '–',
-        'lsquo': '\'',
-        'rsquo': '\'',
-        'ldquo': '"',
-        'rdquo': '"',
-        'aring': 'å',
-        'aelig': 'æ',
-        'oslash': 'ø',
-        'Aring': 'Å',
-        'AElig': 'Æ',
-        'Oslash': 'Ø'
-      };
-      return entities[entity] || match;
+        nbsp: " ",
+        amp: "&",
+        lt: "<",
+        gt: ">",
+        quot: '"',
+        apos: "'",
+        hellip: "...",
+        mdash: "—",
+        ndash: "–",
+        lsquo: "'",
+        rsquo: "'",
+        ldquo: '"',
+        rdquo: '"',
+        aring: "å",
+        aelig: "æ",
+        oslash: "ø",
+        Aring: "Å",
+        AElig: "Æ",
+        Oslash: "Ø",
+      }
+      return entities[entity] || match
     })
     .replace(/&#(\d+);/g, (match, code) => {
-      const num = parseInt(code);
+      const num = parseInt(code, 10)
       switch (num) {
-        case 229: return 'å';
-        case 230: return 'æ';
-        case 248: return 'ø';
-        case 197: return 'Å';
-        case 198: return 'Æ';
-        case 216: return 'Ø';
-        default: return String.fromCharCode(num);
+        case 229:
+          return "å"
+        case 230:
+          return "æ"
+        case 248:
+          return "ø"
+        case 197:
+          return "Å"
+        case 198:
+          return "Æ"
+        case 216:
+          return "Ø"
+        default:
+          return String.fromCharCode(num)
       }
     })
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .replace(/\n\s*\n\s*\n/g, '\n\n');
-};
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n\s*\n\s*\n/g, "\n\n")
+}
 
 /**
  * Strip quoted previous messages from HTML replies for display
  */
 export const stripQuotedEmailHTML = (htmlContent: string): string => {
   try {
-    const container = document.createElement('div');
-    container.innerHTML = htmlContent;
+    const container = document.createElement("div")
+    container.innerHTML = htmlContent
 
     // Remove common quoted sections
     const selectors = [
-      'blockquote',
-      '.gmail_quote',
+      "blockquote",
+      ".gmail_quote",
       'blockquote[type="cite"]',
-      '.yahoo_quoted',
-      '.gmail_attr',
-      '.gmail_extra',
-      '.moz-cite-prefix',
-      '.OutlookMessageHeader',
-      '#OLKSrcBody',
-      '.reply-border'
-    ];
-    selectors.forEach(sel => container.querySelectorAll(sel).forEach(el => el.remove()));
+      ".yahoo_quoted",
+      ".gmail_attr",
+      ".gmail_extra",
+      ".moz-cite-prefix",
+      ".OutlookMessageHeader",
+      "#OLKSrcBody",
+      ".reply-border",
+    ]
+    selectors.forEach((sel) => container.querySelectorAll(sel).forEach((el) => el.remove()))
 
     // Remove elements that contain typical quote headers like "On ... wrote:" or "Original Message"
-    const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+)/i;
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-    const toRemove: Element[] = [];
+    const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+)/i
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+    const toRemove: Element[] = []
     while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      const text = (node.textContent || '').trim();
+      const node = walker.currentNode as Text
+      const text = (node.textContent || "").trim()
       if (textPatterns.test(text)) {
-        const parent = node.parentElement;
-        if (parent) toRemove.push(parent);
+        const parent = node.parentElement
+        if (parent) toRemove.push(parent)
       }
     }
-    toRemove.forEach(el => el.remove());
+    toRemove.forEach((el) => el.remove())
 
-    return container.innerHTML;
+    return container.innerHTML
   } catch {
-    return htmlContent;
+    return htmlContent
   }
-};
+}
 
 /**
  * Strip quoted previous messages from plain text replies for display
@@ -784,16 +938,17 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
  */
 export const stripQuotedEmailText = (text: string): string => {
   try {
-    const cutPattern = /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)/i;
-    let result = text.replace(cutPattern, '').trim();
-    
+    const cutPattern =
+      /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)/i
+    let result = text.replace(cutPattern, "").trim()
+
     // Remove classic '>' quoted lines
-    result = result.replace(/^\s*>.*$/gm, '').trim();
-    return result;
+    result = result.replace(/^\s*>.*$/gm, "").trim()
+    return result
   } catch {
-    return text;
+    return text
   }
-};
+}
 
 // Re-export enhanced plain text formatter
-export { formatPlainTextEmail };
+export { formatPlainTextEmail }

@@ -1,30 +1,30 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Copy, 
-  ExternalLink, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2,
+import {
+  AlertCircle,
+  CheckCircle2,
   ChevronDown,
-  ChevronUp 
-} from "lucide-react";
-import { useDomainConfiguration } from "@/hooks/useDomainConfiguration";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { DnsRecordsDisplay } from "./DnsRecordsDisplay";
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  Loader2,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useDomainConfiguration } from "@/hooks/useDomainConfiguration"
+import { supabase } from "@/integrations/supabase/client"
+import { DnsRecordsDisplay } from "./DnsRecordsDisplay"
 
 interface GoogleGroupSetupStepProps {
-  publicEmail: string;
-  forwardingAddress: string;
-  onPublicEmailChange: (email: string) => void;
-  onForwardingAddressGenerated: (address: string) => void;
-  onInboundRouteCreated: (routeId: string) => void;
-  onSetupComplete: () => void;
+  publicEmail: string
+  forwardingAddress: string
+  onPublicEmailChange: (email: string) => void
+  onForwardingAddressGenerated: (address: string) => void
+  onInboundRouteCreated: (routeId: string) => void
+  onSetupComplete: () => void
 }
 
 export function GoogleGroupSetupStep({
@@ -35,142 +35,149 @@ export function GoogleGroupSetupStep({
   onInboundRouteCreated,
   onSetupComplete,
 }: GoogleGroupSetupStepProps) {
-  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
-  const [routeCreated, setRouteCreated] = useState(false);
-  const [step1Done, setStep1Done] = useState(false);
-  const [step2Done, setStep2Done] = useState(false);
-  const [step3Done, setStep3Done] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
-  const [dnsRecords, setDnsRecords] = useState<any>(null);
-  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null);
-  
-  const { 
-    getConfiguredDomain, 
+  const [isCreatingRoute, setIsCreatingRoute] = useState(false)
+  const [routeCreated, setRouteCreated] = useState(false)
+  const [step1Done, setStep1Done] = useState(false)
+  const [step2Done, setStep2Done] = useState(false)
+  const [step3Done, setStep3Done] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
+  const [dnsRecords, setDnsRecords] = useState<any>(null)
+  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null)
+
+  const {
+    getConfiguredDomain,
     getDomainByName,
-    generateForwardingAddress, 
+    generateForwardingAddress,
     extractDomainFromEmail,
     isDomainConfigured,
-    isLoading: domainsLoading 
-  } = useDomainConfiguration();
+    isLoading: domainsLoading,
+  } = useDomainConfiguration()
 
-  const emailDomain = extractDomainFromEmail(publicEmail);
-  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
-  const configuredDomain = matchingDomain;
-  const domainConfigured = emailDomain ? isDomainConfigured(emailDomain) : false;
+  const emailDomain = extractDomainFromEmail(publicEmail)
+  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null
+  const configuredDomain = matchingDomain
+  const domainConfigured = emailDomain ? isDomainConfigured(emailDomain) : false
 
   // Generate forwarding address when email changes
   useEffect(() => {
-    if (publicEmail && publicEmail.includes('@')) {
-      const generated = generateForwardingAddress(publicEmail, configuredDomain);
-      onForwardingAddressGenerated(generated);
+    if (publicEmail?.includes("@")) {
+      const generated = generateForwardingAddress(publicEmail, configuredDomain)
+      onForwardingAddressGenerated(generated)
     }
-  }, [publicEmail, configuredDomain]);
+  }, [publicEmail, configuredDomain, onForwardingAddressGenerated, generateForwardingAddress])
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard!");
+      await navigator.clipboard.writeText(text)
+      toast.success("Copied to clipboard!")
     } catch (err) {
-      toast.error("Failed to copy. Please copy manually.");
+      toast.error("Failed to copy. Please copy manually.")
     }
-  };
+  }
 
   const createInboundRoute = async () => {
-    if (!publicEmail || !forwardingAddress) return;
-    
-    setIsCreatingRoute(true);
+    if (!publicEmail || !forwardingAddress) return
+
+    setIsCreatingRoute(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('Profile not found');
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!profile) throw new Error("Profile not found")
 
       // Auto-configure SendGrid domain if not yet active
-      if (!matchingDomain || matchingDomain.status !== 'active') {
-        toast.info("Configuring domain in SendGrid...");
-        const { data: setupResult, error: setupError } = await supabase.functions.invoke('sendgrid-setup', {
-          body: { domain: emailDomain, parse_subdomain: 'inbound' },
-        });
+      if (matchingDomain?.status !== "active") {
+        toast.info("Configuring domain in SendGrid...")
+        const { data: setupResult, error: setupError } = await supabase.functions.invoke(
+          "sendgrid-setup",
+          {
+            body: { domain: emailDomain, parse_subdomain: "inbound" },
+          },
+        )
         if (setupError) {
-          toast.error('Failed to configure domain in SendGrid: ' + setupError.message);
-          setIsCreatingRoute(false);
-          return;
+          toast.error(`Failed to configure domain in SendGrid: ${setupError.message}`)
+          setIsCreatingRoute(false)
+          return
         }
-        setDnsRecords(setupResult?.dns_records || null);
-        setSendgridSetupResult(setupResult);
-        
+        setDnsRecords(setupResult?.dns_records || null)
+        setSendgridSetupResult(setupResult)
+
         if (setupResult?.ok === false) {
-          toast.warning("Domain needs DNS configuration before emails will work. See DNS records below.");
+          toast.warning(
+            "Domain needs DNS configuration before emails will work. See DNS records below.",
+          )
         } else {
-          toast.success("Domain configured in SendGrid!");
+          toast.success("Domain configured in SendGrid!")
         }
       }
 
       // Always derive the parse address from the email's OWN domain
-      const targetAddress = generateForwardingAddress(publicEmail, matchingDomain || undefined);
+      const targetAddress = generateForwardingAddress(publicEmail, matchingDomain || undefined)
       if (targetAddress !== forwardingAddress) {
-        onForwardingAddressGenerated(targetAddress);
+        onForwardingAddressGenerated(targetAddress)
       }
 
       // Get or use the configured domain — re-fetch after possible sendgrid-setup upsert
-      let domain: any = matchingDomain;
+      let domain: any = matchingDomain
       if (!domain) {
         const { data: freshDomain } = await supabase
-          .from('email_domains')
-          .select('*')
-          .eq('organization_id', profile.organization_id)
-          .eq('domain', emailDomain)
-          .maybeSingle();
-        domain = freshDomain || null;
+          .from("email_domains")
+          .select("*")
+          .eq("organization_id", profile.organization_id)
+          .eq("domain", emailDomain)
+          .maybeSingle()
+        domain = freshDomain || null
       }
       if (!domain) {
         const { data: createdDomain, error: domainError } = await supabase
-          .from('email_domains')
+          .from("email_domains")
           .insert({
             organization_id: profile.organization_id,
             domain: emailDomain,
-            parse_subdomain: 'inbound',
-            provider: 'sendgrid',
-            status: 'pending',
+            parse_subdomain: "inbound",
+            provider: "sendgrid",
+            status: "pending",
           })
           .select()
-          .maybeSingle();
-        if (domainError) throw domainError;
-        domain = createdDomain;
+          .maybeSingle()
+        if (domainError) throw domainError
+        domain = createdDomain
       }
-      if (!domain) throw new Error('No configured domain found');
+      if (!domain) throw new Error("No configured domain found")
 
-      const localPart = publicEmail.split('@')[0];
+      const localPart = publicEmail.split("@")[0]
 
       // Check if route already exists
       const { data: existingRoute } = await supabase
-        .from('inbound_routes')
-        .select('id')
-        .eq('address', targetAddress)
-        .eq('organization_id', profile.organization_id)
-        .maybeSingle();
+        .from("inbound_routes")
+        .select("id")
+        .eq("address", targetAddress)
+        .eq("organization_id", profile.organization_id)
+        .maybeSingle()
 
       if (existingRoute) {
         await supabase
-          .from('inbound_routes')
+          .from("inbound_routes")
           .update({ group_email: publicEmail, domain_id: domain.id, is_active: true })
-          .eq('id', existingRoute.id);
-        onInboundRouteCreated(existingRoute.id);
-        setRouteCreated(true);
-        setShowInstructions(true);
-        toast.success("Route already existed — reusing it");
-        return;
+          .eq("id", existingRoute.id)
+        onInboundRouteCreated(existingRoute.id)
+        setRouteCreated(true)
+        setShowInstructions(true)
+        toast.success("Route already existed — reusing it")
+        return
       }
 
       // Create new inbound route
       const { data: newRoute, error } = await supabase
-        .from('inbound_routes')
+        .from("inbound_routes")
         .insert({
           address: targetAddress,
           alias_local_part: localPart,
@@ -180,42 +187,43 @@ export function GoogleGroupSetupStep({
           is_active: true,
         })
         .select()
-        .single();
+        .single()
 
       if (error) {
-        if ((error as any).code === '23505') {
+        if ((error as any).code === "23505") {
           const { data: dupe } = await supabase
-            .from('inbound_routes')
-            .select('id')
-            .eq('address', targetAddress)
-            .eq('organization_id', profile.organization_id)
-            .maybeSingle();
+            .from("inbound_routes")
+            .select("id")
+            .eq("address", targetAddress)
+            .eq("organization_id", profile.organization_id)
+            .maybeSingle()
           if (dupe) {
-            onInboundRouteCreated(dupe.id);
-            setRouteCreated(true);
-            setShowInstructions(true);
-            toast.success("Route already existed — reusing it");
-            return;
+            onInboundRouteCreated(dupe.id)
+            setRouteCreated(true)
+            setShowInstructions(true)
+            toast.success("Route already existed — reusing it")
+            return
           }
-          throw new Error(`A forwarding route for ${targetAddress} already exists. Edit it under Email channels instead.`);
+          throw new Error(
+            `A forwarding route for ${targetAddress} already exists. Edit it under Email channels instead.`,
+          )
         }
-        throw error;
+        throw error
       }
 
-      onInboundRouteCreated(newRoute.id);
-      setRouteCreated(true);
-      setShowInstructions(true);
-      toast.success("Forwarding route created!");
-
+      onInboundRouteCreated(newRoute.id)
+      setRouteCreated(true)
+      setShowInstructions(true)
+      toast.success("Forwarding route created!")
     } catch (error: any) {
-      console.error('Failed to create inbound route:', error);
-      toast.error(error.message || "Failed to create route");
+      console.error("Failed to create inbound route:", error)
+      toast.error(error.message || "Failed to create route")
     } finally {
-      setIsCreatingRoute(false);
+      setIsCreatingRoute(false)
     }
-  };
+  }
 
-  const allStepsDone = step1Done && step2Done && step3Done;
+  const allStepsDone = step1Done && step2Done && step3Done
 
   return (
     <div className="space-y-6">
@@ -244,7 +252,15 @@ export function GoogleGroupSetupStep({
 
       {/* Domain Status */}
       {publicEmail && emailDomain && !domainsLoading && (
-        <Alert className={matchingDomain ? "border-success/50 bg-success/5" : configuredDomain ? "border-warning/50 bg-warning/5" : "border-destructive/50 bg-destructive/5"}>
+        <Alert
+          className={
+            matchingDomain
+              ? "border-success/50 bg-success/5"
+              : configuredDomain
+                ? "border-warning/50 bg-warning/5"
+                : "border-destructive/50 bg-destructive/5"
+          }
+        >
           {matchingDomain ? (
             <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
@@ -252,11 +268,19 @@ export function GoogleGroupSetupStep({
           )}
           <AlertDescription>
             {matchingDomain ? (
-              <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
+              <span>
+                Domain <strong>{matchingDomain.domain}</strong> is configured and ready!
+              </span>
             ) : configuredDomain ? (
-              <span>Domain <strong>{emailDomain}</strong> is not configured yet. It will be automatically set up in SendGrid when you create the route.</span>
+              <span>
+                Domain <strong>{emailDomain}</strong> is not configured yet. It will be
+                automatically set up in SendGrid when you create the route.
+              </span>
             ) : (
-              <span>Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid when you create the route.</span>
+              <span>
+                Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid
+                when you create the route.
+              </span>
             )}
           </AlertDescription>
         </Alert>
@@ -267,11 +291,7 @@ export function GoogleGroupSetupStep({
         <div className="space-y-2">
           <Label>Your forwarding address</Label>
           <div className="flex items-center gap-2">
-            <Input
-              value={forwardingAddress}
-              readOnly
-              className="font-mono text-sm bg-muted"
-            />
+            <Input value={forwardingAddress} readOnly className="font-mono text-sm bg-muted" />
             <Button
               variant="outline"
               size="icon"
@@ -288,11 +308,7 @@ export function GoogleGroupSetupStep({
 
       {/* Create Route Button */}
       {publicEmail && forwardingAddress && !routeCreated && (
-        <Button
-          onClick={createInboundRoute}
-          disabled={isCreatingRoute}
-          className="w-full"
-        >
+        <Button onClick={createInboundRoute} disabled={isCreatingRoute} className="w-full">
           {isCreatingRoute ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -315,7 +331,9 @@ export function GoogleGroupSetupStep({
       )}
 
       {/* DNS Records (shown after SendGrid setup) */}
-      {dnsRecords && <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />}
+      {dnsRecords && (
+        <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />
+      )}
 
       {/* Google Admin Instructions */}
       {routeCreated && (
@@ -337,12 +355,12 @@ export function GoogleGroupSetupStep({
                 <button
                   onClick={() => setStep1Done(!step1Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step1Done 
-                      ? 'bg-success text-success-foreground' 
-                      : 'bg-primary text-primary-foreground'
+                    step1Done
+                      ? "bg-success text-success-foreground"
+                      : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  {step1Done ? '✓' : '1'}
+                  {step1Done ? "✓" : "1"}
                 </button>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Open your group in Google Admin</p>
@@ -354,8 +372,8 @@ export function GoogleGroupSetupStep({
                     size="sm"
                     className="mt-2"
                     onClick={() => {
-                      window.open('https://admin.google.com/ac/groups', '_blank');
-                      setStep1Done(true);
+                      window.open("https://admin.google.com/ac/groups", "_blank")
+                      setStep1Done(true)
                     }}
                   >
                     <ExternalLink className="h-3 w-3 mr-2" />
@@ -369,12 +387,12 @@ export function GoogleGroupSetupStep({
                 <button
                   onClick={() => setStep2Done(!step2Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step2Done 
-                      ? 'bg-success text-success-foreground' 
-                      : 'bg-primary text-primary-foreground'
+                    step2Done
+                      ? "bg-success text-success-foreground"
+                      : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  {step2Done ? '✓' : '2'}
+                  {step2Done ? "✓" : "2"}
                 </button>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Add this address as a group member</p>
@@ -391,8 +409,8 @@ export function GoogleGroupSetupStep({
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        copyToClipboard(forwardingAddress);
-                        setStep2Done(true);
+                        copyToClipboard(forwardingAddress)
+                        setStep2Done(true)
                       }}
                     >
                       <Copy className="h-3 w-3" />
@@ -406,17 +424,18 @@ export function GoogleGroupSetupStep({
                 <button
                   onClick={() => setStep3Done(!step3Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step3Done 
-                      ? 'bg-success text-success-foreground' 
-                      : 'bg-primary text-primary-foreground'
+                    step3Done
+                      ? "bg-success text-success-foreground"
+                      : "bg-primary text-primary-foreground"
                   }`}
                 >
-                  {step3Done ? '✓' : '3'}
+                  {step3Done ? "✓" : "3"}
                 </button>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Allow external senders</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    In your group's Settings → Access Settings, set "Who can post" to <strong>"Anyone on the web"</strong>
+                    In your group's Settings → Access Settings, set "Who can post" to{" "}
+                    <strong>"Anyone on the web"</strong>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     This ensures emails from customers reach your inbox
@@ -429,7 +448,9 @@ export function GoogleGroupSetupStep({
                 <Alert className="border-primary/50 bg-primary/5">
                   <AlertCircle className="h-4 w-4 text-primary" />
                   <AlertDescription>
-                    <strong>Test your setup!</strong> Send an email to <strong>{publicEmail}</strong> and verify it arrives in your inbox within a few minutes.
+                    <strong>Test your setup!</strong> Send an email to{" "}
+                    <strong>{publicEmail}</strong> and verify it arrives in your inbox within a few
+                    minutes.
                   </AlertDescription>
                 </Alert>
               )}
@@ -449,5 +470,5 @@ export function GoogleGroupSetupStep({
         </Button>
       )}
     </div>
-  );
+  )
 }

@@ -1,32 +1,38 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface SnoozeDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSnooze: (date: Date, time: string) => Promise<void>;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSnooze: (date: Date, time: string) => Promise<void>
 }
 
 export const SnoozeDialog = ({ open, onOpenChange, onSnooze }: SnoozeDialogProps) => {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedTime, setSelectedTime] = useState('09:00');
-  const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedTime, setSelectedTime] = useState("09:00")
+  const [loading, setLoading] = useState(false)
 
   const handleSnooze = async () => {
-    if (!selectedDate) return;
-    
-    setLoading(true);
+    if (!selectedDate) return
+
+    setLoading(true)
     try {
-      await onSnooze(selectedDate, selectedTime);
-      onOpenChange(false);
+      await onSnooze(selectedDate, selectedTime)
+      onOpenChange(false)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,10 +65,10 @@ export const SnoozeDialog = ({ open, onOpenChange, onSnooze }: SnoozeDialogProps
             Cancel
           </Button>
           <Button onClick={handleSnooze} disabled={!selectedDate || loading}>
-            {loading ? 'Snoozing...' : 'Snooze'}
+            {loading ? "Snoozing..." : "Snooze"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

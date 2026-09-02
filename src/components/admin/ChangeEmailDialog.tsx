@@ -1,23 +1,24 @@
-import React, { useState } from 'react';
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface ChangeEmailDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  userId: string;
-  currentEmail: string;
-  onConfirm: (userId: string, newEmail: string) => void;
-  isLoading?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  userId: string
+  currentEmail: string
+  onConfirm: (userId: string, newEmail: string) => void
+  isLoading?: boolean
 }
 
 export function ChangeEmailDialog({
@@ -28,20 +29,20 @@ export function ChangeEmailDialog({
   onConfirm,
   isLoading,
 }: ChangeEmailDialogProps) {
-  const [newEmail, setNewEmail] = useState('');
+  const [newEmail, setNewEmail] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (newEmail && newEmail !== currentEmail) {
-      onConfirm(userId, newEmail);
-      setNewEmail('');
+      onConfirm(userId, newEmail)
+      setNewEmail("")
     }
-  };
+  }
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) setNewEmail('');
-    onOpenChange(open);
-  };
+    if (!open) setNewEmail("")
+    onOpenChange(open)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -78,15 +79,12 @@ export function ChangeEmailDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || !newEmail || newEmail === currentEmail}
-            >
-              {isLoading ? 'Updating...' : 'Update Email'}
+            <Button type="submit" disabled={isLoading || !newEmail || newEmail === currentEmail}>
+              {isLoading ? "Updating..." : "Update Email"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

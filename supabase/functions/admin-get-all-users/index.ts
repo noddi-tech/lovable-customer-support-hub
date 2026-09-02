@@ -1,80 +1,83 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
     // Get authorization header
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization")
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Create clients
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!
 
     // User client to verify the requesting user
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
-    });
+    })
 
     // Service client to bypass RLS
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get the requesting user
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser()
     if (userError || !user) {
-      console.error('[admin-get-all-users] Auth error:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("[admin-get-all-users] Auth error:", userError)
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     // Check if user is super_admin using service client
     const { data: roleData, error: roleError } = await serviceClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'super_admin')
-      .maybeSingle();
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle()
 
     if (roleError) {
-      console.error('[admin-get-all-users] Role check error:', roleError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify permissions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("[admin-get-all-users] Role check error:", roleError)
+      return new Response(JSON.stringify({ error: "Failed to verify permissions" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     if (!roleData) {
-      console.log('[admin-get-all-users] User is not super_admin:', user.email);
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: Super Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log("[admin-get-all-users] User is not super_admin:", user.email)
+      return new Response(JSON.stringify({ error: "Forbidden: Super Admin access required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    console.log('[admin-get-all-users] Super admin verified:', user.email);
+    console.log("[admin-get-all-users] Super admin verified:", user.email)
 
     // Parse request body for optional filters
-    let orgFilter = 'all';
+    let orgFilter = "all"
     try {
-      const body = await req.json();
-      orgFilter = body.orgFilter || 'all';
+      const body = await req.json()
+      orgFilter = body.orgFilter || "all"
     } catch {
       // No body or invalid JSON, use defaults
     }
@@ -82,89 +85,87 @@ Deno.serve(async (req) => {
     // Fetch all data using service client (bypasses RLS)
     const [profilesResult, membershipsResult, rolesResult, authUsersResult] = await Promise.all([
       serviceClient
-        .from('profiles')
-        .select('id, user_id, email, full_name, created_at')
-        .order('created_at', { ascending: false }),
-      serviceClient
-        .from('organization_memberships')
-        .select(`
+        .from("profiles")
+        .select("id, user_id, email, full_name, created_at")
+        .order("created_at", { ascending: false }),
+      serviceClient.from("organization_memberships").select(`
           id,
           user_id,
           role,
           status,
           organization:organizations(id, name)
         `),
-      serviceClient
-        .from('user_roles')
-        .select('user_id, role'),
+      serviceClient.from("user_roles").select("user_id, role"),
       // Fetch auth.users data for login status
-      serviceClient.auth.admin.listUsers()
-    ]);
+      serviceClient.auth.admin.listUsers(),
+    ])
 
     if (profilesResult.error) {
-      console.error('[admin-get-all-users] Profiles error:', profilesResult.error);
-      throw profilesResult.error;
+      console.error("[admin-get-all-users] Profiles error:", profilesResult.error)
+      throw profilesResult.error
     }
     if (membershipsResult.error) {
-      console.error('[admin-get-all-users] Memberships error:', membershipsResult.error);
-      throw membershipsResult.error;
+      console.error("[admin-get-all-users] Memberships error:", membershipsResult.error)
+      throw membershipsResult.error
     }
     if (rolesResult.error) {
-      console.error('[admin-get-all-users] Roles error:', rolesResult.error);
-      throw rolesResult.error;
+      console.error("[admin-get-all-users] Roles error:", rolesResult.error)
+      throw rolesResult.error
     }
     if (authUsersResult.error) {
-      console.error('[admin-get-all-users] Auth users error:', authUsersResult.error);
+      console.error("[admin-get-all-users] Auth users error:", authUsersResult.error)
       // Don't throw - auth data is supplementary, continue without it
     }
 
-    const profiles = profilesResult.data || [];
-    const memberships = membershipsResult.data || [];
-    const roles = rolesResult.data || [];
-    const authUsers = authUsersResult.data?.users || [];
+    const profiles = profilesResult.data || []
+    const memberships = membershipsResult.data || []
+    const roles = rolesResult.data || []
+    const authUsers = authUsersResult.data?.users || []
 
-    console.log(`[admin-get-all-users] Fetched ${profiles.length} profiles, ${memberships.length} memberships, ${roles.length} roles, ${authUsers.length} auth users`);
+    console.log(
+      `[admin-get-all-users] Fetched ${profiles.length} profiles, ${memberships.length} memberships, ${roles.length} roles, ${authUsers.length} auth users`,
+    )
 
     // Map auth data by user id for quick lookup
-    const authDataMap = new Map<string, { last_sign_in_at: string | null; email_confirmed_at: string | null; created_at: string }>();
+    const authDataMap = new Map<
+      string,
+      { last_sign_in_at: string | null; email_confirmed_at: string | null; created_at: string }
+    >()
     authUsers.forEach((u: any) => {
       authDataMap.set(u.id, {
         last_sign_in_at: u.last_sign_in_at,
         email_confirmed_at: u.email_confirmed_at,
         created_at: u.created_at,
-      });
-    });
+      })
+    })
 
     // Join data by user_id
-    const usersWithData = profiles.map(profile => ({
+    const usersWithData = profiles.map((profile) => ({
       ...profile,
-      organization_memberships: memberships.filter(m => m.user_id === profile.user_id),
-      system_roles: roles.filter(r => r.user_id === profile.user_id).map(r => r.role),
+      organization_memberships: memberships.filter((m) => m.user_id === profile.user_id),
+      system_roles: roles.filter((r) => r.user_id === profile.user_id).map((r) => r.role),
       auth_data: authDataMap.get(profile.user_id) || null,
-    }));
+    }))
 
     // Filter by organization if specified
-    let filteredUsers = usersWithData;
-    if (orgFilter !== 'all') {
-      filteredUsers = usersWithData.filter(user =>
-        user.organization_memberships?.some(
-          (m: any) => m.organization?.id === orgFilter
-        )
-      );
+    let filteredUsers = usersWithData
+    if (orgFilter !== "all") {
+      filteredUsers = usersWithData.filter((user) =>
+        user.organization_memberships?.some((m: any) => m.organization?.id === orgFilter),
+      )
     }
 
-    console.log(`[admin-get-all-users] Returning ${filteredUsers.length} users`);
+    console.log(`[admin-get-all-users] Returning ${filteredUsers.length} users`)
 
-    return new Response(
-      JSON.stringify({ success: true, users: filteredUsers }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true, users: filteredUsers }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (error) {
-    console.error('[admin-get-all-users] Error:', error);
+    console.error("[admin-get-all-users] Error:", error)
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    )
   }
-});
+})

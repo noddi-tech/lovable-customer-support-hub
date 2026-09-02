@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Heading } from '@/components/ui/heading';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { Save } from "lucide-react"
+import { useState } from "react"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import type { CustomFieldType } from "@/components/dashboard/recruitment/admin/integrations/types"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import {
   useCustomFieldTypes,
   useUpdateCustomFieldType,
-} from '@/hooks/recruitment/useCustomFieldTypes';
-import type { CustomFieldType } from '@/components/dashboard/recruitment/admin/integrations/types';
-import { Save } from 'lucide-react';
+} from "@/hooks/recruitment/useCustomFieldTypes"
+import { useToast } from "@/hooks/use-toast"
 
 export default function FieldTypesPage() {
-  const { data, isLoading } = useCustomFieldTypes();
+  const { data, isLoading } = useCustomFieldTypes()
 
   return (
     <AdminPortalLayout>
@@ -27,8 +27,8 @@ export default function FieldTypesPage() {
             Rekruttering — feltyper
           </Heading>
           <p className="text-sm text-muted-foreground mt-1">
-            Plattformkatalog over felttyper som er tilgjengelig for alle organisasjoner.
-            Endringer her påvirker alle organisasjoner.
+            Plattformkatalog over felttyper som er tilgjengelig for alle organisasjoner. Endringer
+            her påvirker alle organisasjoner.
           </p>
         </div>
 
@@ -47,43 +47,43 @@ export default function FieldTypesPage() {
         )}
       </div>
     </AdminPortalLayout>
-  );
+  )
 }
 
 function FieldTypeRow({ fieldType }: { fieldType: CustomFieldType }) {
-  const { toast } = useToast();
-  const update = useUpdateCustomFieldType();
-  const [no, setNo] = useState(fieldType.display_name_no);
-  const [en, setEn] = useState(fieldType.display_name_en);
-  const [schema, setSchema] = useState(JSON.stringify(fieldType.validation_schema ?? {}, null, 2));
-  const [schemaErr, setSchemaErr] = useState<string | null>(null);
+  const { toast } = useToast()
+  const update = useUpdateCustomFieldType()
+  const [no, setNo] = useState(fieldType.display_name_no)
+  const [en, setEn] = useState(fieldType.display_name_en)
+  const [schema, setSchema] = useState(JSON.stringify(fieldType.validation_schema ?? {}, null, 2))
+  const [schemaErr, setSchemaErr] = useState<string | null>(null)
 
   const dirty =
     no !== fieldType.display_name_no ||
     en !== fieldType.display_name_en ||
-    schema.trim() !== JSON.stringify(fieldType.validation_schema ?? {}, null, 2);
+    schema.trim() !== JSON.stringify(fieldType.validation_schema ?? {}, null, 2)
 
   const handleSave = async () => {
-    let parsed: Record<string, unknown> = {};
+    let parsed: Record<string, unknown> = {}
     try {
-      parsed = JSON.parse(schema || '{}');
+      parsed = JSON.parse(schema || "{}")
     } catch (e: any) {
-      setSchemaErr('Ugyldig JSON: ' + (e?.message ?? ''));
-      return;
+      setSchemaErr(`Ugyldig JSON: ${e?.message ?? ""}`)
+      return
     }
-    setSchemaErr(null);
+    setSchemaErr(null)
     try {
       await update.mutateAsync({
         id: fieldType.id,
         display_name_en: en,
         display_name_no: no,
         validation_schema: parsed,
-      });
-      toast({ title: 'Felttype oppdatert' });
+      })
+      toast({ title: "Felttype oppdatert" })
     } catch (e: any) {
-      toast({ title: 'Lagring feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Lagring feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <Card>
@@ -126,5 +126,5 @@ function FieldTypeRow({ fieldType }: { fieldType: CustomFieldType }) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

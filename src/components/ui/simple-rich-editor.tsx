@@ -1,20 +1,30 @@
-import { DefaultEditor, BtnBold, BtnItalic, BtnUnderline, BtnLink, BtnBulletList, BtnNumberedList, Separator, Toolbar, EditorProvider, Editor } from 'react-simple-wysiwyg';
-import { cn } from '@/lib/utils';
+import {
+  BtnBold,
+  BtnBulletList,
+  BtnItalic,
+  BtnLink,
+  BtnNumberedList,
+  BtnUnderline,
+  DefaultEditor,
+  Separator,
+  Toolbar,
+} from "react-simple-wysiwyg"
+import { cn } from "@/lib/utils"
 
 interface SimpleRichEditorProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  minHeight?: string;
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  className?: string
+  minHeight?: string
 }
 
-export function SimpleRichEditor({ 
-  value, 
-  onChange, 
+export function SimpleRichEditor({
+  value,
+  onChange,
   placeholder = "Enter text...",
   className,
-  minHeight = "150px"
+  minHeight = "150px",
 }: SimpleRichEditorProps) {
   return (
     <div className={cn("simple-rich-editor", className)}>
@@ -89,5 +99,5 @@ export function SimpleRichEditor({
         }
       `}</style>
     </div>
-  );
+  )
 }

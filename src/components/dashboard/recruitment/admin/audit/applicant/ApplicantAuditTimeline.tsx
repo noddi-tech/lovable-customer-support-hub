@@ -1,18 +1,18 @@
-import { useAuditEvents } from '../hooks/useAuditEvents';
-import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AuditEventRow } from '../timeline/AuditEventRow';
-import type { UnifiedAuditEvent } from '../types';
+import { Card } from "@/components/ui/card"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAuditEvents } from "../hooks/useAuditEvents"
+import { AuditEventRow } from "../timeline/AuditEventRow"
+import type { UnifiedAuditEvent } from "../types"
 
 interface Props {
-  organizationId: string | null;
-  applicantId: string;
-  onRowClick: (event: UnifiedAuditEvent) => void;
+  organizationId: string | null
+  applicantId: string
+  onRowClick: (event: UnifiedAuditEvent) => void
 }
 
 export function ApplicantAuditTimeline({ organizationId, applicantId, onRowClick }: Props) {
-  const { data, isLoading } = useAuditEvents({ organizationId, applicantId, limit: 1000 });
-  const events = data ?? [];
+  const { data, isLoading } = useAuditEvents({ organizationId, applicantId, limit: 1000 })
+  const events = data ?? []
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -35,11 +35,15 @@ export function ApplicantAuditTimeline({ organizationId, applicantId, onRowClick
           </TableHeader>
           <TableBody>
             {events.map((ev) => (
-              <AuditEventRow key={`${ev.source}-${ev.id}`} event={ev} onClick={() => onRowClick(ev)} />
+              <AuditEventRow
+                key={`${ev.source}-${ev.id}`}
+                event={ev}
+                onClick={() => onRowClick(ev)}
+              />
             ))}
           </TableBody>
         </Table>
       )}
     </Card>
-  );
+  )
 }

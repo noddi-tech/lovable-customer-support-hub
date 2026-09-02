@@ -1,17 +1,16 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useApplicantFieldValues } from '@/hooks/recruitment/useApplicantFieldValues';
-import { formatFieldValue } from './formatFieldValue';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useApplicantFieldValues } from "@/hooks/recruitment/useApplicantFieldValues"
+import { formatFieldValue } from "./formatFieldValue"
 
 interface Props {
-  applicantId: string;
+  applicantId: string
 }
 
 export function ApplicantFieldValuesSection({ applicantId }: Props) {
   // 'profile' returns show_on_profile fields that are NOT shown in the sidebar card,
   // avoiding duplication with ApplicantInfoSidebar.
-  const { data, isLoading } = useApplicantFieldValues(applicantId, 'profile');
+  const { data, isLoading } = useApplicantFieldValues(applicantId, "profile")
 
   if (isLoading) {
     return (
@@ -23,11 +22,11 @@ export function ApplicantFieldValuesSection({ applicantId }: Props) {
           <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (!data || data.length === 0) {
-    return null;
+    return null
   }
 
   return (
@@ -46,5 +45,5 @@ export function ApplicantFieldValuesSection({ applicantId }: Props) {
         </dl>
       </CardContent>
     </Card>
-  );
+  )
 }

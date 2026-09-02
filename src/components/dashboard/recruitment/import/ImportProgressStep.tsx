@@ -1,15 +1,15 @@
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 interface Props {
-  current: number;
-  total: number;
+  current: number
+  total: number
 }
 
 const ImportProgressStep: React.FC<Props> = ({ current, total }) => {
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0
   return (
     <div className="flex justify-center">
       <Card className="w-full max-w-md p-8 space-y-5">
@@ -28,7 +28,7 @@ const ImportProgressStep: React.FC<Props> = ({ current, total }) => {
         </p>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default ImportProgressStep;
+export default ImportProgressStep

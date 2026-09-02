@@ -1,27 +1,27 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Search, Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface PlateInputProps {
-  onLookup: (plates: string[]) => void;
-  isLoading: boolean;
+  onLookup: (plates: string[]) => void
+  isLoading: boolean
 }
 
 export function PlateInput({ onLookup, isLoading }: PlateInputProps) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState("")
 
   const handleLookup = () => {
     const plates = text
       .split(/[,\n\r;]+/)
       .map((p) => p.trim().replace(/[\s-]/g, "").toUpperCase())
-      .filter((p) => p.length >= 2);
+      .filter((p) => p.length >= 2)
 
     if (plates.length > 0) {
-      onLookup([...new Set(plates)]);
+      onLookup([...new Set(plates)])
     }
-  };
+  }
 
   return (
     <div className="space-y-3">
@@ -48,5 +48,5 @@ export function PlateInput({ onLookup, isLoading }: PlateInputProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }

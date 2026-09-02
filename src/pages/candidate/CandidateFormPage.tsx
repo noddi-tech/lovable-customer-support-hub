@@ -1,203 +1,212 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { supabase } from "@/integrations/supabase/client"
 
-type Step = 'identity' | 'form' | 'submitting' | 'success' | 'error';
+type Step = "identity" | "form" | "submitting" | "success" | "error"
 
 interface CustomField {
-  field_id: string;
-  field_name: string;
-  field_type: string;
-  options: any;
-  requirement_type: 'required' | 'optional';
-  display_order: number;
-  current_value: any;
+  field_id: string
+  field_name: string
+  field_type: string
+  options: any
+  requirement_type: "required" | "optional"
+  display_order: number
+  current_value: any
 }
 
 interface BuiltinColumn {
-  key: string;
-  current_value: any;
+  key: string
+  current_value: any
 }
 
 interface FormSpec {
-  applicant: { first_name: string | null; last_name: string | null };
-  position: { title: string; intro_text: string | null } | null;
-  custom_fields: CustomField[];
-  builtin_columns: BuiltinColumn[];
-  stage_id: string | null;
+  applicant: { first_name: string | null; last_name: string | null }
+  position: { title: string; intro_text: string | null } | null
+  custom_fields: CustomField[]
+  builtin_columns: BuiltinColumn[]
+  stage_id: string | null
 }
 
 const BUILTIN_LABELS: Record<string, { label: string; type: string; placeholder?: string }> = {
-  location: { label: 'Hvor bor du?', type: 'text', placeholder: 'F.eks. Oslo' },
-  years_experience: { label: 'År med relevant erfaring', type: 'number', placeholder: '0' },
-  own_vehicle: { label: 'Har du egen bil?', type: 'yesno' },
-  availability_date: { label: 'Når kan du starte?', type: 'date' },
-  language_norwegian: { label: 'Snakker du norsk?', type: 'yesno' },
-  work_permit_status: { label: 'Arbeidstillatelse', type: 'select_permit' },
-  drivers_license_classes: { label: 'Førerkortklasser', type: 'text', placeholder: 'F.eks. B, BE' },
-  certifications: { label: 'Sertifiseringer / kurs', type: 'textarea' },
-};
+  location: { label: "Hvor bor du?", type: "text", placeholder: "F.eks. Oslo" },
+  years_experience: { label: "År med relevant erfaring", type: "number", placeholder: "0" },
+  own_vehicle: { label: "Har du egen bil?", type: "yesno" },
+  availability_date: { label: "Når kan du starte?", type: "date" },
+  language_norwegian: { label: "Snakker du norsk?", type: "yesno" },
+  work_permit_status: { label: "Arbeidstillatelse", type: "select_permit" },
+  drivers_license_classes: { label: "Førerkortklasser", type: "text", placeholder: "F.eks. B, BE" },
+  certifications: { label: "Sertifiseringer / kurs", type: "textarea" },
+}
 
 const ERROR_COPY: Record<string, string> = {
-  invalid_or_expired: 'Denne lenken er ikke lenger gyldig.',
-  revoked: 'Denne lenken er ikke lenger gyldig. Kontakt rekruttereren din hvis du trenger en ny.',
-  already_submitted: 'Skjemaet er allerede sendt inn. Takk!',
-  too_many_attempts: 'For mange forsøk. Lenken er låst. Kontakt arbeidsgiveren for hjelp.',
-  identity_check_failed: 'Tallene stemmer ikke. Prøv igjen.',
-  invalid_input: 'Ugyldig input. Sjekk at du skrev inn 4 sifre.',
-  server_error: 'Noe gikk galt. Prøv igjen om litt.',
-};
+  invalid_or_expired: "Denne lenken er ikke lenger gyldig.",
+  revoked: "Denne lenken er ikke lenger gyldig. Kontakt rekruttereren din hvis du trenger en ny.",
+  already_submitted: "Skjemaet er allerede sendt inn. Takk!",
+  too_many_attempts: "For mange forsøk. Lenken er låst. Kontakt arbeidsgiveren for hjelp.",
+  identity_check_failed: "Tallene stemmer ikke. Prøv igjen.",
+  invalid_input: "Ugyldig input. Sjekk at du skrev inn 4 sifre.",
+  server_error: "Noe gikk galt. Prøv igjen om litt.",
+}
 
 const FATAL_REASONS = new Set([
-  'invalid_or_expired',
-  'revoked',
-  'already_submitted',
-  'too_many_attempts',
-]);
+  "invalid_or_expired",
+  "revoked",
+  "already_submitted",
+  "too_many_attempts",
+])
 
 const CandidateFormPage: React.FC = () => {
-  const { token } = useParams<{ token: string }>();
-  const [step, setStep] = useState<Step>('identity');
-  const [last4, setLast4] = useState('');
-  const [identityError, setIdentityError] = useState<string | null>(null);
-  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
-  const [identityLoading, setIdentityLoading] = useState(false);
-  const [spec, setSpec] = useState<FormSpec | null>(null);
-  const [values, setValues] = useState<Record<string, any>>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [fatalError, setFatalError] = useState<string | null>(null);
+  const { token } = useParams<{ token: string }>()
+  const [step, setStep] = useState<Step>("identity")
+  const [last4, setLast4] = useState("")
+  const [identityError, setIdentityError] = useState<string | null>(null)
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null)
+  const [identityLoading, setIdentityLoading] = useState(false)
+  const [spec, setSpec] = useState<FormSpec | null>(null)
+  const [values, setValues] = useState<Record<string, any>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [fatalError, setFatalError] = useState<string | null>(null)
 
   // Pre-fill values once we have the form spec
   useEffect(() => {
-    if (!spec) return;
-    const initial: Record<string, any> = {};
+    if (!spec) return
+    const initial: Record<string, any> = {}
     for (const f of spec.custom_fields) {
       if (f.current_value !== null && f.current_value !== undefined) {
-        initial[`cf:${f.field_id}`] = f.current_value;
+        initial[`cf:${f.field_id}`] = f.current_value
       }
     }
     for (const b of spec.builtin_columns) {
       if (b.current_value !== null && b.current_value !== undefined) {
-        initial[`bi:${b.key}`] = b.current_value;
+        initial[`bi:${b.key}`] = b.current_value
       }
     }
-    setValues(initial);
-  }, [spec]);
+    setValues(initial)
+  }, [spec])
 
   const handleIdentitySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    setIdentityError(null);
-    setIdentityLoading(true);
+    e.preventDefault()
+    if (!token) return
+    setIdentityError(null)
+    setIdentityLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('get-candidate-form-fields', {
+      const { data, error } = await supabase.functions.invoke("get-candidate-form-fields", {
         body: { token, phone_last_4: last4 },
-      });
+      })
       if (error) {
-        setIdentityError(ERROR_COPY.server_error);
-        return;
+        setIdentityError(ERROR_COPY.server_error)
+        return
       }
-      const d = data as any;
+      const d = data as any
       if (!d?.valid) {
-        const reason = d?.reason ?? 'invalid_or_expired';
-        setIdentityError(ERROR_COPY[reason] ?? ERROR_COPY.server_error);
-        if (typeof d?.attempts_remaining === 'number') {
-          setAttemptsRemaining(d.attempts_remaining);
+        const reason = d?.reason ?? "invalid_or_expired"
+        setIdentityError(ERROR_COPY[reason] ?? ERROR_COPY.server_error)
+        if (typeof d?.attempts_remaining === "number") {
+          setAttemptsRemaining(d.attempts_remaining)
         }
         if (FATAL_REASONS.has(reason)) {
-          setFatalError(ERROR_COPY[reason]);
-          setStep('error');
+          setFatalError(ERROR_COPY[reason])
+          setStep("error")
         }
-        return;
+        return
       }
-      setSpec(d as FormSpec);
-      setStep('form');
+      setSpec(d as FormSpec)
+      setStep("form")
     } catch {
-      setIdentityError(ERROR_COPY.server_error);
+      setIdentityError(ERROR_COPY.server_error)
     } finally {
-      setIdentityLoading(false);
+      setIdentityLoading(false)
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !spec) return;
-    setSubmitError(null);
+    e.preventDefault()
+    if (!token || !spec) return
+    setSubmitError(null)
 
     // Required validation (custom fields only — built-ins are optional)
     const missing = spec.custom_fields.filter(
-      (f) => f.requirement_type === 'required' && isEmpty(values[`cf:${f.field_id}`]),
-    );
+      (f) => f.requirement_type === "required" && isEmpty(values[`cf:${f.field_id}`]),
+    )
     if (missing.length > 0) {
-      setSubmitError(`Mangler svar på: ${missing.map((m) => m.field_name).join(', ')}`);
-      return;
+      setSubmitError(`Mangler svar på: ${missing.map((m) => m.field_name).join(", ")}`)
+      return
     }
 
-    setStep('submitting');
+    setStep("submitting")
 
-    const custom_field_values: Record<string, any> = {};
+    const custom_field_values: Record<string, any> = {}
     for (const f of spec.custom_fields) {
-      const v = values[`cf:${f.field_id}`];
-      if (!isEmpty(v)) custom_field_values[f.field_id] = v;
+      const v = values[`cf:${f.field_id}`]
+      if (!isEmpty(v)) custom_field_values[f.field_id] = v
     }
-    const builtin_columns: Record<string, any> = {};
+    const builtin_columns: Record<string, any> = {}
     for (const b of spec.builtin_columns) {
-      const v = values[`bi:${b.key}`];
-      if (!isEmpty(v)) builtin_columns[b.key] = v;
+      const v = values[`bi:${b.key}`]
+      if (!isEmpty(v)) builtin_columns[b.key] = v
     }
 
-    const { data, error } = await supabase.functions.invoke('submit-candidate-form', {
+    const { data, error } = await supabase.functions.invoke("submit-candidate-form", {
       body: {
         token,
         phone_last_4: last4,
         custom_field_values,
         builtin_columns,
       },
-    });
+    })
     if (error) {
-      setSubmitError(ERROR_COPY.server_error);
-      setStep('form');
-      return;
+      setSubmitError(ERROR_COPY.server_error)
+      setStep("form")
+      return
     }
-    const d = data as any;
+    const d = data as any
     // Treat both fresh success and already-submitted (race / re-submit) as terminal success.
-    if (d?.success === true || d?.reason === 'already_submitted') {
-      setStep('success');
-      return;
+    if (d?.success === true || d?.reason === "already_submitted") {
+      setStep("success")
+      return
     }
-    const reason = d?.reason ?? 'server_error';
+    const reason = d?.reason ?? "server_error"
     // Terminal token-state failures → fatal error screen (form is no longer submittable).
     if (FATAL_REASONS.has(reason)) {
-      setFatalError(ERROR_COPY[reason]);
-      setStep('error');
-      return;
+      setFatalError(ERROR_COPY[reason])
+      setStep("error")
+      return
     }
     // Recoverable (e.g. identity_check_failed, invalid_input, server_error) → inline retry.
-    setSubmitError(ERROR_COPY[reason] ?? ERROR_COPY.server_error);
-    setStep('form');
-  };
+    setSubmitError(ERROR_COPY[reason] ?? ERROR_COPY.server_error)
+    setStep("form")
+  }
 
   if (!token) {
-    return <Centered><ErrorState message="Ugyldig lenke." /></Centered>;
+    return (
+      <Centered>
+        <ErrorState message="Ugyldig lenke." />
+      </Centered>
+    )
   }
 
-  if (step === 'error' && fatalError) {
-    return <Centered><ErrorState message={fatalError} /></Centered>;
+  if (step === "error" && fatalError) {
+    return (
+      <Centered>
+        <ErrorState message={fatalError} />
+      </Centered>
+    )
   }
 
-  if (step === 'success') {
+  if (step === "success") {
     return (
       <Centered>
         <div className="text-center space-y-4 max-w-md">
@@ -208,10 +217,10 @@ const CandidateFormPage: React.FC = () => {
           </p>
         </div>
       </Centered>
-    );
+    )
   }
 
-  if (step === 'identity') {
+  if (step === "identity") {
     return (
       <Centered>
         <form
@@ -232,7 +241,7 @@ const CandidateFormPage: React.FC = () => {
               pattern="[0-9]*"
               maxLength={4}
               value={last4}
-              onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
               placeholder="1234"
               autoFocus
               className="text-center text-2xl tracking-[0.5em]"
@@ -249,31 +258,25 @@ const CandidateFormPage: React.FC = () => {
               </span>
             </div>
           )}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={last4.length !== 4 || identityLoading}
-          >
-            {identityLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fortsett'}
+          <Button type="submit" className="w-full" disabled={last4.length !== 4 || identityLoading}>
+            {identityLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fortsett"}
           </Button>
         </form>
       </Centered>
-    );
+    )
   }
 
-  if ((step === 'form' || step === 'submitting') && spec) {
-    const isSubmitting = step === 'submitting';
-    const fullName = [spec.applicant.first_name, spec.applicant.last_name].filter(Boolean).join(' ');
+  if ((step === "form" || step === "submitting") && spec) {
+    const isSubmitting = step === "submitting"
+    const fullName = [spec.applicant.first_name, spec.applicant.last_name].filter(Boolean).join(" ")
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-xl mx-auto p-4 sm:p-6 pb-24">
           <header className="space-y-2 mb-6">
             <h1 className="text-xl sm:text-2xl font-semibold">
-              {spec.position?.title ?? 'Søknadsskjema'}
+              {spec.position?.title ?? "Søknadsskjema"}
             </h1>
-            {fullName && (
-              <p className="text-sm text-muted-foreground">Hei {fullName}!</p>
-            )}
+            {fullName && <p className="text-sm text-muted-foreground">Hei {fullName}!</p>}
             {spec.position?.intro_text && (
               <p className="text-sm text-foreground whitespace-pre-wrap">
                 {spec.position.intro_text}
@@ -289,7 +292,7 @@ const CandidateFormPage: React.FC = () => {
                     key={f.field_id}
                     id={`cf:${f.field_id}`}
                     label={f.field_name}
-                    required={f.requirement_type === 'required'}
+                    required={f.requirement_type === "required"}
                     type={f.field_type}
                     options={f.options}
                     value={values[`cf:${f.field_id}`]}
@@ -305,8 +308,8 @@ const CandidateFormPage: React.FC = () => {
                   Tilleggsinformasjon (valgfritt)
                 </div>
                 {spec.builtin_columns.map((b) => {
-                  const meta = BUILTIN_LABELS[b.key];
-                  if (!meta) return null;
+                  const meta = BUILTIN_LABELS[b.key]
+                  if (!meta) return null
                   return (
                     <FieldRow
                       key={b.key}
@@ -319,7 +322,7 @@ const CandidateFormPage: React.FC = () => {
                       value={values[`bi:${b.key}`]}
                       onChange={(v) => setValues((p) => ({ ...p, [`bi:${b.key}`]: v }))}
                     />
-                  );
+                  )
                 })}
               </section>
             )}
@@ -332,46 +335,48 @@ const CandidateFormPage: React.FC = () => {
             )}
 
             <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send inn'}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send inn"}
             </Button>
           </form>
         </div>
       </div>
-    );
+    )
   }
 
-  return <Centered><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></Centered>;
-};
+  return (
+    <Centered>
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </Centered>
+  )
+}
 
 function isEmpty(v: any) {
-  if (v === null || v === undefined) return true;
-  if (typeof v === 'string') return v.trim() === '';
-  if (Array.isArray(v)) return v.length === 0;
-  return false;
+  if (v === null || v === undefined) return true
+  if (typeof v === "string") return v.trim() === ""
+  if (Array.isArray(v)) return v.length === 0
+  return false
 }
 
 const Centered: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="min-h-screen flex items-center justify-center bg-background p-4">
-    {children}
-  </div>
-);
+  <div className="min-h-screen flex items-center justify-center bg-background p-4">{children}</div>
+)
 
 const ErrorState: React.FC<{ message: string }> = ({ message }) => (
   <div className="text-center space-y-4 max-w-md">
     <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
     <p className="text-foreground">{message}</p>
   </div>
-);
+)
 
 interface FieldRowProps {
-  id: string;
-  label: string;
-  required: boolean;
-  type: string;
-  options: any;
-  placeholder?: string;
-  value: any;
-  onChange: (v: any) => void;
+  id: string
+  label: string
+  required: boolean
+  type: string
+  options: any
+  placeholder?: string
+  value: any
+  onChange: (v: any) => void
 }
 
 const FieldRow: React.FC<FieldRowProps> = ({
@@ -386,44 +391,44 @@ const FieldRow: React.FC<FieldRowProps> = ({
 }) => {
   const renderControl = () => {
     switch (type) {
-      case 'textarea':
+      case "textarea":
         return (
           <Textarea
             id={id}
-            value={value ?? ''}
+            value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             className="min-h-[96px] text-base"
           />
-        );
-      case 'number':
+        )
+      case "number":
         return (
           <Input
             id={id}
             type="number"
             inputMode="numeric"
-            value={value ?? ''}
+            value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             className="text-base"
           />
-        );
-      case 'date':
+        )
+      case "date":
         return (
           <Input
             id={id}
             type="date"
-            value={value ?? ''}
+            value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
             className="text-base"
           />
-        );
-      case 'yesno':
-      case 'boolean':
+        )
+      case "yesno":
+      case "boolean":
         return (
           <Select
-            value={value === true ? 'yes' : value === false ? 'no' : ''}
-            onValueChange={(v) => onChange(v === 'yes')}
+            value={value === true ? "yes" : value === false ? "no" : ""}
+            onValueChange={(v) => onChange(v === "yes")}
           >
             <SelectTrigger id={id} className="text-base h-11">
               <SelectValue placeholder="Velg..." />
@@ -433,10 +438,10 @@ const FieldRow: React.FC<FieldRowProps> = ({
               <SelectItem value="no">Nei</SelectItem>
             </SelectContent>
           </Select>
-        );
-      case 'select_permit':
+        )
+      case "select_permit":
         return (
-          <Select value={value ?? ''} onValueChange={onChange}>
+          <Select value={value ?? ""} onValueChange={onChange}>
             <SelectTrigger id={id} className="text-base h-11">
               <SelectValue placeholder="Velg..." />
             </SelectTrigger>
@@ -447,40 +452,42 @@ const FieldRow: React.FC<FieldRowProps> = ({
               <SelectItem value="none">Ingen arbeidstillatelse</SelectItem>
             </SelectContent>
           </Select>
-        );
-      case 'select':
-      case 'dropdown': {
+        )
+      case "select":
+      case "dropdown": {
         const opts: string[] = Array.isArray(options)
           ? options
           : Array.isArray(options?.choices)
-          ? options.choices
-          : [];
+            ? options.choices
+            : []
         return (
-          <Select value={value ?? ''} onValueChange={onChange}>
+          <Select value={value ?? ""} onValueChange={onChange}>
             <SelectTrigger id={id} className="text-base h-11">
               <SelectValue placeholder="Velg..." />
             </SelectTrigger>
             <SelectContent>
               {opts.map((o) => (
-                <SelectItem key={o} value={o}>{o}</SelectItem>
+                <SelectItem key={o} value={o}>
+                  {o}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        );
+        )
       }
       default:
         return (
           <Input
             id={id}
             type="text"
-            value={value ?? ''}
+            value={value ?? ""}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             className="text-base"
           />
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className="space-y-2">
@@ -490,7 +497,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
       </Label>
       {renderControl()}
     </div>
-  );
-};
+  )
+}
 
-export default CandidateFormPage;
+export default CandidateFormPage

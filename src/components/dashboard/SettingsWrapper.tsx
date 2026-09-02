@@ -1,114 +1,104 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/hooks/useAuth';
-import { usePermissions } from '@/hooks/usePermissions';
-import { NotificationsList } from '@/components/notifications/NotificationsList';
-import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
-import { LanguageSettings } from '@/components/settings/LanguageSettings';
-import { TimezoneSettings } from '@/components/settings/TimezoneSettings';
-import { AdminPortal } from '@/components/admin/AdminPortal';
+import { Shield } from "lucide-react"
+import type React from "react"
+import { useTranslation } from "react-i18next"
+import { AdminPortal } from "@/components/admin/AdminPortal"
+import { NotificationsList } from "@/components/notifications/NotificationsList"
+import { EmailTemplateSettings } from "@/components/settings/EmailTemplateSettings"
+import { LanguageSettings } from "@/components/settings/LanguageSettings"
+import { TimezoneSettings } from "@/components/settings/TimezoneSettings"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
 
 interface SettingsWrapperProps {
-  activeSubSection?: string;
+  activeSubSection?: string
 }
 
-const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'general' }) => {
-  const { loading } = useAuth();
-  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
-  const { t } = useTranslation();
-  
-  const canManageSettings = hasPermission('manage_settings');
+const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = "general" }) => {
+  const { loading } = useAuth()
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions()
+  const { t } = useTranslation()
+
+  const canManageSettings = hasPermission("manage_settings")
 
   if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center">{t('common.loading')}</div>
+        <div className="text-center">{t("common.loading")}</div>
       </div>
-    );
+    )
   }
 
   const renderContent = () => {
     switch (activeSubSection) {
-      case 'language':
+      case "language":
         return (
           <div className="space-y-6">
             <LanguageSettings />
           </div>
-        );
+        )
 
-      case 'timezone':
+      case "timezone":
         return (
           <div className="space-y-6">
             <TimezoneSettings />
           </div>
-        );
+        )
 
-      case 'general':
+      case "general":
         return (
           <div className="space-y-6">
             <LanguageSettings />
             <TimezoneSettings />
             <Card className="bg-gradient-surface border-border/50 shadow-surface">
               <CardHeader>
-                <CardTitle className="text-primary">{t('common.settings')}</CardTitle>
-                <CardDescription>
-                  {t('settings.description')}
-                </CardDescription>
+                <CardTitle className="text-primary">{t("common.settings")}</CardTitle>
+                <CardDescription>{t("settings.description")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.description')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t("settings.description")}</p>
               </CardContent>
             </Card>
           </div>
-        );
+        )
 
-      case 'profile':
+      case "profile":
         return (
           <div className="space-y-6">
             <Card className="bg-gradient-surface border-border/50 shadow-surface">
               <CardHeader>
-                <CardTitle className="text-primary">{t('settings.tabs.profile')}</CardTitle>
-                <CardDescription>
-                  {t('settings.description')}
-                </CardDescription>
+                <CardTitle className="text-primary">{t("settings.tabs.profile")}</CardTitle>
+                <CardDescription>{t("settings.description")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.description')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t("settings.description")}</p>
               </CardContent>
             </Card>
           </div>
-        );
+        )
 
-      case 'notifications':
+      case "notifications":
         return (
           <div className="space-y-6">
             <Card className="bg-gradient-surface border-border/50 shadow-surface">
               <CardHeader>
-                <CardTitle className="text-primary">{t('settings.tabs.notifications')}</CardTitle>
-                <CardDescription>
-                  {t('settings.description')}
-                </CardDescription>
+                <CardTitle className="text-primary">{t("settings.tabs.notifications")}</CardTitle>
+                <CardDescription>{t("settings.description")}</CardDescription>
               </CardHeader>
             </Card>
             <NotificationsList context="text" />
           </div>
-        );
+        )
 
-      case 'email-templates':
+      case "email-templates":
         return (
           <div className="space-y-6">
             <EmailTemplateSettings />
           </div>
-        );
+        )
 
-      case 'admin':
+      case "admin":
         return (
           <div className="space-y-6">
             {canManageSettings ? (
@@ -116,13 +106,11 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
             ) : (
               <Alert>
                 <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  {t('settings.permissions.denied')}
-                </AlertDescription>
+                <AlertDescription>{t("settings.permissions.denied")}</AlertDescription>
               </Alert>
             )}
           </div>
-        );
+        )
 
       default:
         return (
@@ -130,19 +118,17 @@ const SettingsWrapper: React.FC<SettingsWrapperProps> = ({ activeSubSection = 'g
             <LanguageSettings />
             <TimezoneSettings />
           </div>
-        );
+        )
     }
-  };
+  }
 
   return (
     <div className="h-full">
       <div className="pane h-full">
-        <div className="py-8 px-4 sm:px-6 md:px-8 xl:px-12">
-          {renderContent()}
-        </div>
+        <div className="py-8 px-4 sm:px-6 md:px-8 xl:px-12">{renderContent()}</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SettingsWrapper;
+export default SettingsWrapper

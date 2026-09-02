@@ -1,10 +1,7 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from "@tanstack/react-query"
+import { AlertCircle, CheckCircle2, RefreshCw, XCircle } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,89 +12,88 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 interface SyncResult {
-  total: number;
-  synced: number;
-  failed: number;
-  skipped: number;
+  total: number
+  synced: number
+  failed: number
+  skipped: number
   details: Array<{
-    callId: string;
-    phone: string;
-    status: 'synced' | 'failed' | 'skipped';
-    reason?: string;
-  }>;
+    callId: string
+    phone: string
+    status: "synced" | "failed" | "skipped"
+    reason?: string
+  }>
 }
 
 export const SyncUnlinkedCallsButton = () => {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [result, setResult] = useState<SyncResult | null>(null);
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [result, setResult] = useState<SyncResult | null>(null)
+  const queryClient = useQueryClient()
+  const { profile } = useAuth()
 
   const handleSync = async () => {
     if (!profile?.organization_id) {
-      toast.error('No organization ID found');
-      return;
+      toast.error("No organization ID found")
+      return
     }
 
-    setIsSyncing(true);
-    setResult(null);
+    setIsSyncing(true)
+    setResult(null)
 
     try {
-      console.log('[SyncUnlinkedCallsButton] 🚀 Starting background sync...');
-      
-      const { data, error } = await supabase.functions.invoke('sync-unlinked-calls', {
+      console.log("[SyncUnlinkedCallsButton] 🚀 Starting background sync...")
+
+      const { data, error } = await supabase.functions.invoke("sync-unlinked-calls", {
         body: { organizationId: profile.organization_id },
-      });
+      })
 
       if (error) {
-        throw error;
+        throw error
       }
 
-      const syncResult = data as SyncResult;
-      setResult(syncResult);
+      const syncResult = data as SyncResult
+      setResult(syncResult)
 
-      console.log('[SyncUnlinkedCallsButton] ✅ Sync complete:', syncResult);
+      console.log("[SyncUnlinkedCallsButton] ✅ Sync complete:", syncResult)
 
       // Show toast notification
       if (syncResult.synced > 0) {
         toast.success(`Successfully synced ${syncResult.synced} call(s)`, {
           description: `Failed: ${syncResult.failed}, Skipped: ${syncResult.skipped}`,
-        });
+        })
       } else if (syncResult.total === 0) {
-        toast.info('No unlinked calls found');
+        toast.info("No unlinked calls found")
       } else {
         toast.warning(`Sync completed with issues`, {
           description: `Total: ${syncResult.total}, Failed: ${syncResult.failed}, Skipped: ${syncResult.skipped}`,
-        });
+        })
       }
 
       // Refresh calls and customers data
-      queryClient.invalidateQueries({ queryKey: ['calls'] });
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['noddi-customer-lookup'] });
+      queryClient.invalidateQueries({ queryKey: ["calls"] })
+      queryClient.invalidateQueries({ queryKey: ["customers"] })
+      queryClient.invalidateQueries({ queryKey: ["noddi-customer-lookup"] })
     } catch (error: any) {
-      console.error('[SyncUnlinkedCallsButton] ❌ Sync error:', error);
-      toast.error('Failed to sync calls', {
-        description: error.message || 'Unknown error',
-      });
+      console.error("[SyncUnlinkedCallsButton] ❌ Sync error:", error)
+      toast.error("Failed to sync calls", {
+        description: error.message || "Unknown error",
+      })
     } finally {
-      setIsSyncing(false);
+      setIsSyncing(false)
     }
-  };
+  }
 
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isSyncing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Syncing...' : 'Sync Customers'}
+        <Button variant="outline" size="sm" disabled={isSyncing}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+          {isSyncing ? "Syncing..." : "Sync Customers"}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-w-2xl">
@@ -140,10 +136,10 @@ export const SyncUnlinkedCallsButton = () => {
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleSync} disabled={isSyncing}>
-            {isSyncing ? 'Syncing...' : 'Start Sync'}
+            {isSyncing ? "Syncing..." : "Start Sync"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}

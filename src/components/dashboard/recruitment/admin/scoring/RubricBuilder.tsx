@@ -1,67 +1,83 @@
-import React, { useMemo } from 'react';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import type { ScoringRubric, RubricCriterion } from '@/hooks/recruitment/useScoringBaselines';
+import { GripVertical, Plus, Trash2 } from "lucide-react"
+import type React from "react"
+import { useMemo } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import type { RubricCriterion, ScoringRubric } from "@/hooks/recruitment/useScoringBaselines"
+import { cn } from "@/lib/utils"
 
 function makeCriterion(): RubricCriterion {
   return {
     id: `c_${Math.random().toString(36).slice(2, 9)}`,
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     weight: 0,
     max_score: 10,
-  };
+  }
 }
 
 export function emptyRubric(): ScoringRubric {
   return {
     criteria: [
-      { ...makeCriterion(), name: 'Erfaring', description: 'Relevant arbeidserfaring og bakgrunn', weight: 40 },
-      { ...makeCriterion(), name: 'Tilgjengelighet', description: 'Kan starte på ønsket tidspunkt', weight: 30 },
-      { ...makeCriterion(), name: 'Motivasjon', description: 'Tydelig motivasjon og passform', weight: 30 },
+      {
+        ...makeCriterion(),
+        name: "Erfaring",
+        description: "Relevant arbeidserfaring og bakgrunn",
+        weight: 40,
+      },
+      {
+        ...makeCriterion(),
+        name: "Tilgjengelighet",
+        description: "Kan starte på ønsket tidspunkt",
+        weight: 30,
+      },
+      {
+        ...makeCriterion(),
+        name: "Motivasjon",
+        description: "Tydelig motivasjon og passform",
+        weight: 30,
+      },
     ],
-    instructions: '',
+    instructions: "",
     include_files: true,
     include_custom_fields: true,
-  };
+  }
 }
 
 interface Props {
-  value: ScoringRubric;
-  onChange: (r: ScoringRubric) => void;
-  disabled?: boolean;
+  value: ScoringRubric
+  onChange: (r: ScoringRubric) => void
+  disabled?: boolean
 }
 
 export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) => {
   const totalWeight = useMemo(
     () => value.criteria.reduce((acc, c) => acc + (Number(c.weight) || 0), 0),
     [value.criteria],
-  );
-  const weightOk = totalWeight === 100;
+  )
+  const weightOk = totalWeight === 100
 
-  const update = (patch: Partial<ScoringRubric>) => onChange({ ...value, ...patch });
+  const update = (patch: Partial<ScoringRubric>) => onChange({ ...value, ...patch })
   const updateCriterion = (idx: number, patch: Partial<RubricCriterion>) => {
-    const next = value.criteria.map((c, i) => (i === idx ? { ...c, ...patch } : c));
-    update({ criteria: next });
-  };
-  const addCriterion = () => update({ criteria: [...value.criteria, makeCriterion()] });
+    const next = value.criteria.map((c, i) => (i === idx ? { ...c, ...patch } : c))
+    update({ criteria: next })
+  }
+  const addCriterion = () => update({ criteria: [...value.criteria, makeCriterion()] })
   const removeCriterion = (idx: number) =>
-    update({ criteria: value.criteria.filter((_, i) => i !== idx) });
+    update({ criteria: value.criteria.filter((_, i) => i !== idx) })
 
   const distributeEvenly = () => {
-    const n = value.criteria.length;
-    if (n === 0) return;
-    const base = Math.floor(100 / n);
-    const remainder = 100 - base * n;
+    const n = value.criteria.length
+    if (n === 0) return
+    const base = Math.floor(100 / n)
+    const remainder = 100 - base * n
     update({
       criteria: value.criteria.map((c, i) => ({ ...c, weight: base + (i < remainder ? 1 : 0) })),
-    });
-  };
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -75,10 +91,8 @@ export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) =>
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              'text-xs font-medium px-2 py-1 rounded-md',
-              weightOk
-                ? 'bg-green-100 text-green-700'
-                : 'bg-amber-100 text-amber-700',
+              "text-xs font-medium px-2 py-1 rounded-md",
+              weightOk ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700",
             )}
           >
             Sum: {totalWeight}/100
@@ -97,10 +111,7 @@ export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) =>
 
       <div className="space-y-2">
         {value.criteria.map((c, idx) => (
-          <div
-            key={c.id}
-            className="rounded-md border bg-card p-3 space-y-2"
-          >
+          <div key={c.id} className="rounded-md border bg-card p-3 space-y-2">
             <div className="flex items-start gap-2">
               <GripVertical className="h-4 w-4 mt-2 text-muted-foreground shrink-0" />
               <div className="flex-1 space-y-2">
@@ -156,7 +167,7 @@ export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) =>
       <div className="space-y-2 pt-2 border-t">
         <Label className="text-sm font-semibold">Tilleggsinstruks (valgfritt)</Label>
         <Textarea
-          value={value.instructions ?? ''}
+          value={value.instructions ?? ""}
           onChange={(e) => update({ instructions: e.target.value })}
           placeholder="Ekstra kontekst gitt til AI for hver scoring (f.eks. spesifikke bransje-krav)."
           rows={3}
@@ -168,7 +179,9 @@ export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) =>
         <div className="flex items-center justify-between rounded-md border px-3 py-2">
           <div>
             <Label className="text-sm">Inkluder CV/filer</Label>
-            <p className="text-xs text-muted-foreground">Sender utdratt tekst fra opplastede filer.</p>
+            <p className="text-xs text-muted-foreground">
+              Sender utdratt tekst fra opplastede filer.
+            </p>
           </div>
           <Switch
             checked={value.include_files !== false}
@@ -189,5 +202,5 @@ export const RubricBuilder: React.FC<Props> = ({ value, onChange, disabled }) =>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

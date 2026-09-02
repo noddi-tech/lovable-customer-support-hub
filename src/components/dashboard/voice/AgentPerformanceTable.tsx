@@ -1,5 +1,6 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -7,33 +8,36 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/table"
 
 interface AgentStat {
-  id: string;
-  name: string;
-  avatar?: string;
-  totalCalls: number;
-  answeredCalls: number;
-  missedCalls: number;
-  avgDuration: number;
-  answerRate: number;
-  satisfaction?: number;
+  id: string
+  name: string
+  avatar?: string
+  totalCalls: number
+  answeredCalls: number
+  missedCalls: number
+  avgDuration: number
+  answerRate: number
+  satisfaction?: number
 }
 
 interface AgentPerformanceTableProps {
-  data: AgentStat[];
+  data: AgentStat[]
 }
 
 export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
   const getPerformanceBadge = (rate: number) => {
-    if (rate >= 90) return <Badge variant="default" className="bg-success">Excellent</Badge>;
-    if (rate >= 75) return <Badge variant="default">Good</Badge>;
-    if (rate >= 60) return <Badge variant="secondary">Average</Badge>;
-    return <Badge variant="destructive">Needs Improvement</Badge>;
-  };
+    if (rate >= 90)
+      return (
+        <Badge variant="default" className="bg-success">
+          Excellent
+        </Badge>
+      )
+    if (rate >= 75) return <Badge variant="default">Good</Badge>
+    if (rate >= 60) return <Badge variant="secondary">Average</Badge>
+    return <Badge variant="destructive">Needs Improvement</Badge>
+  }
 
   return (
     <Card>
@@ -61,7 +65,10 @@ export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={agent.avatar} />
                       <AvatarFallback>
-                        {agent.name.split(' ').map(n => n[0]).join('')}
+                        {agent.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{agent.name}</span>
@@ -69,8 +76,12 @@ export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
                 </TableCell>
                 <TableCell className="text-right">{agent.totalCalls}</TableCell>
                 <TableCell className="text-right">{agent.answeredCalls}</TableCell>
-                <TableCell className="text-right text-muted-foreground">{agent.missedCalls}</TableCell>
-                <TableCell className="text-right">{Math.floor(agent.avgDuration / 60)}m {agent.avgDuration % 60}s</TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {agent.missedCalls}
+                </TableCell>
+                <TableCell className="text-right">
+                  {Math.floor(agent.avgDuration / 60)}m {agent.avgDuration % 60}s
+                </TableCell>
                 <TableCell className="text-right">{agent.answerRate}%</TableCell>
                 <TableCell className="text-right">
                   {getPerformanceBadge(agent.answerRate)}
@@ -81,5 +92,5 @@ export const AgentPerformanceTable = ({ data }: AgentPerformanceTableProps) => {
         </Table>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

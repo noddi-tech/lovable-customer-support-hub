@@ -64,7 +64,7 @@
       "searchPlaceholder": "Search conversations...",
       "allStatus": "All Status",
       "open": "Open",
-      "pending": "Pending", 
+      "pending": "Pending",
       "resolved": "Resolved",
       "closed": "Closed",
       "allPriority": "All Priority",
@@ -128,7 +128,7 @@
     },
     "bottomTabs": {
       "interactions": "Inbox",
-      "marketing": "Marketing", 
+      "marketing": "Marketing",
       "ops": "Operations",
       "settings": "Settings"
     },
@@ -333,7 +333,7 @@
     "translate": "Translate",
     "translating": "Translating...",
     "sourceLanguage": "From language",
-    "targetLanguage": "To language", 
+    "targetLanguage": "To language",
     "autoDetect": "Auto-detect",
     "ctrlEnterToSend": "Ctrl+Enter to send",
     "reply": "Reply",
@@ -504,7 +504,7 @@
     "error": "Error",
     "sidebar": {
       "assigned": "Assigned",
-      "pending": "Pending", 
+      "pending": "Pending",
       "closed": "Closed",
       "archived": "Archived",
       "email": "Email",

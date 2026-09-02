@@ -1,11 +1,10 @@
-import React from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Heading } from '@/components/ui/heading';
-import { ArrowLeft } from 'lucide-react';
-import { TemplateEditor } from '@/components/dashboard/recruitment/admin/fields/TemplateEditor';
+import { ArrowLeft } from "lucide-react"
+import { Link, useParams } from "react-router-dom"
+import { TemplateEditor } from "@/components/dashboard/recruitment/admin/fields/TemplateEditor"
+import { Heading } from "@/components/ui/heading"
 
 export default function OrgTemplateEditorPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>()
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <Link
@@ -20,5 +19,5 @@ export default function OrgTemplateEditorPage() {
       </Heading>
       {id && <TemplateEditor templateId={id} />}
     </div>
-  );
+  )
 }

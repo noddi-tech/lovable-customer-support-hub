@@ -1,21 +1,21 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { useDomainConfiguration } from "@/hooks/useDomainConfiguration";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { DnsRecordsDisplay } from "./DnsRecordsDisplay";
+import { AlertCircle, CheckCircle2, Copy, Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useDomainConfiguration } from "@/hooks/useDomainConfiguration"
+import { supabase } from "@/integrations/supabase/client"
+import { DnsRecordsDisplay } from "./DnsRecordsDisplay"
 
 interface EmailForwardingSetupStepProps {
-  publicEmail: string;
-  forwardingAddress: string;
-  onPublicEmailChange: (email: string) => void;
-  onForwardingAddressGenerated: (address: string) => void;
-  onInboundRouteCreated: (routeId: string) => void;
-  onSetupComplete: () => void;
+  publicEmail: string
+  forwardingAddress: string
+  onPublicEmailChange: (email: string) => void
+  onForwardingAddressGenerated: (address: string) => void
+  onInboundRouteCreated: (routeId: string) => void
+  onSetupComplete: () => void
 }
 
 export function EmailForwardingSetupStep({
@@ -26,136 +26,143 @@ export function EmailForwardingSetupStep({
   onInboundRouteCreated,
   onSetupComplete,
 }: EmailForwardingSetupStepProps) {
-  const [isCreatingRoute, setIsCreatingRoute] = useState(false);
-  const [routeCreated, setRouteCreated] = useState(false);
-  const [dnsRecords, setDnsRecords] = useState<any>(null);
-  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null);
-  
-  const { 
-    getConfiguredDomain, 
-    getDomainByName,
-    generateForwardingAddress, 
-    extractDomainFromEmail,
-    isLoading: domainsLoading 
-  } = useDomainConfiguration();
+  const [isCreatingRoute, setIsCreatingRoute] = useState(false)
+  const [routeCreated, setRouteCreated] = useState(false)
+  const [dnsRecords, setDnsRecords] = useState<any>(null)
+  const [sendgridSetupResult, setSendgridSetupResult] = useState<any>(null)
 
-  const emailDomain = extractDomainFromEmail(publicEmail);
-  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null;
-  const configuredDomain = matchingDomain || getConfiguredDomain();
+  const {
+    getConfiguredDomain,
+    getDomainByName,
+    generateForwardingAddress,
+    extractDomainFromEmail,
+    isLoading: domainsLoading,
+  } = useDomainConfiguration()
+
+  const emailDomain = extractDomainFromEmail(publicEmail)
+  const matchingDomain = emailDomain ? getDomainByName(emailDomain) : null
+  const configuredDomain = matchingDomain || getConfiguredDomain()
 
   // Generate forwarding address when email changes
   useEffect(() => {
-    if (publicEmail && publicEmail.includes('@')) {
-      const generated = generateForwardingAddress(publicEmail, configuredDomain);
-      onForwardingAddressGenerated(generated);
+    if (publicEmail?.includes("@")) {
+      const generated = generateForwardingAddress(publicEmail, configuredDomain)
+      onForwardingAddressGenerated(generated)
     }
-  }, [publicEmail, configuredDomain]);
+  }, [publicEmail, configuredDomain, onForwardingAddressGenerated, generateForwardingAddress])
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard!");
+      await navigator.clipboard.writeText(text)
+      toast.success("Copied to clipboard!")
     } catch (err) {
-      toast.error("Failed to copy. Please copy manually.");
+      toast.error("Failed to copy. Please copy manually.")
     }
-  };
+  }
 
   const createInboundRoute = async () => {
-    if (!publicEmail || !forwardingAddress) return;
-    
-    setIsCreatingRoute(true);
+    if (!publicEmail || !forwardingAddress) return
+
+    setIsCreatingRoute(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (!profile) throw new Error('Profile not found');
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (!profile) throw new Error("Profile not found")
 
       // Auto-configure SendGrid domain if not yet active
-      if (!matchingDomain || matchingDomain.status !== 'active') {
-        toast.info("Configuring domain in SendGrid...");
-        const { data: setupResult, error: setupError } = await supabase.functions.invoke('sendgrid-setup', {
-          body: { domain: emailDomain, parse_subdomain: 'inbound' },
-        });
+      if (matchingDomain?.status !== "active") {
+        toast.info("Configuring domain in SendGrid...")
+        const { data: setupResult, error: setupError } = await supabase.functions.invoke(
+          "sendgrid-setup",
+          {
+            body: { domain: emailDomain, parse_subdomain: "inbound" },
+          },
+        )
         if (setupError) {
-          toast.error('Failed to configure domain in SendGrid: ' + setupError.message);
-          setIsCreatingRoute(false);
-          return;
+          toast.error(`Failed to configure domain in SendGrid: ${setupError.message}`)
+          setIsCreatingRoute(false)
+          return
         }
-        setDnsRecords(setupResult?.dns_records || null);
-        setSendgridSetupResult(setupResult);
-        
+        setDnsRecords(setupResult?.dns_records || null)
+        setSendgridSetupResult(setupResult)
+
         if (setupResult?.ok === false) {
-          toast.warning("Domain needs DNS configuration before emails will work. See DNS records below.");
+          toast.warning(
+            "Domain needs DNS configuration before emails will work. See DNS records below.",
+          )
         } else {
-          toast.success("Domain configured in SendGrid!");
+          toast.success("Domain configured in SendGrid!")
         }
       }
 
       // Always derive the parse address from the email's OWN domain, never a stale/other domain
-      const targetAddress = generateForwardingAddress(publicEmail, matchingDomain || undefined);
+      const targetAddress = generateForwardingAddress(publicEmail, matchingDomain || undefined)
       if (targetAddress !== forwardingAddress) {
-        onForwardingAddressGenerated(targetAddress);
+        onForwardingAddressGenerated(targetAddress)
       }
 
       // Re-fetch domain after possible sendgrid-setup upsert
-      let domain: any = matchingDomain;
+      let domain: any = matchingDomain
       if (!domain) {
         const { data: freshDomain } = await supabase
-          .from('email_domains')
-          .select('*')
-          .eq('organization_id', profile.organization_id)
-          .eq('domain', emailDomain)
-          .maybeSingle();
-        domain = freshDomain || null;
+          .from("email_domains")
+          .select("*")
+          .eq("organization_id", profile.organization_id)
+          .eq("domain", emailDomain)
+          .maybeSingle()
+        domain = freshDomain || null
       }
       if (!domain) {
         // SendGrid could not finish setup yet (DNS pending) — still register the domain locally
         const { data: createdDomain, error: domainError } = await supabase
-          .from('email_domains')
+          .from("email_domains")
           .insert({
             organization_id: profile.organization_id,
             domain: emailDomain,
-            parse_subdomain: 'inbound',
-            provider: 'sendgrid',
-            status: 'pending',
+            parse_subdomain: "inbound",
+            provider: "sendgrid",
+            status: "pending",
           })
           .select()
-          .maybeSingle();
-        if (domainError) throw domainError;
-        domain = createdDomain;
+          .maybeSingle()
+        if (domainError) throw domainError
+        domain = createdDomain
       }
-      if (!domain) throw new Error('No configured domain found');
+      if (!domain) throw new Error("No configured domain found")
 
-      const localPart = publicEmail.split('@')[0];
+      const localPart = publicEmail.split("@")[0]
 
       // Check if route already exists
       const { data: existingRoute } = await supabase
-        .from('inbound_routes')
-        .select('id')
-        .eq('address', targetAddress)
-        .eq('organization_id', profile.organization_id)
-        .maybeSingle();
+        .from("inbound_routes")
+        .select("id")
+        .eq("address", targetAddress)
+        .eq("organization_id", profile.organization_id)
+        .maybeSingle()
 
       if (existingRoute) {
         await supabase
-          .from('inbound_routes')
+          .from("inbound_routes")
           .update({ group_email: publicEmail, domain_id: domain.id, is_active: true })
-          .eq('id', existingRoute.id);
-        onInboundRouteCreated(existingRoute.id);
-        setRouteCreated(true);
-        toast.success("Route already existed — reusing it");
-        return;
+          .eq("id", existingRoute.id)
+        onInboundRouteCreated(existingRoute.id)
+        setRouteCreated(true)
+        toast.success("Route already existed — reusing it")
+        return
       }
 
       // Create new inbound route
       const { data: newRoute, error } = await supabase
-        .from('inbound_routes')
+        .from("inbound_routes")
         .insert({
           address: targetAddress,
           alias_local_part: localPart,
@@ -165,39 +172,40 @@ export function EmailForwardingSetupStep({
           is_active: true,
         })
         .select()
-        .single();
+        .single()
 
       if (error) {
-        if ((error as any).code === '23505') {
+        if ((error as any).code === "23505") {
           // Race / RLS-hidden duplicate — reuse the existing route
           const { data: dupe } = await supabase
-            .from('inbound_routes')
-            .select('id')
-            .eq('address', targetAddress)
-            .eq('organization_id', profile.organization_id)
-            .maybeSingle();
+            .from("inbound_routes")
+            .select("id")
+            .eq("address", targetAddress)
+            .eq("organization_id", profile.organization_id)
+            .maybeSingle()
           if (dupe) {
-            onInboundRouteCreated(dupe.id);
-            setRouteCreated(true);
-            toast.success("Route already existed — reusing it");
-            return;
+            onInboundRouteCreated(dupe.id)
+            setRouteCreated(true)
+            toast.success("Route already existed — reusing it")
+            return
           }
-          throw new Error(`A forwarding route for ${targetAddress} already exists. Edit it under Email channels instead.`);
+          throw new Error(
+            `A forwarding route for ${targetAddress} already exists. Edit it under Email channels instead.`,
+          )
         }
-        throw error;
+        throw error
       }
 
-      onInboundRouteCreated(newRoute.id);
-      setRouteCreated(true);
-      toast.success("Forwarding route created!");
-
+      onInboundRouteCreated(newRoute.id)
+      setRouteCreated(true)
+      toast.success("Forwarding route created!")
     } catch (error: any) {
-      console.error('Failed to create inbound route:', error);
-      toast.error(error.message || "Failed to create route");
+      console.error("Failed to create inbound route:", error)
+      toast.error(error.message || "Failed to create route")
     } finally {
-      setIsCreatingRoute(false);
+      setIsCreatingRoute(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -226,7 +234,15 @@ export function EmailForwardingSetupStep({
 
       {/* Domain Status */}
       {publicEmail && emailDomain && !domainsLoading && (
-        <Alert className={matchingDomain ? "border-success/50 bg-success/5" : configuredDomain ? "border-warning/50 bg-warning/5" : "border-destructive/50 bg-destructive/5"}>
+        <Alert
+          className={
+            matchingDomain
+              ? "border-success/50 bg-success/5"
+              : configuredDomain
+                ? "border-warning/50 bg-warning/5"
+                : "border-destructive/50 bg-destructive/5"
+          }
+        >
           {matchingDomain ? (
             <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
@@ -234,11 +250,19 @@ export function EmailForwardingSetupStep({
           )}
           <AlertDescription>
             {matchingDomain ? (
-              <span>Domain <strong>{matchingDomain.domain}</strong> is configured and ready!</span>
+              <span>
+                Domain <strong>{matchingDomain.domain}</strong> is configured and ready!
+              </span>
             ) : configuredDomain ? (
-              <span>Domain <strong>{emailDomain}</strong> is not configured yet. It will be automatically set up in SendGrid when you create the route.</span>
+              <span>
+                Domain <strong>{emailDomain}</strong> is not configured yet. It will be
+                automatically set up in SendGrid when you create the route.
+              </span>
             ) : (
-              <span>Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid when you create the route.</span>
+              <span>
+                Domain <strong>{emailDomain}</strong> will be automatically configured in SendGrid
+                when you create the route.
+              </span>
             )}
           </AlertDescription>
         </Alert>
@@ -249,11 +273,7 @@ export function EmailForwardingSetupStep({
         <div className="space-y-2">
           <Label>Forward emails to this address</Label>
           <div className="flex items-center gap-2">
-            <Input
-              value={forwardingAddress}
-              readOnly
-              className="font-mono text-sm bg-muted"
-            />
+            <Input value={forwardingAddress} readOnly className="font-mono text-sm bg-muted" />
             <Button
               variant="outline"
               size="icon"
@@ -267,11 +287,7 @@ export function EmailForwardingSetupStep({
 
       {/* Create Route Button */}
       {publicEmail && forwardingAddress && configuredDomain && !routeCreated && (
-        <Button
-          onClick={createInboundRoute}
-          disabled={isCreatingRoute}
-          className="w-full"
-        >
+        <Button onClick={createInboundRoute} disabled={isCreatingRoute} className="w-full">
           {isCreatingRoute ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -294,7 +310,9 @@ export function EmailForwardingSetupStep({
           </Alert>
 
           {/* DNS Records (shown after SendGrid setup) */}
-          {dnsRecords && <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />}
+          {dnsRecords && (
+            <DnsRecordsDisplay dnsRecords={dnsRecords} sendgridResult={sendgridSetupResult} />
+          )}
 
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
             <p className="text-sm font-medium">📋 Configure your email provider:</p>
@@ -317,7 +335,10 @@ export function EmailForwardingSetupStep({
                 <Copy className="h-3 w-3" />
               </Button>
             </div>
-            <ol start={4} className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <ol
+              start={4}
+              className="text-sm text-muted-foreground space-y-2 list-decimal list-inside"
+            >
               <li>Save and test by sending an email to {publicEmail}</li>
             </ol>
           </div>
@@ -328,5 +349,5 @@ export function EmailForwardingSetupStep({
         </>
       )}
     </div>
-  );
+  )
 }

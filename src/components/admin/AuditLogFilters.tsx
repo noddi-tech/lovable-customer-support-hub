@@ -1,46 +1,52 @@
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Calendar, Search, X } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
+import { format } from "date-fns"
+import { Calendar, Search, X } from "lucide-react"
+import type { DateRange } from "react-day-picker"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-type DateRangePreset = '7d' | '30d' | '90d' | 'all' | 'custom';
+type DateRangePreset = "7d" | "30d" | "90d" | "all" | "custom"
 
 interface AuditLogFiltersProps {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  dateRange: DateRangePreset;
-  onDateRangeChange: (range: DateRangePreset) => void;
-  customDateRange?: DateRange;
-  onCustomDateRangeChange: (range: DateRange | undefined) => void;
-  categoryFilter: string;
-  onCategoryFilterChange: (category: string) => void;
-  selectedActionTypes: string[];
-  onActionTypesChange: (types: string[]) => void;
-  selectedActorRoles: string[];
-  onActorRolesChange: (roles: string[]) => void;
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  dateRange: DateRangePreset
+  onDateRangeChange: (range: DateRangePreset) => void
+  customDateRange?: DateRange
+  onCustomDateRangeChange: (range: DateRange | undefined) => void
+  categoryFilter: string
+  onCategoryFilterChange: (category: string) => void
+  selectedActionTypes: string[]
+  onActionTypesChange: (types: string[]) => void
+  selectedActorRoles: string[]
+  onActorRolesChange: (roles: string[]) => void
 }
 
 const availableActionTypes = [
-  'user.role.assign',
-  'user.role.remove',
-  'user.update',
-  'user.delete',
-  'user.create',
-  'org.create',
-  'org.update',
-  'org.delete',
-  'org.member.add',
-  'org.member.remove',
-  'org.member.role.update',
-];
+  "user.role.assign",
+  "user.role.remove",
+  "user.update",
+  "user.delete",
+  "user.create",
+  "org.create",
+  "org.update",
+  "org.delete",
+  "org.member.add",
+  "org.member.remove",
+  "org.member.role.update",
+]
 
-const availableActorRoles = ['super_admin', 'admin', 'agent', 'user'];
+const availableActorRoles = ["super_admin", "admin", "agent", "user"]
 
 export function AuditLogFilters({
   searchQuery,
@@ -58,34 +64,34 @@ export function AuditLogFilters({
 }: AuditLogFiltersProps) {
   const toggleActionType = (type: string) => {
     if (selectedActionTypes.includes(type)) {
-      onActionTypesChange(selectedActionTypes.filter(t => t !== type));
+      onActionTypesChange(selectedActionTypes.filter((t) => t !== type))
     } else {
-      onActionTypesChange([...selectedActionTypes, type]);
+      onActionTypesChange([...selectedActionTypes, type])
     }
-  };
+  }
 
   const toggleActorRole = (role: string) => {
     if (selectedActorRoles.includes(role)) {
-      onActorRolesChange(selectedActorRoles.filter(r => r !== role));
+      onActorRolesChange(selectedActorRoles.filter((r) => r !== role))
     } else {
-      onActorRolesChange([...selectedActorRoles, role]);
+      onActorRolesChange([...selectedActorRoles, role])
     }
-  };
+  }
 
   const clearAllFilters = () => {
-    onSearchChange('');
-    onDateRangeChange('30d');
-    onCustomDateRangeChange(undefined);
-    onCategoryFilterChange('all');
-    onActionTypesChange([]);
-    onActorRolesChange([]);
-  };
+    onSearchChange("")
+    onDateRangeChange("30d")
+    onCustomDateRangeChange(undefined)
+    onCategoryFilterChange("all")
+    onActionTypesChange([])
+    onActorRolesChange([])
+  }
 
-  const activeFiltersCount = 
+  const activeFiltersCount =
     (searchQuery ? 1 : 0) +
-    (categoryFilter !== 'all' ? 1 : 0) +
+    (categoryFilter !== "all" ? 1 : 0) +
     selectedActionTypes.length +
-    selectedActorRoles.length;
+    selectedActorRoles.length
 
   return (
     <Card className="p-4 space-y-4">
@@ -102,7 +108,7 @@ export function AuditLogFilters({
             />
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           <Select value={dateRange} onValueChange={(v) => onDateRangeChange(v as DateRangePreset)}>
             <SelectTrigger>
@@ -117,21 +123,22 @@ export function AuditLogFilters({
               <SelectItem value="custom">Custom range</SelectItem>
             </SelectContent>
           </Select>
-          
-          {dateRange === 'custom' && (
+
+          {dateRange === "custom" && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline">
                   {customDateRange?.from ? (
                     customDateRange.to ? (
                       <>
-                        {format(customDateRange.from, 'LLL dd, y')} - {format(customDateRange.to, 'LLL dd, y')}
+                        {format(customDateRange.from, "LLL dd, y")} -{" "}
+                        {format(customDateRange.to, "LLL dd, y")}
                       </>
                     ) : (
-                      format(customDateRange.from, 'LLL dd, y')
+                      format(customDateRange.from, "LLL dd, y")
                     )
                   ) : (
-                    'Pick a date range'
+                    "Pick a date range"
                   )}
                 </Button>
               </PopoverTrigger>
@@ -146,7 +153,7 @@ export function AuditLogFilters({
             </Popover>
           )}
         </div>
-        
+
         <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
           <SelectTrigger>
             <SelectValue placeholder="All categories" />
@@ -170,7 +177,7 @@ export function AuditLogFilters({
             {availableActionTypes.map((type) => (
               <Badge
                 key={type}
-                variant={selectedActionTypes.includes(type) ? 'default' : 'outline'}
+                variant={selectedActionTypes.includes(type) ? "default" : "outline"}
                 className="cursor-pointer hover:bg-primary/80"
                 onClick={() => toggleActionType(type)}
               >
@@ -187,7 +194,7 @@ export function AuditLogFilters({
             {availableActorRoles.map((role) => (
               <Badge
                 key={role}
-                variant={selectedActorRoles.includes(role) ? 'default' : 'outline'}
+                variant={selectedActorRoles.includes(role) ? "default" : "outline"}
                 className="cursor-pointer hover:bg-primary/80"
                 onClick={() => toggleActorRole(role)}
               >
@@ -202,7 +209,7 @@ export function AuditLogFilters({
       {activeFiltersCount > 0 && (
         <div className="flex items-center justify-between pt-2 border-t">
           <span className="text-sm text-muted-foreground">
-            {activeFiltersCount} active filter{activeFiltersCount !== 1 ? 's' : ''}
+            {activeFiltersCount} active filter{activeFiltersCount !== 1 ? "s" : ""}
           </span>
           <Button variant="ghost" size="sm" onClick={clearAllFilters}>
             <X className="h-4 w-4 mr-2" />
@@ -211,5 +218,5 @@ export function AuditLogFilters({
         </div>
       )}
     </Card>
-  );
+  )
 }

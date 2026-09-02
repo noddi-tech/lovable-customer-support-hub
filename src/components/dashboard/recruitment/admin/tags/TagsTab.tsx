@@ -1,18 +1,20 @@
-import { useMemo, useState } from 'react';
 import {
-  DndContext,
-  PointerSensor,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Archive, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { Archive, GripVertical, Pencil, Plus } from "lucide-react"
+import { useMemo, useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,27 +24,35 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useTags, useArchiveTag, useReorderTags, type RecruitmentTag } from '@/hooks/recruitment/useTags';
-import { TagEditDialog } from './TagEditDialog';
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  type RecruitmentTag,
+  useArchiveTag,
+  useReorderTags,
+  useTags,
+} from "@/hooks/recruitment/useTags"
+import { TagEditDialog } from "./TagEditDialog"
 
 function TagRow({
   tag,
   onEdit,
   onArchive,
 }: {
-  tag: RecruitmentTag;
-  onEdit: () => void;
-  onArchive: () => void;
+  tag: RecruitmentTag
+  onEdit: () => void
+  onArchive: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tag.id,
-  });
+  })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
+  }
 
   return (
     <div
@@ -58,10 +68,7 @@ function TagRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <div
-        className="h-4 w-4 rounded-full flex-shrink-0"
-        style={{ backgroundColor: tag.color }}
-      />
+      <div className="h-4 w-4 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
       <div className="flex-1 min-w-0">
         <div className="font-medium truncate">{tag.name}</div>
         {tag.description && (
@@ -75,38 +82,38 @@ function TagRow({
         <Archive className="h-4 w-4" />
       </Button>
     </div>
-  );
+  )
 }
 
 export function TagsTab() {
-  const { data: tags, isLoading } = useTags();
-  const reorderMut = useReorderTags();
-  const archiveMut = useArchiveTag();
-  const [editTarget, setEditTarget] = useState<RecruitmentTag | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
-  const [archiveTarget, setArchiveTarget] = useState<RecruitmentTag | null>(null);
+  const { data: tags, isLoading } = useTags()
+  const reorderMut = useReorderTags()
+  const archiveMut = useArchiveTag()
+  const [editTarget, setEditTarget] = useState<RecruitmentTag | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [archiveTarget, setArchiveTarget] = useState<RecruitmentTag | null>(null)
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-  const sorted = useMemo(() => [...(tags ?? [])], [tags]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sorted = useMemo(() => [...(tags ?? [])], [tags])
 
   const handleDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldIdx = sorted.findIndex((t) => t.id === active.id);
-    const newIdx = sorted.findIndex((t) => t.id === over.id);
-    if (oldIdx < 0 || newIdx < 0) return;
-    const next = arrayMove(sorted, oldIdx, newIdx);
-    reorderMut.mutate(next.map((t) => t.id));
-  };
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIdx = sorted.findIndex((t) => t.id === active.id)
+    const newIdx = sorted.findIndex((t) => t.id === over.id)
+    if (oldIdx < 0 || newIdx < 0) return
+    const next = arrayMove(sorted, oldIdx, newIdx)
+    reorderMut.mutate(next.map((t) => t.id))
+  }
 
   const openCreate = () => {
-    setEditTarget(null);
-    setEditOpen(true);
-  };
+    setEditTarget(null)
+    setEditOpen(true)
+  }
   const openEdit = (t: RecruitmentTag) => {
-    setEditTarget(t);
-    setEditOpen(true);
-  };
+    setEditTarget(t)
+    setEditOpen(true)
+  }
 
   return (
     <Card>
@@ -136,7 +143,11 @@ export function TagsTab() {
             Ingen etiketter ennå. Opprett en for å komme i gang.
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
             <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
                 {sorted.map((t) => (
@@ -153,11 +164,7 @@ export function TagsTab() {
         )}
       </CardContent>
 
-      <TagEditDialog
-        open={editOpen}
-        tag={editTarget}
-        onClose={() => setEditOpen(false)}
-      />
+      <TagEditDialog open={editOpen} tag={editTarget} onClose={() => setEditOpen(false)} />
 
       <AlertDialog open={!!archiveTarget} onOpenChange={(o) => !o && setArchiveTarget(null)}>
         <AlertDialogContent>
@@ -172,8 +179,8 @@ export function TagsTab() {
             <AlertDialogCancel>Avbryt</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (archiveTarget) archiveMut.mutate(archiveTarget.id);
-                setArchiveTarget(null);
+                if (archiveTarget) archiveMut.mutate(archiveTarget.id)
+                setArchiveTarget(null)
               }}
             >
               Arkiver
@@ -182,5 +189,5 @@ export function TagsTab() {
         </AlertDialogContent>
       </AlertDialog>
     </Card>
-  );
+  )
 }

@@ -1,35 +1,31 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Check, Loader2, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Check, Loader2, X } from "lucide-react"
+import type React from "react"
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-export type InlineFieldType = 'text' | 'number' | 'date' | 'select';
+export type InlineFieldType = "text" | "number" | "date" | "select"
 
 export interface InlineSelectOption {
-  value: string;
-  label: string;
+  value: string
+  label: string
 }
 
 interface Props {
-  type: InlineFieldType;
-  initialValue: string;
-  options?: readonly InlineSelectOption[];
-  isPending?: boolean;
-  onSave: (next: string) => void | Promise<void>;
-  onCancel: () => void;
+  type: InlineFieldType
+  initialValue: string
+  options?: readonly InlineSelectOption[]
+  isPending?: boolean
+  onSave: (next: string) => void | Promise<void>
+  onCancel: () => void
 }
 
 const InlineEditField: React.FC<Props> = ({
@@ -40,33 +36,33 @@ const InlineEditField: React.FC<Props> = ({
   onSave,
   onCancel,
 }) => {
-  const [value, setValue] = useState(initialValue);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState(initialValue)
+  const inputRef = useRef<HTMLInputElement>(null)
   // Track whether a button is being mouse-pressed so blur doesn't double-handle.
-  const suppressBlurRef = useRef(false);
+  const suppressBlurRef = useRef(false)
 
   useEffect(() => {
-    if (type !== 'select') inputRef.current?.focus();
-  }, [type]);
+    if (type !== "select") inputRef.current?.focus()
+  }, [type])
 
   const commit = () => {
     if (value === initialValue) {
-      onCancel();
-      return;
+      onCancel()
+      return
     }
-    void onSave(value);
-  };
+    void onSave(value)
+  }
 
-  if (type === 'select') {
+  if (type === "select") {
     return (
       <div className="flex items-center gap-2">
         <Select
           value={value}
           onValueChange={(v) => {
-            setValue(v);
+            setValue(v)
             // Save immediately on selection change for selects.
-            if (v !== initialValue) void onSave(v);
-            else onCancel();
+            if (v !== initialValue) void onSave(v)
+            else onCancel()
           }}
           disabled={isPending}
         >
@@ -83,7 +79,7 @@ const InlineEditField: React.FC<Props> = ({
         </Select>
         {isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
       </div>
-    );
+    )
   }
 
   return (
@@ -91,24 +87,24 @@ const InlineEditField: React.FC<Props> = ({
       <div className="flex items-center gap-1">
         <Input
           ref={inputRef}
-          type={type === 'number' ? 'number' : type === 'date' ? 'date' : 'text'}
+          type={type === "number" ? "number" : type === "date" ? "date" : "text"}
           value={value}
           disabled={isPending}
           onChange={(e) => setValue(e.target.value)}
           onBlur={() => {
             if (suppressBlurRef.current) {
-              suppressBlurRef.current = false;
-              return;
+              suppressBlurRef.current = false
+              return
             }
-            commit();
+            commit()
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commit();
-            } else if (e.key === 'Escape') {
-              e.preventDefault();
-              onCancel();
+            if (e.key === "Enter") {
+              e.preventDefault()
+              commit()
+            } else if (e.key === "Escape") {
+              e.preventDefault()
+              onCancel()
             }
           }}
           className="h-8"
@@ -125,7 +121,7 @@ const InlineEditField: React.FC<Props> = ({
                   size="icon"
                   className="h-8 w-8"
                   onMouseDown={() => {
-                    suppressBlurRef.current = true;
+                    suppressBlurRef.current = true
                   }}
                   onClick={commit}
                   aria-label="Lagre"
@@ -143,7 +139,7 @@ const InlineEditField: React.FC<Props> = ({
                   size="icon"
                   className="h-8 w-8"
                   onMouseDown={() => {
-                    suppressBlurRef.current = true;
+                    suppressBlurRef.current = true
                   }}
                   onClick={onCancel}
                   aria-label="Avbryt"
@@ -157,7 +153,7 @@ const InlineEditField: React.FC<Props> = ({
         )}
       </div>
     </TooltipProvider>
-  );
-};
+  )
+}
 
-export default InlineEditField;
+export default InlineEditField

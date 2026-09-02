@@ -1,139 +1,137 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react"
 
-const BADGE_ID = 'favicon-badge';
+const BADGE_ID = "favicon-badge"
 
 function getBaseFaviconHref(): string {
-  const links = Array.from(
-    document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')
-  ).filter((l) => l.id !== BADGE_ID);
-  return links[0]?.href || '/favicon.ico';
+  const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')).filter(
+    (l) => l.id !== BADGE_ID,
+  )
+  return links[0]?.href || "/favicon.ico"
 }
 
 function setBadgeHref(href: string | null) {
-  let badge = document.getElementById(BADGE_ID) as HTMLLinkElement | null;
+  let badge = document.getElementById(BADGE_ID) as HTMLLinkElement | null
   const originals = Array.from(
-    document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')
-  ).filter((l) => l.id !== BADGE_ID);
+    document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'),
+  ).filter((l) => l.id !== BADGE_ID)
 
   if (!href) {
-    badge?.remove();
-    originals.forEach((l) => l.removeAttribute('data-hidden-by-badge'));
-    return;
+    badge?.remove()
+    originals.forEach((l) => l.removeAttribute("data-hidden-by-badge"))
+    return
   }
 
   if (!badge) {
-    badge = document.createElement('link');
-    badge.id = BADGE_ID;
-    badge.rel = 'icon';
-    document.head.appendChild(badge);
+    badge = document.createElement("link")
+    badge.id = BADGE_ID
+    badge.rel = "icon"
+    document.head.appendChild(badge)
   }
-  badge.type = 'image/png';
-  badge.href = href;
+  badge.type = "image/png"
+  badge.href = href
   // Keep the badged icon last so browsers prefer it
-  document.head.appendChild(badge);
+  document.head.appendChild(badge)
 }
 
-let baseImagePromise: Promise<HTMLImageElement | null> | null = null;
+let baseImagePromise: Promise<HTMLImageElement | null> | null = null
 
 function loadBaseImage(): Promise<HTMLImageElement | null> {
-  if (baseImagePromise) return baseImagePromise;
+  if (baseImagePromise) return baseImagePromise
   baseImagePromise = new Promise((resolve) => {
-    const candidates = [getBaseFaviconHref(), '/favicon.png', '/favicon.ico'];
-    let i = 0;
+    const candidates = [getBaseFaviconHref(), "/favicon.png", "/favicon.ico"]
+    let i = 0
     const tryNext = () => {
-      if (i >= candidates.length) return resolve(null);
-      const src = candidates[i++];
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = tryNext;
-      img.src = src;
-    };
-    tryNext();
-  });
-  return baseImagePromise;
+      if (i >= candidates.length) return resolve(null)
+      const src = candidates[i++]
+      const img = new Image()
+      img.crossOrigin = "anonymous"
+      img.onload = () => resolve(img)
+      img.onerror = tryNext
+      img.src = src
+    }
+    tryNext()
+  })
+  return baseImagePromise
 }
 
 async function drawBadge(count: number): Promise<string | null> {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
+  const size = 64
+  const canvas = document.createElement("canvas")
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext("2d")
+  if (!ctx) return null
 
-  const base = await loadBaseImage();
+  const base = await loadBaseImage()
   // Never replace the favicon with a blank icon: if the original couldn't be
   // loaded (or would taint the canvas), leave the tab icon untouched.
-  if (!base) return null;
+  if (!base) return null
 
   try {
-    ctx.drawImage(base, 0, 0, size, size);
+    ctx.drawImage(base, 0, 0, size, size)
   } catch {
-    return null;
+    return null
   }
 
   // Small unread dot in the top-right corner — no number
-  const r = 9;
-  const cx = size - r - 3;
-  const cy = r + 3;
+  const r = 9
+  const cx = size - r - 3
+  const cy = r + 3
 
   // Subtle ring so the dot reads clearly on top of the logo
-  ctx.beginPath();
-  ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
+  ctx.beginPath()
+  ctx.arc(cx, cy, r + 2, 0, Math.PI * 2)
+  ctx.fillStyle = "#ffffff"
+  ctx.fill()
 
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#e11d48';
-  ctx.fill();
-
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.fillStyle = "#e11d48"
+  ctx.fill()
 
   try {
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL("image/png")
   } catch {
-    return null; // tainted canvas (cross-origin favicon)
+    return null // tainted canvas (cross-origin favicon)
   }
 }
-
 
 /**
  * Renders a numeric badge on the browser tab favicon (and the OS app badge
  * for installed PWAs). Pass 0 or null to clear it.
  */
 export function useFaviconBadge(count: number | null | undefined) {
-  const lastRef = useRef<number | null>(null);
+  const lastRef = useRef<number | null>(null)
 
   useEffect(() => {
-    const value = count && count > 0 ? count : 0;
-    if (lastRef.current === value) return;
-    lastRef.current = value;
+    const value = count && count > 0 ? count : 0
+    if (lastRef.current === value) return
+    lastRef.current = value
 
-    let cancelled = false;
+    let cancelled = false
 
-    if ('setAppBadge' in navigator) {
+    if ("setAppBadge" in navigator) {
       const nav = navigator as Navigator & {
-        setAppBadge?: (n?: number) => Promise<void>;
-        clearAppBadge?: () => Promise<void>;
-      };
-      if (value > 0) nav.setAppBadge?.(value).catch(() => {});
-      else nav.clearAppBadge?.().catch(() => {});
+        setAppBadge?: (n?: number) => Promise<void>
+        clearAppBadge?: () => Promise<void>
+      }
+      if (value > 0) nav.setAppBadge?.(value).catch(() => {})
+      else nav.clearAppBadge?.().catch(() => {})
     }
 
     if (value === 0) {
-      setBadgeHref(null);
-      return;
+      setBadgeHref(null)
+      return
     }
 
     drawBadge(value).then((href) => {
-      if (!cancelled && href) setBadgeHref(href);
-    });
+      if (!cancelled && href) setBadgeHref(href)
+    })
 
     return () => {
-      cancelled = true;
-    };
-  }, [count]);
+      cancelled = true
+    }
+  }, [count])
 
-  useEffect(() => () => setBadgeHref(null), []);
+  useEffect(() => () => setBadgeHref(null), [])
 }

@@ -1,94 +1,101 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { AtSign, Building2, History, Mail, MoreVertical, Shield, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreVertical, Shield, Building2, Trash2, Mail, History, AtSign } from 'lucide-react';
-import { ManageUserRolesDialog } from './ManageUserRolesDialog';
-import { ManageUserOrganizationsDialog } from './ManageUserOrganizationsDialog';
-import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
-import { InviteHistoryDialog } from './InviteHistoryDialog';
-import { ChangeEmailDialog } from './ChangeEmailDialog';
-import { useUserManagement } from '@/hooks/useUserManagement';
-import { useAuth } from '@/hooks/useAuth';
+} from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/hooks/useAuth"
+import { useUserManagement } from "@/hooks/useUserManagement"
+import { ChangeEmailDialog } from "./ChangeEmailDialog"
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog"
+import { InviteHistoryDialog } from "./InviteHistoryDialog"
+import { ManageUserOrganizationsDialog } from "./ManageUserOrganizationsDialog"
+import { ManageUserRolesDialog } from "./ManageUserRolesDialog"
 
 interface UserActionMenuProps {
   user: {
-    id: string;
-    user_id: string;
-    email: string;
-    full_name: string | null;
+    id: string
+    user_id: string
+    email: string
+    full_name: string | null
     organization_memberships?: Array<{
-      id: string;
-      role: string;
-      organization?: { id: string; name: string };
-    }>;
+      id: string
+      role: string
+      organization?: { id: string; name: string }
+    }>
     auth_data?: {
-      last_sign_in_at: string | null;
-      email_confirmed_at: string | null;
-      created_at: string;
-    } | null;
-  };
+      last_sign_in_at: string | null
+      email_confirmed_at: string | null
+      created_at: string
+    } | null
+  }
 }
 
 export function UserActionMenu({ user }: UserActionMenuProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
-  const [orgsDialogOpen, setOrgsDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false);
-  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false)
+  const [orgsDialogOpen, setOrgsDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [inviteHistoryOpen, setInviteHistoryOpen] = useState(false)
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false)
 
   // Helper to safely open a dialog - closes dropdown first to avoid focus conflict
   const openDialogSafely = (setDialogOpen: (open: boolean) => void) => {
-    setDropdownOpen(false);
-    setTimeout(() => setDialogOpen(true), 100);
-  };
+    setDropdownOpen(false)
+    setTimeout(() => setDialogOpen(true), 100)
+  }
 
   // Prevent accidental double-clicking / rate-limit errors by applying a local 60s cooldown.
-  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
+  const [nowMs, setNowMs] = useState(() => Date.now())
 
-  const { deleteUser, isDeletingUser, resendInvite, isResendingInvite, changeEmail, isChangingEmail } = useUserManagement();
-  const { user: currentUser } = useAuth();
+  const {
+    deleteUser,
+    isDeletingUser,
+    resendInvite,
+    isResendingInvite,
+    changeEmail,
+    isChangingEmail,
+  } = useUserManagement()
+  const { user: currentUser } = useAuth()
 
   useEffect(() => {
-    if (!cooldownUntil) return;
+    if (!cooldownUntil) return
 
     if (nowMs >= cooldownUntil) {
-      setCooldownUntil(null);
-      return;
+      setCooldownUntil(null)
+      return
     }
 
-    const t = window.setTimeout(() => setNowMs(Date.now()), 500);
-    return () => window.clearTimeout(t);
-  }, [cooldownUntil, nowMs]);
+    const t = window.setTimeout(() => setNowMs(Date.now()), 500)
+    return () => window.clearTimeout(t)
+  }, [cooldownUntil, nowMs])
 
   const cooldownRemainingSeconds = useMemo(() => {
-    if (!cooldownUntil) return 0;
-    return Math.max(0, Math.ceil((cooldownUntil - nowMs) / 1000));
-  }, [cooldownUntil, nowMs]);
+    if (!cooldownUntil) return 0
+    return Math.max(0, Math.ceil((cooldownUntil - nowMs) / 1000))
+  }, [cooldownUntil, nowMs])
 
-  const isCooldownActive = cooldownRemainingSeconds > 0;
+  const isCooldownActive = cooldownRemainingSeconds > 0
 
   const handleDeleteUser = () => {
-    deleteUser(user.user_id);
-    setDeleteDialogOpen(false);
-  };
+    deleteUser(user.user_id)
+    setDeleteDialogOpen(false)
+  }
 
   const handleResendInvite = () => {
-    setDropdownOpen(false); // Close dropdown first to avoid focus issues
-    setNowMs(Date.now());
-    setCooldownUntil(Date.now() + 60_000);
-    resendInvite(user.email);
-  };
+    setDropdownOpen(false) // Close dropdown first to avoid focus issues
+    setNowMs(Date.now())
+    setCooldownUntil(Date.now() + 60_000)
+    resendInvite(user.email)
+  }
 
-  const isSelf = currentUser?.id === user.user_id;
-  const hasNeverLoggedIn = !user.auth_data?.last_sign_in_at;
+  const isSelf = currentUser?.id === user.user_id
+  const hasNeverLoggedIn = !user.auth_data?.last_sign_in_at
 
   return (
     <>
@@ -101,16 +108,16 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         <DropdownMenuContent align="end" className="w-48">
           {hasNeverLoggedIn && (
             <>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleResendInvite}
                 disabled={isResendingInvite || isCooldownActive}
               >
                 <Mail className="h-4 w-4 mr-2" />
                 {isResendingInvite
-                  ? 'Sending...'
+                  ? "Sending..."
                   : isCooldownActive
                     ? `Resend in ${cooldownRemainingSeconds}s`
-                    : 'Resend Invite Email'}
+                    : "Resend Invite Email"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openDialogSafely(setInviteHistoryOpen)}>
                 <History className="h-4 w-4 mr-2" />
@@ -145,11 +152,7 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ManageUserRolesDialog
-        open={rolesDialogOpen}
-        onOpenChange={setRolesDialogOpen}
-        user={user}
-      />
+      <ManageUserRolesDialog open={rolesDialogOpen} onOpenChange={setRolesDialogOpen} user={user} />
 
       <ManageUserOrganizationsDialog
         open={orgsDialogOpen}
@@ -179,11 +182,11 @@ export function UserActionMenu({ user }: UserActionMenuProps) {
         userId={user.user_id}
         currentEmail={user.email}
         onConfirm={(userId, newEmail) => {
-          changeEmail({ userId, newEmail });
-          setChangeEmailOpen(false);
+          changeEmail({ userId, newEmail })
+          setChangeEmailOpen(false)
         }}
         isLoading={isChangingEmail}
       />
     </>
-  );
+  )
 }

@@ -1,5 +1,5 @@
-import { QueryClient } from '@tanstack/react-query';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister"
+import { QueryClient } from "@tanstack/react-query"
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,9 +11,9 @@ export const queryClient = new QueryClient({
       retry: 1, // Only retry once on failures
     },
   },
-});
+})
 
 export const persister = createSyncStoragePersister({
   storage: window.localStorage,
-  key: 'NODDI_QUERY_CACHE',
-});
+  key: "NODDI_QUERY_CACHE",
+})

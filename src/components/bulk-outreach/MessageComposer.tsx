@@ -1,24 +1,24 @@
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { supabase } from "@/integrations/supabase/client"
 
 interface MessageComposerProps {
-  subject: string;
-  onSubjectChange: (s: string) => void;
-  messageTemplate: string;
-  onMessageChange: (m: string) => void;
-  inboxId: string | null;
-  onInboxChange: (id: string) => void;
+  subject: string
+  onSubjectChange: (s: string) => void
+  messageTemplate: string
+  onMessageChange: (m: string) => void
+  inboxId: string | null
+  onInboxChange: (id: string) => void
 }
 
 export function MessageComposer({
@@ -36,17 +36,17 @@ export function MessageComposer({
         .from("inboxes")
         .select("id, name")
         .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
+        .order("name")
+      if (error) throw error
+      return data
     },
-  });
+  })
 
   const previewMessage = messageTemplate
     .replace(/\{name\}/gi, "Ola Nordmann")
     .replace(/\{booking_date\}/gi, "2026-04-10")
     .replace(/\{booking_time\}/gi, "08:00-12:00")
-    .replace(/\{booking_service\}/gi, "Dekkskift");
+    .replace(/\{booking_service\}/gi, "Dekkskift")
 
   return (
     <div className="space-y-4">
@@ -80,10 +80,18 @@ export function MessageComposer({
         <div className="flex items-center justify-between">
           <Label htmlFor="message">Message Body</Label>
           <div className="flex flex-wrap gap-1">
-            <Badge variant="secondary" className="text-xs">{"{name}"}</Badge>
-            <Badge variant="secondary" className="text-xs">{"{booking_date}"}</Badge>
-            <Badge variant="secondary" className="text-xs">{"{booking_time}"}</Badge>
-            <Badge variant="secondary" className="text-xs">{"{booking_service}"}</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {"{name}"}
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {"{booking_date}"}
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {"{booking_time}"}
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {"{booking_service}"}
+            </Badge>
           </div>
         </div>
         <Textarea
@@ -97,10 +105,12 @@ export function MessageComposer({
 
       {messageTemplate && (
         <div className="rounded-md border bg-muted/50 p-4">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Preview (first recipient):</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            Preview (first recipient):
+          </p>
           <p className="text-sm whitespace-pre-wrap">{previewMessage}</p>
         </div>
       )}
     </div>
-  );
+  )
 }

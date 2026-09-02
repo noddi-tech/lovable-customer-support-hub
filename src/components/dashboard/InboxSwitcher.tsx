@@ -1,16 +1,22 @@
-import React from 'react';
-import { ChevronDown, Inbox, Palette } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useOptimizedCounts } from '@/hooks/useOptimizedCounts';
-import { useTranslation } from 'react-i18next';
+import { Inbox } from "lucide-react"
+import type React from "react"
+import { useTranslation } from "react-i18next"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useOptimizedCounts } from "@/hooks/useOptimizedCounts"
 
 interface InboxSwitcherProps {
-  selectedInboxId: string;
-  onInboxChange: (inboxId: string) => void;
-  showAllOption?: boolean;
-  className?: string;
-  disabled?: boolean;
+  selectedInboxId: string
+  onInboxChange: (inboxId: string) => void
+  showAllOption?: boolean
+  className?: string
+  disabled?: boolean
 }
 
 export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
@@ -18,48 +24,46 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
   onInboxChange,
   showAllOption = true,
   className = "",
-  disabled = false
+  disabled = false,
 }) => {
-  const { inboxes, conversations } = useOptimizedCounts();
-  const { t } = useTranslation();
+  const { inboxes, conversations } = useOptimizedCounts()
+  const { t } = useTranslation()
 
   // Only show "All Inboxes" if there's more than one active inbox
-  const activeInboxes = inboxes.filter(inbox => inbox.is_active);
-  const shouldShowAllOption = showAllOption && activeInboxes.length > 1;
+  const activeInboxes = inboxes.filter((inbox) => inbox.is_active)
+  const shouldShowAllOption = showAllOption && activeInboxes.length > 1
 
   const handleValueChange = (value: string) => {
-    onInboxChange(value);
-  };
+    onInboxChange(value)
+  }
 
   const getInboxDisplayName = (inboxId: string) => {
-    if (inboxId === 'all') return t('dashboard.allInboxes', 'All Inboxes');
-    const inbox = inboxes.find(i => i.id === inboxId);
-    return inbox?.name || t('dashboard.unknownInbox', 'Unknown Inbox');
-  };
+    if (inboxId === "all") return t("dashboard.allInboxes", "All Inboxes")
+    const inbox = inboxes.find((i) => i.id === inboxId)
+    return inbox?.name || t("dashboard.unknownInbox", "Unknown Inbox")
+  }
 
   const getInboxColor = (inboxId: string) => {
-    if (inboxId === 'all') return '#6B7280';
-    const inbox = inboxes.find(i => i.id === inboxId);
-    return inbox?.color || '#6B7280';
-  };
+    if (inboxId === "all") return "#6B7280"
+    const inbox = inboxes.find((i) => i.id === inboxId)
+    return inbox?.color || "#6B7280"
+  }
 
   const getInboxCount = (inboxId: string) => {
-    if (inboxId === 'all') return conversations.all;
-    const inbox = inboxes.find(i => i.id === inboxId);
-    return inbox?.conversation_count || 0;
-  };
+    if (inboxId === "all") return conversations.all
+    const inbox = inboxes.find((i) => i.id === inboxId)
+    return inbox?.conversation_count || 0
+  }
 
   return (
     <Select value={selectedInboxId} onValueChange={handleValueChange} disabled={disabled}>
       <SelectTrigger className={`w-auto min-w-[180px] ${className}`}>
         <div className="flex items-center gap-2">
-          <div 
+          <div
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: getInboxColor(selectedInboxId) }}
           />
-          <SelectValue>
-            {getInboxDisplayName(selectedInboxId)}
-          </SelectValue>
+          <SelectValue>{getInboxDisplayName(selectedInboxId)}</SelectValue>
           <Badge variant="secondary" className="text-xs">
             {getInboxCount(selectedInboxId)}
           </Badge>
@@ -70,7 +74,7 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
           <SelectItem value="all">
             <div className="flex items-center gap-2">
               <Inbox className="w-4 h-4 text-muted-foreground" />
-              <span>{t('dashboard.allInboxes', 'All Inboxes')}</span>
+              <span>{t("dashboard.allInboxes", "All Inboxes")}</span>
               <Badge variant="secondary" className="text-xs ml-auto">
                 {conversations.all}
               </Badge>
@@ -78,14 +82,11 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
           </SelectItem>
         )}
         {inboxes
-          .filter(inbox => inbox.is_active)
+          .filter((inbox) => inbox.is_active)
           .map((inbox) => (
             <SelectItem key={inbox.id} value={inbox.id}>
               <div className="flex items-center gap-2">
-                <div 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: inbox.color }}
-                />
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: inbox.color }} />
                 <span>{inbox.name}</span>
                 <Badge variant="secondary" className="text-xs ml-auto">
                   {inbox.conversation_count}
@@ -95,5 +96,5 @@ export const InboxSwitcher: React.FC<InboxSwitcherProps> = ({
           ))}
       </SelectContent>
     </Select>
-  );
-};
+  )
+}

@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { getIdentity, setIdentity } from '../api';
-import { getWidgetTranslations } from '../translations';
+import type React from "react"
+import { useState } from "react"
+import { getIdentity, setIdentity } from "../api"
+import { getWidgetTranslations } from "../translations"
 
 interface PreChatFormProps {
-  primaryColor: string;
-  language: string;
-  isStarting: boolean;
-  error?: string | null;
-  onSubmit: (visitor: { name: string; email: string; message?: string }) => void;
-  onBack: () => void;
+  primaryColor: string
+  language: string
+  isStarting: boolean
+  error?: string | null
+  onSubmit: (visitor: { name: string; email: string; message?: string }) => void
+  onBack: () => void
 }
 
 /**
@@ -24,27 +25,36 @@ export const PreChatForm: React.FC<PreChatFormProps> = ({
   onSubmit,
   onBack,
 }) => {
-  const t = getWidgetTranslations(language);
-  const identity = getIdentity();
-  const [name, setName] = useState(identity.name || '');
-  const [email, setEmail] = useState(identity.email || '');
-  const [message, setMessage] = useState('');
+  const t = getWidgetTranslations(language)
+  const identity = getIdentity()
+  const [name, setName] = useState(identity.name || "")
+  const [email, setEmail] = useState(identity.email || "")
+  const [message, setMessage] = useState("")
 
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const canSubmit = name.trim().length > 1 && emailValid && !isStarting;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const canSubmit = name.trim().length > 1 && emailValid && !isStarting
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit) return;
+    e.preventDefault()
+    if (!canSubmit) return
     // Remember the visitor so later sessions skip this form.
-    setIdentity({ name: name.trim(), email: email.trim() });
-    onSubmit({ name: name.trim(), email: email.trim(), message: message.trim() || undefined });
-  };
+    setIdentity({ name: name.trim(), email: email.trim() })
+    onSubmit({ name: name.trim(), email: email.trim(), message: message.trim() || undefined })
+  }
 
   return (
     <div className="noddi-widget-view">
       <button className="noddi-widget-back" onClick={onBack} type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="15 18 9 12 15 6" />
         </svg>
         {t.back}
@@ -102,5 +112,5 @@ export const PreChatForm: React.FC<PreChatFormProps> = ({
         </button>
       </form>
     </div>
-  );
-};
+  )
+}

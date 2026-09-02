@@ -1,17 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Database, Search, Trash2, Edit, Save, X, Star, Plus } from "lucide-react";
-import { useState } from "react";
-import { sanitizeForPostgrest } from "@/utils/queryUtils";
-import { SimpleRichEditor } from "@/components/ui/simple-rich-editor";
-import { StarRatingInput } from "@/components/ui/star-rating-input";
-import { sanitizeEmailHTML } from "@/utils/htmlSanitizer";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Database, Edit, Plus, Save, Search, Trash2, X } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -19,108 +11,118 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { TagMultiSelect } from "./TagMultiSelect";
-import type { KnowledgeCategory } from "./CategoryManager";
-import type { KnowledgeTag } from "./TagManager";
+} from "@/components/ui/select"
+import { SimpleRichEditor } from "@/components/ui/simple-rich-editor"
+import { StarRatingInput } from "@/components/ui/star-rating-input"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { sanitizeEmailHTML } from "@/utils/htmlSanitizer"
+import { sanitizeForPostgrest } from "@/utils/queryUtils"
+import type { KnowledgeCategory } from "./CategoryManager"
+import type { KnowledgeTag } from "./TagManager"
+import { TagMultiSelect } from "./TagMultiSelect"
 
 interface KnowledgeEntry {
-  id: string;
-  customer_context: string;
-  agent_response: string;
-  quality_score: number | null;
-  usage_count: number | null;
-  acceptance_count: number | null;
-  category: string | null;
-  tags: string[] | null;
-  created_at: string;
-  updated_at: string;
-  is_active: boolean | null;
+  id: string
+  customer_context: string
+  agent_response: string
+  quality_score: number | null
+  usage_count: number | null
+  acceptance_count: number | null
+  category: string | null
+  tags: string[] | null
+  created_at: string
+  updated_at: string
+  is_active: boolean | null
 }
 
 export function KnowledgeEntriesManager({ organizationId }: { organizationId: string }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterSource, setFilterSource] = useState<string>("all");
-  const [editingEntry, setEditingEntry] = useState<KnowledgeEntry | null>(null);
-  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<KnowledgeEntry | null>(null);
-  const [creatingEntry, setCreatingEntry] = useState(false);
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterSource, setFilterSource] = useState<string>("all")
+  const [editingEntry, setEditingEntry] = useState<KnowledgeEntry | null>(null)
+  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<KnowledgeEntry | null>(null)
+  const [creatingEntry, setCreatingEntry] = useState(false)
   const [newEntry, setNewEntry] = useState({
-    customer_context: '',
-    agent_response: '',
-    category: '',
+    customer_context: "",
+    agent_response: "",
+    category: "",
     tags: [] as string[],
-  });
+  })
 
   // Fetch dynamic categories
   const { data: categories } = useQuery({
-    queryKey: ['knowledge-categories', organizationId],
+    queryKey: ["knowledge-categories", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_categories')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeCategory[];
+        .from("knowledge_categories")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeCategory[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   // Fetch dynamic tags for color lookup
   const { data: tagsData } = useQuery({
-    queryKey: ['knowledge-tags', organizationId],
+    queryKey: ["knowledge-tags", organizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('knowledge_tags')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('name');
-      if (error) throw error;
-      return data as KnowledgeTag[];
+        .from("knowledge_tags")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name")
+      if (error) throw error
+      return data as KnowledgeTag[]
     },
     staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    refetchOnMount: "always",
+  })
 
   const { data: entries, isLoading } = useQuery({
-    queryKey: ['knowledge-entries', organizationId, searchQuery, filterSource],
+    queryKey: ["knowledge-entries", organizationId, searchQuery, filterSource],
     queryFn: async () => {
       let query = supabase
-        .from('knowledge_entries')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .order('quality_score', { ascending: false });
+        .from("knowledge_entries")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("quality_score", { ascending: false })
 
       if (searchQuery) {
-        const safeSearch = sanitizeForPostgrest(searchQuery);
-        query = query.or(`customer_context.ilike.%${safeSearch}%,agent_response.ilike.%${safeSearch}%`);
+        const safeSearch = sanitizeForPostgrest(searchQuery)
+        query = query.or(
+          `customer_context.ilike.%${safeSearch}%,agent_response.ilike.%${safeSearch}%`,
+        )
       }
 
-      if (filterSource !== 'all') {
-        query = query.eq('category', filterSource);
+      if (filterSource !== "all") {
+        query = query.eq("category", filterSource)
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as KnowledgeEntry[];
+      const { data, error } = await query
+      if (error) throw error
+      return data as KnowledgeEntry[]
     },
-  });
+  })
 
   const updateMutation = useMutation({
     mutationFn: async (entry: KnowledgeEntry) => {
       const { error } = await supabase
-        .from('knowledge_entries')
+        .from("knowledge_entries")
         .update({
           customer_context: entry.customer_context,
           agent_response: entry.agent_response,
@@ -129,96 +131,91 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
           quality_score: entry.quality_score,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', entry.id);
+        .eq("id", entry.id)
 
-      if (error) throw error;
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Entry updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-entries'] });
-      setEditingEntry(null);
+      toast({ title: "Entry updated successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      setEditingEntry(null)
     },
     onError: (error) => {
       toast({
         title: "Update failed",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async (entryId: string) => {
-      const { error } = await supabase
-        .from('knowledge_entries')
-        .delete()
-        .eq('id', entryId);
+      const { error } = await supabase.from("knowledge_entries").delete().eq("id", entryId)
 
-      if (error) throw error;
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Entry deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-entries'] });
-      setDeleteConfirmEntry(null);
+      toast({ title: "Entry deleted successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      setDeleteConfirmEntry(null)
     },
     onError: (error) => {
       toast({
         title: "Delete failed",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const createMutation = useMutation({
     mutationFn: async (entry: typeof newEntry) => {
-      const { error } = await supabase
-        .from('knowledge_entries')
-        .insert({
-          organization_id: organizationId,
-          customer_context: entry.customer_context,
-          agent_response: entry.agent_response,
-          category: entry.category,
-          tags: entry.tags.length > 0 ? entry.tags : null,
-          quality_score: 3.0,
-          usage_count: 0,
-          acceptance_count: 0,
-          is_active: true,
-          is_manually_curated: true,
-        });
-      if (error) throw error;
+      const { error } = await supabase.from("knowledge_entries").insert({
+        organization_id: organizationId,
+        customer_context: entry.customer_context,
+        agent_response: entry.agent_response,
+        category: entry.category,
+        tags: entry.tags.length > 0 ? entry.tags : null,
+        quality_score: 3.0,
+        usage_count: 0,
+        acceptance_count: 0,
+        is_active: true,
+        is_manually_curated: true,
+      })
+      if (error) throw error
     },
     onSuccess: () => {
-      toast({ title: "Entry created successfully" });
-      queryClient.invalidateQueries({ queryKey: ['knowledge-entries'] });
-      setCreatingEntry(false);
-      setNewEntry({ customer_context: '', agent_response: '', category: '', tags: [] });
+      toast({ title: "Entry created successfully" })
+      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      setCreatingEntry(false)
+      setNewEntry({ customer_context: "", agent_response: "", category: "", tags: [] })
     },
     onError: (error) => {
       toast({
         title: "Create failed",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     },
-  });
+  })
 
   const getCategoryColor = (categoryName: string | null) => {
-    if (!categoryName) return '#6B7280';
-    const category = categories?.find(c => c.name === categoryName);
-    return category?.color || '#6B7280';
-  };
+    if (!categoryName) return "#6B7280"
+    const category = categories?.find((c) => c.name === categoryName)
+    return category?.color || "#6B7280"
+  }
 
   const getTagColor = (tagName: string) => {
-    const tag = tagsData?.find(t => t.name === tagName);
-    return tag?.color || '#6B7280';
-  };
+    const tag = tagsData?.find((t) => t.name === tagName)
+    return tag?.color || "#6B7280"
+  }
 
   const getQualityColor = (score: number) => {
-    if (score >= 4.5) return 'text-green-600';
-    if (score >= 3.5) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+    if (score >= 4.5) return "text-green-600"
+    if (score >= 3.5) return "text-yellow-600"
+    return "text-red-600"
+  }
 
   return (
     <div className="space-y-4">
@@ -288,27 +285,17 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-base font-semibold mb-2">
-                      Customer Message
-                    </CardTitle>
+                    <CardTitle className="text-base font-semibold mb-2">Customer Message</CardTitle>
                     <p className="text-sm text-muted-foreground mb-4">
                       {entry.customer_context.substring(0, 200)}
-                      {entry.customer_context.length > 200 && '...'}
+                      {entry.customer_context.length > 200 && "..."}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingEntry(entry)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setEditingEntry(entry)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteConfirmEntry(entry)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmEntry(entry)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -317,22 +304,22 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium mb-2">Agent Response</p>
-                  <div 
+                  <div
                     className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ 
+                    dangerouslySetInnerHTML={{
                       __html: sanitizeEmailHTML(
-                        entry.agent_response.length > 200 
-                          ? entry.agent_response.substring(0, 200) + '...' 
-                          : entry.agent_response
-                      ) 
+                        entry.agent_response.length > 200
+                          ? `${entry.agent_response.substring(0, 200)}...`
+                          : entry.agent_response,
+                      ),
                     }}
                   />
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   {entry.category && (
-                    <Badge 
+                    <Badge
                       variant="outline"
-                      style={{ 
+                      style={{
                         backgroundColor: `${getCategoryColor(entry.category)}20`,
                         borderColor: getCategoryColor(entry.category),
                         color: getCategoryColor(entry.category),
@@ -344,7 +331,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                   <StarRatingInput
                     value={entry.quality_score ?? 3}
                     onChange={(value) => {
-                      updateMutation.mutate({ ...entry, quality_score: value });
+                      updateMutation.mutate({ ...entry, quality_score: value })
                     }}
                     size="sm"
                   />
@@ -357,9 +344,9 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                   {entry.tags && entry.tags.length > 0 && (
                     <div className="flex gap-1 flex-wrap">
                       {entry.tags.map((tag, idx) => (
-                        <Badge 
-                          key={idx} 
-                          variant="outline" 
+                        <Badge
+                          key={idx}
+                          variant="outline"
                           className="text-xs"
                           style={{
                             backgroundColor: `${getTagColor(tag)}20`,
@@ -385,9 +372,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Edit Knowledge Entry</DialogTitle>
-              <DialogDescription>
-                Update the customer message and agent response
-              </DialogDescription>
+              <DialogDescription>Update the customer message and agent response</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -404,9 +389,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 <label className="text-sm font-medium mb-2 block">Agent Response</label>
                 <SimpleRichEditor
                   value={editingEntry.agent_response}
-                  onChange={(value) =>
-                    setEditingEntry({ ...editingEntry, agent_response: value })
-                  }
+                  onChange={(value) => setEditingEntry({ ...editingEntry, agent_response: value })}
                   minHeight="150px"
                 />
               </div>
@@ -414,9 +397,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 <label className="text-sm font-medium mb-2 block">Quality Score</label>
                 <StarRatingInput
                   value={editingEntry.quality_score ?? 3}
-                  onChange={(value) =>
-                    setEditingEntry({ ...editingEntry, quality_score: value })
-                  }
+                  onChange={(value) => setEditingEntry({ ...editingEntry, quality_score: value })}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Higher scores prioritize this entry in AI suggestions
@@ -424,8 +405,8 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Category</label>
-                <Select 
-                  value={editingEntry.category || ''} 
+                <Select
+                  value={editingEntry.category || ""}
                   onValueChange={(v) => setEditingEntry({ ...editingEntry, category: v })}
                 >
                   <SelectTrigger>
@@ -452,7 +433,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                   organizationId={organizationId}
                   selectedTags={editingEntry.tags || []}
                   onChange={(tags) => setEditingEntry({ ...editingEntry, tags })}
-                  selectedCategoryId={categories?.find(c => c.name === editingEntry.category)?.id}
+                  selectedCategoryId={categories?.find((c) => c.name === editingEntry.category)?.id}
                 />
               </div>
             </div>
@@ -526,7 +507,10 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Category</label>
-              <Select value={newEntry.category} onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}>
+              <Select
+                value={newEntry.category}
+                onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -551,15 +535,21 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 organizationId={organizationId}
                 selectedTags={newEntry.tags}
                 onChange={(tags) => setNewEntry({ ...newEntry, tags })}
-                selectedCategoryId={categories?.find(c => c.name === newEntry.category)?.id}
+                selectedCategoryId={categories?.find((c) => c.name === newEntry.category)?.id}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreatingEntry(false)}>Cancel</Button>
-            <Button 
+            <Button variant="outline" onClick={() => setCreatingEntry(false)}>
+              Cancel
+            </Button>
+            <Button
               onClick={() => createMutation.mutate(newEntry)}
-              disabled={!newEntry.customer_context.trim() || !newEntry.agent_response.trim() || createMutation.isPending}
+              disabled={
+                !newEntry.customer_context.trim() ||
+                !newEntry.agent_response.trim() ||
+                createMutation.isPending
+              }
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Entry
@@ -568,5 +558,5 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

@@ -93,7 +93,7 @@
 
     <script>
       // Stalled-load detection: if React hasn't mounted after 8s, show recovery UI
-      window.__bootstrapTimer = setTimeout(function() {
+      window.__bootstrapTimer = setTimeout(() => {
         var el = document.getElementById('app-bootstrap');
         if (el && el.style.display !== 'none') {
           document.getElementById('bootstrap-spinner').style.borderTopColor = '#f59e0b';

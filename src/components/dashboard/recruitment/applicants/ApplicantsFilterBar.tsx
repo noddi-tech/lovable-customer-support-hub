@@ -1,54 +1,54 @@
-import React, { useEffect, useState } from 'react';
-import { Search, ShieldQuestion } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Search, ShieldQuestion } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useJobPositions } from '../positions/usePositions';
-import { TagPicker } from './TagPicker';
-import { SCORE_FILTER_OPTIONS } from './scoreTier';
-import type { ApplicantsFilters } from './useApplicants';
+} from "@/components/ui/select"
+import { useDebounce } from "@/hooks/useDebounce"
+import { useJobPositions } from "../positions/usePositions"
+import { SCORE_FILTER_OPTIONS } from "./scoreTier"
+import { TagPicker } from "./TagPicker"
+import type { ApplicantsFilters } from "./useApplicants"
 
 interface Props {
-  value: ApplicantsFilters;
-  onChange: (filters: ApplicantsFilters) => void;
+  value: ApplicantsFilters
+  onChange: (filters: ApplicantsFilters) => void
 }
 
 const SOURCE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'meta_lead_ad', label: 'Meta Lead Ad' },
-  { value: 'finn', label: 'Finn.no' },
-  { value: 'website', label: 'Nettside' },
-  { value: 'referral', label: 'Referanse' },
-  { value: 'manual', label: 'Manuell' },
-  { value: 'csv_import', label: 'CSV Import' },
-];
+  { value: "all", label: "Alle" },
+  { value: "meta_lead_ad", label: "Meta Lead Ad" },
+  { value: "finn", label: "Finn.no" },
+  { value: "website", label: "Nettside" },
+  { value: "referral", label: "Referanse" },
+  { value: "manual", label: "Manuell" },
+  { value: "csv_import", label: "CSV Import" },
+]
 
 const STAGE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'all', label: 'Alle' },
-  { value: 'not_reviewed', label: 'Ikke vurdert' },
-  { value: 'qualified', label: 'Kvalifisert & i dialog' },
-  { value: 'disqualified', label: 'Diskvalifisert' },
-  { value: 'hired', label: 'Ansatt' },
-];
+  { value: "all", label: "Alle" },
+  { value: "not_reviewed", label: "Ikke vurdert" },
+  { value: "qualified", label: "Kvalifisert & i dialog" },
+  { value: "disqualified", label: "Diskvalifisert" },
+  { value: "hired", label: "Ansatt" },
+]
 
 const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
-  const [searchInput, setSearchInput] = useState(value.search);
-  const debounced = useDebounce(searchInput, 300);
-  const { data: positions } = useJobPositions();
+  const [searchInput, setSearchInput] = useState(value.search)
+  const debounced = useDebounce(searchInput, 300)
+  const { data: positions } = useJobPositions()
 
   useEffect(() => {
     if (debounced !== value.search) {
-      onChange({ ...value, search: debounced });
+      onChange({ ...value, search: debounced })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
+  }, [debounced, value.search, value, onChange])
 
   return (
     <div className="flex gap-3 items-center flex-wrap">
@@ -75,10 +75,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
         </SelectContent>
       </Select>
 
-      <Select
-        value={value.positionId}
-        onValueChange={(v) => onChange({ ...value, positionId: v })}
-      >
+      <Select value={value.positionId} onValueChange={(v) => onChange({ ...value, positionId: v })}>
         <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Stilling" />
         </SelectTrigger>
@@ -106,7 +103,7 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
       </Select>
 
       <Select
-        value={value.scoreTier ?? 'all'}
+        value={value.scoreTier ?? "all"}
         onValueChange={(v) => onChange({ ...value, scoreTier: v as any })}
       >
         <SelectTrigger className="w-full sm:w-[180px]">
@@ -126,22 +123,20 @@ const ApplicantsFilterBar: React.FC<Props> = ({ value, onChange }) => {
         onChange={(ids) => onChange({ ...value, tagIds: ids })}
         size="sm"
         showSelected={false}
-        triggerLabel={value.tagIds?.length ? `Etiketter (${value.tagIds.length})` : 'Etikett'}
+        triggerLabel={value.tagIds?.length ? `Etiketter (${value.tagIds.length})` : "Etikett"}
       />
 
       <Button
         type="button"
         size="sm"
-        variant={value.pendingReviewOnly ? 'default' : 'outline'}
-        onClick={() =>
-          onChange({ ...value, pendingReviewOnly: !value.pendingReviewOnly })
-        }
+        variant={value.pendingReviewOnly ? "default" : "outline"}
+        onClick={() => onChange({ ...value, pendingReviewOnly: !value.pendingReviewOnly })}
       >
         <ShieldQuestion className="h-4 w-4 mr-1.5" />
         Importert (avventer godkjenning)
       </Button>
     </div>
-  );
-};
+  )
+}
 
-export default ApplicantsFilterBar;
+export default ApplicantsFilterBar

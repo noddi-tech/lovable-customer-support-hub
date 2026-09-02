@@ -1,67 +1,67 @@
-import React, { useState } from 'react';
-import { useUserManagement } from '@/hooks/useUserManagement';
-import { useOrganizations } from '@/hooks/useOrganizations';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserCog, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Trash2, UserCog } from "lucide-react"
+import { useState } from "react"
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ConfirmDeleteDialog } from '@/components/admin/ConfirmDeleteDialog';
+} from "@/components/ui/select"
+import { useOrganizations } from "@/hooks/useOrganizations"
+import { useUserManagement } from "@/hooks/useUserManagement"
 
 interface MemberActionMenuProps {
   member: {
-    id: string;
-    user_id: string;
-    role: string;
+    id: string
+    user_id: string
+    role: string
     user?: {
-      full_name?: string;
-      email: string;
-    };
-  };
-  organizationId: string;
+      full_name?: string
+      email: string
+    }
+  }
+  organizationId: string
 }
 
 export function MemberActionMenu({ member, organizationId }: MemberActionMenuProps) {
-  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [newRole, setNewRole] = useState(member.role);
-  
-  const { updateMembershipRole } = useUserManagement();
-  const { removeUserFromOrganization } = useOrganizations();
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [newRole, setNewRole] = useState(member.role)
+
+  const { updateMembershipRole } = useUserManagement()
+  const { removeUserFromOrganization } = useOrganizations()
 
   const handleUpdateRole = () => {
     updateMembershipRole(
       {
         userId: member.user_id,
         organizationId,
-        role: newRole as 'admin' | 'agent' | 'user',
+        role: newRole as "admin" | "agent" | "user",
       },
       {
         onSuccess: () => {
-          setRoleDialogOpen(false);
+          setRoleDialogOpen(false)
         },
-      }
-    );
-  };
+      },
+    )
+  }
 
   const handleRemove = () => {
     removeUserFromOrganization(
@@ -71,11 +71,11 @@ export function MemberActionMenu({ member, organizationId }: MemberActionMenuPro
       },
       {
         onSuccess: () => {
-          setDeleteDialogOpen(false);
+          setDeleteDialogOpen(false)
         },
-      }
-    );
-  };
+      },
+    )
+  }
 
   return (
     <>
@@ -147,5 +147,5 @@ export function MemberActionMenu({ member, organizationId }: MemberActionMenuPro
         description={`Are you sure you want to remove ${member.user?.full_name || member.user?.email} from this organization? This action cannot be undone.`}
       />
     </>
-  );
+  )
 }

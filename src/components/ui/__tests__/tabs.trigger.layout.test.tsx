@@ -1,8 +1,8 @@
-import { render } from '@testing-library/react';
-import { TabsTrigger, Tabs, TabsList } from '../tabs';
+import { render } from "@testing-library/react"
+import { Tabs, TabsList, TabsTrigger } from "../tabs"
 
-describe('TabsTrigger Layout', () => {
-  it('should enforce horizontal layout and override vertical classes', () => {
+describe("TabsTrigger Layout", () => {
+  it("should enforce horizontal layout and override vertical classes", () => {
     const { container } = render(
       <Tabs defaultValue="test">
         <TabsList>
@@ -10,24 +10,24 @@ describe('TabsTrigger Layout', () => {
             Test Tab
           </TabsTrigger>
         </TabsList>
-      </Tabs>
-    );
+      </Tabs>,
+    )
 
-    const trigger = container.querySelector('[role="tab"]');
-    expect(trigger).toBeTruthy();
-    
-    const classList = trigger?.classList.value || '';
-    
+    const trigger = container.querySelector('[role="tab"]')
+    expect(trigger).toBeTruthy()
+
+    const classList = trigger?.classList.value || ""
+
     // Should have horizontal layout enforced
-    expect(classList).toContain('flex-row');
-    expect(classList).toContain('whitespace-nowrap');
-    expect(classList).toContain('items-center');
-    
-    // Should not have vertical layout
-    expect(classList).not.toContain('flex-col');
-  });
+    expect(classList).toContain("flex-row")
+    expect(classList).toContain("whitespace-nowrap")
+    expect(classList).toContain("items-center")
 
-  it('should sanitize grid classes to inline-flex', () => {
+    // Should not have vertical layout
+    expect(classList).not.toContain("flex-col")
+  })
+
+  it("should sanitize grid classes to inline-flex", () => {
     const { container } = render(
       <Tabs defaultValue="test">
         <TabsList>
@@ -35,14 +35,14 @@ describe('TabsTrigger Layout', () => {
             Grid Tab
           </TabsTrigger>
         </TabsList>
-      </Tabs>
-    );
+      </Tabs>,
+    )
 
-    const trigger = container.querySelector('[role="tab"]');
-    const classList = trigger?.classList.value || '';
-    
+    const trigger = container.querySelector('[role="tab"]')
+    const classList = trigger?.classList.value || ""
+
     // Should convert grid to inline-flex
-    expect(classList).toContain('inline-flex');
-    expect(classList).not.toContain('grid');
-  });
-});
+    expect(classList).toContain("inline-flex")
+    expect(classList).not.toContain("grid")
+  })
+})

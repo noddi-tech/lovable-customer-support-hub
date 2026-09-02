@@ -1,24 +1,19 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts"
 
 // Language code mapping for better OpenAI compatibility
 const languageNames: Record<string, string> = {
-  'auto': 'auto-detect',
-  'en': 'English',
-  'es': 'Spanish', 
-  'fr': 'French',
-  'de': 'German',
-  'it': 'Italian',
-  'pt': 'Portuguese',
-  'nl': 'Dutch',
-  'no': 'Norwegian',
-  'sv': 'Swedish',
-  'da': 'Danish'
-};
+  auto: "auto-detect",
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+  nl: "Dutch",
+  no: "Norwegian",
+  sv: "Swedish",
+  da: "Danish",
+}
 
 const SYSTEM_INSTRUCTIONS = `
 You are a professional translation assistant.
@@ -34,113 +29,120 @@ Output ONLY valid JSON with this exact structure:
   "translatedText": "the translated text here",
   "detectedSourceLanguage": "language code if auto-detected, otherwise null"
 }
-`;
+`
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")
     if (!OPENAI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Missing OPENAI_API_KEY' }), {
+      return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const { text, sourceLanguage, targetLanguage } = await req.json().catch(() => ({}));
-    
+    const { text, sourceLanguage, targetLanguage } = await req.json().catch(() => ({}))
+
     if (!text || !String(text).trim()) {
-      return new Response(JSON.stringify({ error: 'Missing text to translate' }), {
+      return new Response(JSON.stringify({ error: "Missing text to translate" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
     if (!targetLanguage) {
-      return new Response(JSON.stringify({ error: 'Missing target language' }), {
+      return new Response(JSON.stringify({ error: "Missing target language" }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
 
-    const inputText = String(text).slice(0, 4000); // Limit input length
-    const sourceLang = sourceLanguage === 'auto' ? 'auto-detect' : (languageNames[sourceLanguage] || sourceLanguage);
-    const targetLang = languageNames[targetLanguage] || targetLanguage;
+    const inputText = String(text).slice(0, 4000) // Limit input length
+    const sourceLang =
+      sourceLanguage === "auto" ? "auto-detect" : languageNames[sourceLanguage] || sourceLanguage
+    const targetLang = languageNames[targetLanguage] || targetLanguage
 
-    let prompt = `Translate the following text to ${targetLang}`;
-    if (sourceLang !== 'auto-detect') {
-      prompt += ` from ${sourceLang}`;
+    let prompt = `Translate the following text to ${targetLang}`
+    if (sourceLang !== "auto-detect") {
+      prompt += ` from ${sourceLang}`
     }
-    prompt += `:\n\n${inputText}`;
+    prompt += `:\n\n${inputText}`
 
     const body = {
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       temperature: 0.3,
-      response_format: { type: 'json_object' },
+      response_format: { type: "json_object" },
       messages: [
-        { role: 'system', content: SYSTEM_INSTRUCTIONS },
-        { role: 'user', content: prompt },
+        { role: "system", content: SYSTEM_INSTRUCTIONS },
+        { role: "user", content: prompt },
       ],
-    };
-
-    console.log('Translation request:', { sourceLang, targetLang, textLength: inputText.length });
-
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    const data = await resp.json();
-
-    if (!resp.ok) {
-      console.error('OpenAI error:', data);
-      const isQuota = data?.error?.code === 'insufficient_quota' || resp.status === 429;
-      return new Response(JSON.stringify({ 
-        error: isQuota 
-          ? 'OpenAI quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing.' 
-          : 'Translation request failed', 
-        detail: data 
-      }), {
-        status: isQuota ? 402 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
-    const content = data?.choices?.[0]?.message?.content ?? '';
-    let json;
+    console.log("Translation request:", { sourceLang, targetLang, textLength: inputText.length })
+
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    })
+
+    const data = await resp.json()
+
+    if (!resp.ok) {
+      console.error("OpenAI error:", data)
+      const isQuota = data?.error?.code === "insufficient_quota" || resp.status === 429
+      return new Response(
+        JSON.stringify({
+          error: isQuota
+            ? "OpenAI quota exceeded. Please check your OpenAI billing at platform.openai.com/account/billing."
+            : "Translation request failed",
+          detail: data,
+        }),
+        {
+          status: isQuota ? 402 : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      )
+    }
+
+    const content = data?.choices?.[0]?.message?.content ?? ""
+    let json
     try {
-      json = JSON.parse(content);
+      json = JSON.parse(content)
     } catch {
       // Fallback if JSON parsing fails
-      json = { translatedText: content || inputText, detectedSourceLanguage: null };
+      json = { translatedText: content || inputText, detectedSourceLanguage: null }
     }
 
     // Validate and normalize response
-    if (!json || typeof json !== 'object' || typeof json.translatedText !== 'string') {
-      json = { translatedText: inputText, detectedSourceLanguage: null };
+    if (!json || typeof json !== "object" || typeof json.translatedText !== "string") {
+      json = { translatedText: inputText, detectedSourceLanguage: null }
     }
 
-    console.log('Translation completed successfully');
+    console.log("Translation completed successfully")
 
     return new Response(JSON.stringify(json), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
   } catch (err) {
-    console.error('translate-text error:', err);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to translate text', 
-      detail: err instanceof Error ? err.message : String(err) 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("translate-text error:", err)
+    return new Response(
+      JSON.stringify({
+        error: "Failed to translate text",
+        detail: err instanceof Error ? err.message : String(err),
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    )
   }
-});
+})

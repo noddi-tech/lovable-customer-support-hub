@@ -1,12 +1,12 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { type LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {
-  title: string;
-  description: string;
-  icon?: LucideIcon;
+  title: string
+  description: string
+  icon?: LucideIcon
 }
 
 export function ComingSoonCard({ title, description, icon: Icon }: Props) {
@@ -34,5 +34,5 @@ export function ComingSoonCard({ title, description, icon: Icon }: Props) {
         </Button>
       </CardContent>
     </Card>
-  );
+  )
 }

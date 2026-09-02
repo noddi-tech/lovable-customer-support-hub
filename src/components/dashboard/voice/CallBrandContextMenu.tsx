@@ -1,4 +1,6 @@
-import React from 'react';
+import type React from "react"
+import { BrandMenuOptions } from "@/components/brands/BrandMenuOptions"
+import { TagContextMenuItems } from "@/components/tags/TagContextMenuItems"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -6,17 +8,15 @@ import {
   ContextMenuLabel,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { useCallBrandActions } from '@/hooks/useCallBrandActions';
-import { getConversationBrand } from '@/lib/conversationBrand';
-import { BrandMenuOptions } from '@/components/brands/BrandMenuOptions';
-import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
+} from "@/components/ui/context-menu"
+import { useCallBrandActions } from "@/hooks/useCallBrandActions"
+import { getConversationBrand } from "@/lib/conversationBrand"
 
 interface CallBrandContextMenuProps {
-  callId: string;
-  metadata: unknown;
-  children: React.ReactNode;
-  asChild?: boolean;
+  callId: string
+  metadata: unknown
+  children: React.ReactNode
+  asChild?: boolean
 }
 
 /** Right-click a call row to assign the brand the call belonged to. */
@@ -26,8 +26,8 @@ export const CallBrandContextMenu: React.FC<CallBrandContextMenuProps> = ({
   children,
   asChild = true,
 }) => {
-  const { setBrand } = useCallBrandActions();
-  const brand = getConversationBrand(metadata, 'voice');
+  const { setBrand } = useCallBrandActions()
+  const brand = getConversationBrand(metadata, "voice")
 
   return (
     <ContextMenu>
@@ -45,5 +45,5 @@ export const CallBrandContextMenu: React.FC<CallBrandContextMenuProps> = ({
         <TagContextMenuItems entityType="call" entityId={callId} />
       </ContextMenuContent>
     </ContextMenu>
-  );
-};
+  )
+}

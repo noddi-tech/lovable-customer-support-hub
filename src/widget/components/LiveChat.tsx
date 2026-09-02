@@ -1,32 +1,45 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useWidgetPolling } from '../hooks/useWidgetPolling';
-import { sendChatMessage, updateTypingStatus, endChat, sendChatAttachment, markChatSessionSeen } from '../api';
-import { getWidgetTranslations } from '../translations';
-import type { ChatSession } from '../types';
-import { ChatRating } from './ChatRating';
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  endChat,
+  markChatSessionSeen,
+  sendChatAttachment,
+  sendChatMessage,
+  updateTypingStatus,
+} from "../api"
+import { useWidgetPolling } from "../hooks/useWidgetPolling"
+import { getWidgetTranslations } from "../translations"
+import type { ChatSession } from "../types"
+import { ChatRating } from "./ChatRating"
 
-const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const ALLOWED_ATTACHMENT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'];
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+]
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = () => {
-      const result = String(reader.result || '');
-      resolve(result.slice(result.indexOf(',') + 1));
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+      const result = String(reader.result || "")
+      resolve(result.slice(result.indexOf(",") + 1))
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 interface LiveChatProps {
-  session: ChatSession;
-  primaryColor: string;
-  visitorName?: string;
-  onEnd: () => void;
-  onBack: () => void;
-  language: string;
+  session: ChatSession
+  primaryColor: string
+  visitorName?: string
+  onEnd: () => void
+  onBack: () => void
+  language: string
 }
 
 export const LiveChat: React.FC<LiveChatProps> = ({
@@ -37,146 +50,152 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   onBack,
   language,
 }) => {
-  const [inputValue, setInputValue] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [endedLocally, setEndedLocally] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<number | null>(null);
-  const lastTypingRef = useRef(false);
+  const [inputValue, setInputValue] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [endedLocally, setEndedLocally] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<number | null>(null)
+  const lastTypingRef = useRef(false)
 
-  const t = getWidgetTranslations(language);
+  const t = getWidgetTranslations(language)
 
-  const {
-    messages,
-    agentTyping,
-    sessionStatus,
-    assignedAgentName,
-    isConnected,
-    refetch,
-  } = useWidgetPolling(session.id);
+  const { messages, agentTyping, sessionStatus, assignedAgentName, isConnected, refetch } =
+    useWidgetPolling(session.id)
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, agentTyping]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [])
 
   // The panel is open, so anything visible here counts as read.
   useEffect(() => {
-    const last = messages[messages.length - 1];
-    if (last) markChatSessionSeen(last.createdAt);
-  }, [messages]);
+    const last = messages[messages.length - 1]
+    if (last) markChatSessionSeen(last.createdAt)
+  }, [messages])
 
   // Handle typing indicator
-  const handleTyping = useCallback((isTyping: boolean) => {
-    if (isTyping !== lastTypingRef.current) {
-      lastTypingRef.current = isTyping;
-      updateTypingStatus(session.id, isTyping);
-    }
+  const handleTyping = useCallback(
+    (isTyping: boolean) => {
+      if (isTyping !== lastTypingRef.current) {
+        lastTypingRef.current = isTyping
+        updateTypingStatus(session.id, isTyping)
+      }
 
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      window.clearTimeout(typingTimeoutRef.current);
-    }
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current)
+      }
 
-    // Set timeout to clear typing after 3 seconds of no activity
-    if (isTyping) {
-      typingTimeoutRef.current = window.setTimeout(() => {
-        lastTypingRef.current = false;
-        updateTypingStatus(session.id, false);
-      }, 3000);
-    }
-  }, [session.id]);
+      // Set timeout to clear typing after 3 seconds of no activity
+      if (isTyping) {
+        typingTimeoutRef.current = window.setTimeout(() => {
+          lastTypingRef.current = false
+          updateTypingStatus(session.id, false)
+        }, 3000)
+      }
+    },
+    [session.id],
+  )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    setInputValue(e.target.value)
     if (e.target.value.length > 0) {
-      handleTyping(true);
+      handleTyping(true)
     }
-  };
+  }
 
   const handleSend = async () => {
-    const content = inputValue.trim();
-    if (!content || isSending) return;
+    const content = inputValue.trim()
+    if (!content || isSending) return
 
-    setIsSending(true);
-    setInputValue('');
-    handleTyping(false);
+    setIsSending(true)
+    setInputValue("")
+    handleTyping(false)
 
-    const result = await sendChatMessage(session.id, content, language);
-    
+    const result = await sendChatMessage(session.id, content, language)
+
     if (result) {
       // Immediately refetch to show the new message
-      refetch();
+      refetch()
     }
 
-    setIsSending(false);
-  };
+    setIsSending(false)
+  }
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
 
-    setUploadError(null);
+    setUploadError(null)
     if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
-      setUploadError(t.attachmentTypeError);
-      return;
+      setUploadError(t.attachmentTypeError)
+      return
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      setUploadError(t.attachmentSizeError);
-      return;
+      setUploadError(t.attachmentSizeError)
+      return
     }
 
-    setIsUploading(true);
-    const data = await fileToBase64(file).catch(() => null);
+    setIsUploading(true)
+    const data = await fileToBase64(file).catch(() => null)
     if (!data) {
-      setIsUploading(false);
-      setUploadError(t.attachmentUploadError);
-      return;
+      setIsUploading(false)
+      setUploadError(t.attachmentUploadError)
+      return
     }
     const result = await sendChatAttachment(session.id, {
       filename: file.name,
       mimeType: file.type,
       data,
-    });
-    setIsUploading(false);
+    })
+    setIsUploading(false)
     if (!result.success) {
-      setUploadError(result.error || t.attachmentUploadError);
-      return;
+      setUploadError(result.error || t.attachmentUploadError)
+      return
     }
-    refetch();
-  };
+    refetch()
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   // Ending the chat keeps the visitor in the chat view so the post-chat
   // prompt (problem solved? + rating) can be answered before leaving.
   const handleEndChat = async () => {
-    await endChat(session.id, false);
-    setEndedLocally(true);
-  };
+    await endChat(session.id, false)
+    setEndedLocally(true)
+  }
 
   // Visitor confirms the issue is solved — closes the conversation for agents too.
   const handleResolveChat = async () => {
-    await endChat(session.id, true);
-    setEndedLocally(true);
-  };
+    await endChat(session.id, true)
+    setEndedLocally(true)
+  }
 
-  const isEnded = endedLocally || sessionStatus === 'ended' || sessionStatus === 'abandoned';
+  const isEnded = endedLocally || sessionStatus === "ended" || sessionStatus === "abandoned"
 
   return (
     <div className="noddi-widget-chat">
       {/* Back button */}
       <button className="noddi-widget-back" onClick={onBack}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
         {t.back}
@@ -185,36 +204,32 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       {/* Status bar */}
       <div className="noddi-chat-status">
         <div className="noddi-chat-status-indicator">
-          <span 
-            className="noddi-chat-status-dot" 
-            style={{ 
-              backgroundColor: isConnected 
-                ? (sessionStatus === 'active' ? '#22c55e' : '#f59e0b') 
-                : '#ef4444' 
+          <span
+            className="noddi-chat-status-dot"
+            style={{
+              backgroundColor: isConnected
+                ? sessionStatus === "active"
+                  ? "#22c55e"
+                  : "#f59e0b"
+                : "#ef4444",
             }}
           />
           <span className="noddi-chat-status-text">
-            {isEnded 
+            {isEnded
               ? t.chatEnded
-              : sessionStatus === 'waiting' 
+              : sessionStatus === "waiting"
                 ? t.waitingForAgent
-                : assignedAgentName 
+                : assignedAgentName
                   ? `${t.chattingWith} ${assignedAgentName}`
                   : t.connected}
           </span>
         </div>
         {!isEnded && (
           <div className="noddi-chat-status-actions">
-            <button
-              className="noddi-chat-resolve-button"
-              onClick={handleResolveChat}
-            >
-              {t.markResolved || 'Mark as resolved'}
+            <button className="noddi-chat-resolve-button" onClick={handleResolveChat}>
+              {t.markResolved || "Mark as resolved"}
             </button>
-            <button 
-              className="noddi-chat-end-button"
-              onClick={handleEndChat}
-            >
+            <button className="noddi-chat-end-button" onClick={handleEndChat}>
               {t.endChat}
             </button>
           </div>
@@ -228,20 +243,20 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             <p>{t.startConversation}</p>
           </div>
         )}
-        
+
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`noddi-chat-message ${message.senderType === 'customer' ? 'noddi-chat-message-customer' : 'noddi-chat-message-agent'}`}
+            className={`noddi-chat-message ${message.senderType === "customer" ? "noddi-chat-message-customer" : "noddi-chat-message-agent"}`}
           >
-            {message.senderType === 'agent' && message.senderName && (
+            {message.senderType === "agent" && message.senderName && (
               <span className="noddi-chat-message-sender">{message.senderName}</span>
             )}
-            <div 
+            <div
               className="noddi-chat-message-bubble"
-              style={message.senderType === 'customer' ? { backgroundColor: primaryColor } : {}}
+              style={message.senderType === "customer" ? { backgroundColor: primaryColor } : {}}
             >
-              {message.content && message.content !== '[Attachment]' && message.content}
+              {message.content && message.content !== "[Attachment]" && message.content}
               {message.attachments && message.attachments.length > 0 && (
                 <div className="noddi-chat-attachments">
                   {message.attachments.map((attachment, index) => (
@@ -253,7 +268,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                       className="noddi-chat-attachment"
                       title={attachment.name}
                     >
-                      {attachment.type?.startsWith('image/') ? (
+                      {attachment.type?.startsWith("image/") ? (
                         <>
                           <img
                             src={attachment.url}
@@ -275,7 +290,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
               )}
             </div>
             <span className="noddi-chat-message-time">
-              {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(message.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           </div>
         ))}
@@ -290,9 +308,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           </div>
         )}
 
-        {isUploading && (
-          <div className="noddi-chat-uploading">{t.attachFile}…</div>
-        )}
+        {isUploading && <div className="noddi-chat-uploading">{t.attachFile}…</div>}
 
         <div ref={messagesEndRef} />
       </div>
@@ -303,8 +319,8 @@ export const LiveChat: React.FC<LiveChatProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept={ALLOWED_ATTACHMENT_TYPES.join(',')}
-            style={{ display: 'none' }}
+            accept={ALLOWED_ATTACHMENT_TYPES.join(",")}
+            style={{ display: "none" }}
             onChange={handleFileSelected}
           />
           <button
@@ -315,7 +331,16 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             aria-label={t.attachFile}
             title={t.attachFile}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
           </button>
@@ -334,7 +359,16 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             disabled={!inputValue.trim() || isSending}
             style={{ backgroundColor: primaryColor }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
@@ -342,9 +376,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         </div>
       )}
 
-      {!isEnded && uploadError && (
-        <div className="noddi-widget-error">{uploadError}</div>
-      )}
+      {!isEnded && uploadError && <div className="noddi-widget-error">{uploadError}</div>}
 
       {isEnded && (
         <div className="noddi-chat-ended">
@@ -358,5 +390,5 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}

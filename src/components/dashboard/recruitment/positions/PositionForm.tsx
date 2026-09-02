@@ -1,44 +1,45 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
+import { Loader2, X } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import {
+  type JobPositionDetail,
   useCreateJobPosition,
   useRecruitmentPipelines,
   useUpdateJobPosition,
-  type JobPositionDetail,
-} from './usePositions';
+} from "./usePositions"
 
-const LICENSE_CLASSES = ['B', 'B96', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE'];
+const LICENSE_CLASSES = ["B", "B96", "BE", "C1", "C1E", "C", "CE", "D1", "D1E", "D", "DE"]
 
 const EMPLOYMENT_TYPES: { value: string; label: string }[] = [
-  { value: 'full_time', label: 'Heltid' },
-  { value: 'part_time', label: 'Deltid' },
-  { value: 'contract', label: 'Vikariat' },
-  { value: 'seasonal', label: 'Sesong' },
-];
+  { value: "full_time", label: "Heltid" },
+  { value: "part_time", label: "Deltid" },
+  { value: "contract", label: "Vikariat" },
+  { value: "seasonal", label: "Sesong" },
+]
 
 export interface PositionFormProps {
-  mode: 'create' | 'edit';
-  position?: JobPositionDetail | null;
-  publishImmediately?: boolean;
+  mode: "create" | "edit"
+  position?: JobPositionDetail | null
+  publishImmediately?: boolean
   /** Called with the position id after successful create or update. */
-  onSubmitted?: (id: string) => void;
+  onSubmitted?: (id: string) => void
   /** Optional cancel button (typically used inside dialogs). */
-  onCancel?: () => void;
+  onCancel?: () => void
   /** When true, render as a plain form without padding (parent provides chrome). */
-  embedded?: boolean;
+  embedded?: boolean
 }
 
 const PositionForm: React.FC<PositionFormProps> = ({
@@ -49,91 +50,91 @@ const PositionForm: React.FC<PositionFormProps> = ({
   onCancel,
   embedded,
 }) => {
-  const isEdit = mode === 'edit';
-  const createMut = useCreateJobPosition();
-  const updateMut = useUpdateJobPosition();
-  const { data: pipelines } = useRecruitmentPipelines();
+  const isEdit = mode === "edit"
+  const createMut = useCreateJobPosition()
+  const updateMut = useUpdateJobPosition()
+  const { data: pipelines } = useRecruitmentPipelines()
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [campaign, setCampaign] = useState('');
-  const [employmentType, setEmploymentType] = useState('full_time');
-  const [minSalary, setMinSalary] = useState('');
-  const [maxSalary, setMaxSalary] = useState('');
-  const [licenseClasses, setLicenseClasses] = useState<Set<string>>(new Set());
-  const [minYears, setMinYears] = useState('');
-  const [certifications, setCertifications] = useState<string[]>([]);
-  const [certInput, setCertInput] = useState('');
-  const [pipelineId, setPipelineId] = useState<string>('');
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [location, setLocation] = useState("")
+  const [campaign, setCampaign] = useState("")
+  const [employmentType, setEmploymentType] = useState("full_time")
+  const [minSalary, setMinSalary] = useState("")
+  const [maxSalary, setMaxSalary] = useState("")
+  const [licenseClasses, setLicenseClasses] = useState<Set<string>>(new Set())
+  const [minYears, setMinYears] = useState("")
+  const [certifications, setCertifications] = useState<string[]>([])
+  const [certInput, setCertInput] = useState("")
+  const [pipelineId, setPipelineId] = useState<string>("")
 
-  const pending = createMut.isPending || updateMut.isPending;
+  const pending = createMut.isPending || updateMut.isPending
 
   // Hydrate from `position` whenever it loads/changes.
   useEffect(() => {
-    if (!position) return;
-    setTitle(position.title ?? '');
-    setDescription(position.description ?? '');
-    setLocation(position.location ?? '');
-    setCampaign(position.campaign ?? '');
-    setEmploymentType(position.employment_type ?? 'full_time');
-    setMinSalary(position.salary_range_min != null ? String(position.salary_range_min) : '');
-    setMaxSalary(position.salary_range_max != null ? String(position.salary_range_max) : '');
-    const req = position.requirements ?? {};
-    setLicenseClasses(new Set(Array.isArray(req.drivers_license) ? req.drivers_license : []));
-    setMinYears(req.min_experience_years != null ? String(req.min_experience_years) : '');
-    setCertifications(Array.isArray(req.certifications) ? req.certifications : []);
-    setCertInput('');
-    setPipelineId(position.pipeline_id ?? '');
-  }, [position]);
+    if (!position) return
+    setTitle(position.title ?? "")
+    setDescription(position.description ?? "")
+    setLocation(position.location ?? "")
+    setCampaign(position.campaign ?? "")
+    setEmploymentType(position.employment_type ?? "full_time")
+    setMinSalary(position.salary_range_min != null ? String(position.salary_range_min) : "")
+    setMaxSalary(position.salary_range_max != null ? String(position.salary_range_max) : "")
+    const req = position.requirements ?? {}
+    setLicenseClasses(new Set(Array.isArray(req.drivers_license) ? req.drivers_license : []))
+    setMinYears(req.min_experience_years != null ? String(req.min_experience_years) : "")
+    setCertifications(Array.isArray(req.certifications) ? req.certifications : [])
+    setCertInput("")
+    setPipelineId(position.pipeline_id ?? "")
+  }, [position])
 
   // Default pipeline preselect (create mode)
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit) return
     if (!pipelineId && pipelines && pipelines.length > 0) {
-      const def = pipelines.find((p) => p.is_default) ?? pipelines[0];
-      if (def) setPipelineId(def.id);
+      const def = pipelines.find((p) => p.is_default) ?? pipelines[0]
+      if (def) setPipelineId(def.id)
     }
-  }, [pipelines, pipelineId, isEdit]);
+  }, [pipelines, pipelineId, isEdit])
 
   const reset = () => {
-    setTitle('');
-    setDescription('');
-    setLocation('');
-    setCampaign('');
-    setEmploymentType('full_time');
-    setMinSalary('');
-    setMaxSalary('');
-    setLicenseClasses(new Set());
-    setMinYears('');
-    setCertifications([]);
-    setCertInput('');
-    setPipelineId('');
-  };
+    setTitle("")
+    setDescription("")
+    setLocation("")
+    setCampaign("")
+    setEmploymentType("full_time")
+    setMinSalary("")
+    setMaxSalary("")
+    setLicenseClasses(new Set())
+    setMinYears("")
+    setCertifications([])
+    setCertInput("")
+    setPipelineId("")
+  }
 
   const toggleLicense = (cls: string) => {
     setLicenseClasses((prev) => {
-      const next = new Set(prev);
-      if (next.has(cls)) next.delete(cls);
-      else next.add(cls);
-      return next;
-    });
-  };
+      const next = new Set(prev)
+      if (next.has(cls)) next.delete(cls)
+      else next.add(cls)
+      return next
+    })
+  }
 
   const addCert = () => {
-    const v = certInput.trim();
-    if (!v) return;
-    if (!certifications.includes(v)) setCertifications([...certifications, v]);
-    setCertInput('');
-  };
+    const v = certInput.trim()
+    if (!v) return
+    if (!certifications.includes(v)) setCertifications([...certifications, v])
+    setCertInput("")
+  }
 
   const removeCert = (cert: string) => {
-    setCertifications(certifications.filter((c) => c !== cert));
-  };
+    setCertifications(certifications.filter((c) => c !== cert))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+    e.preventDefault()
+    if (!title.trim()) return
 
     const payload = {
       title: title.trim(),
@@ -149,24 +150,24 @@ const PositionForm: React.FC<PositionFormProps> = ({
         min_experience_years: minYears ? Number(minYears) : null,
         certifications,
       },
-    };
+    }
 
     try {
       if (isEdit && position) {
-        const updated = await updateMut.mutateAsync({ id: position.id, payload });
-        onSubmitted?.(updated?.id ?? position.id);
+        const updated = await updateMut.mutateAsync({ id: position.id, payload })
+        onSubmitted?.(updated?.id ?? position.id)
       } else {
-        const created = await createMut.mutateAsync({ ...payload, publishImmediately });
-        reset();
-        if (created?.id) onSubmitted?.(created.id);
+        const created = await createMut.mutateAsync({ ...payload, publishImmediately })
+        reset()
+        if (created?.id) onSubmitted?.(created.id)
       }
     } catch {
       // hook handles toast
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'space-y-4'}>
+    <form onSubmit={handleSubmit} className={embedded ? "space-y-4" : "space-y-4"}>
       <div className="space-y-2">
         <Label htmlFor="title">
           Tittel <span className="text-destructive">*</span>
@@ -292,9 +293,9 @@ const PositionForm: React.FC<PositionFormProps> = ({
             value={certInput}
             onChange={(e) => setCertInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addCert();
+              if (e.key === "Enter") {
+                e.preventDefault()
+                addCert()
               }
             }}
             placeholder="F.eks. ADR — trykk Enter for å legge til"
@@ -329,7 +330,7 @@ const PositionForm: React.FC<PositionFormProps> = ({
             {(pipelines ?? []).map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 {p.name}
-                {p.is_default ? ' (standard)' : ''}
+                {p.is_default ? " (standard)" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -344,11 +345,11 @@ const PositionForm: React.FC<PositionFormProps> = ({
         )}
         <Button type="submit" disabled={!title.trim() || pending}>
           {pending && <Loader2 className="animate-spin" />}
-          {isEdit ? 'Lagre endringer' : 'Opprett stilling'}
+          {isEdit ? "Lagre endringer" : "Opprett stilling"}
         </Button>
       </div>
     </form>
-  );
-};
+  )
+}
 
-export default PositionForm;
+export default PositionForm

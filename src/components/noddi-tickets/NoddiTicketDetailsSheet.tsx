@@ -1,69 +1,71 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { format } from "date-fns"
+import { Archive, CheckCircle2, Loader2, MessageSquare, RotateCcw } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Loader2, MessageSquare, RotateCcw, CheckCircle2, Archive } from 'lucide-react';
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import {
   useCommentNoddiTicket,
   useNoddiTicket,
   useNoddiTicketAction,
   useNoddiTicketEvents,
   useUpdateNoddiTicket,
-} from '@/hooks/useNoddiTickets';
-import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from './NoddiTicketBadges';
+} from "@/hooks/useNoddiTickets"
 import {
   NODDI_TICKET_PRIORITIES,
+  type NoddiTicketPriority,
   TICKET_CATEGORY_LABELS,
   TICKET_PRIORITY_LABELS,
   TICKET_TYPE_LABELS,
-  type NoddiTicketPriority,
-} from '@/types/noddiTicket';
+} from "@/types/noddiTicket"
+import { TicketPriorityBadge, TicketSourceBadge, TicketStatusBadge } from "./NoddiTicketBadges"
 
 interface Props {
-  ticketId: number | null;
-  onOpenChange: (open: boolean) => void;
+  ticketId: number | null
+  onOpenChange: (open: boolean) => void
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-sm">{value ?? '—'}</div>
+      <div className="text-sm">{value ?? "—"}</div>
     </div>
-  );
+  )
 }
 
 export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
-  const { data: ticket, isLoading } = useNoddiTicket(ticketId);
-  const { data: events = [], isLoading: loadingEvents } = useNoddiTicketEvents(ticketId);
-  const commentMutation = useCommentNoddiTicket();
-  const actionMutation = useNoddiTicketAction();
-  const updateMutation = useUpdateNoddiTicket();
-  const [comment, setComment] = useState('');
+  const { data: ticket, isLoading } = useNoddiTicket(ticketId)
+  const { data: events = [], isLoading: loadingEvents } = useNoddiTicketEvents(ticketId)
+  const commentMutation = useCommentNoddiTicket()
+  const actionMutation = useNoddiTicketAction()
+  const updateMutation = useUpdateNoddiTicket()
+  const [comment, setComment] = useState("")
 
   const submitComment = async () => {
-    if (!ticketId || !comment.trim()) return;
-    await commentMutation.mutateAsync({ ticket_id: ticketId, comment: comment.trim() });
-    setComment('');
-  };
+    if (!ticketId || !comment.trim()) return
+    await commentMutation.mutateAsync({ ticket_id: ticketId, comment: comment.trim() })
+    setComment("")
+  }
 
   return (
     <Sheet open={!!ticketId} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle className="pr-8">
-            {isLoading ? 'Loading ticket…' : `#${ticket?.id} · ${ticket?.title || 'Untitled ticket'}`}
+            {isLoading
+              ? "Loading ticket…"
+              : `#${ticket?.id} · ${ticket?.title || "Untitled ticket"}`}
           </SheetTitle>
         </SheetHeader>
 
@@ -91,32 +93,32 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
 
             {/* Quick actions */}
             <div className="flex flex-wrap items-center gap-2">
-              {ticket.status !== 'RESOLVED' && (
+              {ticket.status !== "RESOLVED" && (
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: 'resolve' })}
+                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: "resolve" })}
                 >
                   <CheckCircle2 className="mr-1.5 h-4 w-4" /> Resolve
                 </Button>
               )}
-              {ticket.status === 'RESOLVED' && (
+              {ticket.status === "RESOLVED" && (
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: 'reopen' })}
+                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: "reopen" })}
                 >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Reopen
                 </Button>
               )}
-              {ticket.status !== 'ARCHIVED' ? (
+              {ticket.status !== "ARCHIVED" ? (
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: 'archive' })}
+                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: "archive" })}
                 >
                   <Archive className="mr-1.5 h-4 w-4" /> Archive
                 </Button>
@@ -125,7 +127,7 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
                   size="sm"
                   variant="outline"
                   disabled={actionMutation.isPending}
-                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: 'restore' })}
+                  onClick={() => actionMutation.mutate({ ticket_id: ticket.id, action: "restore" })}
                 >
                   <RotateCcw className="mr-1.5 h-4 w-4" /> Restore
                 </Button>
@@ -152,23 +154,30 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
             <Separator />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Category" value={TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category} />
+              <Field
+                label="Category"
+                value={TICKET_CATEGORY_LABELS[ticket.category] ?? ticket.category}
+              />
               <Field label="Department" value={ticket.service_department?.name} />
-              <Field label="Assignee" value={ticket.assignee?.name ?? 'Unassigned'} />
-              <Field label="Customer" value={ticket.user_group?.name ?? '—'} />
+              <Field label="Assignee" value={ticket.assignee?.name ?? "Unassigned"} />
+              <Field label="Customer" value={ticket.user_group?.name ?? "—"} />
               <Field
                 label="Created"
-                value={ticket.created_at ? format(new Date(ticket.created_at), 'dd MMM yyyy HH:mm') : '—'}
+                value={
+                  ticket.created_at ? format(new Date(ticket.created_at), "dd MMM yyyy HH:mm") : "—"
+                }
               />
               <Field
                 label="Due"
-                value={ticket.due_at ? format(new Date(ticket.due_at), 'dd MMM yyyy HH:mm') : '—'}
+                value={ticket.due_at ? format(new Date(ticket.due_at), "dd MMM yyyy HH:mm") : "—"}
               />
             </div>
 
             {ticket.description && (
               <div className="space-y-1">
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Description</div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Description
+                </div>
                 <p className="whitespace-pre-wrap text-sm">{ticket.description}</p>
               </div>
             )}
@@ -189,9 +198,9 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
                     <li key={event.id} className="rounded-md border p-3">
                       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground">
-                          {event.actor_name || 'System'} · {event.event_type.toLowerCase()}
+                          {event.actor_name || "System"} · {event.event_type.toLowerCase()}
                         </span>
-                        <span>{format(new Date(event.created_at), 'dd MMM HH:mm')}</span>
+                        <span>{format(new Date(event.created_at), "dd MMM HH:mm")}</span>
                       </div>
                       {(event.comment || event.detail || event.resolution_note) && (
                         <p className="mt-1 whitespace-pre-wrap text-sm">
@@ -212,7 +221,11 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
                 placeholder="Add a comment in Noddi…"
               />
               <div className="flex justify-end">
-                <Button size="sm" onClick={submitComment} disabled={!comment.trim() || commentMutation.isPending}>
+                <Button
+                  size="sm"
+                  onClick={submitComment}
+                  disabled={!comment.trim() || commentMutation.isPending}
+                >
                   {commentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Add comment
                 </Button>
@@ -222,5 +235,5 @@ export function NoddiTicketDetailsSheet({ ticketId, onOpenChange }: Props) {
         )}
       </SheetContent>
     </Sheet>
-  );
+  )
 }

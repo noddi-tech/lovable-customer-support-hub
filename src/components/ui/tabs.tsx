@@ -1,11 +1,11 @@
-import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
 // Helper to sanitize vertical layout classes from incoming className
 const stripVertical = (cls?: string) =>
-  cls ? cls.replace(/\bflex-col\b/g, "flex-row").replace(/\bgrid\b/g, "inline-flex") : cls;
+  cls ? cls.replace(/\bflex-col\b/g, "flex-row").replace(/\bgrid\b/g, "inline-flex") : cls
 
 const Tabs = TabsPrimitive.Root
 
@@ -17,7 +17,7 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       "flex flex-wrap items-center gap-2 w-full min-w-0 overflow-y-visible rounded-xl bg-muted p-1 text-muted-foreground",
-      className
+      className,
     )}
     {...props}
   />
@@ -39,7 +39,7 @@ const TabsTrigger = React.forwardRef<
       "ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
       // Active states (keep existing styles)
       "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-      stripVertical(className)
+      stripVertical(className),
     )}
     {...props}
   />
@@ -54,11 +54,11 @@ const TabsContent = React.forwardRef<
     ref={ref}
     className={cn(
       "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className
+      className,
     )}
     {...props}
   />
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsContent, TabsList, TabsTrigger }

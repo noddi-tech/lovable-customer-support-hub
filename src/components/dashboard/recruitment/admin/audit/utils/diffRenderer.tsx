@@ -1,36 +1,36 @@
-import { fieldLabel } from './fieldLabels';
-import { formatValue, type FormatContext } from './valueFormatters';
+import { fieldLabel } from "./fieldLabels"
+import { type FormatContext, formatValue } from "./valueFormatters"
 
 interface Props {
-  oldValues: Record<string, unknown> | null | undefined;
-  newValues: Record<string, unknown> | null | undefined;
-  ctx?: FormatContext;
+  oldValues: Record<string, unknown> | null | undefined
+  newValues: Record<string, unknown> | null | undefined
+  ctx?: FormatContext
 }
 
 export function DiffRenderer({ oldValues, newValues, ctx }: Props) {
   const allKeys = new Set<string>([
     ...(oldValues ? Object.keys(oldValues) : []),
     ...(newValues ? Object.keys(newValues) : []),
-  ]);
+  ])
 
   if (allKeys.size === 0) {
-    return <p className="text-sm text-muted-foreground">Ingen endringer.</p>;
+    return <p className="text-sm text-muted-foreground">Ingen endringer.</p>
   }
 
   return (
     <div className="space-y-2">
       {Array.from(allKeys).map((key) => {
-        const oldVal = oldValues?.[key];
-        const newVal = newValues?.[key];
-        const oldStr = formatValue(key, oldVal, ctx);
-        const newStr = formatValue(key, newVal, ctx);
+        const oldVal = oldValues?.[key]
+        const newVal = newValues?.[key]
+        const oldStr = formatValue(key, oldVal, ctx)
+        const newStr = formatValue(key, newVal, ctx)
         const isLong =
           oldStr.length > 40 ||
           newStr.length > 40 ||
           (Array.isArray(oldVal) && oldVal.length > 3) ||
           (Array.isArray(newVal) && newVal.length > 3) ||
-          (oldVal !== null && typeof oldVal === 'object' && !Array.isArray(oldVal)) ||
-          (newVal !== null && typeof newVal === 'object' && !Array.isArray(newVal));
+          (oldVal !== null && typeof oldVal === "object" && !Array.isArray(oldVal)) ||
+          (newVal !== null && typeof newVal === "object" && !Array.isArray(newVal))
 
         return (
           <div key={key} className="text-sm">
@@ -61,8 +61,8 @@ export function DiffRenderer({ oldValues, newValues, ctx }: Props) {
               </div>
             )}
           </div>
-        );
+        )
       })}
     </div>
-  );
+  )
 }

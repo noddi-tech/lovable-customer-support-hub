@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Filter } from 'lucide-react';
+import { ChevronDown, ChevronRight, Filter } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenu
-} from '@/components/ui/sidebar';
+  SidebarMenu,
+} from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 interface SidebarSectionProps {
-  title: string;
-  children: React.ReactNode;
-  defaultExpanded?: boolean;
-  collapsible?: boolean;
-  showFilter?: boolean;
-  onFilterClick?: () => void;
-  className?: string;
+  title: string
+  children: React.ReactNode
+  defaultExpanded?: boolean
+  collapsible?: boolean
+  showFilter?: boolean
+  onFilterClick?: () => void
+  className?: string
 }
 
 export const SidebarSection: React.FC<SidebarSectionProps> = ({
@@ -26,15 +27,15 @@ export const SidebarSection: React.FC<SidebarSectionProps> = ({
   collapsible = true,
   showFilter = false,
   onFilterClick,
-  className
+  className,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   const handleToggle = () => {
     if (collapsible) {
-      setIsExpanded(!isExpanded);
+      setIsExpanded(!isExpanded)
     }
-  };
+  }
 
   return (
     <SidebarGroup className={cn("p-1", className)}>
@@ -42,19 +43,19 @@ export const SidebarSection: React.FC<SidebarSectionProps> = ({
         <span className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wide">
           {title}
         </span>
-        
+
         <div className="flex items-center gap-0.5">
           {showFilter && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="h-4 w-4 p-0 text-sidebar-foreground/50 hover:text-sidebar-foreground"
               onClick={onFilterClick}
             >
               <Filter className="h-2.5 w-2.5" />
             </Button>
           )}
-          
+
           {collapsible && (
             <Button
               variant="ghost"
@@ -71,14 +72,12 @@ export const SidebarSection: React.FC<SidebarSectionProps> = ({
           )}
         </div>
       </SidebarGroupLabel>
-      
+
       {isExpanded && (
         <SidebarGroupContent>
-          <SidebarMenu className="gap-0">
-            {children}
-          </SidebarMenu>
+          <SidebarMenu className="gap-0">{children}</SidebarMenu>
         </SidebarGroupContent>
       )}
     </SidebarGroup>
-  );
-};
+  )
+}

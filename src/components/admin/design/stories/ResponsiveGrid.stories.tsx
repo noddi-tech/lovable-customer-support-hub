@@ -1,36 +1,34 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { ResponsiveGrid } from '../components/layouts/ResponsiveGrid';
+import type { Meta, StoryObj } from "@storybook/react"
+import { ResponsiveGrid } from "../components/layouts/ResponsiveGrid"
 
 const meta: Meta<typeof ResponsiveGrid> = {
-  title: 'Layout/ResponsiveGrid',
+  title: "Layout/ResponsiveGrid",
   component: ResponsiveGrid,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
-  tags: ['autodocs'],
-};
+  tags: ["autodocs"],
+}
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 const GridItem = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-muted p-4 rounded border-2 border-dashed border-border text-center">
     {children}
   </div>
-);
+)
 
 export const Default: Story = {
   args: {
-    children: Array.from({ length: 6 }, (_, i) => (
-      <GridItem key={i}>Item {i + 1}</GridItem>
-    )),
+    children: Array.from({ length: 6 }, (_, i) => <GridItem key={i}>Item {i + 1}</GridItem>),
   },
-};
+}
 
 export const ResponsiveColumns: Story = {
   args: {
-    cols: { sm: '1' as string, md: '2' as string, lg: '3' as string, xl: '4' as string },
-    gap: '4',
+    cols: { sm: "1" as string, md: "2" as string, lg: "3" as string, xl: "4" as string },
+    gap: "4",
     children: Array.from({ length: 8 }, (_, i) => (
       <GridItem key={i}>
         <strong>Item {i + 1}</strong>
@@ -38,13 +36,13 @@ export const ResponsiveColumns: Story = {
       </GridItem>
     )),
   },
-};
+}
 
 export const AutoFitLayout: Story = {
   args: {
     autoFit: true,
-    minColWidth: '200px',
-    gap: '4',
+    minColWidth: "200px",
+    gap: "4",
     children: Array.from({ length: 12 }, (_, i) => (
       <GridItem key={i}>
         <strong>Auto {i + 1}</strong>
@@ -52,4 +50,4 @@ export const AutoFitLayout: Story = {
       </GridItem>
     )),
   },
-};
+}

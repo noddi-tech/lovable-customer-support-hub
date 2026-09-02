@@ -1,5 +1,5 @@
-import { ComingSoonCard } from '../cards/ComingSoonCard';
-import { MessageSquare, Users, Calendar, Briefcase } from 'lucide-react';
+import { Briefcase, Calendar, MessageSquare, Users } from "lucide-react"
+import { ComingSoonCard } from "../cards/ComingSoonCard"
 
 export function OutboundSection() {
   return (
@@ -35,5 +35,5 @@ export function OutboundSection() {
         />
       </div>
     </section>
-  );
+  )
 }

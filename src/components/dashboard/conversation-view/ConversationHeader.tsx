@@ -1,111 +1,126 @@
-import { useState } from "react";
-import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ConversationBrandPicker } from "./ConversationBrandPicker";
-import { EntityTagPicker } from '@/components/tags/TagPicker';
-import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip";
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ChevronLeft,
-  MoreHorizontal,
+import {
   Archive,
   ArchiveRestore,
-  Clock,
-  UserPlus,
   CheckCircle,
-  XCircle,
+  CheckCircle2,
+  ChevronLeft,
+  CircleDot,
+  Clock,
+  MoreHorizontal,
   Move,
   RefreshCw,
-  CircleDot,
-  CheckCircle2
-} from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { useConversationView } from "@/contexts/ConversationViewContext";
-import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog";
-import { DescribedSelectItem } from '@/components/ui/described-select-item';
-import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
+  UserPlus,
+  XCircle,
+} from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
+import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip"
+import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog"
+import { EntityTagPicker } from "@/components/tags/TagPicker"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DescribedSelectItem } from "@/components/ui/described-select-item"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { CONVERSATION_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
+import { canGoBackInApp, getConversationBackPath } from "@/utils/conversationNavigation"
+import { ConversationBrandPicker } from "./ConversationBrandPicker"
 export const ConversationHeader = () => {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { conversation, dispatch, updateStatus, refreshConversation } = useConversationView();
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { conversation, dispatch, updateStatus, refreshConversation } = useConversationView()
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
 
-  if (!conversation) return null;
+  if (!conversation) return null
 
   const handleArchive = async () => {
-    if (conversation.status !== 'closed') {
-      setShowArchiveConfirm(true);
+    if (conversation.status !== "closed") {
+      setShowArchiveConfirm(true)
     } else {
-      await updateStatus({ isArchived: true });
+      await updateStatus({ isArchived: true })
     }
-  };
+  }
 
   const handleArchiveOnly = async () => {
-    await updateStatus({ isArchived: true });
-  };
+    await updateStatus({ isArchived: true })
+  }
 
   const handleArchiveAndClose = async () => {
-    await updateStatus({ status: 'closed', isArchived: true });
-  };
+    await updateStatus({ status: "closed", isArchived: true })
+  }
 
   const handleUnarchive = async () => {
-    await updateStatus({ isArchived: false });
-  };
+    await updateStatus({ isArchived: false })
+  }
 
   const handleMarkClosed = async () => {
-    await updateStatus({ status: 'closed' });
-  };
+    await updateStatus({ status: "closed" })
+  }
 
   const handleMarkOpen = async () => {
-    await updateStatus({ status: 'open' });
-  };
+    await updateStatus({ status: "open" })
+  }
 
   const openAssignDialog = () => {
-    dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
-  };
+    dispatch({ type: "SET_ASSIGN_DIALOG", payload: { open: true, userId: "", loading: false } })
+  }
 
   const openMoveDialog = () => {
-    dispatch({ type: 'SET_MOVE_DIALOG', payload: { open: true, inboxId: '', loading: false } });
-  };
+    dispatch({ type: "SET_MOVE_DIALOG", payload: { open: true, inboxId: "", loading: false } })
+  }
 
   const openSnoozeDialog = () => {
-    dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
-  };
+    dispatch({
+      type: "SET_SNOOZE_DIALOG",
+      payload: { open: true, date: new Date(), time: "09:00" },
+    })
+  }
 
   return (
     <div className="flex-shrink-0 p-3 md:p-4 border-b border-border bg-card/80 backdrop-blur-sm shadow-surface">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
           {/* Back to Inbox Button */}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
-onClick={() => {
+            onClick={() => {
               if (canGoBackInApp()) {
-                navigate(-1);
+                navigate(-1)
               } else {
-                navigate(getConversationBackPath(window.location.pathname));
+                navigate(getConversationBackPath(window.location.pathname))
               }
             }}
             className="flex items-center gap-1 md:gap-2 text-muted-foreground hover:text-foreground flex-shrink-0"
           >
             <ChevronLeft className="h-4 w-4" />
-            <span className="hidden sm:inline text-sm">{t('conversation.backToInbox')}</span>
+            <span className="hidden sm:inline text-sm">{t("conversation.backToInbox")}</span>
           </Button>
-          
+
           <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
             <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
-              <AvatarFallback>{(() => {
-                const ap: any = (conversation as any).applicant;
-                const apName = ap ? [ap.first_name, ap.last_name].filter(Boolean).join(' ').trim() : '';
-                const name = conversation.customer?.full_name || apName || ap?.email || conversation.customer?.email;
-                return (name?.[0] || 'C').toUpperCase();
-              })()}</AvatarFallback>
+              <AvatarFallback>
+                {(() => {
+                  const ap: any = (conversation as any).applicant
+                  const apName = ap
+                    ? [ap.first_name, ap.last_name].filter(Boolean).join(" ").trim()
+                    : ""
+                  const name =
+                    conversation.customer?.full_name ||
+                    apName ||
+                    ap?.email ||
+                    conversation.customer?.email
+                  return (name?.[0] || "C").toUpperCase()
+                })()}
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <h2 className="font-semibold text-sm md:text-base line-clamp-1 mb-1">
@@ -113,27 +128,39 @@ onClick={() => {
               </h2>
               <div className="flex items-center space-x-2">
                 {/* Status Dropdown for Quick Changes */}
-                <Select 
-                  value={conversation.status} 
+                <Select
+                  value={conversation.status}
                   onValueChange={(status) => updateStatus({ status })}
                 >
                   <SelectTrigger className="h-7 w-[110px] text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}>
+                    <DescribedSelectItem
+                      value="open"
+                      title="Open"
+                      description={CONVERSATION_STATUS_DESCRIPTIONS.open}
+                    >
                       <div className="flex items-center gap-2">
                         <CircleDot className="h-3 w-3" />
                         Open
                       </div>
                     </DescribedSelectItem>
-                    <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}>
+                    <DescribedSelectItem
+                      value="pending"
+                      title="Pending"
+                      description={CONVERSATION_STATUS_DESCRIPTIONS.pending}
+                    >
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
                         Pending
                       </div>
                     </DescribedSelectItem>
-                    <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}>
+                    <DescribedSelectItem
+                      value="closed"
+                      title="Closed"
+                      description={CONVERSATION_STATUS_DESCRIPTIONS.closed}
+                    >
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-3 w-3" />
                         Closed
@@ -141,12 +168,21 @@ onClick={() => {
                     </DescribedSelectItem>
                   </SelectContent>
                 </Select>
-                
-                <Badge variant={conversation.priority === 'high' || conversation.priority === 'urgent' ? 'destructive' : 'outline'} className="text-xs">
+
+                <Badge
+                  variant={
+                    conversation.priority === "high" || conversation.priority === "urgent"
+                      ? "destructive"
+                      : "outline"
+                  }
+                  className="text-xs"
+                >
                   {conversation.priority}
                 </Badge>
                 {conversation.is_archived && (
-                  <Badge variant="outline" className="text-xs">Archived</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Archived
+                  </Badge>
                 )}
                 <ConversationBrandPicker
                   conversationId={conversation.id}
@@ -158,7 +194,6 @@ onClick={() => {
                   conversationId={conversation.id}
                   caseId={(conversation as any).case_id}
                 />
-
               </div>
             </div>
           </div>
@@ -173,7 +208,7 @@ onClick={() => {
             className="hidden md:flex"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            {t('conversation.refresh')}
+            {t("conversation.refresh")}
           </Button>
 
           <DropdownMenu>
@@ -185,40 +220,40 @@ onClick={() => {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={openAssignDialog}>
                 <UserPlus className="w-4 h-4 mr-2" />
-                {t('conversation.assign')}
+                {t("conversation.assign")}
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onClick={openMoveDialog}>
                 <Move className="w-4 h-4 mr-2" />
-                {t('conversation.move')}
+                {t("conversation.move")}
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem onClick={openSnoozeDialog}>
                 <Clock className="w-4 h-4 mr-2" />
-                {t('conversation.snooze')}
+                {t("conversation.snooze")}
               </DropdownMenuItem>
-              
-              {conversation.status !== 'closed' ? (
+
+              {conversation.status !== "closed" ? (
                 <DropdownMenuItem onClick={handleMarkClosed}>
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  {t('conversation.markClosed')}
+                  {t("conversation.markClosed")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={handleMarkOpen}>
                   <XCircle className="w-4 h-4 mr-2" />
-                  {t('conversation.markOpen')}
+                  {t("conversation.markOpen")}
                 </DropdownMenuItem>
               )}
-              
+
               {conversation.is_archived ? (
                 <DropdownMenuItem onClick={handleUnarchive}>
                   <ArchiveRestore className="w-4 h-4 mr-2" />
-                  {t('conversation.unarchive')}
+                  {t("conversation.unarchive")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={handleArchive}>
                   <Archive className="w-4 h-4 mr-2" />
-                  {t('conversation.archive')}
+                  {t("conversation.archive")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -234,5 +269,5 @@ onClick={() => {
         onArchiveAndClose={handleArchiveAndClose}
       />
     </div>
-  );
-};
+  )
+}

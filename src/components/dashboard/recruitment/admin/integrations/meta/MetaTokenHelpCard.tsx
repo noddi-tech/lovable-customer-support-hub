@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { KeyRound, ShieldCheck, Facebook } from 'lucide-react';
+import { Facebook, KeyRound, ShieldCheck } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function MetaTokenHelpCard() {
   return (
@@ -16,8 +16,8 @@ export function MetaTokenHelpCard() {
           <div>
             <div className="font-medium">1. OAuth-flyt</div>
             <p className="text-xs text-muted-foreground">
-              Logg inn med Facebook og velg siden på nytt. Raskest, men virker ikke for sider
-              som er blokkert av NPE.
+              Logg inn med Facebook og velg siden på nytt. Raskest, men virker ikke for sider som er
+              blokkert av NPE.
             </p>
           </div>
         </div>
@@ -36,12 +36,12 @@ export function MetaTokenHelpCard() {
           <div>
             <div className="font-medium">3. System User-token</div>
             <p className="text-xs text-muted-foreground">
-              Permanent token administrert i Meta Business Manager. Anbefalt for produksjon —
-              krever Business Manager-tilgang.
+              Permanent token administrert i Meta Business Manager. Anbefalt for produksjon — krever
+              Business Manager-tilgang.
             </p>
           </div>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

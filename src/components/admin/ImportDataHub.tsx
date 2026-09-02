@@ -1,24 +1,25 @@
-import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HelpScoutImport } from "./HelpScoutImport";
-import { ImportDataCleanup } from "./ImportDataCleanup";
-import { DataWipeConfirmation } from "./DataWipeConfirmation";
-import { Database, FileText, Mail, Upload, Building2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { Building2, Database, FileText, Mail, Upload } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { DataWipeConfirmation } from "./DataWipeConfirmation"
+import { HelpScoutImport } from "./HelpScoutImport"
+import { ImportDataCleanup } from "./ImportDataCleanup"
 
 export const ImportDataHub = () => {
-  const {
-    isSuperAdmin,
-    memberships,
-    allowedLocalOrgIds,
-    currentOrganizationId,
-  } = useAuth();
-  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<{ id: string; name: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isSuperAdmin, memberships, allowedLocalOrgIds, currentOrganizationId } = useAuth()
+  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
+  const [selectedOrg, setSelectedOrg] = useState<{ id: string; name: string } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Organizations limited to Navio membership scope (or local memberships)
   useEffect(() => {
@@ -27,43 +28,43 @@ export const ImportDataHub = () => {
         const ids =
           allowedLocalOrgIds.length > 0
             ? allowedLocalOrgIds
-            : memberships.map((m) => m.organization_id);
+            : memberships.map((m) => m.organization_id)
 
         if (ids.length === 0 && !isSuperAdmin) {
-          setIsLoading(false);
-          return;
+          setIsLoading(false)
+          return
         }
 
-        let query = supabase.from('organizations').select('id, name').order('name');
+        let query = supabase.from("organizations").select("id, name").order("name")
         if (!isSuperAdmin || ids.length > 0) {
           if (ids.length === 0) {
-            setIsLoading(false);
-            return;
+            setIsLoading(false)
+            return
           }
-          query = query.in('id', ids);
+          query = query.in("id", ids)
         }
 
-        const { data: orgs, error: orgsError } = await query;
+        const { data: orgs, error: orgsError } = await query
         if (orgsError) {
-          console.error('[ImportDataHub] Orgs error:', orgsError);
+          console.error("[ImportDataHub] Orgs error:", orgsError)
         }
 
-        setOrganizations(orgs || []);
+        setOrganizations(orgs || [])
         const preferredId =
           currentOrganizationId ||
           memberships.find((m) => m.is_default)?.organization_id ||
-          orgs?.[0]?.id;
-        const preferred = orgs?.find((o) => o.id === preferredId) || orgs?.[0] || null;
-        setSelectedOrg(preferred);
+          orgs?.[0]?.id
+        const preferred = orgs?.find((o) => o.id === preferredId) || orgs?.[0] || null
+        setSelectedOrg(preferred)
       } catch (error) {
-        console.error('[ImportDataHub] Error fetching organizations:', error);
+        console.error("[ImportDataHub] Error fetching organizations:", error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
-    
-    fetchOrganization();
-  }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId]);
+    }
+
+    fetchOrganization()
+  }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId])
 
   return (
     <div className="space-y-6">
@@ -87,18 +88,18 @@ export const ImportDataHub = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Select 
-              value={selectedOrg?.id} 
+            <Select
+              value={selectedOrg?.id}
               onValueChange={(id) => {
-                const org = organizations.find(o => o.id === id);
-                setSelectedOrg(org || null);
+                const org = organizations.find((o) => o.id === id)
+                setSelectedOrg(org || null)
               }}
             >
               <SelectTrigger className="w-full md:w-[400px]">
                 <SelectValue placeholder="Select organization" />
               </SelectTrigger>
               <SelectContent>
-                {organizations.map(org => (
+                {organizations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
                   </SelectItem>
@@ -131,9 +132,9 @@ export const ImportDataHub = () => {
 
         <TabsContent value="helpscout" className="space-y-4">
           {selectedOrg && (
-            <DataWipeConfirmation 
-              organizationId={selectedOrg.id} 
-              organizationName={selectedOrg.name} 
+            <DataWipeConfirmation
+              organizationId={selectedOrg.id}
+              organizationName={selectedOrg.name}
             />
           )}
           <ImportDataCleanup />
@@ -144,9 +145,7 @@ export const ImportDataHub = () => {
           <Card>
             <CardHeader>
               <CardTitle>Zendesk Import</CardTitle>
-              <CardDescription>
-                Import tickets and conversations from Zendesk
-              </CardDescription>
+              <CardDescription>Import tickets and conversations from Zendesk</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
@@ -189,5 +188,5 @@ export const ImportDataHub = () => {
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}

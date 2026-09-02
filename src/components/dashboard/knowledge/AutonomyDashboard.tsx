@@ -1,18 +1,30 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ReferenceLine, Cell } from "recharts";
-import { Shield, Layers, TrendingUp, AlertTriangle, Clock } from "lucide-react";
-import { toast } from "sonner";
-import { formatRelativeTime } from "@/hooks/timezone";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { AlertTriangle, Clock, Layers, Shield, TrendingUp } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from "recharts"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { formatRelativeTime } from "@/hooks/timezone"
+import { supabase } from "@/integrations/supabase/client"
 
 interface AutonomyDashboardProps {
-  organizationId: string;
+  organizationId: string
 }
 
 const LEVEL_NAMES: Record<number, string> = {
@@ -20,30 +32,28 @@ const LEVEL_NAMES: Record<number, string> = {
   1: "Draft & Queue",
   2: "Auto-Send",
   3: "Full Auto",
-};
+}
 
 const LEVEL_COLORS: Record<number, string> = {
   0: "bg-muted text-muted-foreground",
   1: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   2: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
   3: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-};
+}
 
 function formatCategory(cat: string): string {
-  return cat
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function getBucketColor(bucket: number): string {
-  if (bucket < 0.4) return "hsl(0, 70%, 55%)";
-  if (bucket < 0.6) return "hsl(35, 85%, 55%)";
-  if (bucket < 0.75) return "hsl(210, 70%, 55%)";
-  return "hsl(140, 60%, 45%)";
+  if (bucket < 0.4) return "hsl(0, 70%, 55%)"
+  if (bucket < 0.6) return "hsl(35, 85%, 55%)"
+  if (bucket < 0.75) return "hsl(210, 70%, 55%)"
+  return "hsl(140, 60%, 45%)"
 }
 
 export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   // Section 1: System status
   const { data: topicLevels = [] } = useQuery({
@@ -53,102 +63,111 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
         .from("topic_autonomy_levels")
         .select("*")
         .eq("organization_id", organizationId)
-        .order("current_level", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+        .order("current_level", { ascending: false })
+      if (error) throw error
+      return data ?? []
     },
     staleTime: 60_000,
-  });
+  })
 
   const { data: avgConfidence } = useQuery({
     queryKey: ["autonomy-avg-confidence", organizationId],
     queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const { data, error } = await (supabase
-        .from("widget_ai_messages")
-        .select("confidence_score, widget_ai_conversations!inner(organization_id)") as any)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+      const { data, error } = await (
+        supabase
+          .from("widget_ai_messages")
+          .select("confidence_score, widget_ai_conversations!inner(organization_id)") as any
+      )
         .eq("widget_ai_conversations.organization_id", organizationId)
         .not("confidence_score", "is", null)
-        .gte("created_at", sevenDaysAgo);
-      if (error) throw error;
-      if (!data?.length) return 0;
-      const scores = data.map((r: any) => r.confidence_score as number);
-      return scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+        .gte("created_at", sevenDaysAgo)
+      if (error) throw error
+      if (!data?.length) return 0
+      const scores = data.map((r: any) => r.confidence_score as number)
+      return scores.reduce((a: number, b: number) => a + b, 0) / scores.length
     },
     staleTime: 60_000,
-  });
+  })
 
   // Section 3: Confidence histogram
   const { data: histogramData = [] } = useQuery({
     queryKey: ["autonomy-histogram", organizationId],
     queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const { data, error } = await (supabase
-        .from("widget_ai_messages")
-        .select("confidence_score, widget_ai_conversations!inner(organization_id)") as any)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
+      const { data, error } = await (
+        supabase
+          .from("widget_ai_messages")
+          .select("confidence_score, widget_ai_conversations!inner(organization_id)") as any
+      )
         .eq("widget_ai_conversations.organization_id", organizationId)
         .not("confidence_score", "is", null)
-        .gte("created_at", sevenDaysAgo);
-      if (error) throw error;
+        .gte("created_at", sevenDaysAgo)
+      if (error) throw error
       const buckets = Array.from({ length: 10 }, (_, i) => ({
         bucket: i / 10,
         label: `${(i / 10).toFixed(1)}`,
         count: 0,
-      }));
-      (data ?? []).forEach((r: any) => {
-        const idx = Math.min(Math.floor((r.confidence_score as number) * 10), 9);
-        buckets[idx].count++;
-      });
-      return buckets;
+      }))
+      ;(data ?? []).forEach((r: any) => {
+        const idx = Math.min(Math.floor((r.confidence_score as number) * 10), 9)
+        buckets[idx].count++
+      })
+      return buckets
     },
     staleTime: 60_000,
-  });
+  })
 
   // Section 4: Guardrail triggers
   const { data: guardrailLogs = [] } = useQuery({
     queryKey: ["autonomy-guardrails", organizationId],
     queryFn: async () => {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-      const { data, error } = await (supabase
-        .from("widget_ai_messages")
-        .select("id, created_at, conversation_id, confidence_breakdown, widget_ai_conversations!inner(organization_id)") as any)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
+      const { data, error } = await (
+        supabase
+          .from("widget_ai_messages")
+          .select(
+            "id, created_at, conversation_id, confidence_breakdown, widget_ai_conversations!inner(organization_id)",
+          ) as any
+      )
         .eq("widget_ai_conversations.organization_id", organizationId)
         .eq("confidence_score", 0)
         .gte("created_at", thirtyDaysAgo)
         .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      if (!data?.length) return [];
+        .limit(20)
+      if (error) throw error
+      if (!data?.length) return []
 
       // For each, fetch preceding user message
       const results = await Promise.all(
         (data as any[]).map(async (msg: any) => {
-          const { data: prev } = await (supabase
-            .from("widget_ai_messages")
-            .select("content") as any)
+          const { data: prev } = await (
+            supabase.from("widget_ai_messages").select("content") as any
+          )
             .eq("conversation_id", msg.conversation_id)
             .eq("role", "user")
             .lt("created_at", msg.created_at)
             .order("created_at", { ascending: false })
-            .limit(1);
+            .limit(1)
 
-          const breakdown = msg.confidence_breakdown as Record<string, any> | null;
-          const isForcedReview = breakdown?.forced_review === true || breakdown?.forced_review === "true";
-          if (!isForcedReview) return null;
+          const breakdown = msg.confidence_breakdown as Record<string, any> | null
+          const isForcedReview =
+            breakdown?.forced_review === true || breakdown?.forced_review === "true"
+          if (!isForcedReview) return null
 
-          const guardrailType = breakdown?.guardrail_type || breakdown?.reason || "unknown";
+          const guardrailType = breakdown?.guardrail_type || breakdown?.reason || "unknown"
           return {
             id: msg.id,
             created_at: msg.created_at,
             user_message: prev?.[0]?.content?.slice(0, 80) || "—",
             guardrail_type: guardrailType,
-          };
-        })
-      );
-      return results.filter(Boolean);
+          }
+        }),
+      )
+      return results.filter(Boolean)
     },
     staleTime: 30_000,
-  });
+  })
 
   // Update max level mutation
   const updateMaxLevel = useMutation({
@@ -156,24 +175,24 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
       const { error } = await supabase
         .from("topic_autonomy_levels")
         .update({ override_max_level: level })
-        .eq("id", id);
-      if (error) throw error;
+        .eq("id", id)
+      if (error) throw error
     },
     onSuccess: () => {
-      toast.success("Max level updated");
-      queryClient.invalidateQueries({ queryKey: ["autonomy-topics", organizationId] });
+      toast.success("Max level updated")
+      queryClient.invalidateQueries({ queryKey: ["autonomy-topics", organizationId] })
     },
     onError: () => toast.error("Failed to update max level"),
-  });
+  })
 
-  const topicsCount = topicLevels.length;
+  const topicsCount = topicLevels.length
   const highestLevel = topicLevels.length
     ? Math.max(...topicLevels.map((t: any) => t.current_level ?? 0))
-    : 0;
+    : 0
 
   const chartConfig = {
     count: { label: "Messages", color: "hsl(var(--primary))" },
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -240,16 +259,16 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                   </TableRow>
                 ) : (
                   topicLevels.map((topic: any) => {
-                    const acceptRate = topic.acceptance_rate != null
-                      ? (topic.acceptance_rate * 100)
-                      : null;
-                    const acceptColor = acceptRate == null
-                      ? ""
-                      : acceptRate > 85
-                        ? "text-green-600"
-                        : acceptRate >= 70
-                          ? "text-amber-600"
-                          : "text-red-600";
+                    const acceptRate =
+                      topic.acceptance_rate != null ? topic.acceptance_rate * 100 : null
+                    const acceptColor =
+                      acceptRate == null
+                        ? ""
+                        : acceptRate > 85
+                          ? "text-green-600"
+                          : acceptRate >= 70
+                            ? "text-amber-600"
+                            : "text-red-600"
 
                     return (
                       <TableRow key={topic.id}>
@@ -282,7 +301,11 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={topic.override_max_level != null ? String(topic.override_max_level) : "none"}
+                            value={
+                              topic.override_max_level != null
+                                ? String(topic.override_max_level)
+                                : "none"
+                            }
                             onValueChange={(val) =>
                               updateMaxLevel.mutate({
                                 id: topic.id,
@@ -303,7 +326,7 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                           </Select>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })
                 )}
               </TableBody>
@@ -329,9 +352,24 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                   <XAxis dataKey="label" />
                   <YAxis allowDecimals={false} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <ReferenceLine x="0.6" stroke="hsl(210, 70%, 55%)" strokeDasharray="5 5" label="L1" />
-                  <ReferenceLine x="0.7" stroke="hsl(35, 85%, 55%)" strokeDasharray="5 5" label="L2" />
-                  <ReferenceLine x="0.9" stroke="hsl(140, 60%, 45%)" strokeDasharray="5 5" label="L3" />
+                  <ReferenceLine
+                    x="0.6"
+                    stroke="hsl(210, 70%, 55%)"
+                    strokeDasharray="5 5"
+                    label="L1"
+                  />
+                  <ReferenceLine
+                    x="0.7"
+                    stroke="hsl(35, 85%, 55%)"
+                    strokeDasharray="5 5"
+                    label="L2"
+                  />
+                  <ReferenceLine
+                    x="0.9"
+                    stroke="hsl(140, 60%, 45%)"
+                    strokeDasharray="5 5"
+                    label="L3"
+                  />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {histogramData.map((entry, idx) => (
                       <Cell key={idx} fill={getBucketColor(entry.bucket)} />
@@ -353,11 +391,16 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
           </CardHeader>
           <CardContent>
             {guardrailLogs.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No guardrail triggers</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No guardrail triggers
+              </p>
             ) : (
               <div className="space-y-3 max-h-[260px] overflow-y-auto">
                 {guardrailLogs.map((log: any) => (
-                  <div key={log.id} className="flex items-start gap-3 text-sm border-b pb-2 last:border-0">
+                  <div
+                    key={log.id}
+                    className="flex items-start gap-3 text-sm border-b pb-2 last:border-0"
+                  >
                     <Clock className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -378,5 +421,5 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
         </Card>
       </div>
     </div>
-  );
+  )
 }

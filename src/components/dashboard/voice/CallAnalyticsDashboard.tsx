@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CallMetricsCard } from './CallMetricsCard';
-import { CallVolumeChart } from './CallVolumeChart';
-import { AgentPerformanceTable } from './AgentPerformanceTable';
-import { useCallAnalytics } from '@/hooks/useCallAnalytics';
-import { Button } from '@/components/ui/button';
-import { Download, RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Download, RefreshCw } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/hooks/use-toast"
+import { useCallAnalytics } from "@/hooks/useCallAnalytics"
+import { AgentPerformanceTable } from "./AgentPerformanceTable"
+import { CallMetricsCard } from "./CallMetricsCard"
+import { CallVolumeChart } from "./CallVolumeChart"
 
 interface CallAnalyticsDashboardProps {
-  dateRange?: { from: Date; to: Date };
+  dateRange?: { from: Date; to: Date }
 }
 
 export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProps) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const { toast } = useToast();
-  const { metrics, volumeData, agentStats, isLoading, refetch, periodLengthDays } = useCallAnalytics(dateRange);
+  const [activeTab, setActiveTab] = useState("overview")
+  const { toast } = useToast()
+  const { metrics, volumeData, agentStats, isLoading, refetch, periodLengthDays } =
+    useCallAnalytics(dateRange)
 
   const handleExport = () => {
     toast({
-      title: 'Export started',
-      description: 'Your analytics report will be downloaded shortly.',
-    });
+      title: "Export started",
+      description: "Your analytics report will be downloaded shortly.",
+    })
     // Export logic would go here
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -32,7 +33,7 @@ export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProp
         <h2 className="text-2xl font-bold">Call Analytics</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
@@ -101,5 +102,5 @@ export const CallAnalyticsDashboard = ({ dateRange }: CallAnalyticsDashboardProp
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}

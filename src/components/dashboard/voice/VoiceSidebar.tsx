@@ -1,334 +1,318 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from '@/components/ui/separator';
-import { 
+import {
+  Activity,
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Filter,
+  MessageSquare,
   Phone,
   PhoneCall,
-  PhoneIncoming,
-  Voicemail,
-  Clock,
-  CheckCircle,
   Users,
-  Calendar,
-  Activity,
-  Settings,
-  Filter,
-  AlertCircle,
-  MessageSquare
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useCalls } from '@/hooks/useCalls';
-import { useCallbackRequests } from '@/hooks/useCallbackRequests';
-import { useVoicemails } from '@/hooks/useVoicemails';
+  Voicemail,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { useCallbackRequests } from "@/hooks/useCallbackRequests"
+import { useCalls } from "@/hooks/useCalls"
+import { useVoicemails } from "@/hooks/useVoicemails"
+import { cn } from "@/lib/utils"
 
 interface VoiceSidebarProps {
-  selectedSection: string;
-  onSectionChange: (section: string) => void;
+  selectedSection: string
+  onSectionChange: (section: string) => void
 }
 
-export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({ 
-  selectedSection, 
-  onSectionChange 
-}) => {
+export const VoiceSidebar: React.FC<VoiceSidebarProps> = ({ selectedSection, onSectionChange }) => {
   const [expandedSections, setExpandedSections] = useState({
     callbacks: true,
     voicemails: true,
     calls: true,
-    events: true
-  });
+    events: true,
+  })
 
-  const { activeCalls, calls } = useCalls();
-  const { 
-    pendingRequests, 
-    processedRequests, 
-    completedRequests,
-    callbackRequests 
-  } = useCallbackRequests();
-  const { 
-    voicemails,
-    voicemailsWithRecordings,
-    transcribedVoicemails 
-  } = useVoicemails();
+  const { activeCalls, calls } = useCalls()
+  const { pendingRequests, processedRequests, completedRequests, callbackRequests } =
+    useCallbackRequests()
+  const { voicemails, voicemailsWithRecordings, transcribedVoicemails } = useVoicemails()
 
   // Calculate call counts with proper date filtering
-  const getCallsCountByDate = (dateFilter: 'today' | 'yesterday' | 'all') => {
-    if (dateFilter === 'all') return calls?.length || 0;
-    
-    if (!calls) return 0;
-    
-    return calls.filter(call => {
-      const callDate = new Date(call.started_at);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
+  const getCallsCountByDate = (dateFilter: "today" | "yesterday" | "all") => {
+    if (dateFilter === "all") return calls?.length || 0
+
+    if (!calls) return 0
+
+    return calls.filter((call) => {
+      const callDate = new Date(call.started_at)
+      const today = new Date()
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+
       // Set times to start of day for accurate comparison
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-      const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-      const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() + 1);
-      
-      if (dateFilter === 'today') {
-        return callDate >= todayStart && callDate < todayEnd;
-      } else if (dateFilter === 'yesterday') {
-        return callDate >= yesterdayStart && callDate < yesterdayEnd;
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      const yesterdayStart = new Date(
+        yesterday.getFullYear(),
+        yesterday.getMonth(),
+        yesterday.getDate(),
+      )
+      const yesterdayEnd = new Date(
+        yesterday.getFullYear(),
+        yesterday.getMonth(),
+        yesterday.getDate() + 1,
+      )
+
+      if (dateFilter === "today") {
+        return callDate >= todayStart && callDate < todayEnd
+      } else if (dateFilter === "yesterday") {
+        return callDate >= yesterdayStart && callDate < yesterdayEnd
       }
-      
-      return false;
-    }).length;
-  };
+
+      return false
+    }).length
+  }
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
-    }));
-  };
+      [section]: !prev[section],
+    }))
+  }
 
   const ongoingCallsItems = [
-    { 
-      id: 'ongoing-calls', 
-      label: 'Active Calls', 
-      icon: PhoneCall, 
-      count: activeCalls?.length || 0 
-    }
-  ];
+    {
+      id: "ongoing-calls",
+      label: "Active Calls",
+      icon: PhoneCall,
+      count: activeCalls?.length || 0,
+    },
+  ]
 
   const callbackItems = [
-    { 
-      id: 'callbacks-pending', 
-      label: 'Pending', 
-      icon: AlertCircle, 
+    {
+      id: "callbacks-pending",
+      label: "Pending",
+      icon: AlertCircle,
       count: pendingRequests?.length || 0,
-      color: 'text-orange-500'
+      color: "text-orange-500",
     },
-    { 
-      id: 'callbacks-assigned', 
-      label: 'Assigned', 
-      icon: Users, 
+    {
+      id: "callbacks-assigned",
+      label: "Assigned",
+      icon: Users,
       count: processedRequests?.length || 0,
-      color: 'text-blue-500'
+      color: "text-blue-500",
     },
-    { 
-      id: 'callbacks-closed', 
-      label: 'Closed', 
-      icon: CheckCircle, 
+    {
+      id: "callbacks-closed",
+      label: "Closed",
+      icon: CheckCircle,
       count: completedRequests?.length || 0,
-      color: 'text-green-500'
+      color: "text-green-500",
     },
-    { 
-      id: 'callbacks-all', 
-      label: 'All', 
-      icon: MessageSquare, 
-      count: callbackRequests?.length || 0 
-    }
-  ];
+    {
+      id: "callbacks-all",
+      label: "All",
+      icon: MessageSquare,
+      count: callbackRequests?.length || 0,
+    },
+  ]
 
   const voicemailItems = [
-    { 
-      id: 'voicemails-pending', 
-      label: 'Pending', 
-      icon: AlertCircle, 
-      count: voicemails?.filter(vm => vm.status === 'pending').length || 0,
-      color: 'text-orange-500'
+    {
+      id: "voicemails-pending",
+      label: "Pending",
+      icon: AlertCircle,
+      count: voicemails?.filter((vm) => vm.status === "pending").length || 0,
+      color: "text-orange-500",
     },
-    { 
-      id: 'voicemails-assigned', 
-      label: 'Assigned', 
-      icon: Users, 
-      count: voicemails?.filter(vm => vm.status === 'assigned').length || 0,
-      color: 'text-blue-500'
+    {
+      id: "voicemails-assigned",
+      label: "Assigned",
+      icon: Users,
+      count: voicemails?.filter((vm) => vm.status === "assigned").length || 0,
+      color: "text-blue-500",
     },
-    { 
-      id: 'voicemails-closed', 
-      label: 'Closed', 
-      icon: CheckCircle, 
-      count: voicemails?.filter(vm => vm.status === 'closed').length || 0,
-      color: 'text-green-500'
+    {
+      id: "voicemails-closed",
+      label: "Closed",
+      icon: CheckCircle,
+      count: voicemails?.filter((vm) => vm.status === "closed").length || 0,
+      color: "text-green-500",
     },
-    { 
-      id: 'voicemails-all', 
-      label: 'All', 
-      icon: Voicemail, 
-      count: voicemails?.length || 0 
-    }
-  ];
+    {
+      id: "voicemails-all",
+      label: "All",
+      icon: Voicemail,
+      count: voicemails?.length || 0,
+    },
+  ]
 
   const callsItems = [
-    { 
-      id: 'calls-today', 
-      label: 'Today\'s Calls', 
-      icon: Calendar, 
-      count: getCallsCountByDate('today')
+    {
+      id: "calls-today",
+      label: "Today's Calls",
+      icon: Calendar,
+      count: getCallsCountByDate("today"),
     },
-    { 
-      id: 'calls-yesterday', 
-      label: 'Yesterday\'s Calls', 
-      icon: Clock, 
-      count: getCallsCountByDate('yesterday')
+    {
+      id: "calls-yesterday",
+      label: "Yesterday's Calls",
+      icon: Clock,
+      count: getCallsCountByDate("yesterday"),
     },
-    { 
-      id: 'calls-all', 
-      label: 'All Calls', 
-      icon: Phone, 
-      count: getCallsCountByDate('all')
-    }
-  ];
+    {
+      id: "calls-all",
+      label: "All Calls",
+      icon: Phone,
+      count: getCallsCountByDate("all"),
+    },
+  ]
 
   const eventsItems = [
-    { 
-      id: 'events-log', 
-      label: 'Call Events Log', 
-      icon: Activity, 
-      count: 0 // TODO: Get from call events
-    }
-  ];
+    {
+      id: "events-log",
+      label: "Call Events Log",
+      icon: Activity,
+      count: 0, // TODO: Get from call events
+    },
+  ]
 
   const renderSidebarItems = (items: any[], sectionId: string) => {
     return items.map((item) => {
-      const Icon = item.icon;
-      const isSelected = selectedSection === item.id;
-      const showCount = item.count > 0 && !item.id.includes('-all');
-      
+      const Icon = item.icon
+      const isSelected = selectedSection === item.id
+      const showCount = item.count > 0 && !item.id.includes("-all")
+
       return (
         <Button
           key={item.id}
           variant="ghost"
           className={cn(
             "w-full justify-start px-2 py-2 h-auto font-normal",
-            isSelected ? "bg-inbox-selected text-inbox-unread" : "text-foreground hover:bg-inbox-hover"
+            isSelected
+              ? "bg-inbox-selected text-inbox-unread"
+              : "text-foreground hover:bg-inbox-hover",
           )}
           onClick={() => onSectionChange(item.id)}
         >
           <Icon className={cn("mr-3 h-4 w-4", item.color)} />
           <span className="flex-1 text-left">{item.label}</span>
           {showCount && (
-            <Badge 
-              variant={isSelected ? "default" : "secondary"} 
-              className="ml-auto h-5 text-xs"
-            >
+            <Badge variant={isSelected ? "default" : "secondary"} className="ml-auto h-5 text-xs">
               {item.count}
             </Badge>
           )}
         </Button>
-      );
-    });
-  };
+      )
+    })
+  }
 
   return (
     <div className="pane flex flex-col bg-card/90 backdrop-blur-sm shadow-surface">
       <div className="pane flex-1 min-h-0">
         <div>
-        {/* Ongoing Calls */}
-        <div className="px-2 pt-4">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Ongoing Calls</h3>
-          </div>
-          
-          <div className="space-y-1">
-            {renderSidebarItems(ongoingCallsItems, 'ongoing')}
-          </div>
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* Callback Requests */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Callback Requests</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('callbacks')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          {expandedSections.callbacks && (
-            <div className="space-y-1">
-              {renderSidebarItems(callbackItems, 'callbacks')}
+          {/* Ongoing Calls */}
+          <div className="px-2 pt-4">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Ongoing Calls</h3>
             </div>
-          )}
-        </div>
 
-        <Separator className="my-4" />
-
-        {/* Voicemails */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Voicemails</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('voicemails')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
+            <div className="space-y-1">{renderSidebarItems(ongoingCallsItems, "ongoing")}</div>
           </div>
-          
-          {expandedSections.voicemails && (
-            <div className="space-y-1">
-              {renderSidebarItems(voicemailItems, 'voicemails')}
+
+          <Separator className="my-4" />
+
+          {/* Callback Requests */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Callback Requests</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection("callbacks")}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-        </div>
 
-        <Separator className="my-4" />
-
-        {/* Calls */}
-        <div className="px-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Calls</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('calls')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
+            {expandedSections.callbacks && (
+              <div className="space-y-1">{renderSidebarItems(callbackItems, "callbacks")}</div>
+            )}
           </div>
-          
-          {expandedSections.calls && (
-            <div className="space-y-1">
-              {renderSidebarItems(callsItems, 'calls')}
+
+          <Separator className="my-4" />
+
+          {/* Voicemails */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Voicemails</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection("voicemails")}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-        </div>
 
-        <Separator className="my-4" />
-
-        {/* Events */}
-        <div className="px-2 pb-4">
-          <div className="flex items-center justify-between px-2 py-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Events</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 p-0"
-              onClick={() => toggleSection('events')}
-            >
-              <Filter className="h-3 w-3" />
-            </Button>
+            {expandedSections.voicemails && (
+              <div className="space-y-1">{renderSidebarItems(voicemailItems, "voicemails")}</div>
+            )}
           </div>
-          
-          {expandedSections.events && (
-            <div className="space-y-1">
-              {renderSidebarItems(eventsItems, 'events')}
+
+          <Separator className="my-4" />
+
+          {/* Calls */}
+          <div className="px-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Calls</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection("calls")}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-          
-          <div className="px-2 py-2 text-xs text-muted-foreground italic">
-            Configuration moved to Settings → Admin → Integrations → Voice
+
+            {expandedSections.calls && (
+              <div className="space-y-1">{renderSidebarItems(callsItems, "calls")}</div>
+            )}
           </div>
-        </div>
+
+          <Separator className="my-4" />
+
+          {/* Events */}
+          <div className="px-2 pb-4">
+            <div className="flex items-center justify-between px-2 py-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Events</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => toggleSection("events")}
+              >
+                <Filter className="h-3 w-3" />
+              </Button>
+            </div>
+
+            {expandedSections.events && (
+              <div className="space-y-1">{renderSidebarItems(eventsItems, "events")}</div>
+            )}
+
+            <div className="px-2 py-2 text-xs text-muted-foreground italic">
+              Configuration moved to Settings → Admin → Integrations → Voice
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,155 +1,164 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Separator } from '@/components/ui/separator';
-import { Save, Palette, Bell, Wrench, ShieldAlert } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useTranslation } from 'react-i18next';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { logger } from '@/utils/logger';
-import { useAuditLog } from '@/hooks/useAuditLog';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Bell, Palette, Save, ShieldAlert, Wrench } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { useAuditLog } from "@/hooks/useAuditLog"
+import { useErrorHandler } from "@/hooks/useErrorHandler"
+import { usePermissions } from "@/hooks/usePermissions"
+import { supabase } from "@/integrations/supabase/client"
 
 interface OrganizationWithMetadata {
-  id: string;
-  name: string;
+  id: string
+  name: string
   metadata?: {
-    description?: string;
-  };
+    description?: string
+  }
 }
 
 export const GeneralSettings = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { t } = useTranslation();
-  const { handleError } = useErrorHandler();
-  const { logAction } = useAuditLog();
-  const [orgName, setOrgName] = useState('');
-  const [orgDescription, setOrgDescription] = useState('');
-  const [senderDisplayName, setSenderDisplayName] = useState('');
-const [isBackfillOpen, setIsBackfillOpen] = useState(false);
-const [runningBackfill, setRunningBackfill] = useState(false);
-const { isAdmin } = usePermissions();
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const { handleError } = useErrorHandler()
+  const { logAction } = useAuditLog()
+  const [orgName, setOrgName] = useState("")
+  const [orgDescription, setOrgDescription] = useState("")
+  const [senderDisplayName, setSenderDisplayName] = useState("")
+  const [isBackfillOpen, setIsBackfillOpen] = useState(false)
+  const [runningBackfill, setRunningBackfill] = useState(false)
+  const { isAdmin } = usePermissions()
   // Fetch current organization data
   const { data: organization, isLoading } = useQuery<OrganizationWithMetadata | null>({
-    queryKey: ['organization'],
+    queryKey: ["organization"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as OrganizationWithMetadata | null;
+      const { data, error } = await supabase.from("organizations").select("*").maybeSingle()
+
+      if (error) throw error
+      return data as OrganizationWithMetadata | null
     },
-  });
+  })
 
   // Load organization data into form fields
   useEffect(() => {
     if (organization) {
-      setOrgName(organization.name || '');
+      setOrgName(organization.name || "")
       // Use metadata for description if available
-      const metadata = organization.metadata || {};
-      setOrgDescription(metadata.description || '');
-      setSenderDisplayName((organization as any).sender_display_name || organization.name || '');
+      const metadata = organization.metadata || {}
+      setOrgDescription(metadata.description || "")
+      setSenderDisplayName((organization as any).sender_display_name || organization.name || "")
     }
-  }, [organization]);
+  }, [organization])
 
   // Mutation for updating organization branding
   const updateBrandingMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; sender_display_name: string }) => {
-      const currentMetadata = organization?.metadata || {};
+    mutationFn: async (data: {
+      name: string
+      description: string
+      sender_display_name: string
+    }) => {
+      const currentMetadata = organization?.metadata || {}
       const { error } = await supabase
-        .from('organizations')
+        .from("organizations")
         .update({
           name: data.name,
           sender_display_name: data.sender_display_name,
           metadata: {
             ...currentMetadata,
             description: data.description,
-          }
+          },
         } as any)
-        .eq('id', organization?.id);
-      
-      if (error) throw error;
+        .eq("id", organization?.id)
+
+      if (error) throw error
     },
     onSuccess: async (_, variables) => {
       // Log audit action
       try {
         await logAction(
-          'setting.organization.update',
-          'setting',
-          organization?.id || 'unknown',
-          organization?.name || 'Organization Settings',
+          "setting.organization.update",
+          "setting",
+          organization?.id || "unknown",
+          organization?.name || "Organization Settings",
           {
             name: variables.name,
             description: variables.description,
-            sender_display_name: variables.sender_display_name
+            sender_display_name: variables.sender_display_name,
           },
-          organization?.id
-        );
+          organization?.id,
+        )
       } catch (error) {
-        console.error('Failed to log audit action:', error);
+        console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ['organization'] });
+      queryClient.invalidateQueries({ queryKey: ["organization"] })
       toast({
         title: "Settings saved",
         description: "Organization branding has been updated successfully.",
-      });
+      })
     },
     onError: (error) => {
       handleError(error, {
         title: "Error",
         fallbackMessage: "Failed to save branding settings. Please try again.",
-        component: 'GeneralSettings'
-      });
+        component: "GeneralSettings",
+      })
     },
-  });
-
+  })
 
   const handleSaveBranding = () => {
     updateBrandingMutation.mutate({
       name: orgName,
       description: orgDescription,
       sender_display_name: senderDisplayName,
-    });
-  };
+    })
+  }
 
   const handleRunBackfill = async () => {
-    setRunningBackfill(true);
+    setRunningBackfill(true)
     toast({
-      title: 'Backfill started',
-      description: 'Fixing sender mapping on recent email conversations...'
-    });
+      title: "Backfill started",
+      description: "Fixing sender mapping on recent email conversations...",
+    })
     try {
-      const { data, error } = await supabase.functions.invoke('backfill-sender-fix', {
+      const { data, error } = await supabase.functions.invoke("backfill-sender-fix", {
         body: { limitConversations: 1000, sinceDays: 365, dryRun: false },
-      });
-      if (error) throw error;
-      const { processed = 0, updated = 0, skipped = 0 } = (data as any) || {};
+      })
+      if (error) throw error
+      const { processed = 0, updated = 0, skipped = 0 } = (data as any) || {}
       toast({
-        title: 'Backfill completed',
-        description: `Processed ${processed}, updated ${updated}, skipped ${skipped}.`
-      });
+        title: "Backfill completed",
+        description: `Processed ${processed}, updated ${updated}, skipped ${skipped}.`,
+      })
     } catch (error: any) {
       handleError(error, {
-        title: 'Backfill failed',
-        fallbackMessage: error?.message || 'Please check edge function logs.',
-        component: 'GeneralSettings'
-      });
+        title: "Backfill failed",
+        fallbackMessage: error?.message || "Please check edge function logs.",
+        component: "GeneralSettings",
+      })
     } finally {
-      setRunningBackfill(false);
-      setIsBackfillOpen(false);
+      setRunningBackfill(false)
+      setIsBackfillOpen(false)
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -157,28 +166,26 @@ const { isAdmin } = usePermissions();
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Palette className="w-5 h-5" />
-            {t('admin.organizationBranding')}
+            {t("admin.organizationBranding")}
           </CardTitle>
-          <CardDescription>
-            {t('admin.customizeAppearance')}
-          </CardDescription>
+          <CardDescription>{t("admin.customizeAppearance")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="org-name">{t('admin.organizationName')}</Label>
-            <Input 
-              id="org-name" 
-              placeholder={t('admin.enterOrgName')} 
+            <Label htmlFor="org-name">{t("admin.organizationName")}</Label>
+            <Input
+              id="org-name"
+              placeholder={t("admin.enterOrgName")}
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
             />
           </div>
-          
+
           <div className="space-y-2">
-            <Label htmlFor="org-description">{t('admin.description')}</Label>
-            <Textarea 
-              id="org-description" 
-              placeholder={t('admin.orgDescription')}
+            <Label htmlFor="org-description">{t("admin.description")}</Label>
+            <Textarea
+              id="org-description"
+              placeholder={t("admin.orgDescription")}
               value={orgDescription}
               onChange={(e) => setOrgDescription(e.target.value)}
             />
@@ -186,15 +193,15 @@ const { isAdmin } = usePermissions();
 
           <div className="space-y-2">
             <Label htmlFor="sender-display-name">Default Sender Display Name</Label>
-            <Input 
-              id="sender-display-name" 
+            <Input
+              id="sender-display-name"
               placeholder="e.g., Noddi, Noddi Support"
               value={senderDisplayName}
               onChange={(e) => setSenderDisplayName(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              The name that appears in the "From" field when sending emails. 
-              This will be used by default for all inboxes unless overridden.
+              The name that appears in the "From" field when sending emails. This will be used by
+              default for all inboxes unless overridden.
               <br />
               <span className="font-medium mt-1 inline-block">
                 Preview: {senderDisplayName || orgName} &lt;email@example.com&gt;
@@ -202,13 +209,13 @@ const { isAdmin } = usePermissions();
             </p>
           </div>
 
-          <Button 
-            className="flex items-center gap-2 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow" 
+          <Button
+            className="flex items-center gap-2 bg-gradient-primary hover:bg-primary-hover text-primary-foreground shadow-glow"
             onClick={handleSaveBranding}
             disabled={updateBrandingMutation.isPending || isLoading}
           >
             <Save className="w-4 h-4" />
-            {updateBrandingMutation.isPending ? t('admin.saving') : t('admin.saveBranding')}
+            {updateBrandingMutation.isPending ? t("admin.saving") : t("admin.saveBranding")}
           </Button>
         </CardContent>
       </Card>
@@ -217,17 +224,15 @@ const { isAdmin } = usePermissions();
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Bell className="w-5 h-5" />
-            {t('admin.notificationSettings')}
+            {t("admin.notificationSettings")}
           </CardTitle>
-          <CardDescription>
-            {t('admin.configureNotifications')}
-          </CardDescription>
+          <CardDescription>{t("admin.configureNotifications")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">{t('admin.emailNotifications')}</Label>
-              <p className="text-xs text-muted-foreground">{t('admin.sendEmailAlerts')}</p>
+              <Label className="text-sm font-medium">{t("admin.emailNotifications")}</Label>
+              <p className="text-xs text-muted-foreground">{t("admin.sendEmailAlerts")}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -236,8 +241,8 @@ const { isAdmin } = usePermissions();
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">{t('admin.autoAssignment')}</Label>
-              <p className="text-xs text-muted-foreground">{t('admin.automaticallyAssign')}</p>
+              <Label className="text-sm font-medium">{t("admin.autoAssignment")}</Label>
+              <p className="text-xs text-muted-foreground">{t("admin.automaticallyAssign")}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -246,8 +251,8 @@ const { isAdmin } = usePermissions();
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">{t('admin.responseTemplates')}</Label>
-              <p className="text-xs text-muted-foreground">{t('admin.enableSuggested')}</p>
+              <Label className="text-sm font-medium">{t("admin.responseTemplates")}</Label>
+              <p className="text-xs text-muted-foreground">{t("admin.enableSuggested")}</p>
             </div>
             <Switch defaultChecked />
           </div>
@@ -259,34 +264,30 @@ const { isAdmin } = usePermissions();
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-primary">
               <Wrench className="w-5 h-5" />
-              {t('admin.dataMaintenance')}
+              {t("admin.dataMaintenance")}
             </CardTitle>
-            <CardDescription>
-              {t('admin.fixSenderMapping')}
-            </CardDescription>
+            <CardDescription>{t("admin.fixSenderMapping")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t('admin.scanRecent')}
-            </p>
+            <p className="text-sm text-muted-foreground">{t("admin.scanRecent")}</p>
             <AlertDialog open={isBackfillOpen} onOpenChange={setIsBackfillOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" disabled={runningBackfill}>
                   <ShieldAlert className="w-4 h-4" />
-                  {runningBackfill ? t('admin.running') : t('admin.runSenderBackfill')}
+                  {runningBackfill ? t("admin.running") : t("admin.runSenderBackfill")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>{t('admin.runSenderBackfillTitle')}</AlertDialogTitle>
+                  <AlertDialogTitle>{t("admin.runSenderBackfillTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('admin.runSenderBackfillDescription')}
+                    {t("admin.runSenderBackfillDescription")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                   <AlertDialogAction onClick={handleRunBackfill}>
-                    {t('admin.confirm')}
+                    {t("admin.confirm")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -295,5 +296,5 @@ const { isAdmin } = usePermissions();
         </Card>
       )}
     </div>
-  );
-};
+  )
+}

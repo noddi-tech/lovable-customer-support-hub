@@ -1,43 +1,37 @@
-import { useMemo, useState } from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { MarkdownView } from '@/components/docs/MarkdownView';
+import { BookOpen, ChevronRight, FileText, PanelLeft, Plug, Search } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Link, Navigate, useParams } from "react-router-dom"
+import { MarkdownView } from "@/components/docs/MarkdownView"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import {
-  DOC_SECTIONS,
   DEFAULT_DOC_SLUG,
+  DOC_SECTIONS,
+  type DocEntry,
   findDoc,
   searchDocs,
-  type DocEntry,
-} from '@/lib/docs-registry';
-import { BookOpen, Search, PanelLeft, FileText, Plug, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/lib/docs-registry"
+import { cn } from "@/lib/utils"
 
-function DocsNav({
-  activeSlug,
-  onNavigate,
-}: {
-  activeSlug: string;
-  onNavigate?: () => void;
-}) {
-  const [query, setQuery] = useState('');
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+function DocsNav({ activeSlug, onNavigate }: { activeSlug: string; onNavigate?: () => void }) {
+  const [query, setQuery] = useState("")
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   const sections = useMemo(() => {
-    if (query.trim().length < 2) return DOC_SECTIONS;
-    const matches = new Set(searchDocs(query).map((d) => d.slug));
+    if (query.trim().length < 2) return DOC_SECTIONS
+    const matches = new Set(searchDocs(query).map((d) => d.slug))
     return DOC_SECTIONS.map((s) => ({
       section: s.section,
       docs: s.docs.filter((d) => matches.has(d.slug)),
-    })).filter((s) => s.docs.length > 0);
-  }, [query]);
+    })).filter((s) => s.docs.length > 0)
+  }, [query])
 
-  const searching = query.trim().length >= 2;
+  const searching = query.trim().length >= 2
 
   return (
     <div className="flex h-full flex-col">
@@ -58,8 +52,8 @@ function DocsNav({
             <p className="px-1 text-sm text-muted-foreground">No documents match that search.</p>
           )}
           {sections.map(({ section, docs }) => {
-            const hasActive = docs.some((d) => d.slug === activeSlug);
-            const isOpen = searching || hasActive || !collapsed[section];
+            const hasActive = docs.some((d) => d.slug === activeSlug)
+            const isOpen = searching || hasActive || !collapsed[section]
             return (
               <div key={section} className="pb-1">
                 <button
@@ -69,7 +63,7 @@ function DocsNav({
                   className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
                 >
                   <ChevronRight
-                    className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-90')}
+                    className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-90")}
                   />
                   <span className="truncate">{section}</span>
                   <span className="ml-auto tabular-nums opacity-60">{docs.length}</span>
@@ -82,10 +76,10 @@ function DocsNav({
                           to={`/docs/${doc.slug}`}
                           onClick={onNavigate}
                           className={cn(
-                            'block truncate rounded-md px-2 py-1.5 text-sm transition-colors',
+                            "block truncate rounded-md px-2 py-1.5 text-sm transition-colors",
                             doc.slug === activeSlug
-                              ? 'bg-accent font-medium text-accent-foreground'
-                              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                              ? "bg-accent font-medium text-accent-foreground"
+                              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                           )}
                           title={doc.title}
                         >
@@ -96,25 +90,24 @@ function DocsNav({
                   </ul>
                 )}
               </div>
-            );
+            )
           })}
         </nav>
       </ScrollArea>
     </div>
-  );
+  )
 }
 
-
 export default function DocsPage() {
-  const params = useParams();
-  const slug = (params['*'] || '').replace(/^\/+|\/+$/g, '');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const params = useParams()
+  const slug = (params["*"] || "").replace(/^\/+|\/+$/g, "")
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   if (!slug) {
-    return <Navigate to={`/docs/${DEFAULT_DOC_SLUG}`} replace />;
+    return <Navigate to={`/docs/${DEFAULT_DOC_SLUG}`} replace />
   }
 
-  const doc = findDoc(slug);
+  const doc = findDoc(slug)
 
   return (
     <UnifiedAppLayout>
@@ -175,7 +168,8 @@ export default function DocsPage() {
                 <div className="py-16 text-center">
                   <p className="text-sm font-medium">Document not found</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    There is no file at <code className="rounded bg-muted px-1">docs/{slug}.md</code>.
+                    There is no file at{" "}
+                    <code className="rounded bg-muted px-1">docs/{slug}.md</code>.
                   </p>
                   <Button asChild variant="outline" size="sm" className="mt-4">
                     <Link to={`/docs/${DEFAULT_DOC_SLUG}`}>Back to the index</Link>
@@ -187,5 +181,5 @@ export default function DocsPage() {
         </div>
       </div>
     </UnifiedAppLayout>
-  );
+  )
 }

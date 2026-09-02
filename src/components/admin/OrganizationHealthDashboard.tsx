@@ -1,109 +1,138 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useRealtimeConnection } from "@/contexts/RealtimeProvider";
-import { Activity, Mail, CheckCircle, XCircle, AlertCircle, RefreshCw, Wifi, WifiOff } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query"
+import { formatDistanceToNow } from "date-fns"
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Mail,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  XCircle,
+} from "lucide-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRealtimeConnection } from "@/contexts/RealtimeProvider"
+import { supabase } from "@/integrations/supabase/client"
 
 export function OrganizationHealthDashboard() {
-  const { connectionStatus } = useRealtimeConnection();
+  const { connectionStatus } = useRealtimeConnection()
 
   // Fetch email ingestion stats
-  const { data: emailStats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
-    queryKey: ['org-email-stats'],
+  const {
+    data: emailStats,
+    isLoading: statsLoading,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ["org-email-stats"],
     queryFn: async () => {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const now = new Date()
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
       // Get today's count
       const { count: todayCount } = await supabase
-        .from('email_ingestion_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', todayStart.toISOString())
-        .eq('status', 'processed');
+        .from("email_ingestion_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", todayStart.toISOString())
+        .eq("status", "processed")
 
       // Get 7-day count
       const { count: weekCount } = await supabase
-        .from('email_ingestion_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', weekAgo.toISOString())
-        .eq('status', 'processed');
+        .from("email_ingestion_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", weekAgo.toISOString())
+        .eq("status", "processed")
 
       // Get failure count (7 days)
       const { count: failureCount } = await supabase
-        .from('email_ingestion_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', weekAgo.toISOString())
-        .neq('status', 'processed');
+        .from("email_ingestion_logs")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", weekAgo.toISOString())
+        .neq("status", "processed")
 
       // Get last email
       const { data: lastEmail } = await supabase
-        .from('email_ingestion_logs')
-        .select('created_at, from_email, subject, status')
-        .eq('status', 'processed')
-        .order('created_at', { ascending: false })
+        .from("email_ingestion_logs")
+        .select("created_at, from_email, subject, status")
+        .eq("status", "processed")
+        .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .single()
 
       return {
         todayCount: todayCount || 0,
         weekCount: weekCount || 0,
         failureCount: failureCount || 0,
-        lastEmail
-      };
+        lastEmail,
+      }
     },
-    refetchInterval: 60000 // Refresh every minute
-  });
+    refetchInterval: 60000, // Refresh every minute
+  })
 
   // Fetch recent activity
-  const { data: recentActivity, isLoading: activityLoading, refetch: refetchActivity } = useQuery({
-    queryKey: ['org-recent-activity'],
+  const {
+    data: recentActivity,
+    isLoading: activityLoading,
+    refetch: refetchActivity,
+  } = useQuery({
+    queryKey: ["org-recent-activity"],
     queryFn: async () => {
       const { data } = await supabase
-        .from('email_ingestion_logs')
-        .select('id, created_at, from_email, subject, status, error_message')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .from("email_ingestion_logs")
+        .select("id, created_at, from_email, subject, status, error_message")
+        .order("created_at", { ascending: false })
+        .limit(5)
 
-      return data || [];
+      return data || []
     },
-    refetchInterval: 10000 // Refresh every 10 seconds
-  });
+    refetchInterval: 10000, // Refresh every 10 seconds
+  })
 
   const handleRefresh = () => {
-    refetchStats();
-    refetchActivity();
-    toast.success("Data refreshed");
-  };
+    refetchStats()
+    refetchActivity()
+    toast.success("Data refreshed")
+  }
 
   const getConnectionStatusColor = () => {
     switch (connectionStatus) {
-      case 'connected': return 'bg-green-500';
-      case 'connecting': return 'bg-yellow-500';
-      case 'disconnected': 
-      case 'error': return 'bg-red-500';
-      default: return 'bg-muted';
+      case "connected":
+        return "bg-green-500"
+      case "connecting":
+        return "bg-yellow-500"
+      case "disconnected":
+      case "error":
+        return "bg-red-500"
+      default:
+        return "bg-muted"
     }
-  };
+  }
 
   const getConnectionStatusText = () => {
     switch (connectionStatus) {
-      case 'connected': return 'Connected';
-      case 'connecting': return 'Connecting...';
-      case 'disconnected': return 'Disconnected';
-      case 'error': return 'Connection Error';
-      default: return 'Unknown';
+      case "connected":
+        return "Connected"
+      case "connecting":
+        return "Connecting..."
+      case "disconnected":
+        return "Disconnected"
+      case "error":
+        return "Connection Error"
+      default:
+        return "Unknown"
     }
-  };
+  }
 
   // Calculate success rate with proper rounding
-  const successRate = emailStats?.weekCount 
-    ? (100 - (emailStats.failureCount / (emailStats.weekCount + emailStats.failureCount)) * 100).toFixed(1)
-    : '100';
+  const successRate = emailStats?.weekCount
+    ? (
+        100 -
+        (emailStats.failureCount / (emailStats.weekCount + emailStats.failureCount)) * 100
+      ).toFixed(1)
+    : "100"
 
   return (
     <div className="space-y-6">
@@ -127,7 +156,7 @@ export function OrganizationHealthDashboard() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              {connectionStatus === 'connected' ? (
+              {connectionStatus === "connected" ? (
                 <Wifi className="h-4 w-4 text-green-500" />
               ) : (
                 <WifiOff className="h-4 w-4 text-red-500" />
@@ -140,10 +169,8 @@ export function OrganizationHealthDashboard() {
               <div className={`h-2 w-2 rounded-full ${getConnectionStatusColor()}`} />
               <span className="text-lg font-semibold">{getConnectionStatusText()}</span>
             </div>
-            {connectionStatus !== 'connected' && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Emails still arrive via webhook
-              </p>
+            {connectionStatus !== "connected" && (
+              <p className="text-xs text-muted-foreground mt-1">Emails still arrive via webhook</p>
             )}
           </CardContent>
         </Card>
@@ -162,7 +189,9 @@ export function OrganizationHealthDashboard() {
             ) : emailStats?.lastEmail ? (
               <>
                 <span className="text-lg font-semibold">
-                  {formatDistanceToNow(new Date(emailStats.lastEmail.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(emailStats.lastEmail.created_at), {
+                    addSuffix: true,
+                  })}
                 </span>
                 <p className="text-xs text-muted-foreground truncate mt-1">
                   {emailStats.lastEmail.from_email}
@@ -226,33 +255,36 @@ export function OrganizationHealthDashboard() {
         <CardContent>
           {activityLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-12 bg-muted animate-pulse rounded" />
               ))}
             </div>
           ) : recentActivity && recentActivity.length > 0 ? (
             <div className="space-y-3">
               {recentActivity.map((log) => (
-                <div key={log.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between py-2 border-b last:border-0"
+                >
                   <div className="flex items-center gap-3 min-w-0">
-                    {log.status === 'processed' ? (
+                    {log.status === "processed" ? (
                       <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    ) : log.status === 'failed' ? (
+                    ) : log.status === "failed" ? (
                       <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {log.from_email || 'Unknown sender'}
+                        {log.from_email || "Unknown sender"}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {log.subject || 'No subject'}
+                        {log.subject || "No subject"}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge variant={log.status === 'processed' ? 'default' : 'destructive'}>
+                    <Badge variant={log.status === "processed" ? "default" : "destructive"}>
                       {log.status}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
@@ -271,7 +303,7 @@ export function OrganizationHealthDashboard() {
       </Card>
 
       {/* Troubleshooting Tips */}
-      {(connectionStatus !== 'connected' || (emailStats?.failureCount || 0) > 0) && (
+      {(connectionStatus !== "connected" || (emailStats?.failureCount || 0) > 0) && (
         <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -280,15 +312,21 @@ export function OrganizationHealthDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
-            {connectionStatus !== 'connected' && (
-              <p>• <strong>Real-time updates:</strong> Connection will auto-retry. Emails still arrive via webhook.</p>
+            {connectionStatus !== "connected" && (
+              <p>
+                • <strong>Real-time updates:</strong> Connection will auto-retry. Emails still
+                arrive via webhook.
+              </p>
             )}
             {(emailStats?.failureCount || 0) > 0 && (
-              <p>• <strong>Failed emails:</strong> Check Super Admin → Email Health for detailed error logs.</p>
+              <p>
+                • <strong>Failed emails:</strong> Check Super Admin → Email Health for detailed
+                error logs.
+              </p>
             )}
           </CardContent>
         </Card>
       )}
     </div>
-  );
+  )
 }

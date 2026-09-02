@@ -1,11 +1,11 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { MessageSquare, Send } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { MessageSquare, Send } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
 export const MessagingSettings = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   return (
     <div className="space-y-6">
@@ -68,9 +68,7 @@ export const MessagingSettings = () => {
             <Send className="w-5 h-5" />
             SMS & Text Messaging
           </CardTitle>
-          <CardDescription>
-            Configure SMS providers for text message communication
-          </CardDescription>
+          <CardDescription>Configure SMS providers for text message communication</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
@@ -80,5 +78,5 @@ export const MessagingSettings = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

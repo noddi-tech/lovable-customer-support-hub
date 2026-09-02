@@ -1,21 +1,21 @@
-import { useState, useMemo } from 'react';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CallTableRow } from './CallTableRow';
-import { Checkbox } from '@/components/ui/checkbox';
-import { TableHeaderCell } from '@/components/dashboard/conversation-list/TableHeaderCell';
-import { Phone } from 'lucide-react';
-import { sortByString, sortByDate, sortByNumber } from '@/utils/tableSorting';
+import { Phone } from "lucide-react"
+import { useMemo, useState } from "react"
+import { TableHeaderCell } from "@/components/dashboard/conversation-list/TableHeaderCell"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { sortByDate, sortByNumber, sortByString } from "@/utils/tableSorting"
+import { CallTableRow } from "./CallTableRow"
 
 interface CallsTableProps {
-  calls: any[];
-  onCallClick: (call: any) => void;
-  selectedCallId?: string;
-  onRemoveCall?: (callId: string) => void;
-  onNavigateToEvents?: (callId: string) => void;
-  bulkSelectedIds?: Set<string>;
-  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void;
-  onSelectAll?: (checked: boolean) => void;
-  allBulkSelected?: boolean;
+  calls: any[]
+  onCallClick: (call: any) => void
+  selectedCallId?: string
+  onRemoveCall?: (callId: string) => void
+  onNavigateToEvents?: (callId: string) => void
+  bulkSelectedIds?: Set<string>
+  onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void
+  onSelectAll?: (checked: boolean) => void
+  allBulkSelected?: boolean
 }
 
 export function CallsTable({
@@ -29,46 +29,51 @@ export function CallsTable({
   onSelectAll,
   allBulkSelected = false,
 }: CallsTableProps) {
-  const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' | null }>({
-    key: '',
+  const [sortState, setSortState] = useState<{ key: string; direction: "asc" | "desc" | null }>({
+    key: "",
     direction: null,
-  });
+  })
 
   const handleSort = (key: string) => {
-    setSortState(prev => ({
+    setSortState((prev) => ({
       key,
-      direction: prev.key === key 
-        ? prev.direction === 'asc' ? 'desc' : prev.direction === 'desc' ? null : 'asc'
-        : 'asc'
-    }));
-  };
+      direction:
+        prev.key === key
+          ? prev.direction === "asc"
+            ? "desc"
+            : prev.direction === "desc"
+              ? null
+              : "asc"
+          : "asc",
+    }))
+  }
 
   const sortedCalls = useMemo(() => {
-    if (!sortState.direction) return calls;
+    if (!sortState.direction) return calls
 
     const sorted = [...calls].sort((a, b) => {
       switch (sortState.key) {
-        case 'phone':
-          return sortByString(a.customer_phone, b.customer_phone, sortState.direction);
-        case 'customer':
-          return sortByString(a.customers?.full_name, b.customers?.full_name, sortState.direction);
-        case 'status':
-          return sortByString(a.status, b.status, sortState.direction);
-        case 'direction':
-          return sortByString(a.direction, b.direction, sortState.direction);
-        case 'duration':
-          return sortByNumber(a.duration_seconds, b.duration_seconds, sortState.direction);
-        case 'time':
-          return sortByDate(a.started_at, b.started_at, sortState.direction);
-        case 'end_reason':
-          return sortByString(a.end_reason, b.end_reason, sortState.direction);
+        case "phone":
+          return sortByString(a.customer_phone, b.customer_phone, sortState.direction)
+        case "customer":
+          return sortByString(a.customers?.full_name, b.customers?.full_name, sortState.direction)
+        case "status":
+          return sortByString(a.status, b.status, sortState.direction)
+        case "direction":
+          return sortByString(a.direction, b.direction, sortState.direction)
+        case "duration":
+          return sortByNumber(a.duration_seconds, b.duration_seconds, sortState.direction)
+        case "time":
+          return sortByDate(a.started_at, b.started_at, sortState.direction)
+        case "end_reason":
+          return sortByString(a.end_reason, b.end_reason, sortState.direction)
         default:
-          return 0;
+          return 0
       }
-    });
+    })
 
-    return sorted;
-  }, [calls, sortState]);
+    return sorted
+  }, [calls, sortState])
 
   if (calls.length === 0) {
     return (
@@ -79,7 +84,7 @@ export function CallsTable({
           <p className="text-sm text-muted-foreground">Call history will appear here</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -172,5 +177,5 @@ export function CallsTable({
         </TableBody>
       </Table>
     </div>
-  );
+  )
 }

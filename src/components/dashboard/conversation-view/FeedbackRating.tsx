@@ -1,52 +1,52 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Star } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 interface FeedbackRatingProps {
-  messageId: string;
-  onSubmit?: () => void;
+  messageId: string
+  onSubmit?: () => void
 }
 
 export function FeedbackRating({ messageId, onSubmit }: FeedbackRatingProps) {
-  const [rating, setRating] = useState<number | null>(null);
-  const [comment, setComment] = useState("");
-  const [hoveredRating, setHoveredRating] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
+  const [rating, setRating] = useState<number | null>(null)
+  const [comment, setComment] = useState("")
+  const [hoveredRating, setHoveredRating] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const { toast } = useToast()
 
   const handleSubmit = async () => {
-    if (!rating) return;
+    if (!rating) return
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
-      const { error } = await supabase.functions.invoke('submit-feedback', {
-        body: { messageId, rating, comment: comment || null }
-      });
+      const { error } = await supabase.functions.invoke("submit-feedback", {
+        body: { messageId, rating, comment: comment || null },
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       toast({
         title: "Feedback submitted",
         description: "Thank you for helping improve our AI suggestions!",
-      });
+      })
 
-      setIsSubmitted(true);
-      onSubmit?.();
+      setIsSubmitted(true)
+      onSubmit?.()
     } catch (error) {
-      console.error('Feedback submission error:', error);
+      console.error("Feedback submission error:", error)
       toast({
         title: "Failed to submit feedback",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   if (isSubmitted) {
     return (
@@ -54,13 +54,13 @@ export function FeedbackRating({ messageId, onSubmit }: FeedbackRatingProps) {
         <Star className="w-4 h-4 fill-primary text-primary" />
         Thank you for your feedback!
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
       <p className="text-sm font-medium">Rate this AI suggestion</p>
-      
+
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -74,8 +74,8 @@ export function FeedbackRating({ messageId, onSubmit }: FeedbackRatingProps) {
             <Star
               className={`w-6 h-6 ${
                 (hoveredRating !== null ? star <= hoveredRating : star <= (rating || 0))
-                  ? 'fill-primary text-primary'
-                  : 'text-muted-foreground'
+                  ? "fill-primary text-primary"
+                  : "text-muted-foreground"
               }`}
             />
           </button>
@@ -90,15 +90,11 @@ export function FeedbackRating({ messageId, onSubmit }: FeedbackRatingProps) {
             onChange={(e) => setComment(e.target.value)}
             className="min-h-[60px]"
           />
-          <Button
-            size="sm"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+          <Button size="sm" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit Feedback"}
           </Button>
         </>
       )}
     </div>
-  );
+  )
 }

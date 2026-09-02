@@ -1,26 +1,25 @@
-import { useTemplateUsageStats } from './useTemplateUsageStats';
-import { Card } from '@/components/ui/card';
-import { formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
+import { Card } from "@/components/ui/card"
+import { useTemplateUsageStats } from "./useTemplateUsageStats"
 
 interface Props {
-  templateId: string | null;
+  templateId: string | null
 }
 
 export function EmailTemplateUsageStats({ templateId }: Props) {
-  const { data, isLoading } = useTemplateUsageStats(templateId);
+  const { data, isLoading } = useTemplateUsageStats(templateId)
 
-  const fallback = !templateId || isLoading || data === null;
+  const fallback = !templateId || isLoading || data === null
 
-  const sentLabel = fallback ? '—' : String(data?.sentCount ?? 0);
-  const openedCount = fallback ? '—' : String(data?.openedCount ?? 0);
-  const openedPct =
-    fallback || data?.openRatePercent == null ? '' : ` (${data.openRatePercent}%)`;
+  const sentLabel = fallback ? "—" : String(data?.sentCount ?? 0)
+  const openedCount = fallback ? "—" : String(data?.openedCount ?? 0)
+  const openedPct = fallback || data?.openRatePercent == null ? "" : ` (${data.openRatePercent}%)`
   const lastUsedLabel = fallback
-    ? '—'
+    ? "—"
     : data?.lastUsedAt
       ? formatDistanceToNow(new Date(data.lastUsedAt), { addSuffix: true, locale: nb })
-      : 'Aldri';
+      : "Aldri"
 
   return (
     <Card className="px-3 py-2.5 bg-muted/30">
@@ -35,7 +34,7 @@ export function EmailTemplateUsageStats({ templateId }: Props) {
         )}
       </div>
     </Card>
-  );
+  )
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -44,5 +43,5 @@ function Stat({ label, value }: { label: string; value: string }) {
       <span className="text-muted-foreground">{label}:</span>
       <span className="font-medium tabular-nums">{value}</span>
     </div>
-  );
+  )
 }

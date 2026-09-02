@@ -1,65 +1,65 @@
-import { useState } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { useJobPositions } from "@/components/dashboard/recruitment/positions/usePositions"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useFormPositionMappings } from '../hooks/useFormPositionMappings';
-import { useJobPositions } from '@/components/dashboard/recruitment/positions/usePositions';
-import type { MetaIntegration } from '../types';
+} from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
+import { useFormPositionMappings } from "../hooks/useFormPositionMappings"
+import type { MetaIntegration } from "../types"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  integration: MetaIntegration | null;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  integration: MetaIntegration | null
 }
 
 export function MetaFormMappingDialog({ open, onOpenChange, integration }: Props) {
-  const { toast } = useToast();
+  const { toast } = useToast()
   const { mappings, createMapping, updateMapping, deleteMapping } = useFormPositionMappings(
     integration?.id ?? null,
-  );
-  const { data: positions } = useJobPositions();
-  const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+  )
+  const { data: positions } = useJobPositions()
+  const openPositions = (positions ?? []).filter((p) => p.status === "open")
 
-  const [newFormId, setNewFormId] = useState('');
-  const [newFormName, setNewFormName] = useState('');
-  const [newPositionId, setNewPositionId] = useState<string>('');
+  const [newFormId, setNewFormId] = useState("")
+  const [newFormName, setNewFormName] = useState("")
+  const [newPositionId, setNewPositionId] = useState<string>("")
 
   const handleAdd = async () => {
     if (!newFormId.trim()) {
-      toast({ title: 'Form ID er påkrevd', variant: 'destructive' });
-      return;
+      toast({ title: "Form ID er påkrevd", variant: "destructive" })
+      return
     }
     try {
       await createMapping.mutateAsync({
         form_id: newFormId.trim(),
         form_name: newFormName.trim() || null,
         position_id: newPositionId || null,
-      });
-      setNewFormId('');
-      setNewFormName('');
-      setNewPositionId('');
-      toast({ title: 'Skjema lagt til' });
+      })
+      setNewFormId("")
+      setNewFormName("")
+      setNewPositionId("")
+      toast({ title: "Skjema lagt til" })
     } catch (e: any) {
-      toast({ title: 'Kunne ikke legge til', description: e?.message, variant: 'destructive' });
+      toast({ title: "Kunne ikke legge til", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -67,7 +67,8 @@ export function MetaFormMappingDialog({ open, onOpenChange, integration }: Props
         <SheetHeader>
           <SheetTitle>Administrer Meta-skjemaer</SheetTitle>
           <SheetDescription>
-            Map Meta Lead Ad-skjema-IDer til stillinger. Innkommende leads opprettes som søkere på riktig stilling.
+            Map Meta Lead Ad-skjema-IDer til stillinger. Innkommende leads opprettes som søkere på
+            riktig stilling.
           </SheetDescription>
         </SheetHeader>
 
@@ -86,7 +87,7 @@ export function MetaFormMappingDialog({ open, onOpenChange, integration }: Props
                       <div className="space-y-1">
                         <Label className="text-xs">Form name</Label>
                         <Input
-                          value={m.form_name ?? ''}
+                          value={m.form_name ?? ""}
                           placeholder="(uten navn)"
                           onChange={(e) =>
                             updateMapping.mutate({ id: m.id, form_name: e.target.value || null })
@@ -101,7 +102,7 @@ export function MetaFormMappingDialog({ open, onOpenChange, integration }: Props
                     <div className="space-y-1">
                       <Label className="text-xs">Stilling</Label>
                       <Select
-                        value={m.position_id ?? ''}
+                        value={m.position_id ?? ""}
                         onValueChange={(v) =>
                           updateMapping.mutate({ id: m.id, position_id: v || null })
                         }
@@ -185,5 +186,5 @@ export function MetaFormMappingDialog({ open, onOpenChange, integration }: Props
         </div>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

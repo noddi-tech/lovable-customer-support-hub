@@ -1,477 +1,517 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useIsMobile } from '@/hooks/use-responsive';
-import { MentionTextarea } from '@/components/ui/mention-textarea';
-import { useMentionNotifications } from '@/hooks/useMentionNotifications';
-import { noteDebug } from '@/utils/noteInteractionDebug';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Send, Loader2, MessageSquareX, UserRoundPlus, Smile, Paperclip, Mic, Image, X, Languages, StickyNote, Sparkles, Eye, Database } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useConversationView } from '@/contexts/ConversationViewContext';
-import { AiSuggestionsSheet } from '@/components/dashboard/conversation-view/AiSuggestionsSheet';
-import { FeedbackPrompt } from '@/components/dashboard/conversation-view/FeedbackPrompt';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { useAgentTyping } from '@/hooks/useAgentTyping';
-import { useAgents } from '@/hooks/useAgents';
-import { useChatSessionTransfer } from '@/hooks/useChatSessionTransfer';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { EmojiPicker } from '@/components/ui/emoji-picker';
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  Database,
+  Languages,
+  Loader2,
+  MessageSquareX,
+  Mic,
+  Paperclip,
+  Send,
+  Smile,
+  Sparkles,
+  StickyNote,
+  UserRoundPlus,
+  X,
+} from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import { AiSuggestionsSheet } from "@/components/dashboard/conversation-view/AiSuggestionsSheet"
+import { FeedbackPrompt } from "@/components/dashboard/conversation-view/FeedbackPrompt"
+import { Button } from "@/components/ui/button"
+import { DescribedSelectItem } from "@/components/ui/described-select-item"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog"
+import { EmojiPicker } from "@/components/ui/emoji-picker"
+import { Label } from "@/components/ui/label"
+import { MentionTextarea } from "@/components/ui/mention-textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { DescribedSelectItem } from '@/components/ui/described-select-item';
-import { REPLY_SEND_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useAgents } from "@/hooks/useAgents"
+import { useAgentTyping } from "@/hooks/useAgentTyping"
+import { useAuth } from "@/hooks/useAuth"
+import { useChatSessionTransfer } from "@/hooks/useChatSessionTransfer"
+import { useMentionNotifications } from "@/hooks/useMentionNotifications"
+import { supabase } from "@/integrations/supabase/client"
+import { REPLY_SEND_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
+import { cn } from "@/lib/utils"
+import { noteDebug } from "@/utils/noteInteractionDebug"
 
 const LANGUAGES = [
-  { code: 'auto', label: 'Auto Detect' },
-  { code: 'en', label: 'English' },
-  { code: 'no', label: 'Norwegian' },
-  { code: 'sv', label: 'Swedish' },
-  { code: 'da', label: 'Danish' },
-  { code: 'de', label: 'German' },
-  { code: 'fr', label: 'French' },
-  { code: 'es', label: 'Spanish' },
-];
+  { code: "auto", label: "Auto Detect" },
+  { code: "en", label: "English" },
+  { code: "no", label: "Norwegian" },
+  { code: "sv", label: "Swedish" },
+  { code: "da", label: "Danish" },
+  { code: "de", label: "German" },
+  { code: "fr", label: "French" },
+  { code: "es", label: "Spanish" },
+]
 
 interface ChatReplyInputProps {
-  conversationId: string;
-  onSent?: () => void;
+  conversationId: string
+  onSent?: () => void
 }
 
 interface AttachmentPreview {
-  file: File;
-  url: string;
-  type: 'image' | 'file';
+  file: File
+  url: string
+  type: "image" | "file"
 }
 
 export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) => {
-  const isMobile = useIsMobile();
-  const [message, setMessage] = useState('');
-  const [isInternalNote, setIsInternalNote] = useState(false);
-  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
-  const [replyStatus, setReplyStatus] = useState<'closed' | 'open' | 'pending'>('closed');
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
-  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [translateLoading, setTranslateLoading] = useState(false);
-  const [sourceLanguage, setSourceLanguage] = useState('auto');
-  const [targetLanguage, setTargetLanguage] = useState('no');
-  const [isMentionMenuOpen, setIsMentionMenuOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { state, dispatch, getAiSuggestions, refineAiSuggestion, messages } = useConversationView();
-  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false);
-  const { processMentions } = useMentionNotifications();
-  
+  const isMobile = useIsMobile()
+  const [message, setMessage] = useState("")
+  const [isInternalNote, setIsInternalNote] = useState(false)
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([])
+  const [replyStatus, setReplyStatus] = useState<"closed" | "open" | "pending">("closed")
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false)
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("")
+  const [attachments, setAttachments] = useState<AttachmentPreview[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [translateLoading, setTranslateLoading] = useState(false)
+  const [sourceLanguage, setSourceLanguage] = useState("auto")
+  const [targetLanguage, setTargetLanguage] = useState("no")
+  const [isMentionMenuOpen, setIsMentionMenuOpen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { state, dispatch, getAiSuggestions, refineAiSuggestion, messages } = useConversationView()
+  const [showSuggestionsSheet, setShowSuggestionsSheet] = useState(false)
+  const { processMentions } = useMentionNotifications()
+
   // Fetch agents for transfer
-  const { data: agents } = useAgents();
-  
+  const { data: agents } = useAgents()
+
   // Transfer hook
-  const { currentAssigneeId, transferSession, isTransferring } = useChatSessionTransfer(conversationId);
-  
+  const { currentAssigneeId, transferSession, isTransferring } =
+    useChatSessionTransfer(conversationId)
+
   // Get current user's profile for transfer message
-  const currentAgentName = agents?.find(a => a.user_id === user?.id)?.full_name || 'Agent';
-  
+  const currentAgentName = agents?.find((a) => a.user_id === user?.id)?.full_name || "Agent"
+
   // Agent typing indicator
-  const { handleTyping, stopTyping } = useAgentTyping({ 
+  const { handleTyping, stopTyping } = useAgentTyping({
     conversationId,
-    enabled: true 
-  });
+    enabled: true,
+  })
 
   // Safety: note mode is per-conversation and must never leak into the next
   // conversation — Enter always sends a real reply unless note mode was
   // explicitly turned on for the conversation currently open.
   useEffect(() => {
-    setIsInternalNote(false);
-  }, [conversationId]);
+    setIsInternalNote(false)
+  }, [])
 
-  const uploadAttachment = async (file: File): Promise<{ url: string; storagePath: string } | null> => {
+  const uploadAttachment = async (
+    file: File,
+  ): Promise<{ url: string; storagePath: string } | null> => {
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from('chat-attachments')
-      .upload(fileName, file);
-    
+    const { data, error } = await supabase.storage.from("chat-attachments").upload(fileName, file)
+
     if (error) {
-      console.error('Upload error:', error);
-      return null;
+      console.error("Upload error:", error)
+      return null
     }
-    
+
     const { data: signedUrlData, error: signedError } = await supabase.storage
-      .from('chat-attachments')
-      .createSignedUrl(fileName, 3600);
-    
+      .from("chat-attachments")
+      .createSignedUrl(fileName, 3600)
+
     if (signedError || !signedUrlData) {
-      console.error('Signed URL error:', signedError);
-      return null;
+      console.error("Signed URL error:", signedError)
+      return null
     }
-    
-    return { url: signedUrlData.signedUrl, storagePath: fileName };
-  };
+
+    return { url: signedUrlData.signedUrl, storagePath: fileName }
+  }
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error("Not authenticated")
 
-      const uploadedAttachments: { url: string; name: string; type: string; storagePath: string }[] = [];
-      
+      const uploadedAttachments: {
+        url: string
+        name: string
+        type: string
+        storagePath: string
+      }[] = []
+
       if (attachments.length > 0) {
-        setIsUploading(true);
+        setIsUploading(true)
         for (const attachment of attachments) {
-          const result = await uploadAttachment(attachment.file);
+          const result = await uploadAttachment(attachment.file)
           if (result) {
             uploadedAttachments.push({
               url: result.url,
               name: attachment.file.name,
               type: attachment.file.type,
               storagePath: result.storagePath,
-            });
+            })
           }
         }
-        setIsUploading(false);
+        setIsUploading(false)
       }
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('user_id', user.id)
-        .single();
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("user_id", user.id)
+        .single()
 
-      const messageContent = content || (uploadedAttachments.length > 0 ? '[Attachment]' : '');
+      const messageContent = content || (uploadedAttachments.length > 0 ? "[Attachment]" : "")
 
       // Decide up-front whether the visitor is live in the widget. If they are,
       // the reply is delivered in the chat and no email is involved at all —
       // so the message must not be flagged with an email status.
-      let isLive = false;
+      let isLive = false
       if (!isInternalNote) {
         const { data: sessions } = await supabase
-          .from('widget_chat_sessions')
-          .select('id, last_seen_at, status')
-          .eq('conversation_id', conversationId)
-          .in('status', ['active', 'waiting'])
-          .order('last_seen_at', { ascending: false })
-          .limit(1);
+          .from("widget_chat_sessions")
+          .select("id, last_seen_at, status")
+          .eq("conversation_id", conversationId)
+          .in("status", ["active", "waiting"])
+          .order("last_seen_at", { ascending: false })
+          .limit(1)
 
-        const activeSession = sessions?.[0];
-        isLive = !!activeSession?.last_seen_at &&
-          new Date(activeSession.last_seen_at) > new Date(Date.now() - 90_000);
+        const activeSession = sessions?.[0]
+        isLive =
+          !!activeSession?.last_seen_at &&
+          new Date(activeSession.last_seen_at) > new Date(Date.now() - 90_000)
       }
 
       const { data: insertedMsg, error } = await supabase
-        .from('messages')
+        .from("messages")
         .insert({
           conversation_id: conversationId,
           content: messageContent,
-          sender_type: 'agent',
+          sender_type: "agent",
           sender_id: user.id,
           is_internal: isInternalNote,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
-          email_status: isInternalNote || isLive ? null : 'sending',
+          email_status: isInternalNote || isLive ? null : "sending",
         })
-        .select('id')
-        .single();
+        .select("id")
+        .single()
 
-      if (error) throw error;
+      if (error) throw error
 
       // For non-internal messages: update status + send email if not live
       if (!isInternalNote) {
-        console.log('[ChatReplyInput] Updating conversation status:', { conversationId, replyStatus, isLive });
+        console.log("[ChatReplyInput] Updating conversation status:", {
+          conversationId,
+          replyStatus,
+          isLive,
+        })
         const { error: statusError } = await supabase
-          .from('conversations')
-          .update({ 
+          .from("conversations")
+          .update({
             status: replyStatus,
             is_read: true,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', conversationId);
-        
+          .eq("id", conversationId)
+
         if (statusError) {
-          console.error('[ChatReplyInput] Failed to update conversation status:', statusError);
-          throw new Error(`Failed to update status: ${statusError.message}`);
+          console.error("[ChatReplyInput] Failed to update conversation status:", statusError)
+          throw new Error(`Failed to update status: ${statusError.message}`)
         }
 
         if (!isLive && insertedMsg?.id) {
-          const { error: emailError } = await supabase.functions.invoke('send-reply-email', {
-            body: { messageId: insertedMsg.id }
-          });
+          const { error: emailError } = await supabase.functions.invoke("send-reply-email", {
+            body: { messageId: insertedMsg.id },
+          })
           if (emailError) {
-            console.error('[ChatReplyInput] Email send failed:', emailError);
-            await supabase.from('messages').update({ email_status: 'failed' }).eq('id', insertedMsg.id);
-            toast.warning('Reply saved but email sending failed');
+            console.error("[ChatReplyInput] Email send failed:", emailError)
+            await supabase
+              .from("messages")
+              .update({ email_status: "failed" })
+              .eq("id", insertedMsg.id)
+            toast.warning("Reply saved but email sending failed")
           }
         }
       }
-
 
       // Track AI suggestion usage (same pattern as email ReplyArea via ConversationViewContext)
       if (!isInternalNote && insertedMsg?.id && state.selectedAiSuggestion) {
         try {
           const { data: orgProfile } = await supabase
-            .from('profiles')
-            .select('organization_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+            .from("profiles")
+            .select("organization_id")
+            .eq("user_id", user.id)
+            .maybeSingle()
 
           if (orgProfile?.organization_id) {
-            const customerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
-            
-            let responseSource: 'ai_suggestion' | 'knowledge_base' = 'ai_suggestion';
-            let sourceId: string | null = state.selectedAiSuggestion;
-            
+            const customerMessage = [...(messages || [])]
+              .reverse()
+              .find((m: any) => m.sender_type === "customer")
+
+            let responseSource: "ai_suggestion" | "knowledge_base" = "ai_suggestion"
+            let sourceId: string | null = state.selectedAiSuggestion
+
             const selectedSuggestion = state.aiSuggestions.find(
-              (s: any) => s.reply === state.selectedAiSuggestion || s === state.selectedAiSuggestion
-            );
+              (s: any) =>
+                s.reply === state.selectedAiSuggestion || s === state.selectedAiSuggestion,
+            )
             if (selectedSuggestion?.knowledgeEntryId) {
-              responseSource = 'knowledge_base';
-              sourceId = selectedSuggestion.knowledgeEntryId;
+              responseSource = "knowledge_base"
+              sourceId = selectedSuggestion.knowledgeEntryId
             }
 
-            await supabase.from('response_tracking').insert({
+            await supabase.from("response_tracking").insert({
               organization_id: orgProfile.organization_id,
               conversation_id: conversationId,
               message_id: insertedMsg.id,
               agent_id: user.id,
               response_source: responseSource,
-              ai_suggestion_id: responseSource === 'ai_suggestion' ? sourceId : null,
-              knowledge_entry_id: responseSource === 'knowledge_base' ? sourceId : null,
+              ai_suggestion_id: responseSource === "ai_suggestion" ? sourceId : null,
+              knowledge_entry_id: responseSource === "knowledge_base" ? sourceId : null,
               customer_message: customerMessage?.content || null,
               agent_response: messageContent,
-            });
+            })
           }
         } catch (trackingErr) {
-          console.error('[ChatReplyInput] Tracking error:', trackingErr);
+          console.error("[ChatReplyInput] Tracking error:", trackingErr)
         }
       }
 
       // Return the message id for onSuccess
-      return insertedMsg;
+      return insertedMsg
     },
     onSuccess: (insertedMsg) => {
       // Show feedback prompt if AI suggestion was used
       if (state.selectedAiSuggestion && insertedMsg?.id) {
-        dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: true, messageId: insertedMsg.id } });
+        dispatch({ type: "SET_FEEDBACK_STATE", payload: { show: true, messageId: insertedMsg.id } })
       }
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: null });
-      dispatch({ type: 'SET_TRACKING_ACTIVE', payload: false });
-
+      dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: null })
+      dispatch({ type: "SET_TRACKING_ACTIVE", payload: false })
 
       // Process mentions if this was an internal note with mentions
       if (isInternalNote && mentionedUserIds.length > 0) {
         processMentions(message, mentionedUserIds, {
-          type: 'internal_note',
+          type: "internal_note",
           conversation_id: conversationId,
-        });
+        })
       }
-      setMessage('');
-      setIsInternalNote(false);
-      setMentionedUserIds([]);
-      setAttachments([]);
-      queryClient.invalidateQueries({ queryKey: ['conversation-messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['thread-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['all-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['inboxCounts'] });
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversation-meta', conversationId] });
-      onSent?.();
+      setMessage("")
+      setIsInternalNote(false)
+      setMentionedUserIds([])
+      setAttachments([])
+      queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["conversation-meta", conversationId] })
+      onSent?.()
     },
     onError: (error) => {
-      console.error('Failed to send message:', error);
-      toast.error('Failed to send message');
+      console.error("Failed to send message:", error)
+      toast.error("Failed to send message")
     },
-  });
+  })
 
   const endChatMutation = useMutation({
     mutationFn: async () => {
       const { data: session } = await supabase
-        .from('widget_chat_sessions')
-        .select('id')
-        .eq('conversation_id', conversationId)
-        .in('status', ['active', 'waiting'])
-        .maybeSingle();
+        .from("widget_chat_sessions")
+        .select("id")
+        .eq("conversation_id", conversationId)
+        .in("status", ["active", "waiting"])
+        .maybeSingle()
 
       if (session) {
         await supabase
-          .from('widget_chat_sessions')
-          .update({ 
-            status: 'ended',
+          .from("widget_chat_sessions")
+          .update({
+            status: "ended",
             ended_at: new Date().toISOString(),
           })
-          .eq('id', session.id);
+          .eq("id", session.id)
       }
 
       const { error: convError } = await supabase
-        .from('conversations')
-        .update({ 
-          status: 'closed',
+        .from("conversations")
+        .update({
+          status: "closed",
           is_read: true,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', conversationId);
+        .eq("id", conversationId)
 
-      if (convError) throw convError;
+      if (convError) throw convError
     },
     onSuccess: () => {
-      toast.success('Chat ended');
-      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['chat-conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['chat-counts'] });
-      navigate('/interactions/chat/ended');
+      toast.success("Chat ended")
+      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+      queryClient.invalidateQueries({ queryKey: ["chat-counts"] })
+      navigate("/interactions/chat/ended")
     },
     onError: (error) => {
-      console.error('Failed to end chat:', error);
-      toast.error('Failed to end chat');
+      console.error("Failed to end chat:", error)
+      toast.error("Failed to end chat")
     },
-  });
+  })
 
   const handleSend = useCallback(() => {
-    const trimmedMessage = message.trim();
-    if ((!trimmedMessage && attachments.length === 0) || sendMessageMutation.isPending) return;
-    stopTyping();
-    sendMessageMutation.mutate(trimmedMessage);
-  }, [message, attachments, sendMessageMutation, stopTyping]);
+    const trimmedMessage = message.trim()
+    if ((!trimmedMessage && attachments.length === 0) || sendMessageMutation.isPending) return
+    stopTyping()
+    sendMessageMutation.mutate(trimmedMessage)
+  }, [message, attachments, sendMessageMutation, stopTyping])
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    if (!isInternalNote) {
-      handleTyping();
-    }
-  }, [handleTyping, isInternalNote]);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(e.target.value)
+      if (!isInternalNote) {
+        handleTyping()
+      }
+    },
+    [handleTyping, isInternalNote],
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Don't hijack Enter while the @mention menu is open — let MentionTextarea handle selection
     if (isMentionMenuOpen) {
-      if (e.key === 'Enter') {
-        noteDebug('chat_enter_blocked_menu_open', { isInternalNote }, 'ChatReplyInput');
+      if (e.key === "Enter") {
+        noteDebug("chat_enter_blocked_menu_open", { isInternalNote }, "ChatReplyInput")
       }
-      return;
+      return
     }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      noteDebug('chat_enter_send', { isInternalNote }, 'ChatReplyInput');
-      handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      noteDebug("chat_enter_send", { isInternalNote }, "ChatReplyInput")
+      handleSend()
     }
-  };
+  }
 
   const handleEndChat = useCallback(() => {
-    if (endChatMutation.isPending) return;
-    endChatMutation.mutate();
-  }, [endChatMutation]);
+    if (endChatMutation.isPending) return
+    endChatMutation.mutate()
+  }, [endChatMutation])
 
   const handleTransfer = useCallback(async () => {
-    if (!selectedAgentId || isTransferring) return;
-    
-    const targetAgent = agents?.find(a => a.id === selectedAgentId);
-    if (!targetAgent) return;
-    
-    await transferSession(selectedAgentId, currentAgentName, targetAgent.full_name);
-    setTransferDialogOpen(false);
-    setSelectedAgentId('');
-  }, [selectedAgentId, isTransferring, agents, transferSession, currentAgentName]);
+    if (!selectedAgentId || isTransferring) return
+
+    const targetAgent = agents?.find((a) => a.id === selectedAgentId)
+    if (!targetAgent) return
+
+    await transferSession(selectedAgentId, currentAgentName, targetAgent.full_name)
+    setTransferDialogOpen(false)
+    setSelectedAgentId("")
+  }, [selectedAgentId, isTransferring, agents, transferSession, currentAgentName])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    
-    const newAttachments: AttachmentPreview[] = files.map(file => ({
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    const newAttachments: AttachmentPreview[] = files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
-      type: file.type.startsWith('image/') ? 'image' : 'file',
-    }));
-    
-    setAttachments(prev => [...prev, ...newAttachments]);
+      type: file.type.startsWith("image/") ? "image" : "file",
+    }))
+
+    setAttachments((prev) => [...prev, ...newAttachments])
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ""
     }
-  }, []);
+  }, [])
 
   const removeAttachment = useCallback((index: number) => {
-    setAttachments(prev => {
-      const newAttachments = [...prev];
-      URL.revokeObjectURL(newAttachments[index].url);
-      newAttachments.splice(index, 1);
-      return newAttachments;
-    });
-  }, []);
+    setAttachments((prev) => {
+      const newAttachments = [...prev]
+      URL.revokeObjectURL(newAttachments[index].url)
+      newAttachments.splice(index, 1)
+      return newAttachments
+    })
+  }, [])
 
   const handleEmojiSelect = useCallback((emoji: string) => {
-    setMessage(prev => prev + emoji);
-  }, []);
+    setMessage((prev) => prev + emoji)
+  }, [])
 
   const handleGetAiSuggestions = useCallback(async () => {
     try {
-      await getAiSuggestions();
-      setShowSuggestionsSheet(true);
+      await getAiSuggestions()
+      setShowSuggestionsSheet(true)
     } catch (error) {
       // Error handling is done in the context
     }
-  }, [getAiSuggestions]);
+  }, [getAiSuggestions])
 
-  const handleSheetUseAsIs = useCallback((suggestion: string) => {
-    setMessage(suggestion);
-    dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: suggestion });
-    toast.success('Suggestion inserted into reply');
-  }, [dispatch]);
+  const handleSheetUseAsIs = useCallback(
+    (suggestion: string) => {
+      setMessage(suggestion)
+      dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: suggestion })
+      toast.success("Suggestion inserted into reply")
+    },
+    [dispatch],
+  )
 
-  const handleRefineAndUse = useCallback(async (refinementInstructions: string, originalText: string) => {
-    const lastCustomerMessage = [...(messages || [])].reverse().find((m: any) => m.sender_type === 'customer');
-    const customerMessageText = lastCustomerMessage?.content || '';
-    
-    const refinedText = await refineAiSuggestion(originalText, refinementInstructions, customerMessageText);
-    
-    if (refinedText) {
-      setMessage(refinedText);
-      dispatch({ type: 'SET_SELECTED_AI_SUGGESTION', payload: refinedText });
-      toast.success('Refined suggestion ready! You can refine it more or use it.');
-      toast.success('Refined suggestion ready! You can refine it more or use it.');
-    }
-  }, [messages, refineAiSuggestion, dispatch]);
+  const handleRefineAndUse = useCallback(
+    async (refinementInstructions: string, originalText: string) => {
+      const lastCustomerMessage = [...(messages || [])]
+        .reverse()
+        .find((m: any) => m.sender_type === "customer")
+      const customerMessageText = lastCustomerMessage?.content || ""
+
+      const refinedText = await refineAiSuggestion(
+        originalText,
+        refinementInstructions,
+        customerMessageText,
+      )
+
+      if (refinedText) {
+        setMessage(refinedText)
+        dispatch({ type: "SET_SELECTED_AI_SUGGESTION", payload: refinedText })
+        toast.success("Refined suggestion ready! You can refine it more or use it.")
+        toast.success("Refined suggestion ready! You can refine it more or use it.")
+      }
+    },
+    [messages, refineAiSuggestion, dispatch],
+  )
 
   const handleTranslate = useCallback(async () => {
-    if (!message.trim() || translateLoading) return;
-    setTranslateLoading(true);
+    if (!message.trim() || translateLoading) return
+    setTranslateLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
+      const { data, error } = await supabase.functions.invoke("translate-text", {
         body: { text: message, sourceLanguage, targetLanguage },
-      });
-      if (error) throw error;
+      })
+      if (error) throw error
       if (data?.translatedText) {
-        setMessage(data.translatedText);
-        toast.success('Message translated');
+        setMessage(data.translatedText)
+        toast.success("Message translated")
       }
     } catch (err) {
-      console.error('Translation error:', err);
-      toast.error('Failed to translate message');
+      console.error("Translation error:", err)
+      toast.error("Failed to translate message")
     } finally {
-      setTranslateLoading(false);
+      setTranslateLoading(false)
     }
-  }, [message, sourceLanguage, targetLanguage, translateLoading]);
+  }, [message, sourceLanguage, targetLanguage, translateLoading])
 
-  const transferableAgents = agents?.filter(a => a.user_id !== user?.id) || [];
-  const isPending = sendMessageMutation.isPending || isUploading;
+  const transferableAgents = agents?.filter((a) => a.user_id !== user?.id) || []
+  const isPending = sendMessageMutation.isPending || isUploading
 
   return (
     <>
@@ -480,9 +520,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         <div className="flex items-center gap-2 px-4 py-2 border-t border-border bg-muted/30 overflow-x-auto">
           {attachments.map((attachment, index) => (
             <div key={index} className="relative shrink-0">
-              {attachment.type === 'image' ? (
-                <img 
-                  src={attachment.url} 
+              {attachment.type === "image" ? (
+                <img
+                  src={attachment.url}
                   alt={attachment.file.name}
                   className="h-16 w-16 object-cover rounded-lg border"
                 />
@@ -506,14 +546,18 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       {isInternalNote && (
         <div className="flex items-center gap-2 px-4 py-2 border-t border-warning/50 bg-warning/10">
           <StickyNote className="h-4 w-4 text-warning" />
-          <span className="text-xs font-medium text-warning">Internal note — not visible to the customer</span>
+          <span className="text-xs font-medium text-warning">
+            Internal note — not visible to the customer
+          </span>
         </div>
       )}
-      
-      <div className={cn(
-        "p-4 border-t border-border bg-background space-y-2",
-        isInternalNote && "bg-warning/5 border-t-warning/50"
-      )}>
+
+      <div
+        className={cn(
+          "p-4 border-t border-border bg-background space-y-2",
+          isInternalNote && "bg-warning/5 border-t-warning/50",
+        )}
+      >
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -531,9 +575,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {state.trackingActive && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-md">
             <Database className="h-3 w-3 text-primary animate-pulse" />
-            <span className="text-xs text-primary font-medium">
-              Learning from this response...
-            </span>
+            <span className="text-xs text-primary font-medium">Learning from this response...</span>
           </div>
         )}
 
@@ -556,29 +598,29 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               placeholder="Write an internal note... (Type @ to mention)"
               className={cn(
                 "min-h-[80px] w-full resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
-                "bg-warning/10"
+                "bg-warning/10",
               )}
               value={message}
               onChange={(value, mentions) => {
-                setMessage(value);
-                setMentionedUserIds(mentions);
+                setMessage(value)
+                setMentionedUserIds(mentions)
               }}
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
               disabled={isPending}
               mentionedUserIds={mentionedUserIds}
               onMentionMenuOpenChange={(open) => {
-                setIsMentionMenuOpen(open);
-                noteDebug('chat_mention_menu_state', { open }, 'ChatReplyInput');
+                setIsMentionMenuOpen(open)
+                noteDebug("chat_mention_menu_state", { open }, "ChatReplyInput")
               }}
             />
           </div>
         ) : (
-          <Textarea 
-            placeholder="Type a message..." 
+          <Textarea
+            placeholder="Type a message..."
             className={cn(
               "min-h-[80px] w-full resize-none rounded-2xl border-0 focus-visible:ring-2 focus-visible:ring-primary/20",
-              "bg-muted/50"
+              "bg-muted/50",
             )}
             value={message}
             onChange={handleInputChange}
@@ -592,19 +634,23 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         {/* Toolbar row */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Emoji picker */}
-          <EmojiPicker 
+          <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             trigger={
-              <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+              >
                 <Smile className="h-5 w-5" />
               </Button>
             }
           />
-          
+
           {/* Attachment button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -629,14 +675,14 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               {!isMobile && <span className="text-xs">AI Suggest</span>}
             </Button>
           )}
-          <Button 
+          <Button
             variant={isInternalNote ? "secondary" : "ghost"}
-            size="sm" 
+            size="sm"
             className={cn(
               "shrink-0 h-9 gap-1.5",
-              isInternalNote 
-                ? "text-warning bg-warning/15 hover:bg-warning/25" 
-                : "text-muted-foreground hover:text-foreground"
+              isInternalNote
+                ? "text-warning bg-warning/15 hover:bg-warning/25"
+                : "text-muted-foreground hover:text-foreground",
             )}
             onClick={() => setIsInternalNote(!isInternalNote)}
             title={isInternalNote ? "Switch to reply" : "Write internal note"}
@@ -648,9 +694,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
           {/* Translate button */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
                 title="Translate message"
               >
@@ -667,8 +713,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.map(l => (
-                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                      {LANGUAGES.map((l) => (
+                        <SelectItem key={l.code} value={l.code}>
+                          {l.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -680,22 +728,26 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {LANGUAGES.filter(l => l.code !== 'auto').map(l => (
-                        <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                      {LANGUAGES.filter((l) => l.code !== "auto").map((l) => (
+                        <SelectItem key={l.code} value={l.code}>
+                          {l.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <Button 
-                  size="sm" 
-                  className="w-full" 
+                <Button
+                  size="sm"
+                  className="w-full"
                   onClick={handleTranslate}
                   disabled={!message.trim() || translateLoading}
                 >
                   {translateLoading ? (
-                    <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Translating...</>
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" /> Translating...
+                    </>
                   ) : (
-                    'Translate'
+                    "Translate"
                   )}
                 </Button>
               </div>
@@ -704,9 +756,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
           {/* Mic button (placeholder) - hidden on mobile */}
           {!isMobile && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="shrink-0 h-9 w-9 text-muted-foreground"
               disabled
               title="Voice messages coming soon"
@@ -720,24 +772,45 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
           {/* Reply status selector - hidden on mobile and for internal notes */}
           {!isInternalNote && !isMobile && (
-            <Select value={replyStatus} onValueChange={(v) => setReplyStatus(v as 'closed' | 'open' | 'pending')}>
+            <Select
+              value={replyStatus}
+              onValueChange={(v) => setReplyStatus(v as "closed" | "open" | "pending")}
+            >
               <SelectTrigger className="shrink-0 h-9 w-[140px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <DescribedSelectItem value="closed" title="Send & Close" description={REPLY_SEND_STATUS_DESCRIPTIONS.closed}>Send & Close</DescribedSelectItem>
-                <DescribedSelectItem value="open" title="Send & Keep Open" description={REPLY_SEND_STATUS_DESCRIPTIONS.open}>Send & Keep Open</DescribedSelectItem>
-                <DescribedSelectItem value="pending" title="Send & Pending" description={REPLY_SEND_STATUS_DESCRIPTIONS.pending}>Send & Pending</DescribedSelectItem>
+                <DescribedSelectItem
+                  value="closed"
+                  title="Send & Close"
+                  description={REPLY_SEND_STATUS_DESCRIPTIONS.closed}
+                >
+                  Send & Close
+                </DescribedSelectItem>
+                <DescribedSelectItem
+                  value="open"
+                  title="Send & Keep Open"
+                  description={REPLY_SEND_STATUS_DESCRIPTIONS.open}
+                >
+                  Send & Keep Open
+                </DescribedSelectItem>
+                <DescribedSelectItem
+                  value="pending"
+                  title="Send & Pending"
+                  description={REPLY_SEND_STATUS_DESCRIPTIONS.pending}
+                >
+                  Send & Pending
+                </DescribedSelectItem>
               </SelectContent>
             </Select>
           )}
 
           {/* Send button */}
-          <Button 
-            size="icon" 
+          <Button
+            size="icon"
             className={cn(
               "rounded-full shrink-0 h-10 w-10",
-              isInternalNote && "bg-warning hover:bg-warning/90 text-warning-foreground"
+              isInternalNote && "bg-warning hover:bg-warning/90 text-warning-foreground",
             )}
             onClick={handleSend}
             disabled={(!message.trim() && attachments.length === 0) || isPending}
@@ -748,11 +821,11 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               <Send className="h-4 w-4" />
             )}
           </Button>
-          
+
           {/* Transfer Chat Button */}
           {transferableAgents.length > 0 && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               className="shrink-0 h-9 gap-1.5"
               onClick={() => setTransferDialogOpen(true)}
@@ -766,9 +839,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               {!isMobile && <span className="text-xs">Transfer</span>}
             </Button>
           )}
-          
-          <Button 
-            size="sm" 
+
+          <Button
+            size="sm"
             variant="outline"
             className="shrink-0 h-9 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={handleEndChat}
@@ -799,7 +872,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
                 <SelectValue placeholder="Select a team member" />
               </SelectTrigger>
               <SelectContent>
-                {transferableAgents.map(agent => (
+                {transferableAgents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
                     {agent.full_name}
                     {agent.email && (
@@ -813,17 +886,14 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
               <Button variant="outline" onClick={() => setTransferDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleTransfer} 
-                disabled={!selectedAgentId || isTransferring}
-              >
+              <Button onClick={handleTransfer} disabled={!selectedAgentId || isTransferring}>
                 {isTransferring ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     Transferring...
                   </>
                 ) : (
-                  'Transfer'
+                  "Transfer"
                 )}
               </Button>
             </div>
@@ -841,5 +911,5 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         isRefining={state.refiningSuggestion}
       />
     </>
-  );
-};
+  )
+}

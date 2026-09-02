@@ -1,10 +1,10 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1"
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+}
 
 // Pre-bundled widget JavaScript - this is the complete standalone widget
 const WIDGET_JS = `
@@ -1382,110 +1382,111 @@ const WIDGET_JS = `
     processQueue();
   }
 })();
-`.trim();
+`.trim()
 
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
   }
 
-  const url = new URL(req.url);
-  const action = url.searchParams.get('action');
+  const url = new URL(req.url)
+  const action = url.searchParams.get("action")
 
   // Build metadata (published date + git commit of the app that triggered the deploy)
   const buildBundle = (publishedAt: string, commit: string) => {
-    const safe = (v: string) => String(v).replace(/[^a-zA-Z0-9:_.\-+ ]/g, '');
-    const meta = { publishedAt: safe(publishedAt), commit: safe(commit) };
-    const banner = `/*! Navio Support Widget | published: ${meta.publishedAt} | commit: ${meta.commit} */\n`;
-    const header = `window.__NAVIO_WIDGET_BUILD__=${JSON.stringify(meta)};\n`;
-    const footer = `\ntry{if(window.NoddiWidget){window.NoddiWidget.build=window.__NAVIO_WIDGET_BUILD__;}}catch(e){}\n`;
-    return { bundle: banner + header + WIDGET_JS + footer, meta };
-  };
+    const safe = (v: string) => String(v).replace(/[^a-zA-Z0-9:_.\-+ ]/g, "")
+    const meta = { publishedAt: safe(publishedAt), commit: safe(commit) }
+    const banner = `/*! Navio Support Widget | published: ${meta.publishedAt} | commit: ${meta.commit} */\n`
+    const header = `window.__NAVIO_WIDGET_BUILD__=${JSON.stringify(meta)};\n`
+    const footer = `\ntry{if(window.NoddiWidget){window.NoddiWidget.build=window.__NAVIO_WIDGET_BUILD__;}}catch(e){}\n`
+    return { bundle: banner + header + WIDGET_JS + footer, meta }
+  }
 
   // Serve the widget JS directly (unpublished / live edge-function version)
-  if (req.method === 'GET' && !action) {
-    const { bundle } = buildBundle(new Date().toISOString(), 'edge-function-live');
+  if (req.method === "GET" && !action) {
+    const { bundle } = buildBundle(new Date().toISOString(), "edge-function-live")
     return new Response(bundle, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'application/javascript',
-        'Cache-Control': 'public, max-age=3600',
+        "Content-Type": "application/javascript",
+        "Cache-Control": "public, max-age=3600",
       },
-    });
+    })
   }
 
   // Deploy action - upload to storage
-  if (req.method === 'POST' && action === 'deploy') {
+  if (req.method === "POST" && action === "deploy") {
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      const supabase = createClient(supabaseUrl, supabaseKey)
 
-      let commit = 'unknown';
+      let commit = "unknown"
       try {
-        const body = await req.json();
-        if (body && typeof body.commit === 'string' && body.commit.trim()) {
-          commit = body.commit.trim().slice(0, 40);
+        const body = await req.json()
+        if (body && typeof body.commit === "string" && body.commit.trim()) {
+          commit = body.commit.trim().slice(0, 40)
         }
       } catch (_) {
         // no body provided
       }
-      const publishedAt = new Date().toISOString();
-      const { bundle, meta } = buildBundle(publishedAt, commit);
+      const publishedAt = new Date().toISOString()
+      const { bundle, meta } = buildBundle(publishedAt, commit)
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from('widget')
-        .upload('widget.js', bundle, {
-          contentType: 'application/javascript',
+        .from("widget")
+        .upload("widget.js", bundle, {
+          contentType: "application/javascript",
           upsert: true,
-          cacheControl: '3600',
-        });
+          cacheControl: "3600",
+        })
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
-        return new Response(JSON.stringify({ error: 'Failed to upload widget' }), {
+        console.error("Upload error:", uploadError)
+        return new Response(JSON.stringify({ error: "Failed to upload widget" }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
       }
 
       // Publish a machine-readable build manifest alongside the bundle
       await supabase.storage
-        .from('widget')
-        .upload('widget-build.json', JSON.stringify({ ...meta, size: bundle.length }, null, 2), {
-          contentType: 'application/json',
+        .from("widget")
+        .upload("widget-build.json", JSON.stringify({ ...meta, size: bundle.length }, null, 2), {
+          contentType: "application/json",
           upsert: true,
-          cacheControl: '60',
-        });
+          cacheControl: "60",
+        })
 
       // Get public URL
-      const { data: publicUrl } = supabase.storage
-        .from('widget')
-        .getPublicUrl('widget.js');
+      const { data: publicUrl } = supabase.storage.from("widget").getPublicUrl("widget.js")
 
-      return new Response(JSON.stringify({
-        success: true,
-        url: publicUrl.publicUrl,
-        size: bundle.length,
-        publishedAt: meta.publishedAt,
-        commit: meta.commit,
-        message: 'Widget deployed successfully!'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          url: publicUrl.publicUrl,
+          size: bundle.length,
+          publishedAt: meta.publishedAt,
+          commit: meta.commit,
+          message: "Widget deployed successfully!",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      )
     } catch (error) {
-      console.error('Deploy error:', error);
-      return new Response(JSON.stringify({ error: 'Deploy failed' }), {
+      console.error("Deploy error:", error)
+      return new Response(JSON.stringify({ error: "Deploy failed" }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
     }
   }
 
-  return new Response(JSON.stringify({ error: 'Invalid request' }), {
+  return new Response(JSON.stringify({ error: "Invalid request" }), {
     status: 400,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-});
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  })
+})

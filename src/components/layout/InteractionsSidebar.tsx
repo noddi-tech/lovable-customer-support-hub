@@ -1,113 +1,101 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Archive, BarChart3, Inbox, MessageCircle, Phone, Plus, Settings } from "lucide-react"
+import type React from "react"
+import { useTranslation } from "react-i18next"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
-  SidebarHeader
-} from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare,
-  MessageCircle,
-  Phone,
-  Plus,
-  Inbox,
-  Archive,
-  BarChart3,
-  Settings
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 export const InteractionsSidebar: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { t } = useTranslation();
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
+    return location.pathname === path || location.pathname.startsWith(`${path}/`)
+  }
 
   const interactionItems = [
     {
-      title: 'Inbox',
+      title: "Inbox",
       icon: Inbox,
-      path: '/interactions/text',
-      badge: undefined // Will be dynamic later
+      path: "/interactions/text",
+      badge: undefined, // Will be dynamic later
     },
     {
-      title: 'Chat',
+      title: "Chat",
       icon: MessageCircle,
-      path: '/interactions/chat',
-      badge: undefined // Will show live count
+      path: "/interactions/chat",
+      badge: undefined, // Will show live count
     },
     {
-      title: 'Voice Calls',
+      title: "Voice Calls",
       icon: Phone,
-      path: '/interactions/voice',
-      badge: undefined
-    }
-  ];
+      path: "/interactions/voice",
+      badge: undefined,
+    },
+  ]
 
   const quickFilters = [
     {
-      title: 'All open',
+      title: "All open",
       icon: Inbox,
-      path: '/interactions/text#inbox'
+      path: "/interactions/text#inbox",
     },
     {
-      title: 'Archive',
+      title: "Archive",
       icon: Archive,
-      path: '/interactions/text#archive'
-    }
-  ];
+      path: "/interactions/text#archive",
+    },
+  ]
 
   const voiceTools = [
     {
-      title: 'Voice Analytics',
+      title: "Voice Analytics",
       icon: BarChart3,
-      path: '/interactions/voice/analytics'
+      path: "/interactions/voice/analytics",
     },
     {
-      title: 'Voice Settings',
+      title: "Voice Settings",
       icon: Settings,
-      path: '/interactions/voice/settings'
-    }
-  ];
+      path: "/interactions/voice/settings",
+    },
+  ]
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <Button className="w-full gap-2" onClick={() => navigate('/interactions/text?new=1')}>
+        <Button className="w-full gap-2" onClick={() => navigate("/interactions/text?new=1")}>
           <Plus className="h-4 w-4" />
           New Conversation
         </Button>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Channels</SidebarGroupLabel>
           <SidebarMenu>
             {interactionItems.map((item) => {
-              const Icon = item.icon;
-              const itemIsActive = isActive(item.path);
-              
+              const Icon = item.icon
+              const itemIsActive = isActive(item.path)
+
               return (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={itemIsActive}
-                  >
+                  <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-between gap-2",
-                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -122,7 +110,7 @@ export const InteractionsSidebar: React.FC = () => {
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
+              )
             })}
           </SidebarMenu>
         </SidebarGroup>
@@ -131,20 +119,17 @@ export const InteractionsSidebar: React.FC = () => {
           <SidebarGroupLabel>Quick Filters</SidebarGroupLabel>
           <SidebarMenu>
             {quickFilters.map((item) => {
-              const Icon = item.icon;
-              const itemIsActive = location.pathname + location.hash === item.path;
-              
+              const Icon = item.icon
+              const itemIsActive = location.pathname + location.hash === item.path
+
               return (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={itemIsActive}
-                  >
+                  <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-start gap-2",
-                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -152,7 +137,7 @@ export const InteractionsSidebar: React.FC = () => {
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
+              )
             })}
           </SidebarMenu>
         </SidebarGroup>
@@ -161,20 +146,17 @@ export const InteractionsSidebar: React.FC = () => {
           <SidebarGroupLabel>Voice Tools</SidebarGroupLabel>
           <SidebarMenu>
             {voiceTools.map((item) => {
-              const Icon = item.icon;
-              const itemIsActive = isActive(item.path);
-              
+              const Icon = item.icon
+              const itemIsActive = isActive(item.path)
+
               return (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton 
-                    asChild
-                    isActive={itemIsActive}
-                  >
+                  <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-start gap-2",
-                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        itemIsActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -182,11 +164,11 @@ export const InteractionsSidebar: React.FC = () => {
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
+              )
             })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  );
-};
+  )
+}

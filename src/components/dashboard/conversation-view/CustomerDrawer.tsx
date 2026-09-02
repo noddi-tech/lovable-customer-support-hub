@@ -1,33 +1,33 @@
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
-  User,
-  Mail,
-  Phone,
   Calendar,
   Car,
-  Package,
-  ExternalLink,
   ChevronRight,
-  MapPin
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  ExternalLink,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  User,
+} from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 interface CustomerDrawerProps {
   customer?: {
-    id: string;
-    full_name: string;
-    email: string;
-    phone?: string;
-  };
-  className?: string;
+    id: string
+    full_name: string
+    email: string
+    phone?: string
+  }
+  className?: string
 }
 
 export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true)
 
   if (!customer) {
     return (
@@ -37,7 +37,7 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
           <p className="text-sm">No customer information</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -51,16 +51,9 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
                 <h3 className="font-semibold text-lg">{customer.full_name}</h3>
                 <p className="text-sm text-muted-foreground">Customer</p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                <ChevronRight 
-                  className={cn(
-                    "h-4 w-4 transition-transform",
-                    isExpanded && "rotate-90"
-                  )} 
+              <Button variant="ghost" size="sm" onClick={() => setIsExpanded(!isExpanded)}>
+                <ChevronRight
+                  className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-90")}
                 />
               </Button>
             </div>
@@ -69,20 +62,14 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <a 
-                  href={`mailto:${customer.email}`}
-                  className="text-primary hover:underline"
-                >
+                <a href={`mailto:${customer.email}`} className="text-primary hover:underline">
                   {customer.email}
                 </a>
               </div>
               {customer.phone && (
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a 
-                    href={`tel:${customer.phone}`}
-                    className="text-primary hover:underline"
-                  >
+                  <a href={`tel:${customer.phone}`} className="text-primary hover:underline">
                     {customer.phone}
                   </a>
                 </div>
@@ -99,7 +86,9 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
                 <Calendar className="h-4 w-4" />
                 Recent Bookings
               </h4>
-              <Badge variant="secondary" className="text-xs">0</Badge>
+              <Badge variant="secondary" className="text-xs">
+                0
+              </Badge>
             </div>
             <div className="text-xs text-muted-foreground space-y-2">
               <p>No recent bookings</p>
@@ -115,7 +104,9 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
                 <Car className="h-4 w-4" />
                 Vehicles
               </h4>
-              <Badge variant="secondary" className="text-xs">0</Badge>
+              <Badge variant="secondary" className="text-xs">
+                0
+              </Badge>
             </div>
             <div className="text-xs text-muted-foreground">
               <p>No vehicles registered</p>
@@ -131,7 +122,9 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
                 <Package className="h-4 w-4" />
                 Tire Storage
               </h4>
-              <Badge variant="secondary" className="text-xs">0</Badge>
+              <Badge variant="secondary" className="text-xs">
+                0
+              </Badge>
             </div>
             <div className="text-xs text-muted-foreground">
               <p>No tires in storage</p>
@@ -161,5 +154,5 @@ export const CustomerDrawer = ({ customer, className }: CustomerDrawerProps) => 
         </div>
       </ScrollArea>
     </div>
-  );
-};
+  )
+}

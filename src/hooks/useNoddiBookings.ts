@@ -1,94 +1,99 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
 export interface NoddiBooking {
-  id: number;
-  booking_type: string;
-  status: string;
-  date: string;
-  customer_name: string;
-  vehicle_label?: string;
-  service_title?: string;
-  amount?: number;
-  currency?: string;
+  id: number
+  booking_type: string
+  status: string
+  date: string
+  customer_name: string
+  vehicle_label?: string
+  service_title?: string
+  amount?: number
+  currency?: string
 }
 
 interface UseNoddiBookingsParams {
-  email?: string;
-  phone?: string;
-  organizationId: string;
-  enabled?: boolean;
+  email?: string
+  phone?: string
+  organizationId: string
+  enabled?: boolean
 }
 
-export function useNoddiBookings({ email, phone, organizationId, enabled = true }: UseNoddiBookingsParams) {
+export function useNoddiBookings({
+  email,
+  phone,
+  organizationId,
+  enabled = true,
+}: UseNoddiBookingsParams) {
   return useQuery({
-    queryKey: ['noddi-bookings', email, phone, organizationId],
+    queryKey: ["noddi-bookings", email, phone, organizationId],
     queryFn: async () => {
       if (!email && !phone) {
-        throw new Error('Email or phone required');
+        throw new Error("Email or phone required")
       }
 
       if (!organizationId) {
-        throw new Error('Organization ID required');
+        throw new Error("Organization ID required")
       }
 
-      const { data, error } = await supabase.functions.invoke('noddi-customer-lookup', {
+      const { data, error } = await supabase.functions.invoke("noddi-customer-lookup", {
         body: { email, phone, organizationId },
-      });
+      })
 
-      if (error) throw error;
+      if (error) throw error
 
       // Extract bookings from the response
-      const bookings: NoddiBooking[] = [];
-      
+      const bookings: NoddiBooking[] = []
+
       if (data?.data?.priority_booking) {
         bookings.push({
           id: data.data.priority_booking.id,
-          booking_type: data.data.priority_booking.booking_type || 'unknown',
-          status: data.data.priority_booking.status || 'unknown',
+          booking_type: data.data.priority_booking.booking_type || "unknown",
+          status: data.data.priority_booking.status || "unknown",
           date: data.data.priority_booking.date || new Date().toISOString(),
-          customer_name: data.data.display_name || 'Unknown',
+          customer_name: data.data.display_name || "Unknown",
           vehicle_label: data.data.priority_booking.vehicle_label,
           service_title: data.data.priority_booking.service_title,
           amount: data.data.priority_booking.amount,
           currency: data.data.priority_booking.currency,
-        });
+        })
       }
 
       if (data?.data?.upcoming_bookings) {
         data.data.upcoming_bookings.forEach((booking: any) => {
           bookings.push({
             id: booking.id,
-            booking_type: booking.booking_type || 'upcoming',
-            status: booking.status || 'scheduled',
+            booking_type: booking.booking_type || "upcoming",
+            status: booking.status || "scheduled",
             date: booking.date || new Date().toISOString(),
-            customer_name: data.data.display_name || 'Unknown',
+            customer_name: data.data.display_name || "Unknown",
             vehicle_label: booking.vehicle_label,
             service_title: booking.service_title,
             amount: booking.amount,
             currency: booking.currency,
-          });
-        });
+          })
+        })
       }
 
       if (data?.data?.completed_bookings) {
         data.data.completed_bookings.forEach((booking: any) => {
           bookings.push({
             id: booking.id,
-            booking_type: booking.booking_type || 'completed',
-            status: booking.status || 'completed',
+            booking_type: booking.booking_type || "completed",
+            status: booking.status || "completed",
             date: booking.date || new Date().toISOString(),
-            customer_name: data.data.display_name || 'Unknown',
+            customer_name: data.data.display_name || "Unknown",
             vehicle_label: booking.vehicle_label,
             service_title: booking.service_title,
             amount: booking.amount,
             currency: booking.currency,
-          });
-        });
+          })
+        })
       }
 
-      return bookings;
+      return bookings
     },
     enabled: enabled && (!!email || !!phone) && !!organizationId,
-  });
+  })
 }

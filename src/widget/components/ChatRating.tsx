@@ -1,41 +1,47 @@
-import React, { useState } from 'react';
-import { rateChat, emailChatTranscript, getIdentity } from '../api';
-import { getWidgetTranslations } from '../translations';
+import type React from "react"
+import { useState } from "react"
+import { emailChatTranscript, getIdentity, rateChat } from "../api"
+import { getWidgetTranslations } from "../translations"
 
 interface ChatRatingProps {
-  sessionId: string;
-  primaryColor: string;
-  language: string;
-  onDone: () => void;
+  sessionId: string
+  primaryColor: string
+  language: string
+  onDone: () => void
 }
 
 /** Post-chat CSAT + "email me the transcript" step shown when a chat ends. */
-export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor, language, onDone }) => {
-  const t = getWidgetTranslations(language);
-  const [rating, setRating] = useState<number | null>(null);
-  const [resolved, setResolved] = useState<boolean | null>(null);
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [email, setEmail] = useState(getIdentity().email || '');
-  const [transcriptSent, setTranscriptSent] = useState(false);
-  const [busy, setBusy] = useState(false);
+export const ChatRating: React.FC<ChatRatingProps> = ({
+  sessionId,
+  primaryColor,
+  language,
+  onDone,
+}) => {
+  const t = getWidgetTranslations(language)
+  const [rating, setRating] = useState<number | null>(null)
+  const [resolved, setResolved] = useState<boolean | null>(null)
+  const [comment, setComment] = useState("")
+  const [submitted, setSubmitted] = useState(false)
+  const [email, setEmail] = useState(getIdentity().email || "")
+  const [transcriptSent, setTranscriptSent] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const submitRating = async (value: number, withComment = false) => {
-    setRating(value);
-    if (!withComment) return;
-    setBusy(true);
-    await rateChat(sessionId, value, comment.trim() || undefined, resolved);
-    setBusy(false);
-    setSubmitted(true);
-  };
+    setRating(value)
+    if (!withComment) return
+    setBusy(true)
+    await rateChat(sessionId, value, comment.trim() || undefined, resolved)
+    setBusy(false)
+    setSubmitted(true)
+  }
 
   const sendTranscript = async () => {
-    if (!email.trim()) return;
-    setBusy(true);
-    const ok = await emailChatTranscript(sessionId, email.trim());
-    setBusy(false);
-    if (ok) setTranscriptSent(true);
-  };
+    if (!email.trim()) return
+    setBusy(true)
+    const ok = await emailChatTranscript(sessionId, email.trim())
+    setBusy(false)
+    if (ok) setTranscriptSent(true)
+  }
 
   return (
     <div className="noddi-chat-rating">
@@ -45,16 +51,24 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
           <div className="noddi-chat-resolved-row">
             <button
               type="button"
-              className={`noddi-chat-resolved-option ${resolved === true ? 'active' : ''}`}
-              style={resolved === true ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+              className={`noddi-chat-resolved-option ${resolved === true ? "active" : ""}`}
+              style={
+                resolved === true
+                  ? { backgroundColor: primaryColor, borderColor: primaryColor }
+                  : {}
+              }
               onClick={() => setResolved(true)}
             >
               {t.resolvedYes}
             </button>
             <button
               type="button"
-              className={`noddi-chat-resolved-option ${resolved === false ? 'active' : ''}`}
-              style={resolved === false ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+              className={`noddi-chat-resolved-option ${resolved === false ? "active" : ""}`}
+              style={
+                resolved === false
+                  ? { backgroundColor: primaryColor, borderColor: primaryColor }
+                  : {}
+              }
               onClick={() => setResolved(false)}
             >
               {t.resolvedNo}
@@ -67,7 +81,7 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
               <button
                 key={value}
                 type="button"
-                className={`noddi-chat-rating-star ${rating && value <= rating ? 'active' : ''}`}
+                className={`noddi-chat-rating-star ${rating && value <= rating ? "active" : ""}`}
                 onClick={() => submitRating(value)}
                 aria-label={`${value}`}
               >
@@ -123,7 +137,16 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
                 onClick={sendTranscript}
                 aria-label={t.transcriptSend}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
@@ -137,5 +160,5 @@ export const ChatRating: React.FC<ChatRatingProps> = ({ sessionId, primaryColor,
         {t.startNewConversation}
       </button>
     </div>
-  );
-};
+  )
+}

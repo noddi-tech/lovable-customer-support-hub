@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizations } from '@/hooks/useOrganizations';
+import { useQuery } from "@tanstack/react-query"
+import { UserPlus } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { UserPlus } from 'lucide-react';
+} from "@/components/ui/select"
+import { useOrganizations } from "@/hooks/useOrganizations"
+import { supabase } from "@/integrations/supabase/client"
 
 interface AddMemberDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  organizationId: string;
-  existingMemberIds: string[];
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  organizationId: string
+  existingMemberIds: string[]
 }
 
 export function AddMemberDialog({
@@ -33,28 +33,28 @@ export function AddMemberDialog({
   organizationId,
   existingMemberIds,
 }: AddMemberDialogProps) {
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'agent' | 'user'>('user');
-  const { addUserToOrganization } = useOrganizations();
+  const [selectedUserId, setSelectedUserId] = useState<string>("")
+  const [selectedRole, setSelectedRole] = useState<"admin" | "agent" | "user">("user")
+  const { addUserToOrganization } = useOrganizations()
 
   // Fetch all users not in this organization
   const { data: availableUsers = [] } = useQuery({
-    queryKey: ['available-users', organizationId, existingMemberIds],
+    queryKey: ["available-users", organizationId, existingMemberIds],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, email, full_name')
-        .not('user_id', 'in', `(${existingMemberIds.join(',') || 'null'})`)
-        .order('full_name');
+        .from("profiles")
+        .select("id, user_id, email, full_name")
+        .not("user_id", "in", `(${existingMemberIds.join(",") || "null"})`)
+        .order("full_name")
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data || []
     },
     enabled: open,
-  });
+  })
 
   const handleAdd = () => {
-    if (!selectedUserId) return;
+    if (!selectedUserId) return
 
     addUserToOrganization(
       {
@@ -64,13 +64,13 @@ export function AddMemberDialog({
       },
       {
         onSuccess: () => {
-          setSelectedUserId('');
-          setSelectedRole('user');
-          onOpenChange(false);
+          setSelectedUserId("")
+          setSelectedRole("user")
+          onOpenChange(false)
         },
-      }
-    );
-  };
+      },
+    )
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,9 +101,7 @@ export function AddMemberDialog({
               </SelectContent>
             </Select>
             {availableUsers.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                No available users to add
-              </p>
+              <p className="text-xs text-muted-foreground">No available users to add</p>
             )}
           </div>
 
@@ -132,5 +130,5 @@ export function AddMemberDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

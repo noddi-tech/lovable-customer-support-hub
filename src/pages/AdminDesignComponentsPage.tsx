@@ -1,10 +1,14 @@
-import React from 'react';
-import { UnifiedAppLayout } from '@/components/layout/UnifiedAppLayout';
-import { ResponsiveContainer, ResponsiveGrid, LayoutItem, ResponsiveFlex } from '@/components/admin/design/components/layouts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import AdminDesignComponents from './AdminDesignComponents';
+import {
+  LayoutItem,
+  ResponsiveContainer,
+  ResponsiveFlex,
+  ResponsiveGrid,
+} from "@/components/admin/design/components/layouts"
+import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import AdminDesignComponents from "./AdminDesignComponents"
 
 export default function AdminDesignComponentsPage() {
   return (
@@ -16,14 +20,15 @@ export default function AdminDesignComponentsPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Design Components</h1>
               <p className="text-muted-foreground">
-                Comprehensive component library with responsive layouts and professional design patterns
+                Comprehensive component library with responsive layouts and professional design
+                patterns
               </p>
             </div>
             <Badge variant="secondary">6 Component Types</Badge>
           </div>
 
           {/* Component Preview Grid */}
-          <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '3' }} gap="6">
+          <ResponsiveGrid cols={{ sm: "1", md: "2", lg: "3" }} gap="6">
             <LayoutItem>
               <Card className="h-full">
                 <CardHeader>
@@ -59,9 +64,15 @@ export default function AdminDesignComponentsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ResponsiveFlex gap="2" className="bg-muted p-4 rounded border-2 border-dashed">
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">Item 1</div>
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">Item 2</div>
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">Item 3</div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">
+                      Item 1
+                    </div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">
+                      Item 2
+                    </div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs">
+                      Item 3
+                    </div>
                   </ResponsiveFlex>
                   <code className="text-xs bg-muted p-2 rounded block">
                     {'<ResponsiveFlex gap="4" direction="responsive">'}
@@ -82,11 +93,23 @@ export default function AdminDesignComponentsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <ResponsiveGrid cols={{ sm: '1', md: '2' }} gap="2" className="bg-muted p-4 rounded border-2 border-dashed">
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">A</div>
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">B</div>
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">C</div>
-                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">D</div>
+                  <ResponsiveGrid
+                    cols={{ sm: "1", md: "2" }}
+                    gap="2"
+                    className="bg-muted p-4 rounded border-2 border-dashed"
+                  >
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">
+                      A
+                    </div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">
+                      B
+                    </div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">
+                      C
+                    </div>
+                    <div className="bg-primary text-primary-foreground p-2 rounded text-xs text-center">
+                      D
+                    </div>
                   </ResponsiveGrid>
                   <code className="text-xs bg-muted p-2 rounded block">
                     {'<ResponsiveGrid cols={{ sm: "1", md: "2", lg: "4" }}>'}
@@ -132,9 +155,15 @@ export default function AdminDesignComponentsPage() {
                 <CardContent className="space-y-4">
                   <div className="bg-muted p-4 rounded border-2 border-dashed">
                     <div className="flex gap-1 mb-2">
-                      <Button size="sm" variant="default">Tab 1</Button>
-                      <Button size="sm" variant="ghost">Tab 2</Button>
-                      <Button size="sm" variant="ghost">Tab 3</Button>
+                      <Button size="sm" variant="default">
+                        Tab 1
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        Tab 2
+                      </Button>
+                      <Button size="sm" variant="ghost">
+                        Tab 3
+                      </Button>
                     </div>
                     <p className="text-xs">Tab content area with responsive behavior</p>
                   </div>
@@ -176,16 +205,18 @@ export default function AdminDesignComponentsPage() {
           {/* Usage Examples Section */}
           <div className="space-y-4 pt-6 border-t">
             <h2 className="text-2xl font-semibold">Implementation Examples</h2>
-            <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
+            <ResponsiveGrid cols={{ sm: "1", lg: "2" }} gap="6">
               <Card>
                 <CardHeader>
                   <CardTitle>2-4 Column Dashboard Layout</CardTitle>
                   <CardDescription>Interface → Text pattern with scrolling panes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '4' }} gap="2" className="mb-4">
+                  <ResponsiveGrid cols={{ sm: "1", md: "2", lg: "4" }} gap="2" className="mb-4">
                     <div className="bg-primary/10 p-3 rounded text-xs font-medium">Inbox List</div>
-                    <div className="bg-primary/10 p-3 rounded text-xs font-medium">Conversation</div>
+                    <div className="bg-primary/10 p-3 rounded text-xs font-medium">
+                      Conversation
+                    </div>
                     <div className="bg-primary/10 p-3 rounded text-xs font-medium">Details</div>
                     <div className="bg-primary/10 p-3 rounded text-xs font-medium">Actions</div>
                   </ResponsiveGrid>
@@ -220,5 +251,5 @@ export default function AdminDesignComponentsPage() {
         </div>
       </div>
     </UnifiedAppLayout>
-  );
+  )
 }

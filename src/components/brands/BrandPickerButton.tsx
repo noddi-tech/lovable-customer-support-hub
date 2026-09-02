@@ -1,4 +1,8 @@
-import React from 'react';
+import { ChevronDown, Tag } from "lucide-react"
+import type React from "react"
+import { BrandMenuOptions } from "@/components/brands/BrandMenuOptions"
+import { BrandBadge } from "@/components/dashboard/conversation-list/BrandBadge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,22 +10,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, Tag } from 'lucide-react';
-import { getConversationBrand } from '@/lib/conversationBrand';
-import { BrandBadge } from '@/components/dashboard/conversation-list/BrandBadge';
-import { BrandMenuOptions } from '@/components/brands/BrandMenuOptions';
+} from "@/components/ui/dropdown-menu"
+import { getConversationBrand } from "@/lib/conversationBrand"
 
 interface BrandPickerButtonProps {
   /** Entity metadata holding the brand (conversation or call). */
-  metadata: unknown;
-  channel?: string | null;
-  onSelect: (brandName: string | null) => void;
-  title?: string;
-  className?: string;
+  metadata: unknown
+  channel?: string | null
+  onSelect: (brandName: string | null) => void
+  title?: string
+  className?: string
   /** Keep clicks from selecting the underlying row. */
-  stopPropagation?: boolean;
+  stopPropagation?: boolean
 }
 
 /**
@@ -36,8 +36,8 @@ export const BrandPickerButton: React.FC<BrandPickerButtonProps> = ({
   className,
   stopPropagation = false,
 }) => {
-  const brand = getConversationBrand(metadata, channel);
-  const stop = stopPropagation ? (e: React.MouseEvent) => e.stopPropagation() : undefined;
+  const brand = getConversationBrand(metadata, channel)
+  const stop = stopPropagation ? (e: React.MouseEvent) => e.stopPropagation() : undefined
 
   return (
     <DropdownMenu>
@@ -45,7 +45,7 @@ export const BrandPickerButton: React.FC<BrandPickerButtonProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className={`h-7 px-1.5 gap-1 text-xs ${className ?? ''}`}
+          className={`h-7 px-1.5 gap-1 text-xs ${className ?? ""}`}
           title={title}
           onClick={stop}
         >
@@ -60,7 +60,11 @@ export const BrandPickerButton: React.FC<BrandPickerButtonProps> = ({
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-60 max-h-80 overflow-y-auto p-1" onClick={stop}>
+      <DropdownMenuContent
+        align="start"
+        className="w-60 max-h-80 overflow-y-auto p-1"
+        onClick={stop}
+      >
         <DropdownMenuLabel className="text-xs text-muted-foreground">Brand</DropdownMenuLabel>
         <BrandMenuOptions
           currentLabel={brand?.label}
@@ -70,5 +74,5 @@ export const BrandPickerButton: React.FC<BrandPickerButtonProps> = ({
         />
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-};
+  )
+}

@@ -1,51 +1,48 @@
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Plus, Search, Mail } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Mail, Plus, Search } from "lucide-react"
+import { useMemo, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { useEmailTemplates, useFilteredTemplates } from './useEmailTemplates';
-import { useEmailTemplate } from './useEmailTemplate';
-import { useDefaultPipeline } from '../pipeline/usePipelineAdmin';
-import { EmailTemplateList } from './EmailTemplateList';
-import { EmailTemplateEditor } from './EmailTemplateEditor';
-import { TEMPLATE_FILTER_LABELS, type TemplateFilter } from './types';
-import type { Stage } from '../pipeline/types';
+} from "@/components/ui/select"
+import type { Stage } from "../pipeline/types"
+import { useDefaultPipeline } from "../pipeline/usePipelineAdmin"
+import { EmailTemplateEditor } from "./EmailTemplateEditor"
+import { EmailTemplateList } from "./EmailTemplateList"
+import { TEMPLATE_FILTER_LABELS, type TemplateFilter } from "./types"
+import { useEmailTemplate } from "./useEmailTemplate"
+import { useEmailTemplates, useFilteredTemplates } from "./useEmailTemplates"
 
 export function EmailTemplatesTab() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const templateIdParam = searchParams.get('templateId');
-  const isCreating = templateIdParam === 'new';
-  const selectedId = isCreating ? null : templateIdParam;
+  const [searchParams, setSearchParams] = useSearchParams()
+  const templateIdParam = searchParams.get("templateId")
+  const isCreating = templateIdParam === "new"
+  const selectedId = isCreating ? null : templateIdParam
 
-  const [filter, setFilter] = useState<TemplateFilter>('active');
-  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<TemplateFilter>("active")
+  const [search, setSearch] = useState("")
 
-  const { data: templates, isLoading } = useEmailTemplates();
-  const filtered = useFilteredTemplates(templates, filter, search);
-  const { data: selectedTemplate } = useEmailTemplate(selectedId);
-  const { data: pipeline } = useDefaultPipeline();
-  const stages = useMemo(
-    () => (pipeline?.stages as unknown as Stage[]) ?? [],
-    [pipeline?.stages],
-  );
+  const { data: templates, isLoading } = useEmailTemplates()
+  const filtered = useFilteredTemplates(templates, filter, search)
+  const { data: selectedTemplate } = useEmailTemplate(selectedId)
+  const { data: pipeline } = useDefaultPipeline()
+  const stages = useMemo(() => (pipeline?.stages as unknown as Stage[]) ?? [], [pipeline?.stages])
 
   const setTemplateId = (id: string | null) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', 'templates');
-    if (id) next.set('templateId', id);
-    else next.delete('templateId');
-    setSearchParams(next, { replace: true });
-  };
+    const next = new URLSearchParams(searchParams)
+    next.set("tab", "templates")
+    if (id) next.set("templateId", id)
+    else next.delete("templateId")
+    setSearchParams(next, { replace: true })
+  }
 
-  const hasAny = (templates?.length ?? 0) > 0;
+  const hasAny = (templates?.length ?? 0) > 0
 
   return (
     <div className="space-y-3">
@@ -73,7 +70,7 @@ export function EmailTemplatesTab() {
           </SelectContent>
         </Select>
         <div className="ml-auto">
-          <Button type="button" size="sm" onClick={() => setTemplateId('new')}>
+          <Button type="button" size="sm" onClick={() => setTemplateId("new")}>
             <Plus />
             Ny mal
           </Button>
@@ -116,7 +113,7 @@ export function EmailTemplatesTab() {
         </Card>
       </div>
     </div>
-  );
+  )
 }
 
 function EmptyEditor() {
@@ -125,5 +122,5 @@ function EmptyEditor() {
       <Mail className="h-12 w-12 opacity-40" />
       <p className="text-sm">Velg en mal fra listen, eller opprett en ny.</p>
     </div>
-  );
+  )
 }

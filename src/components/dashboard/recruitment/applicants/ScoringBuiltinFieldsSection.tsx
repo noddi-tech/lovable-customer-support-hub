@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type React from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   AvailabilityDateRow,
   CertificationsRow,
@@ -9,11 +9,11 @@ import {
   OwnVehicleRow,
   WorkPermitStatusRow,
   YearsExperienceRow,
-} from './inline/ApplicantScoringFieldRows';
-import type { ApplicantProfileData } from './useApplicantProfile';
+} from "./inline/ApplicantScoringFieldRows"
+import type { ApplicantProfileData } from "./useApplicantProfile"
 
 interface Props {
-  applicant: ApplicantProfileData;
+  applicant: ApplicantProfileData
 }
 
 const ScoringBuiltinFieldsSection: React.FC<Props> = ({ applicant }) => {
@@ -38,7 +38,7 @@ const ScoringBuiltinFieldsSection: React.FC<Props> = ({ applicant }) => {
         </dl>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default ScoringBuiltinFieldsSection;
+export default ScoringBuiltinFieldsSection

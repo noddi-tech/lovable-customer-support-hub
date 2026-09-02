@@ -1,9 +1,9 @@
-import { Settings } from "lucide-react";
-import { CategoryManager } from "./CategoryManager";
-import { TagManager } from "./TagManager";
+import { Settings } from "lucide-react"
+import { CategoryManager } from "./CategoryManager"
+import { TagManager } from "./TagManager"
 
 interface KnowledgeSettingsProps {
-  organizationId: string;
+  organizationId: string
 }
 
 export function KnowledgeSettings({ organizationId }: KnowledgeSettingsProps) {
@@ -24,5 +24,5 @@ export function KnowledgeSettings({ organizationId }: KnowledgeSettingsProps) {
         <TagManager organizationId={organizationId} />
       </div>
     </div>
-  );
+  )
 }

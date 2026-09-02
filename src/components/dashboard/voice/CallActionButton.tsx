@@ -1,103 +1,100 @@
-import React, { useState } from 'react';
-import { Phone, ChevronDown, Globe, Puzzle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronDown, Globe, Phone, Puzzle } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
 
 interface CallActionButtonProps {
-  phoneNumber: string;
-  size?: 'sm' | 'default';
-  variant?: 'default' | 'outline' | 'ghost';
-  className?: string;
+  phoneNumber: string
+  size?: "sm" | "default"
+  variant?: "default" | "outline" | "ghost"
+  className?: string
 }
 
 export const CallActionButton: React.FC<CallActionButtonProps> = ({
   phoneNumber,
-  size = 'sm',
-  variant = 'outline',
-  className = ''
+  size = "sm",
+  variant = "outline",
+  className = "",
 }) => {
-  const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast()
+  const [isOpen, setIsOpen] = useState(false)
 
   const normalizePhoneNumber = (phone: string) => {
     // Remove all non-digit characters
-    return phone.replace(/\D/g, '');
-  };
+    return phone.replace(/\D/g, "")
+  }
 
   const formatPhoneForTel = (phone: string) => {
-    const normalized = normalizePhoneNumber(phone);
+    const normalized = normalizePhoneNumber(phone)
     // Add + prefix for international format
-    return `+1${normalized}`;
-  };
+    return `+1${normalized}`
+  }
 
   const handleTelCall = () => {
-    const telUrl = `tel:${formatPhoneForTel(phoneNumber)}`;
+    const telUrl = `tel:${formatPhoneForTel(phoneNumber)}`
     try {
-      window.location.href = telUrl;
+      window.location.href = telUrl
       toast({
         title: "Initiating call",
         description: `Opening dialer for ${phoneNumber}`,
-      });
+      })
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to initiate call",
         variant: "destructive",
-      });
+      })
     }
-    setIsOpen(false);
-  };
+    setIsOpen(false)
+  }
 
   const handleAircallCall = () => {
     // Aircall browser extension URL scheme
-    const aircallUrl = `aircall://call/${normalizePhoneNumber(phoneNumber)}`;
+    const aircallUrl = `aircall://call/${normalizePhoneNumber(phoneNumber)}`
     try {
-      window.location.href = aircallUrl;
+      window.location.href = aircallUrl
       toast({
         title: "Calling via Aircall",
         description: `Initiating call to ${phoneNumber}`,
-      });
+      })
     } catch (error) {
       // Fallback to tel: if Aircall extension is not available
-      handleTelCall();
+      handleTelCall()
     }
-    setIsOpen(false);
-  };
+    setIsOpen(false)
+  }
 
   const handleZoomPhoneCall = () => {
     // Zoom Phone URL scheme
-    const zoomUrl = `zoomphone://call?number=${normalizePhoneNumber(phoneNumber)}`;
+    const zoomUrl = `zoomphone://call?number=${normalizePhoneNumber(phoneNumber)}`
     try {
-      window.location.href = zoomUrl;
+      window.location.href = zoomUrl
       toast({
         title: "Calling via Zoom Phone",
         description: `Initiating call to ${phoneNumber}`,
-      });
+      })
     } catch (error) {
       // Fallback to tel: if Zoom Phone is not available
-      handleTelCall();
+      handleTelCall()
     }
-    setIsOpen(false);
-  };
+    setIsOpen(false)
+  }
 
-  if (!phoneNumber || phoneNumber === 'Unknown') {
-    return null;
+  if (!phoneNumber || phoneNumber === "Unknown") {
+    return null
   }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant={variant}
-          size={size}
-          className={`flex items-center gap-1 ${className}`}
-        >
+        <Button variant={variant} size={size} className={`flex items-center gap-1 ${className}`}>
           <Phone className="h-3 w-3" />
           Call
           <ChevronDown className="h-3 w-3" />
@@ -127,5 +124,5 @@ export const CallActionButton: React.FC<CallActionButtonProps> = ({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-};
+  )
+}

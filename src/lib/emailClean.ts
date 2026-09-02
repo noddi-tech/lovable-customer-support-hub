@@ -13,32 +13,31 @@
  * "show trimmed content" expander.
  */
 
+import { parseMessage } from "@u22n/mailtools"
+import { ENABLE_LIB_EMAIL_CLEAN } from "@/lib/parseQuotedEmail"
+import { sanitizeEmailHTML } from "@/utils/htmlSanitizer"
+import { logger } from "@/utils/logger"
 
-import { parseMessage } from '@u22n/mailtools';
-import { sanitizeEmailHTML } from '@/utils/htmlSanitizer';
-import { ENABLE_LIB_EMAIL_CLEAN } from '@/lib/parseQuotedEmail';
-import { logger } from '@/utils/logger';
-
-export type CleanConfidence = 'high' | 'low';
+export type CleanConfidence = "high" | "low"
 
 export interface CleanResult {
   /** Cleaned body (HTML when the input was HTML, plain text otherwise) */
-  visible: string;
+  visible: string
   /** What was stripped, for the "show trimmed content" toggle */
-  removed: string;
-  confidence: CleanConfidence;
+  removed: string
+  confidence: CleanConfidence
   /** True when the library pipeline actually ran and changed something */
-  cleaned: boolean;
+  cleaned: boolean
 }
 
 /** Minimum length a cleaned body must keep before we treat it as a bad strip. */
-const MIN_VISIBLE_LENGTH = 15;
+const MIN_VISIBLE_LENGTH = 15
 
 // ---------------------------------------------------------------------------
 // Feature flag
 // ---------------------------------------------------------------------------
 
-let overrideCache: boolean | null | undefined;
+let overrideCache: boolean | null | undefined
 
 /**
  * Flag + per-session override so real threads can be compared side by side:
@@ -47,28 +46,28 @@ let overrideCache: boolean | null | undefined;
  */
 export function isLibCleanEnabled(): boolean {
   if (overrideCache === undefined) {
-    overrideCache = null;
+    overrideCache = null
     try {
-      if (typeof window !== 'undefined') {
-        const param = new URLSearchParams(window.location.search).get('cleanv2');
-        if (param === '1' || param === '0') {
-          overrideCache = param === '1';
-          window.sessionStorage.setItem('cleanv2', param);
+      if (typeof window !== "undefined") {
+        const param = new URLSearchParams(window.location.search).get("cleanv2")
+        if (param === "1" || param === "0") {
+          overrideCache = param === "1"
+          window.sessionStorage.setItem("cleanv2", param)
         } else {
-          const stored = window.sessionStorage.getItem('cleanv2');
-          if (stored === '1' || stored === '0') overrideCache = stored === '1';
+          const stored = window.sessionStorage.getItem("cleanv2")
+          if (stored === "1" || stored === "0") overrideCache = stored === "1"
         }
       }
     } catch {
-      overrideCache = null;
+      overrideCache = null
     }
   }
-  return overrideCache ?? ENABLE_LIB_EMAIL_CLEAN;
+  return overrideCache ?? ENABLE_LIB_EMAIL_CLEAN
 }
 
 /** Test helper — clears the memoised URL/sessionStorage override. */
 export function resetLibCleanOverride(): void {
-  overrideCache = undefined;
+  overrideCache = undefined
 }
 
 // ---------------------------------------------------------------------------
@@ -82,7 +81,7 @@ const NB_REPLY_MARKERS: RegExp[] = [
   /^\s*(Fra|From):\s*.+$/im,
   /^\s*(Sendt fra|Sent from) (min|my) .+$/im,
   /^\s*(Get|Hent) Outlook for .+$/im,
-];
+]
 
 /**
  * Cut plain text at the first Norwegian/Outlook reply or signature marker.
@@ -90,27 +89,27 @@ const NB_REPLY_MARKERS: RegExp[] = [
  * line follows within a few lines — otherwise it is ordinary prose.
  */
 export function cutAtScandinavianMarkers(text: string): { visible: string; removed: string } {
-  if (!text) return { visible: '', removed: '' };
-  const lines = text.split('\n');
+  if (!text) return { visible: "", removed: "" }
+  const lines = text.split("\n")
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]
     for (const marker of NB_REPLY_MARKERS) {
-      if (!new RegExp(marker.source, marker.flags.replace('m', '')).test(line.trim())) continue;
+      if (!new RegExp(marker.source, marker.flags.replace("m", "")).test(line.trim())) continue
 
       // "Fra:/From:" needs a corroborating header line right after it.
       if (/^\s*(Fra|From):/i.test(line)) {
-        const lookahead = lines.slice(i + 1, i + 4).join('\n');
-        if (!/^\s*(Sendt|Sent|Dato|Date|Til|To|Emne|Subject):/im.test(lookahead)) continue;
+        const lookahead = lines.slice(i + 1, i + 4).join("\n")
+        if (!/^\s*(Sendt|Sent|Dato|Date|Til|To|Emne|Subject):/im.test(lookahead)) continue
       }
 
       return {
-        visible: lines.slice(0, i).join('\n').trim(),
-        removed: lines.slice(i).join('\n').trim(),
-      };
+        visible: lines.slice(0, i).join("\n").trim(),
+        removed: lines.slice(i).join("\n").trim(),
+      }
     }
   }
-  return { visible: text.trim(), removed: '' };
+  return { visible: text.trim(), removed: "" }
 }
 
 // ---------------------------------------------------------------------------
@@ -132,71 +131,78 @@ const REPLY_CUT_PATTERNS: RegExp[] = [
   /^\s*On\b.{0,200}\bwrote:\s*$/i,
   /^\s*.{0,120}\bwrote:\s*$/i,
   /^\s*>/,
-];
+]
 
 function stripPlainTextReply(text: string): string {
-  const lines = text.split('\n');
+  const lines = text.split("\n")
   for (let i = 0; i < lines.length; i++) {
     if (REPLY_CUT_PATTERNS.some((re) => re.test(lines[i]))) {
-      const head = lines.slice(0, i).join('\n').trim();
-      if (head.length >= MIN_VISIBLE_LENGTH) return head;
-      return text.trim();
+      const head = lines.slice(0, i).join("\n").trim()
+      if (head.length >= MIN_VISIBLE_LENGTH) return head
+      return text.trim()
     }
   }
-  return text.trim();
+  return text.trim()
 }
 
 export function cleanPlainTextBody(text: string): CleanResult {
-  const source = (text ?? '').trim();
+  const source = (text ?? "").trim()
   if (!source || !isLibCleanEnabled()) {
-    return { visible: source, removed: '', confidence: 'high', cleaned: false };
+    return { visible: source, removed: "", confidence: "high", cleaned: false }
   }
 
-  let visible = source;
+  let visible = source
   try {
-    visible = stripPlainTextReply(source);
+    visible = stripPlainTextReply(source)
   } catch (error) {
-    logger.debug('plain-text reply strip failed, keeping original', { error: String(error) }, 'EmailClean');
-    visible = source;
+    logger.debug(
+      "plain-text reply strip failed, keeping original",
+      { error: String(error) },
+      "EmailClean",
+    )
+    visible = source
   }
 
-
-  const scandinavian = cutAtScandinavianMarkers(visible);
-  if (scandinavian.visible) visible = scandinavian.visible;
+  const scandinavian = cutAtScandinavianMarkers(visible)
+  if (scandinavian.visible) visible = scandinavian.visible
 
   // Safety net: a strip that empties a real message is a bad strip.
   if (visible.length < MIN_VISIBLE_LENGTH && source.length >= MIN_VISIBLE_LENGTH) {
-    logger.debug('Clean v2 produced an (almost) empty body — falling back', {
-      originalLength: source.length,
-      cleanedLength: visible.length,
-    }, 'EmailClean');
-    return { visible: source, removed: '', confidence: 'low', cleaned: false };
+    logger.debug(
+      "Clean v2 produced an (almost) empty body — falling back",
+      {
+        originalLength: source.length,
+        cleanedLength: visible.length,
+      },
+      "EmailClean",
+    )
+    return { visible: source, removed: "", confidence: "low", cleaned: false }
   }
 
-  const removed = source.startsWith(visible) ? source.slice(visible.length).trim() : '';
-  return { visible, removed, confidence: 'high', cleaned: visible !== source };
+  const removed = source.startsWith(visible) ? source.slice(visible.length).trim() : ""
+  return { visible, removed, confidence: "high", cleaned: visible !== source }
 }
 
 // ---------------------------------------------------------------------------
 // HTML (asynchronous — mailtools parseMessage is async)
 // ---------------------------------------------------------------------------
 
-const htmlCache = new Map<string, CleanResult>();
-const HTML_CACHE_MAX = 200;
+const htmlCache = new Map<string, CleanResult>()
+const HTML_CACHE_MAX = 200
 
 function cacheKey(html: string): string {
-  let hash = 0;
+  let hash = 0
   for (let i = 0; i < Math.min(html.length, 2000); i++) {
-    hash = ((hash << 5) - hash + html.charCodeAt(i)) | 0;
+    hash = ((hash << 5) - hash + html.charCodeAt(i)) | 0
   }
-  return `${hash}_${html.length}`;
+  return `${hash}_${html.length}`
 }
 
 function textLength(html: string): number {
-  if (typeof document === 'undefined') return html.replace(/<[^>]+>/g, '').trim().length;
-  const el = document.createElement('div');
-  el.innerHTML = html;
-  return (el.textContent || '').trim().length;
+  if (typeof document === "undefined") return html.replace(/<[^>]+>/g, "").trim().length
+  const el = document.createElement("div")
+  el.innerHTML = html
+  return (el.textContent || "").trim().length
 }
 
 /**
@@ -204,21 +210,21 @@ function textLength(html: string): number {
  * Results are cached by content hash — the libraries are heavier than regexes.
  */
 export async function cleanEmailHtml(html: string): Promise<CleanResult> {
-  const source = html ?? '';
+  const source = html ?? ""
   if (!source.trim() || !isLibCleanEnabled()) {
-    return { visible: source, removed: '', confidence: 'high', cleaned: false };
+    return { visible: source, removed: "", confidence: "high", cleaned: false }
   }
 
-  const key = cacheKey(source);
-  const hit = htmlCache.get(key);
-  if (hit) return hit;
+  const key = cacheKey(source)
+  const hit = htmlCache.get(key)
+  if (hit) return hit
 
-  let result: CleanResult;
+  let result: CleanResult
   try {
     // Inline attachments use cid: URIs, which DOMPurify's URI allow-list drops.
     // Park them behind a harmless https placeholder across the clean pass and
     // restore them afterwards so the existing inline-image rewriter still works.
-    const parked = source.replace(/(["'])cid:/gi, '$1https://cid.invalid/');
+    const parked = source.replace(/(["'])cid:/gi, "$1https://cid.invalid/")
 
     const parsed = await parseMessage(parked, {
       cleanQuotations: true,
@@ -227,41 +233,51 @@ export async function cleanEmailHtml(html: string): Promise<CleanResult> {
       // sanitizeEmailHTML + the "load images" control — don't double-block.
       noRemoteContent: false,
       cleanStyles: false,
-    });
+    })
 
-    const cleanedHtml = sanitizeEmailHTML(parsed.parsedMessageHtml || '')
-      .replace(/(["'])https:\/\/cid\.invalid\//gi, '$1cid:');
-    const originalTextLength = textLength(source);
-    const cleanedTextLength = textLength(cleanedHtml);
+    const cleanedHtml = sanitizeEmailHTML(parsed.parsedMessageHtml || "").replace(
+      /(["'])https:\/\/cid\.invalid\//gi,
+      "$1cid:",
+    )
+    const originalTextLength = textLength(source)
+    const cleanedTextLength = textLength(cleanedHtml)
 
     if (cleanedTextLength < MIN_VISIBLE_LENGTH && originalTextLength >= MIN_VISIBLE_LENGTH) {
-      logger.debug('Clean v2 emptied an HTML body — falling back to original', {
-        originalTextLength,
-        cleanedTextLength,
-      }, 'EmailClean');
-      result = { visible: source, removed: '', confidence: 'low', cleaned: false };
+      logger.debug(
+        "Clean v2 emptied an HTML body — falling back to original",
+        {
+          originalTextLength,
+          cleanedTextLength,
+        },
+        "EmailClean",
+      )
+      result = { visible: source, removed: "", confidence: "low", cleaned: false }
     } else {
       result = {
         visible: cleanedHtml,
-        removed: parsed.foundSignatureHtml || '',
-        confidence: 'high',
+        removed: parsed.foundSignatureHtml || "",
+        confidence: "high",
         cleaned: Boolean(parsed.didFindQuotation || parsed.didFindSignature),
-      };
+      }
     }
   } catch (error) {
-    logger.debug('mailtools parseMessage failed, keeping original HTML', { error: String(error) }, 'EmailClean');
-    result = { visible: source, removed: '', confidence: 'low', cleaned: false };
+    logger.debug(
+      "mailtools parseMessage failed, keeping original HTML",
+      { error: String(error) },
+      "EmailClean",
+    )
+    result = { visible: source, removed: "", confidence: "low", cleaned: false }
   }
 
   if (htmlCache.size >= HTML_CACHE_MAX) {
-    const oldest = htmlCache.keys().next().value;
-    if (oldest !== undefined) htmlCache.delete(oldest);
+    const oldest = htmlCache.keys().next().value
+    if (oldest !== undefined) htmlCache.delete(oldest)
   }
-  htmlCache.set(key, result);
-  return result;
+  htmlCache.set(key, result)
+  return result
 }
 
 /** Test helper */
 export function clearEmailCleanCache(): void {
-  htmlCache.clear();
+  htmlCache.clear()
 }

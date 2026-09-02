@@ -28,3 +28,4 @@ docs/sso/*-oidc-client-credentials.md
 *.njsproj
 *.sln
 *.sw?
+supabase/.temp/

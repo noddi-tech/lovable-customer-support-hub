@@ -6,13 +6,13 @@
 // in sync if either side changes.
 
 export const EXTERNAL_ACTION_TYPES = new Set<string>([
-  'send_email',
-  'webhook',
-  'send_sms',
-  'send_candidate_form',
-]);
+  "send_email",
+  "webhook",
+  "send_sms",
+  "send_candidate_form",
+])
 
 export function isExternalAction(actionType: string | null | undefined): boolean {
-  if (!actionType) return false;
-  return EXTERNAL_ACTION_TYPES.has(actionType);
+  if (!actionType) return false
+  return EXTERNAL_ACTION_TYPES.has(actionType)
 }

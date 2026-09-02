@@ -1,13 +1,13 @@
-import React from 'react';
-import { FileEdit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useCompose } from '@/contexts/ComposeContext';
+import { FileEdit, Trash2 } from "lucide-react"
+import type React from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useCompose } from "@/contexts/ComposeContext"
 
 function draftTitle(subject: string, to: string, bulkEmails: string) {
-  return subject.trim() || to.trim() || bulkEmails.split(/[\n,;]/)[0]?.trim() || '(no subject)';
+  return subject.trim() || to.trim() || bulkEmails.split(/[\n,;]/)[0]?.trim() || "(no subject)"
 }
 
 /**
@@ -15,7 +15,7 @@ function draftTitle(subject: string, to: string, bulkEmails: string) {
  * or discarded. Drafts persist locally until sent or discarded.
  */
 export const DraftsList: React.FC<{ className?: string }> = ({ className }) => {
-  const { savedDrafts, reopenDraft, removeDraft } = useCompose();
+  const { savedDrafts, reopenDraft, removeDraft } = useCompose()
 
   return (
     <Popover>
@@ -31,14 +31,19 @@ export const DraftsList: React.FC<{ className?: string }> = ({ className }) => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="start">
-        <div className="px-3 py-2 border-b border-border text-sm font-medium">Unfinished drafts</div>
+        <div className="px-3 py-2 border-b border-border text-sm font-medium">
+          Unfinished drafts
+        </div>
         {savedDrafts.length === 0 ? (
           <p className="px-3 py-6 text-sm text-muted-foreground text-center">No saved drafts</p>
         ) : (
           <ScrollArea className="max-h-72">
             <ul className="py-1">
               {savedDrafts.map((d) => (
-                <li key={d.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent/60 rounded-sm">
+                <li
+                  key={d.id}
+                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent/60 rounded-sm"
+                >
                   <button
                     type="button"
                     className="flex-1 min-w-0 text-left"
@@ -46,7 +51,7 @@ export const DraftsList: React.FC<{ className?: string }> = ({ className }) => {
                   >
                     <p className="text-sm truncate">{draftTitle(d.subject, d.to, d.bulkEmails)}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {d.bulkMode ? 'Bulk email' : d.to || 'No recipient'} ·{' '}
+                      {d.bulkMode ? "Bulk email" : d.to || "No recipient"} ·{" "}
                       {new Date(d.updatedAt).toLocaleString()}
                     </p>
                   </button>
@@ -66,5 +71,5 @@ export const DraftsList: React.FC<{ className?: string }> = ({ className }) => {
         )}
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

@@ -1,26 +1,26 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Bell, Check, Clock } from 'lucide-react';
-import { useCompleteFollowup } from '@/hooks/recruitment/useFollowups';
-import SnoozeFollowupDialog from '../applicants/SnoozeFollowupDialog';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import type { FollowupItem } from '@/hooks/recruitment/useOversiktMetrics';
+import { Bell, Check, Clock } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useCompleteFollowup } from "@/hooks/recruitment/useFollowups"
+import type { FollowupItem } from "@/hooks/recruitment/useOversiktMetrics"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import SnoozeFollowupDialog from "../applicants/SnoozeFollowupDialog"
 
 interface Props {
-  today: FollowupItem[];
-  overdue: FollowupItem[];
+  today: FollowupItem[]
+  overdue: FollowupItem[]
 }
 
 export default function FollowupsList({ today, overdue }: Props) {
-  const navigate = useNavigate();
-  const complete = useCompleteFollowup();
-  const { time } = useDateFormatting();
-  const [snoozeId, setSnoozeId] = useState<string | null>(null);
+  const navigate = useNavigate()
+  const complete = useCompleteFollowup()
+  const { time } = useDateFormatting()
+  const [snoozeId, setSnoozeId] = useState<string | null>(null)
 
-  const total = today.length + overdue.length;
+  const total = today.length + overdue.length
 
   return (
     <>
@@ -29,7 +29,9 @@ export default function FollowupsList({ today, overdue }: Props) {
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bell className="h-4 w-4 text-violet-500" />
             Påminnelser
-            <Badge variant="secondary" className="ml-auto">{total}</Badge>
+            <Badge variant="secondary" className="ml-auto">
+              {total}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -41,7 +43,11 @@ export default function FollowupsList({ today, overdue }: Props) {
                 <FollowupRow
                   key={it.followup_id}
                   it={it}
-                  badge={<Badge variant="outline" className="text-xs">I dag · {time(it.scheduled_for)}</Badge>}
+                  badge={
+                    <Badge variant="outline" className="text-xs">
+                      I dag · {time(it.scheduled_for)}
+                    </Badge>
+                  }
                   onOpen={() => navigate(`/operations/recruitment/applicants/${it.applicant_id}`)}
                   onComplete={() => complete.mutate(it.followup_id)}
                   onSnooze={() => setSnoozeId(it.followup_id)}
@@ -53,7 +59,7 @@ export default function FollowupsList({ today, overdue }: Props) {
                   it={it}
                   badge={
                     <Badge variant="destructive" className="text-xs">
-                      Forsinket {it.days_overdue} {it.days_overdue === 1 ? 'dag' : 'dager'}
+                      Forsinket {it.days_overdue} {it.days_overdue === 1 ? "dag" : "dager"}
                     </Badge>
                   }
                   onOpen={() => navigate(`/operations/recruitment/applicants/${it.applicant_id}`)}
@@ -74,7 +80,7 @@ export default function FollowupsList({ today, overdue }: Props) {
         />
       )}
     </>
-  );
+  )
 }
 
 function FollowupRow({
@@ -84,11 +90,11 @@ function FollowupRow({
   onComplete,
   onSnooze,
 }: {
-  it: FollowupItem;
-  badge: React.ReactNode;
-  onOpen: () => void;
-  onComplete: () => void;
-  onSnooze: () => void;
+  it: FollowupItem
+  badge: React.ReactNode
+  onOpen: () => void
+  onComplete: () => void
+  onSnooze: () => void
 }) {
   return (
     <li className="px-4 py-2.5 hover:bg-accent group flex items-center gap-3">
@@ -108,5 +114,5 @@ function FollowupRow({
         </Button>
       </div>
     </li>
-  );
+  )
 }

@@ -1,29 +1,39 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { CheckCheck, AlertCircle, RefreshCw, Loader2, Lock, MoreHorizontal, Edit3, Trash2, Copy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MentionRenderer } from '@/components/ui/mention-renderer';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import {
+  AlertCircle,
+  CheckCheck,
+  Copy,
+  Edit3,
+  Loader2,
+  Lock,
+  MoreHorizontal,
+  RefreshCw,
+  Trash2,
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { InlineNoteEditor } from "@/components/conversations/InlineNoteEditor"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { InlineNoteEditor } from '@/components/conversations/InlineNoteEditor';
-import { useNoteMutations } from '@/hooks/useNoteMutations';
-import { noteDebug } from '@/utils/noteInteractionDebug';
-import { EmailRender } from '@/components/ui/email-render';
-import type { EmailAttachment } from '@/utils/emailFormatting';
-import type { NormalizedMessage } from '@/lib/normalizeMessage';
+} from "@/components/ui/dropdown-menu"
+import { EmailRender } from "@/components/ui/email-render"
+import { MentionRenderer } from "@/components/ui/mention-renderer"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNoteMutations } from "@/hooks/useNoteMutations"
+import { supabase } from "@/integrations/supabase/client"
+import type { NormalizedMessage } from "@/lib/normalizeMessage"
+import { cn } from "@/lib/utils"
+import type { EmailAttachment } from "@/utils/emailFormatting"
+import { noteDebug } from "@/utils/noteInteractionDebug"
 
 interface MobileChatBubbleProps {
-  message: NormalizedMessage;
-  customerName?: string;
+  message: NormalizedMessage
+  customerName?: string
   /** Request note deletion — parent owns the confirm dialog so it survives this bubble unmounting */
-  onRequestDeleteNote?: (messageId: string) => void;
+  onRequestDeleteNote?: (messageId: string) => void
 }
 
 /** Resolve visible content with fallback for widget/chat messages */
@@ -31,37 +41,43 @@ function resolveContent(message: NormalizedMessage): string {
   // Prefer visibleBody if it has actual content
   if (message.visibleBody && message.visibleBody.trim().length > 0) {
     // Strip HTML and check if there's real text
-    const temp = document.createElement('div');
-    temp.innerHTML = message.visibleBody;
-    const text = (temp.textContent || temp.innerText || '').trim();
-    if (text.length > 0) return message.visibleBody;
+    const temp = document.createElement("div")
+    temp.innerHTML = message.visibleBody
+    const text = (temp.textContent || temp.innerText || "").trim()
+    if (text.length > 0) return message.visibleBody
   }
-  
+
   // Fallback to original message content
-  const raw = message.originalMessage;
+  const raw = message.originalMessage
   if (raw?.content) {
-    const temp = document.createElement('div');
-    temp.innerHTML = raw.content;
-    const text = (temp.textContent || temp.innerText || '').trim();
-    if (text.length > 0) return raw.content;
+    const temp = document.createElement("div")
+    temp.innerHTML = raw.content
+    const text = (temp.textContent || temp.innerText || "").trim()
+    if (text.length > 0) return raw.content
   }
-  
-  return message.visibleBody || '';
+
+  return message.visibleBody || ""
 }
 
-export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }: MobileChatBubbleProps) => {
-  const { relative: formatRelative } = useDateFormatting();
-  const [isEditing, setIsEditing] = useState(false);
-  const { canEditNote } = useNoteMutations();
-  const isAgent = message.authorType === 'agent';
-  const isSystem = message.authorType === 'system';
-  const isInternal = message.isInternalNote;
-  const senderName = message.from?.name || message.from?.email;
-  const conversationId = message.originalMessage?.conversation_id;
-  const canEditThisNote = isInternal && canEditNote({
-    is_internal: true,
-    sender_id: message.originalMessage?.sender_id,
-  });
+export const MobileChatBubble = ({
+  message,
+  customerName,
+  onRequestDeleteNote,
+}: MobileChatBubbleProps) => {
+  const { relative: formatRelative } = useDateFormatting()
+  const [isEditing, setIsEditing] = useState(false)
+  const { canEditNote } = useNoteMutations()
+  const isAgent = message.authorType === "agent"
+  const isSystem = message.authorType === "system"
+  const isInternal = message.isInternalNote
+  const senderName = message.from?.name || message.from?.email
+  const conversationId = message.originalMessage?.conversation_id
+  const canEditThisNote =
+    isInternal &&
+    canEditNote({
+      is_internal: true,
+      sender_id: message.originalMessage?.sender_id,
+    })
 
   if (isSystem) {
     return (
@@ -70,37 +86,41 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
           {message.visibleBody}
         </div>
       </div>
-    );
+    )
   }
 
-  const content = resolveContent(message);
-  const isPlainText = !/<[a-z][\s\S]*>/i.test(content);
-  const attachments: EmailAttachment[] = (message.originalMessage?.attachments || []).map((a: any) => ({
-    filename: a.name || a.filename || 'file',
-    mimeType: a.type || a.mimeType || 'application/octet-stream',
-    size: a.size || 0,
-    contentId: a.contentId || a.content_id,
-    isInline: a.isInline || false,
-    storageKey: a.storageKey || a.storage_key,
-  }));
+  const content = resolveContent(message)
+  const isPlainText = !/<[a-z][\s\S]*>/i.test(content)
+  const attachments: EmailAttachment[] = (message.originalMessage?.attachments || []).map(
+    (a: any) => ({
+      filename: a.name || a.filename || "file",
+      mimeType: a.type || a.mimeType || "application/octet-stream",
+      size: a.size || 0,
+      contentId: a.contentId || a.content_id,
+      isInline: a.isInline || false,
+      storageKey: a.storageKey || a.storage_key,
+    }),
+  )
 
   const handleResendEmail = async () => {
     try {
-      const { error } = await supabase.functions.invoke('send-reply-email', {
-        body: { messageId: message.id }
-      });
-      if (error) throw error;
-      toast.success('Email sent successfully');
+      const { error } = await supabase.functions.invoke("send-reply-email", {
+        body: { messageId: message.id },
+      })
+      if (error) throw error
+      toast.success("Email sent successfully")
     } catch {
-      toast.error('Failed to send email');
+      toast.error("Failed to send email")
     }
-  };
+  }
 
   return (
-    <div className={cn(
-      "flex flex-col max-w-[82%]",
-      isAgent ? "self-end items-end" : "self-start items-start"
-    )}>
+    <div
+      className={cn(
+        "flex flex-col max-w-[82%]",
+        isAgent ? "self-end items-end" : "self-start items-start",
+      )}
+    >
       {/* Sender label */}
       {isInternal ? (
         <span className="text-[10px] text-yellow-700 mb-0.5 px-1 flex items-center gap-0.5">
@@ -109,19 +129,21 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
         </span>
       ) : (
         <span className="text-[10px] text-muted-foreground mb-0.5 px-1 truncate max-w-full">
-          {isAgent ? senderName || 'Agent' : customerName || 'Customer'}
+          {isAgent ? senderName || "Agent" : customerName || "Customer"}
         </span>
       )}
 
       {/* Bubble */}
-      <div className={cn(
-        "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
-        isInternal
-          ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
-          : isAgent
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted text-foreground rounded-bl-md"
-      )}>
+      <div
+        className={cn(
+          "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
+          isInternal
+            ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
+            : isAgent
+              ? "bg-primary text-primary-foreground rounded-br-md"
+              : "bg-muted text-foreground rounded-bl-md",
+        )}
+      >
         {isInternal && canEditThisNote && !isEditing && (
           <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity">
             <DropdownMenu>
@@ -137,9 +159,9 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onSelect={(e) => {
-                    e.preventDefault();
-                    navigator.clipboard.writeText(content);
-                    toast.success('Copied');
+                    e.preventDefault()
+                    navigator.clipboard.writeText(content)
+                    toast.success("Copied")
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" />
@@ -147,14 +169,18 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
-                    noteDebug('note_editor_open_requested', {
-                      source: 'MobileChatBubble',
-                      messageId: message.id,
-                    }, 'MobileChatBubble');
+                    noteDebug(
+                      "note_editor_open_requested",
+                      {
+                        source: "MobileChatBubble",
+                        messageId: message.id,
+                      },
+                      "MobileChatBubble",
+                    )
                     // Let the dropdown close naturally; setTimeout defers
                     // the state update until after Radix's close animation
                     // starts unwinding, avoiding overlay stacking.
-                    setTimeout(() => setIsEditing(true), 0);
+                    setTimeout(() => setIsEditing(true), 0)
                   }}
                 >
                   <Edit3 className="h-4 w-4 mr-2" />
@@ -162,12 +188,16 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onSelect={() => {
-                    noteDebug('delete_dialog_open_requested', {
-                      source: 'MobileChatBubble',
-                      messageId: message.id,
-                    }, 'MobileChatBubble');
+                    noteDebug(
+                      "delete_dialog_open_requested",
+                      {
+                        source: "MobileChatBubble",
+                        messageId: message.id,
+                      },
+                      "MobileChatBubble",
+                    )
                     // Hand off to parent — its hoisted dialog survives this bubble unmounting
-                    setTimeout(() => onRequestDeleteNote?.(message.id), 0);
+                    setTimeout(() => onRequestDeleteNote?.(message.id), 0)
                   }}
                   className="text-destructive focus:text-destructive"
                 >
@@ -184,7 +214,7 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
             initialContent={message.originalMessage?.content || content}
             conversationId={conversationId}
             context={{
-              type: 'internal_note',
+              type: "internal_note",
               conversation_id: conversationId,
               message_id: message.id,
             }}
@@ -206,8 +236,7 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
           <EmailRender
             content={content}
             contentType={
-              message.originalMessage?.content_type ||
-              (isPlainText ? 'text/plain' : 'text/html')
+              message.originalMessage?.content_type || (isPlainText ? "text/plain" : "text/html")
             }
             attachments={attachments}
             messageId={message.id}
@@ -222,19 +251,19 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
         <span className="text-[10px] text-muted-foreground">
           {formatRelative(new Date(message.createdAt))}
         </span>
-        {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === 'sent') && (
+        {isAgent && !isInternal && (!message.emailStatus || message.emailStatus === "sent") && (
           <CheckCheck className="h-2.5 w-2.5 text-primary" />
         )}
       </div>
 
-      {isAgent && message.emailStatus === 'sending' && (
+      {isAgent && message.emailStatus === "sending" && (
         <div className="flex items-center gap-1 mt-0.5 px-1">
           <Loader2 className="h-2.5 w-2.5 text-muted-foreground animate-spin" />
           <span className="text-[10px] text-muted-foreground">Sending...</span>
         </div>
       )}
 
-      {isAgent && (message.emailStatus === 'failed' || message.emailStatus === 'retry') && (
+      {isAgent && (message.emailStatus === "failed" || message.emailStatus === "retry") && (
         <div className="flex items-center gap-1 mt-0.5 px-1">
           <AlertCircle className="h-2.5 w-2.5 text-destructive" />
           <span className="text-[10px] text-destructive">Failed</span>
@@ -252,5 +281,5 @@ export const MobileChatBubble = ({ message, customerName, onRequestDeleteNote }:
 
       {/* Delete confirmation dialog is hoisted to the parent list to survive bubble unmount */}
     </div>
-  );
-};
+  )
+}

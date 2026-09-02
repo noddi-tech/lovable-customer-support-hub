@@ -1,30 +1,19 @@
-import React from 'react';
-import { Bell, BellOff, Volume2, VolumeX } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { Bell, BellOff, Volume2, VolumeX } from "lucide-react"
+import type React from "react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications"
 
 interface NotificationSettingsProps {
-  soundEnabled: boolean;
-  onSoundEnabledChange: (enabled: boolean) => void;
-  soundVolume: number;
-  onSoundVolumeChange: (volume: number) => void;
-  browserNotificationsEnabled: boolean;
-  onBrowserNotificationsEnabledChange: (enabled: boolean) => void;
+  soundEnabled: boolean
+  onSoundEnabledChange: (enabled: boolean) => void
+  soundVolume: number
+  onSoundVolumeChange: (volume: number) => void
+  browserNotificationsEnabled: boolean
+  onBrowserNotificationsEnabledChange: (enabled: boolean) => void
 }
 
 export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
@@ -35,18 +24,18 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   browserNotificationsEnabled,
   onBrowserNotificationsEnabledChange,
 }) => {
-  const { permission, requestPermission, isSupported } = useBrowserNotifications();
+  const { permission, requestPermission, isSupported } = useBrowserNotifications()
 
   const handleBrowserNotificationsToggle = async (checked: boolean) => {
-    if (checked && permission !== 'granted') {
-      const result = await requestPermission();
-      if (result === 'granted') {
-        onBrowserNotificationsEnabledChange(true);
+    if (checked && permission !== "granted") {
+      const result = await requestPermission()
+      if (result === "granted") {
+        onBrowserNotificationsEnabledChange(true)
       }
     } else {
-      onBrowserNotificationsEnabledChange(checked);
+      onBrowserNotificationsEnabledChange(checked)
     }
-  };
+  }
 
   return (
     <Popover>
@@ -115,19 +104,19 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
                 <Switch
                   id="browser-notifications"
-                  checked={browserNotificationsEnabled && permission === 'granted'}
+                  checked={browserNotificationsEnabled && permission === "granted"}
                   onCheckedChange={handleBrowserNotificationsToggle}
-                  disabled={permission === 'denied'}
+                  disabled={permission === "denied"}
                 />
               </div>
 
-              {permission === 'denied' && (
+              {permission === "denied" && (
                 <p className="text-xs text-destructive pl-6">
                   Permission denied. Please enable in browser settings.
                 </p>
               )}
 
-              {permission === 'default' && (
+              {permission === "default" && (
                 <p className="text-xs text-muted-foreground pl-6">
                   Click the switch to request permission
                 </p>
@@ -143,5 +132,5 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

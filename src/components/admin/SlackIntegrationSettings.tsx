@@ -1,29 +1,52 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Loader2, CheckCircle2, Hash, Lock, Send, ExternalLink, Slack, Info, Clock, AlertTriangle, BarChart3, Building2 } from 'lucide-react';
-import { useSlackIntegration } from '@/hooks/useSlackIntegration';
-import { SlackSetupWizard } from './SlackSetupWizard';
-import { SecondarySlackSetupWizard } from './SecondarySlackSetupWizard';
-import { InboxSlackRouting } from './InboxSlackRouting';
-import { CriticalAlertRouting } from './CriticalAlertRouting';
-import { TriageHealthDashboard } from './TriageHealthDashboard';
-import { KeywordTuningCard } from './KeywordTuningCard';
+import {
+  AlertTriangle,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Hash,
+  Info,
+  Loader2,
+  Lock,
+  Send,
+  Slack,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { useSlackIntegration } from "@/hooks/useSlackIntegration"
+import { CriticalAlertRouting } from "./CriticalAlertRouting"
+import { InboxSlackRouting } from "./InboxSlackRouting"
+import { KeywordTuningCard } from "./KeywordTuningCard"
+import { SecondarySlackSetupWizard } from "./SecondarySlackSetupWizard"
+import { SlackSetupWizard } from "./SlackSetupWizard"
+import { TriageHealthDashboard } from "./TriageHealthDashboard"
 
 const EVENT_OPTIONS = [
-  { id: 'new_conversation', label: 'New Conversation', description: 'When a new email/message arrives' },
-  { id: 'customer_reply', label: 'Customer Reply', description: 'When a customer responds' },
-  { id: 'assignment', label: 'Assignment Changed', description: 'When assigned to someone' },
-  { id: 'mention', label: '@Mention', description: "When you're mentioned in a note" },
-  { id: 'sla_warning', label: 'SLA Warning', description: 'Before an SLA breach' },
-] as const;
+  {
+    id: "new_conversation",
+    label: "New Conversation",
+    description: "When a new email/message arrives",
+  },
+  { id: "customer_reply", label: "Customer Reply", description: "When a customer responds" },
+  { id: "assignment", label: "Assignment Changed", description: "When assigned to someone" },
+  { id: "mention", label: "@Mention", description: "When you're mentioned in a note" },
+  { id: "sla_warning", label: "SLA Warning", description: "Before an SLA breach" },
+] as const
 
 export const SlackIntegrationSettings = () => {
   const {
@@ -44,25 +67,27 @@ export const SlackIntegrationSettings = () => {
     refetchSecondaryChannels,
     saveSecondaryToken,
     disconnectSecondary,
-  } = useSlackIntegration();
+  } = useSlackIntegration()
 
   const [localConfig, setLocalConfig] = useState({
-    enabled_events: ['new_conversation', 'customer_reply', 'assignment', 'mention'] as string[],
+    enabled_events: ["new_conversation", "customer_reply", "assignment", "mention"] as string[],
     mention_assigned_user: true,
     include_message_preview: true,
     digest_enabled: false,
-    digest_time: '08:00',
-    digest_frequency: 'daily' as 'daily' | 'weekly' | 'both',
+    digest_time: "08:00",
+    digest_frequency: "daily" as "daily" | "weekly" | "both",
     critical_alerts_enabled: false,
-  });
-  const [selectedChannelId, setSelectedChannelId] = useState<string>('');
-  const [digestChannelId, setDigestChannelId] = useState<string>('');
-  const [criticalChannelId, setCriticalChannelId] = useState<string>('');
-  const [secondaryToken, setSecondaryToken] = useState('');
+  })
+  const [selectedChannelId, setSelectedChannelId] = useState<string>("")
+  const [digestChannelId, setDigestChannelId] = useState<string>("")
+  const [criticalChannelId, setCriticalChannelId] = useState<string>("")
+  const [secondaryToken, setSecondaryToken] = useState("")
 
   // Channels for digest/critical: use secondary workspace if connected, else primary
-  const routingChannels = hasSecondaryWorkspace ? secondaryChannels : channels;
-  const isLoadingRoutingChannels = hasSecondaryWorkspace ? isLoadingSecondaryChannels : isLoadingChannels;
+  const routingChannels = hasSecondaryWorkspace ? secondaryChannels : channels
+  const isLoadingRoutingChannels = hasSecondaryWorkspace
+    ? isLoadingSecondaryChannels
+    : isLoadingChannels
 
   // Sync local state with fetched integration
   useEffect(() => {
@@ -72,61 +97,73 @@ export const SlackIntegrationSettings = () => {
         mention_assigned_user: integration.configuration?.mention_assigned_user ?? true,
         include_message_preview: integration.configuration?.include_message_preview ?? true,
         digest_enabled: integration.configuration?.digest_enabled ?? false,
-        digest_time: integration.configuration?.digest_time || '08:00',
-        digest_frequency: integration.configuration?.digest_frequency || 'daily',
+        digest_time: integration.configuration?.digest_time || "08:00",
+        digest_frequency: integration.configuration?.digest_frequency || "daily",
         critical_alerts_enabled: integration.configuration?.critical_alerts_enabled ?? false,
-      });
-      setSelectedChannelId(integration.default_channel_id || '');
-      setDigestChannelId(integration.digest_channel_id || '');
-      setCriticalChannelId(integration.critical_channel_id || '');
+      })
+      setSelectedChannelId(integration.default_channel_id || "")
+      setDigestChannelId(integration.digest_channel_id || "")
+      setCriticalChannelId(integration.critical_channel_id || "")
     }
-  }, [integration]);
+  }, [integration])
 
   const handleDisconnect = () => {
-    if (confirm('Are you sure you want to disconnect Slack? You will stop receiving notifications.')) {
-      disconnectSlack.mutate();
+    if (
+      confirm("Are you sure you want to disconnect Slack? You will stop receiving notifications.")
+    ) {
+      disconnectSlack.mutate()
     }
-  };
+  }
 
   const handleChannelChange = (channelId: string) => {
-    const channel = channels.find(c => c.id === channelId);
-    setSelectedChannelId(channelId);
+    const channel = channels.find((c) => c.id === channelId)
+    setSelectedChannelId(channelId)
     updateConfiguration.mutate({
       default_channel_id: channelId,
-      default_channel_name: channel?.name || '',
-    });
-  };
+      default_channel_name: channel?.name || "",
+    })
+  }
 
   const handleEventToggle = (eventId: string, enabled: boolean) => {
     const newEvents = enabled
       ? [...localConfig.enabled_events, eventId]
-      : localConfig.enabled_events.filter(e => e !== eventId);
-    
-    setLocalConfig(prev => ({ ...prev, enabled_events: newEvents }));
+      : localConfig.enabled_events.filter((e) => e !== eventId)
+
+    setLocalConfig((prev) => ({ ...prev, enabled_events: newEvents }))
     updateConfiguration.mutate({
       configuration: { enabled_events: newEvents },
-    });
-  };
+    })
+  }
 
-  const handleAdvancedToggle = (key: 'mention_assigned_user' | 'include_message_preview', enabled: boolean) => {
-    setLocalConfig(prev => ({ ...prev, [key]: enabled }));
+  const handleAdvancedToggle = (
+    key: "mention_assigned_user" | "include_message_preview",
+    enabled: boolean,
+  ) => {
+    setLocalConfig((prev) => ({ ...prev, [key]: enabled }))
     updateConfiguration.mutate({
       configuration: { [key]: enabled },
-    });
-  };
+    })
+  }
 
   const handleConnectSecondary = () => {
-    if (!secondaryToken.trim()) return;
-    saveSecondaryToken.mutate({ bot_token: secondaryToken.trim() }, {
-      onSuccess: () => setSecondaryToken(''),
-    });
-  };
+    if (!secondaryToken.trim()) return
+    saveSecondaryToken.mutate(
+      { bot_token: secondaryToken.trim() },
+      {
+        onSuccess: () => setSecondaryToken(""),
+      },
+    )
+  }
 
   const handleDisconnectSecondary = () => {
-    if (confirm('Disconnect secondary workspace? Digest and critical alerts will fall back to the primary workspace.')) {
-      disconnectSecondary.mutate();
+    if (
+      confirm(
+        "Disconnect secondary workspace? Digest and critical alerts will fall back to the primary workspace.",
+      )
+    ) {
+      disconnectSecondary.mutate()
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -135,12 +172,12 @@ export const SlackIntegrationSettings = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
-    );
+    )
   }
 
   // Show setup wizard if not connected
   if (!isConnected || !setupCompleted) {
-    return <SlackSetupWizard onComplete={() => refetch()} />;
+    return <SlackSetupWizard onComplete={() => refetch()} />
   }
 
   return (
@@ -155,15 +192,10 @@ export const SlackIntegrationSettings = () => {
               </div>
               <div>
                 <CardTitle className="text-lg">Slack Integration</CardTitle>
-                <CardDescription>
-                  Post notifications to your team's Slack workspace
-                </CardDescription>
+                <CardDescription>Post notifications to your team's Slack workspace</CardDescription>
               </div>
             </div>
-            <Badge 
-              variant="default"
-              className="bg-success/10 text-success border-success/20"
-            >
+            <Badge variant="default" className="bg-success/10 text-success border-success/20">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Connected
             </Badge>
@@ -185,7 +217,7 @@ export const SlackIntegrationSettings = () => {
                 {disconnectSlack.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Disconnect'
+                  "Disconnect"
                 )}
               </Button>
             </div>
@@ -239,10 +271,23 @@ export const SlackIntegrationSettings = () => {
                 <Alert className="mt-3 bg-amber-500/10 border-amber-500/30">
                   <Info className="h-4 w-4 text-amber-500" />
                   <AlertDescription className="text-sm">
-                    <span className="font-medium">Important:</span> You must invite the bot to your channel before it can post notifications.
+                    <span className="font-medium">Important:</span> You must invite the bot to your
+                    channel before it can post notifications.
                     <ol className="mt-2 ml-4 list-decimal space-y-1 text-muted-foreground">
-                      <li>Open <span className="font-mono text-foreground">#{channels.find(c => c.id === selectedChannelId)?.name || 'your-channel'}</span> in Slack</li>
-                      <li>Type <span className="font-mono bg-muted px-1.5 py-0.5 rounded">/invite @{integration?.team_name || 'YourBotName'}</span></li>
+                      <li>
+                        Open{" "}
+                        <span className="font-mono text-foreground">
+                          #
+                          {channels.find((c) => c.id === selectedChannelId)?.name || "your-channel"}
+                        </span>{" "}
+                        in Slack
+                      </li>
+                      <li>
+                        Type{" "}
+                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                          /invite @{integration?.team_name || "YourBotName"}
+                        </span>
+                      </li>
                       <li>Press Enter to add the bot to the channel</li>
                     </ol>
                   </AlertDescription>
@@ -304,14 +349,14 @@ export const SlackIntegrationSettings = () => {
                 {disconnectSecondary.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Disconnect'
+                  "Disconnect"
                 )}
               </Button>
             </div>
           ) : (
             <SecondarySlackSetupWizard
               onConnect={async (token) => {
-                await saveSecondaryToken.mutateAsync({ bot_token: token });
+                await saveSecondaryToken.mutateAsync({ bot_token: token })
               }}
               isConnecting={saveSecondaryToken.isPending}
             />
@@ -326,7 +371,7 @@ export const SlackIntegrationSettings = () => {
         secondaryChannels={secondaryChannels}
         hasSecondaryWorkspace={hasSecondaryWorkspace}
         onRefreshChannels={async () => {
-          await Promise.all([refetchChannels(), refetchSecondaryChannels()]);
+          await Promise.all([refetchChannels(), refetchSecondaryChannels()])
         }}
         isRefreshing={isLoadingChannels || isLoadingSecondaryChannels}
       />
@@ -335,9 +380,7 @@ export const SlackIntegrationSettings = () => {
       <Card className="bg-gradient-surface border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Notification Events</CardTitle>
-          <CardDescription>
-            Choose which events trigger Slack notifications
-          </CardDescription>
+          <CardDescription>Choose which events trigger Slack notifications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {EVENT_OPTIONS.map((event, index) => (
@@ -348,9 +391,7 @@ export const SlackIntegrationSettings = () => {
                   <Label htmlFor={event.id} className="font-medium">
                     {event.label}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {event.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{event.description}</p>
                 </div>
                 <Switch
                   id={event.id}
@@ -373,7 +414,7 @@ export const SlackIntegrationSettings = () => {
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-              <CardTitle className="text-lg">AI-Powered Digest (Default)</CardTitle>
+                <CardTitle className="text-lg">AI-Powered Digest (Default)</CardTitle>
                 <CardDescription>
                   Default digest channel for inboxes without per-inbox routing configured above
                   {hasSecondaryWorkspace && (
@@ -387,10 +428,10 @@ export const SlackIntegrationSettings = () => {
             <Switch
               checked={localConfig.digest_enabled}
               onCheckedChange={(checked) => {
-                setLocalConfig(prev => ({ ...prev, digest_enabled: checked }));
+                setLocalConfig((prev) => ({ ...prev, digest_enabled: checked }))
                 updateConfiguration.mutate({
                   configuration: { digest_enabled: checked },
-                });
+                })
               }}
               disabled={updateConfiguration.isPending}
             />
@@ -404,12 +445,12 @@ export const SlackIntegrationSettings = () => {
                 <Select
                   value={digestChannelId}
                   onValueChange={(channelId) => {
-                    const channel = routingChannels.find(c => c.id === channelId);
-                    setDigestChannelId(channelId);
+                    const channel = routingChannels.find((c) => c.id === channelId)
+                    setDigestChannelId(channelId)
                     updateConfiguration.mutate({
                       digest_channel_id: channelId,
-                      digest_channel_name: channel?.name || '',
-                    });
+                      digest_channel_name: channel?.name || "",
+                    })
                   }}
                   disabled={isLoadingRoutingChannels}
                 >
@@ -457,11 +498,11 @@ export const SlackIntegrationSettings = () => {
                 type="time"
                 value={localConfig.digest_time}
                 onChange={(e) => {
-                  const newTime = e.target.value;
-                  setLocalConfig(prev => ({ ...prev, digest_time: newTime }));
+                  const newTime = e.target.value
+                  setLocalConfig((prev) => ({ ...prev, digest_time: newTime }))
                   updateConfiguration.mutate({
                     configuration: { digest_time: newTime },
-                  });
+                  })
                 }}
                 className="w-32"
               />
@@ -474,11 +515,11 @@ export const SlackIntegrationSettings = () => {
               <Label>Digest Frequency</Label>
               <Select
                 value={localConfig.digest_frequency}
-                onValueChange={(value: 'daily' | 'weekly' | 'both') => {
-                  setLocalConfig(prev => ({ ...prev, digest_frequency: value }));
+                onValueChange={(value: "daily" | "weekly" | "both") => {
+                  setLocalConfig((prev) => ({ ...prev, digest_frequency: value }))
                   updateConfiguration.mutate({
                     configuration: { digest_frequency: value },
-                  });
+                  })
                 }}
               >
                 <SelectTrigger className="w-48">
@@ -509,7 +550,8 @@ export const SlackIntegrationSettings = () => {
               <div>
                 <CardTitle className="text-lg">Critical Alerts (Default)</CardTitle>
                 <CardDescription>
-                  Default critical alert channel for inboxes without per-inbox routing configured above
+                  Default critical alert channel for inboxes without per-inbox routing configured
+                  above
                   {hasSecondaryWorkspace && (
                     <span className="ml-1 text-primary">
                       (→ {integration?.secondary_team_name})
@@ -521,10 +563,10 @@ export const SlackIntegrationSettings = () => {
             <Switch
               checked={localConfig.critical_alerts_enabled}
               onCheckedChange={(checked) => {
-                setLocalConfig(prev => ({ ...prev, critical_alerts_enabled: checked }));
+                setLocalConfig((prev) => ({ ...prev, critical_alerts_enabled: checked }))
                 updateConfiguration.mutate({
                   configuration: { critical_alerts_enabled: checked },
-                });
+                })
               }}
               disabled={updateConfiguration.isPending}
             />
@@ -538,12 +580,12 @@ export const SlackIntegrationSettings = () => {
                 <Select
                   value={criticalChannelId}
                   onValueChange={(channelId) => {
-                    const channel = routingChannels.find(c => c.id === channelId);
-                    setCriticalChannelId(channelId);
+                    const channel = routingChannels.find((c) => c.id === channelId)
+                    setCriticalChannelId(channelId)
                     updateConfiguration.mutate({
                       critical_channel_id: channelId,
-                      critical_channel_name: channel?.name || '',
-                    });
+                      critical_channel_name: channel?.name || "",
+                    })
                   }}
                   disabled={isLoadingRoutingChannels}
                 >
@@ -585,7 +627,11 @@ export const SlackIntegrationSettings = () => {
             <Alert className="bg-destructive/5 border-destructive/20">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <AlertDescription className="text-sm">
-                Critical alerts use a hybrid detection system: <strong>keyword matching</strong> (Norwegian &amp; English) for instant detection of common issues, plus <strong>AI-powered context analysis</strong> that reads the full conversation to catch nuanced problems like frustrated customers, delayed responses, or safety concerns.
+                Critical alerts use a hybrid detection system: <strong>keyword matching</strong>{" "}
+                (Norwegian &amp; English) for instant detection of common issues, plus{" "}
+                <strong>AI-powered context analysis</strong> that reads the full conversation to
+                catch nuanced problems like frustrated customers, delayed responses, or safety
+                concerns.
               </AlertDescription>
             </Alert>
 
@@ -593,7 +639,11 @@ export const SlackIntegrationSettings = () => {
             {integration && (
               <CriticalAlertRouting
                 integration={integration}
-                onUpdate={(updates) => updateConfiguration.mutate(updates as Parameters<typeof updateConfiguration.mutate>[0])}
+                onUpdate={(updates) =>
+                  updateConfiguration.mutate(
+                    updates as Parameters<typeof updateConfiguration.mutate>[0],
+                  )
+                }
                 isPending={updateConfiguration.isPending}
               />
             )}
@@ -611,9 +661,7 @@ export const SlackIntegrationSettings = () => {
       <Card className="bg-gradient-surface border-border/50">
         <CardHeader>
           <CardTitle className="text-lg">Advanced Settings</CardTitle>
-          <CardDescription>
-            Customize notification behavior
-          </CardDescription>
+          <CardDescription>Customize notification behavior</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
@@ -628,7 +676,7 @@ export const SlackIntegrationSettings = () => {
             <Switch
               id="mention-user"
               checked={localConfig.mention_assigned_user}
-              onCheckedChange={(checked) => handleAdvancedToggle('mention_assigned_user', checked)}
+              onCheckedChange={(checked) => handleAdvancedToggle("mention_assigned_user", checked)}
               disabled={updateConfiguration.isPending}
             />
           </div>
@@ -647,12 +695,14 @@ export const SlackIntegrationSettings = () => {
             <Switch
               id="include-preview"
               checked={localConfig.include_message_preview}
-              onCheckedChange={(checked) => handleAdvancedToggle('include_message_preview', checked)}
+              onCheckedChange={(checked) =>
+                handleAdvancedToggle("include_message_preview", checked)
+              }
               disabled={updateConfiguration.isPending}
             />
           </div>
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

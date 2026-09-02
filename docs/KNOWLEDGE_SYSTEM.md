@@ -32,9 +32,11 @@ This document describes the complete AI-powered knowledge management system that
 ### Edge Functions
 
 #### 1. suggest-replies
+
 **Purpose**: Generate AI-powered reply suggestions
 
 **How it works**:
+
 1. Receives customer message
 2. Creates embedding of customer message
 3. Searches knowledge_entries for similar past responses
@@ -42,31 +44,37 @@ This document describes the complete AI-powered knowledge management system that
 5. Returns 3-5 tailored suggestions
 
 **Key features**:
+
 - Uses `find_similar_responses()` SQL function
 - Includes quality scores and usage counts in context
 - Falls back to pure AI if no knowledge base matches
 
 #### 2. track-outcome
+
 **Purpose**: Automatically track conversation outcomes
 
 **Triggered**: When a new customer message arrives after agent response
 
 **Tracks**:
+
 - Customer reply time
 - Sentiment analysis (satisfaction score)
 - Resolution status (keywords: "thanks", "solved", "perfect")
 - Whether customer replied
 
 #### 3. auto-promote-responses
+
 **Purpose**: Promote high-quality responses to knowledge base
 
 **Criteria**:
+
 - Quality score >= 4.0 (configurable)
 - Used at least 3 times
 - Not already promoted
 - Has positive feedback
 
 **Process**:
+
 1. Queries response_tracking records
 2. Calculates quality score from outcomes
 3. Generates embedding
@@ -74,26 +82,32 @@ This document describes the complete AI-powered knowledge management system that
 5. Links back to response_tracking
 
 #### 4. batch-update-embeddings
+
 **Purpose**: Regenerate embeddings for existing entries
 
 **Use cases**:
+
 - After changing embedding model
 - Fixing corrupted embeddings
 - Migrating data
 
 #### 5. generate-analytics-report
+
 **Purpose**: Generate comprehensive analytics report
 
 **Includes**:
+
 - Entry statistics by category
 - Quality metrics
 - Usage patterns
 - Performance trends
 
 #### 6. submit-feedback
+
 **Purpose**: Record agent feedback on suggestions
 
 **Process**:
+
 1. Updates response_tracking with rating/comment
 2. Triggers quality recalculation via database trigger
 3. Adjusts knowledge_entry quality_score
@@ -101,22 +115,26 @@ This document describes the complete AI-powered knowledge management system that
 ### Database Functions
 
 #### find_similar_responses()
+
 - Uses vector similarity search (cosine distance)
 - Returns top N most similar proven responses
 - Filters by organization and quality threshold
 - Orders by similarity and quality score
 
 #### update_knowledge_quality_from_feedback()
+
 - Database trigger that fires on feedback submission
 - Recalculates quality_score for linked knowledge_entry
 - Considers: feedback ratings, resolution rate, usage count
 
 #### recalculate_knowledge_quality()
+
 - Scheduled job (weekly)
 - Recalculates quality scores for all entries
 - Factors in recent outcomes and feedback
 
 #### cleanup_old_tracking_data()
+
 - Scheduled job (monthly)
 - Archives tracking data older than 90 days
 - Preserves aggregated statistics
@@ -140,23 +158,27 @@ This document describes the complete AI-powered knowledge management system that
 ### Admin Portal - Knowledge Management
 
 #### Overview Tab
+
 - Total entries, quality score, usage stats
 - Resolution rate and reply time metrics
 - Response source distribution chart
 
 #### Entries Tab
+
 - Search and filter knowledge entries
 - Edit customer_context and agent_response
 - Delete low-quality entries
 - Add tags and categories
 
 #### Performance Tab
+
 - AI suggestion performance metrics
 - Template usage statistics
 - Knowledge base hit rate
 - Daily/weekly trends
 
 #### System Health Tab
+
 - Real-time health metrics
 - Batch operations (update embeddings)
 - Download analytics reports
@@ -165,17 +187,20 @@ This document describes the complete AI-powered knowledge management system that
 ### Conversation View - Reply Area
 
 #### AI Suggestions
+
 - Shows 3-5 contextual suggestions
 - Displays quality score badge if from knowledge base
 - One-click to insert into reply box
 
 #### Feedback Rating
+
 - Appears after sending AI/template-based reply
 - 1-5 star rating + optional comment
 - Dismissible
 - Immediately updates tracking data
 
 #### Visual Indicators
+
 - Badge shows if reply uses AI/template/knowledge base
 - Quality score displayed on knowledge-base suggestions
 - Tracking indicator when suggestion selected
@@ -244,18 +269,21 @@ Where:
 ### Tunable Parameters
 
 **Auto-Promotion Thresholds** (in edge function):
+
 ```typescript
-minQualityScore: 4.0  // Minimum quality to promote
-minUsageCount: 3      // Minimum times used
+minQualityScore: 4.0; // Minimum quality to promote
+minUsageCount: 3; // Minimum times used
 ```
 
 **Similarity Search** (in suggest-replies):
+
 ```typescript
-match_threshold: 0.75  // Cosine similarity threshold (0-1)
-match_count: 3         // Max similar responses to include
+match_threshold: 0.75; // Cosine similarity threshold (0-1)
+match_count: 3; // Max similar responses to include
 ```
 
 **Quality Score Weights** (in SQL function):
+
 ```sql
 feedback_weight: 0.4
 resolution_weight: 0.3
@@ -304,24 +332,28 @@ time_weight: 0.1
 ### Common Issues
 
 **AI suggestions are generic (not using knowledge base)**
+
 - Check if knowledge_entries exist for organization
 - Verify embeddings are not null
 - Check match_threshold (may be too high)
 - Review find_similar_responses query
 
 **Quality scores not updating**
+
 - Verify feedback is being submitted
 - Check update_knowledge_quality_from_feedback trigger
 - Ensure response_outcomes are being created
 - Review quality score calculation logic
 
 **Auto-promotion not working**
+
 - Check cron job is running (pg_cron enabled)
 - Verify minQualityScore threshold
 - Check if entries already promoted (knowledge_entry_id set)
 - Review auto-promote-responses edge function logs
 
 **Performance degradation**
+
 - Check index on embeddings column
 - Review query plans for slow queries
 - Consider increasing match_count limit
@@ -400,16 +432,19 @@ time_weight: 0.1
 ### Regular Tasks
 
 **Weekly**:
+
 - Review quality score distribution
 - Check for low-quality entries to delete
 - Monitor auto-promotion success rate
 
 **Monthly**:
+
 - Download and archive analytics reports
 - Review system health metrics
 - Update embeddings if model changed
 
 **Quarterly**:
+
 - Audit knowledge base for outdated entries
 - Review and adjust quality score weights
 - Assess business impact and ROI

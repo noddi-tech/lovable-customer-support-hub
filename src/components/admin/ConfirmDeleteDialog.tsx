@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { AlertTriangle } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,21 +8,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { AlertTriangle } from 'lucide-react';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface ConfirmDeleteDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-  title: string;
-  description: string;
-  confirmText?: string;
-  itemName?: string;
-  isLoading?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+  title: string
+  description: string
+  confirmText?: string
+  itemName?: string
+  isLoading?: boolean
 }
 
 export function ConfirmDeleteDialog({
@@ -29,32 +29,32 @@ export function ConfirmDeleteDialog({
   onConfirm,
   title,
   description,
-  confirmText = 'DELETE',
+  confirmText = "DELETE",
   itemName,
   isLoading = false,
 }: ConfirmDeleteDialogProps) {
-  const [confirmInput, setConfirmInput] = useState('');
+  const [confirmInput, setConfirmInput] = useState("")
 
   const handleConfirm = () => {
     if (itemName) {
       if (confirmInput === itemName) {
-        onConfirm();
-        setConfirmInput('');
+        onConfirm()
+        setConfirmInput("")
       }
     } else if (confirmInput === confirmText) {
-      onConfirm();
-      setConfirmInput('');
+      onConfirm()
+      setConfirmInput("")
     }
-  };
+  }
 
   const handleClose = (open: boolean) => {
     if (!open) {
-      setConfirmInput('');
+      setConfirmInput("")
     }
-    onOpenChange(open);
-  };
+    onOpenChange(open)
+  }
 
-  const isConfirmValid = itemName ? confirmInput === itemName : confirmInput === confirmText;
+  const isConfirmValid = itemName ? confirmInput === itemName : confirmInput === confirmText
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -73,7 +73,9 @@ export function ConfirmDeleteDialog({
 
         <div className="space-y-4 py-4">
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
-            <p className="text-sm text-destructive font-medium mb-2">⚠️ This action cannot be undone</p>
+            <p className="text-sm text-destructive font-medium mb-2">
+              ⚠️ This action cannot be undone
+            </p>
             <p className="text-sm text-muted-foreground">
               This will permanently delete this item and all associated data.
             </p>
@@ -103,10 +105,10 @@ export function ConfirmDeleteDialog({
             onClick={handleConfirm}
             disabled={!isConfirmValid || isLoading}
           >
-            {isLoading ? 'Deleting...' : 'Delete Permanently'}
+            {isLoading ? "Deleting..." : "Delete Permanently"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

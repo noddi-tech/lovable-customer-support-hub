@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -8,46 +7,48 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useApplicationScore } from '@/hooks/recruitment/useApplicationScore';
-import { useTriggerScore } from '@/hooks/recruitment/useTriggerScore';
-import { useEffectiveRubric } from '@/hooks/recruitment/useEffectiveRubric';
-import { useApplicantQueuePosition } from '@/hooks/recruitment/useApplicantQueuePosition';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { toast } from 'sonner';
-import { scoreTier, TIER_LABEL, TIER_SOLID_BG, TIER_TEXT } from './scoreTier';
-import ScoreHistoryModal from './ScoreHistoryModal';
-import { cn } from '@/lib/utils';
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { useApplicantQueuePosition } from "@/hooks/recruitment/useApplicantQueuePosition"
+import { useApplicationScore } from "@/hooks/recruitment/useApplicationScore"
+import { useEffectiveRubric } from "@/hooks/recruitment/useEffectiveRubric"
+import { useTriggerScore } from "@/hooks/recruitment/useTriggerScore"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { cn } from "@/lib/utils"
+import ScoreHistoryModal from "./ScoreHistoryModal"
+import { scoreTier, TIER_LABEL, TIER_SOLID_BG, TIER_TEXT } from "./scoreTier"
 
 interface Props {
-  applicationId: string | null;
-  positionTitle?: string | null;
+  applicationId: string | null
+  positionTitle?: string | null
 }
 
-const StateShell: React.FC<{ children: React.ReactNode; tone?: 'default' | 'muted' | 'warn' }> = ({
+const StateShell: React.FC<{ children: React.ReactNode; tone?: "default" | "muted" | "warn" }> = ({
   children,
-  tone = 'default',
+  tone = "default",
 }) => (
   <Card
     className={cn(
-      tone === 'muted' && 'bg-muted/30',
-      tone === 'warn' && 'border-amber-300 bg-amber-50/50',
+      tone === "muted" && "bg-muted/30",
+      tone === "warn" && "border-amber-300 bg-amber-50/50",
     )}
   >
     <CardContent className="p-5">{children}</CardContent>
   </Card>
-);
+)
 
 const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle }) => {
-  const { data, isLoading } = useApplicationScore(applicationId);
-  const { criterionMap, rubric } = useEffectiveRubric(applicationId);
-  const { data: queuePos } = useApplicantQueuePosition(applicationId);
-  const trigger = useTriggerScore();
-  const { dateTime } = useDateFormatting();
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const { data, isLoading } = useApplicationScore(applicationId)
+  const { criterionMap, rubric } = useEffectiveRubric(applicationId)
+  const { data: queuePos } = useApplicantQueuePosition(applicationId)
+  const trigger = useTriggerScore()
+  const { dateTime } = useDateFormatting()
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [breakdownOpen, setBreakdownOpen] = useState(false)
 
   if (!applicationId) {
     return (
@@ -56,7 +57,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
           Ingen tilknyttet stilling — score er ikke tilgjengelig.
         </p>
       </StateShell>
-    );
+    )
   }
 
   if (isLoading) {
@@ -66,56 +67,56 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
           <Loader2 className="h-4 w-4 animate-spin" /> Henter score...
         </div>
       </StateShell>
-    );
+    )
   }
 
-  const status = data?.score_status ?? 'unscored';
+  const status = data?.score_status ?? "unscored"
   const onRescore = () => {
-    if (!applicationId) return;
+    if (!applicationId) return
     trigger.mutate(
-      { application_id: applicationId, trigger_reason: 'manual' },
+      { application_id: applicationId, trigger_reason: "manual" },
       {
         onSuccess: (res) => {
-          toast.success(res?.already_pending ? 'Allerede i kø' : 'Score er satt i kø');
+          toast.success(res?.already_pending ? "Allerede i kø" : "Score er satt i kø")
         },
-        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke starte scoring'),
+        onError: (e: any) => toast.error(e?.message ?? "Kunne ikke starte scoring"),
       },
-    );
-  };
+    )
+  }
 
   // ----- DISABLED (skipped by config) -----
-  if (status === 'skipped') {
+  if (status === "skipped") {
     return (
       <StateShell tone="muted">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4" />
-            AI-scoring er ikke aktivert for {positionTitle || 'denne stillingen'}.
+            AI-scoring er ikke aktivert for {positionTitle || "denne stillingen"}.
           </div>
           <Button size="sm" variant="outline" onClick={onRescore} disabled={trigger.isPending}>
-            <RefreshCw className={cn('h-3.5 w-3.5', trigger.isPending && 'animate-spin')} />
+            <RefreshCw className={cn("h-3.5 w-3.5", trigger.isPending && "animate-spin")} />
             Score likevel
           </Button>
         </div>
       </StateShell>
-    );
+    )
   }
 
   // ----- SCORING IN PROGRESS -----
-  if (status === 'pending' || status === 'scoring') {
-    const isProcessing = queuePos?.status === 'processing' || status === 'scoring';
-    let title = 'AI vurderer søkeren...';
-    let subtitle = 'Dette tar vanligvis under ett minutt. Oppdateres automatisk.';
+  if (status === "pending" || status === "scoring") {
+    const isProcessing = queuePos?.status === "processing" || status === "scoring"
+    let title = "AI vurderer søkeren..."
+    let subtitle = "Dette tar vanligvis under ett minutt. Oppdateres automatisk."
     if (isProcessing) {
-      title = 'AI vurderer søkeren nå...';
-      subtitle = 'Oppdateres automatisk når ferdig.';
+      title = "AI vurderer søkeren nå..."
+      subtitle = "Oppdateres automatisk når ferdig."
     } else if (queuePos?.inQueue) {
       if (queuePos.ahead === 0) {
-        title = 'Neste i kø...';
-        subtitle = 'Vurdering starter om kort tid.';
+        title = "Neste i kø..."
+        subtitle = "Vurdering starter om kort tid."
       } else {
-        title = `I kø bak ${queuePos.ahead} andre søker${queuePos.ahead === 1 ? '' : 'e'}`;
-        subtitle = `Vurderer ca. ${queuePos.etaLabel}. Oppdateres automatisk.`;
+        title = `I kø bak ${queuePos.ahead} andre søker${queuePos.ahead === 1 ? "" : "e"}`
+        subtitle = `Vurderer ca. ${queuePos.etaLabel}. Oppdateres automatisk.`
       }
     }
     return (
@@ -128,12 +129,11 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
           </div>
         </div>
       </StateShell>
-    );
+    )
   }
 
-
   // ----- FAILED -----
-  if (status === 'failed') {
+  if (status === "failed") {
     return (
       <StateShell tone="warn">
         <div className="flex items-start justify-between gap-3">
@@ -147,16 +147,16 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
             </div>
           </div>
           <Button size="sm" onClick={onRescore} disabled={trigger.isPending}>
-            <RefreshCw className={cn('h-3.5 w-3.5', trigger.isPending && 'animate-spin')} />
+            <RefreshCw className={cn("h-3.5 w-3.5", trigger.isPending && "animate-spin")} />
             Prøv på nytt
           </Button>
         </div>
       </StateShell>
-    );
+    )
   }
 
   // ----- NOT SCORED -----
-  if (status === 'unscored' || data?.score == null) {
+  if (status === "unscored" || data?.score == null) {
     return (
       <StateShell tone="muted">
         <div className="flex items-center justify-between gap-3">
@@ -170,23 +170,23 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
           </Button>
         </div>
       </StateShell>
-    );
+    )
   }
 
   // ----- SCORED -----
-  const tier = scoreTier(data.score);
-  const strengths = data.score_strengths ?? [];
-  const concerns = data.score_concerns ?? [];
-  const breakdown = (data.score_breakdown ?? {}) as Record<string, number>;
-  const rawEntries = Object.entries(breakdown);
+  const tier = scoreTier(data.score)
+  const strengths = data.score_strengths ?? []
+  const concerns = data.score_concerns ?? []
+  const breakdown = (data.score_breakdown ?? {}) as Record<string, number>
+  const rawEntries = Object.entries(breakdown)
   // Order by the rubric's criterion order when available; unknown ids fall to the end.
-  const orderIndex = new Map<string, number>();
-  (rubric?.criteria ?? []).forEach((c, i) => orderIndex.set(c.id, i));
+  const orderIndex = new Map<string, number>()
+  ;(rubric?.criteria ?? []).forEach((c, i) => orderIndex.set(c.id, i))
   const breakdownEntries = [...rawEntries].sort(([a], [b]) => {
-    const ai = orderIndex.has(a) ? (orderIndex.get(a) as number) : Number.MAX_SAFE_INTEGER;
-    const bi = orderIndex.has(b) ? (orderIndex.get(b) as number) : Number.MAX_SAFE_INTEGER;
-    return ai - bi;
-  });
+    const ai = orderIndex.has(a) ? (orderIndex.get(a) as number) : Number.MAX_SAFE_INTEGER
+    const bi = orderIndex.has(b) ? (orderIndex.get(b) as number) : Number.MAX_SAFE_INTEGER
+    return ai - bi
+  })
 
   return (
     <>
@@ -196,7 +196,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
           <div className="flex items-start gap-5">
             <div
               className={cn(
-                'flex-shrink-0 h-20 w-20 rounded-2xl flex items-center justify-center text-white shadow-sm',
+                "flex-shrink-0 h-20 w-20 rounded-2xl flex items-center justify-center text-white shadow-sm",
                 TIER_SOLID_BG[tier],
               )}
             >
@@ -207,7 +207,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={cn('text-sm font-semibold', TIER_TEXT[tier])}>
+                <span className={cn("text-sm font-semibold", TIER_TEXT[tier])}>
                   {TIER_LABEL[tier]}
                 </span>
                 {data.score_model && (
@@ -229,7 +229,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
             </div>
             <div className="flex-shrink-0 flex flex-col gap-1.5">
               <Button size="sm" variant="outline" onClick={onRescore} disabled={trigger.isPending}>
-                <RefreshCw className={cn('h-3.5 w-3.5', trigger.isPending && 'animate-spin')} />
+                <RefreshCw className={cn("h-3.5 w-3.5", trigger.isPending && "animate-spin")} />
                 Re-score nå
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setHistoryOpen(true)}>
@@ -293,19 +293,21 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
               {breakdownOpen && (
                 <div className="mt-3 space-y-1.5">
                   {breakdownEntries.map(([crit, val]) => {
-                    const t = scoreTier(typeof val === 'number' ? val : null);
-                    const label = criterionMap.get(crit)?.name ?? crit;
+                    const t = scoreTier(typeof val === "number" ? val : null)
+                    const label = criterionMap.get(crit)?.name ?? crit
                     return (
-                      <div
-                        key={crit}
-                        className="flex items-center justify-between gap-3 text-sm"
-                      >
-                        <span className="text-muted-foreground truncate" title={label !== crit ? crit : undefined}>{label}</span>
-                        <span className={cn('font-medium tabular-nums', TIER_TEXT[t])}>
-                          {typeof val === 'number' ? val.toFixed(1) : '–'}
+                      <div key={crit} className="flex items-center justify-between gap-3 text-sm">
+                        <span
+                          className="text-muted-foreground truncate"
+                          title={label !== crit ? crit : undefined}
+                        >
+                          {label}
+                        </span>
+                        <span className={cn("font-medium tabular-nums", TIER_TEXT[t])}>
+                          {typeof val === "number" ? val.toFixed(1) : "–"}
                         </span>
                       </div>
-                    );
+                    )
                   })}
                 </div>
               )}
@@ -320,7 +322,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
         applicationId={applicationId}
       />
     </>
-  );
-};
+  )
+}
 
-export default ApplicantScoringSection;
+export default ApplicantScoringSection

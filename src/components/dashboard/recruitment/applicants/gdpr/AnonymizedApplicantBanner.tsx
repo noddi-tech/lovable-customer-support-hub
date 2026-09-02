@@ -1,9 +1,9 @@
-import React from 'react';
-import { ShieldOff } from 'lucide-react';
-import { format } from 'date-fns';
+import { format } from "date-fns"
+import { ShieldOff } from "lucide-react"
+import type React from "react"
 
 interface Props {
-  anonymizedAt: string | null | undefined;
+  anonymizedAt: string | null | undefined
 }
 
 /**
@@ -11,10 +11,10 @@ interface Props {
  * once their PII has been erased per GDPR Article 17.
  */
 const AnonymizedApplicantBanner: React.FC<Props> = ({ anonymizedAt }) => {
-  if (!anonymizedAt) return null;
-  let formatted = anonymizedAt;
+  if (!anonymizedAt) return null
+  let formatted = anonymizedAt
   try {
-    formatted = format(new Date(anonymizedAt), 'dd.MM.yyyy HH:mm');
+    formatted = format(new Date(anonymizedAt), "dd.MM.yyyy HH:mm")
   } catch {
     // keep raw string
   }
@@ -27,12 +27,12 @@ const AnonymizedApplicantBanner: React.FC<Props> = ({ anonymizedAt }) => {
       <div className="text-sm leading-relaxed">
         <div className="font-semibold text-destructive">Kandidaten er anonymisert</div>
         <div className="text-foreground/80">
-          Personopplysningene ble slettet {formatted} i henhold til GDPR artikkel 17.
-          Revisjonslogg, hendelser og aggregerte data er bevart.
+          Personopplysningene ble slettet {formatted} i henhold til GDPR artikkel 17. Revisjonslogg,
+          hendelser og aggregerte data er bevart.
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AnonymizedApplicantBanner;
+export default AnonymizedApplicantBanner

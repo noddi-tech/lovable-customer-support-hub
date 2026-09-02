@@ -1,22 +1,22 @@
-import { useConversationView } from "@/contexts/ConversationViewContext";
-import { FeedbackRating } from "./FeedbackRating";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { FeedbackRating } from "./FeedbackRating"
 
 export function FeedbackPrompt() {
-  const { state, dispatch } = useConversationView();
+  const { state, dispatch } = useConversationView()
 
   if (!state.showFeedbackRating || !state.lastSentMessageId) {
-    return null;
+    return null
   }
 
   const handleDismiss = () => {
-    dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: false, messageId: null } });
-  };
+    dispatch({ type: "SET_FEEDBACK_STATE", payload: { show: false, messageId: null } })
+  }
 
   const handleSubmit = () => {
-    dispatch({ type: 'SET_FEEDBACK_STATE', payload: { show: false, messageId: null } });
-  };
+    dispatch({ type: "SET_FEEDBACK_STATE", payload: { show: false, messageId: null } })
+  }
 
   return (
     <div className="relative mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -28,10 +28,7 @@ export function FeedbackPrompt() {
       >
         <X className="w-4 h-4" />
       </Button>
-      <FeedbackRating
-        messageId={state.lastSentMessageId}
-        onSubmit={handleSubmit}
-      />
+      <FeedbackRating messageId={state.lastSentMessageId} onSubmit={handleSubmit} />
     </div>
-  );
+  )
 }

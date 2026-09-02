@@ -1,44 +1,44 @@
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Upload, ArrowRight } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { formatDistanceToNow } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { useQuery } from "@tanstack/react-query"
+import { formatDistanceToNow } from "date-fns"
+import { nb } from "date-fns/locale"
+import { ArrowRight, Upload } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 export function CSVImportCard() {
-  const { currentOrganizationId } = useOrganizationStore();
-  const navigate = useNavigate();
+  const { currentOrganizationId } = useOrganizationStore()
+  const navigate = useNavigate()
 
   const { data } = useQuery({
-    queryKey: ['recruitment-import-stats', currentOrganizationId],
+    queryKey: ["recruitment-import-stats", currentOrganizationId],
     enabled: !!currentOrganizationId,
     staleTime: 30_000,
-    refetchOnMount: 'always',
+    refetchOnMount: "always",
     queryFn: async () => {
-      if (!currentOrganizationId) return { count: 0, lastImportedAt: null as string | null };
+      if (!currentOrganizationId) return { count: 0, lastImportedAt: null as string | null }
 
       const { count, error: cErr } = await supabase
-        .from('applicants')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', currentOrganizationId)
-        .in('source', ['csv_import', 'meta_lead_ad']);
-      if (cErr) throw cErr;
+        .from("applicants")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", currentOrganizationId)
+        .in("source", ["csv_import", "meta_lead_ad"])
+      if (cErr) throw cErr
 
       const { data: latest } = await supabase
-        .from('applicants')
-        .select('created_at')
-        .eq('organization_id', currentOrganizationId)
-        .in('source', ['csv_import', 'meta_lead_ad'])
-        .order('created_at', { ascending: false })
+        .from("applicants")
+        .select("created_at")
+        .eq("organization_id", currentOrganizationId)
+        .in("source", ["csv_import", "meta_lead_ad"])
+        .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()
 
-      return { count: count ?? 0, lastImportedAt: latest?.created_at ?? null };
+      return { count: count ?? 0, lastImportedAt: latest?.created_at ?? null }
     },
-  });
+  })
 
   return (
     <Card>
@@ -51,7 +51,8 @@ export function CSVImportCard() {
             <div className="space-y-1">
               <CardTitle className="text-base">CSV-import</CardTitle>
               <CardDescription>
-                Last opp søkere fra Meta Lead Ads-eksport, Finn.no eller andre kilder med kolonnemapping.
+                Last opp søkere fra Meta Lead Ads-eksport, Finn.no eller andre kilder med
+                kolonnemapping.
               </CardDescription>
             </div>
           </div>
@@ -67,16 +68,19 @@ export function CSVImportCard() {
             <div className="text-xs text-muted-foreground">Sist importert</div>
             <div className="font-semibold">
               {data?.lastImportedAt
-                ? formatDistanceToNow(new Date(data.lastImportedAt), { addSuffix: true, locale: nb })
-                : 'Aldri'}
+                ? formatDistanceToNow(new Date(data.lastImportedAt), {
+                    addSuffix: true,
+                    locale: nb,
+                  })
+                : "Aldri"}
             </div>
           </div>
         </div>
-        <Button size="sm" onClick={() => navigate('/admin/recruitment/import')}>
+        <Button size="sm" onClick={() => navigate("/admin/recruitment/import")}>
           Åpne import-veiviser
           <ArrowRight />
         </Button>
       </CardContent>
     </Card>
-  );
+  )
 }

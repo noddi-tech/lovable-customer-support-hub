@@ -1,6 +1,6 @@
-import { defineTool } from "@lovable.dev/mcp-js";
-import { z } from "zod";
-import { supabaseForUser, resolveProfileId } from "../supabase";
+import { defineTool } from "@lovable.dev/mcp-js"
+import { z } from "zod"
+import { resolveProfileId, supabaseForUser } from "../supabase"
 
 export default defineTool({
   name: "list_my_conversations",
@@ -22,19 +22,19 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, include_archived, limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true }
     }
 
     // assigned_to_id is a ProfileId, never the auth user id.
-    const profileId = await resolveProfileId(ctx);
+    const profileId = await resolveProfileId(ctx)
     if (!profileId) {
       return {
         content: [{ type: "text", text: "No profile found for the signed-in user." }],
         isError: true,
-      };
+      }
     }
 
-    const supabase = supabaseForUser(ctx);
+    const supabase = supabaseForUser(ctx)
     let q = supabase
       .from("conversations")
       .select(
@@ -43,18 +43,18 @@ export default defineTool({
       .eq("assigned_to_id", profileId)
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
-      .limit(limit ?? 20);
+      .limit(limit ?? 20)
 
-    if (status) q = q.eq("status", status);
-    if (!include_archived) q = q.eq("is_archived", false);
+    if (status) q = q.eq("status", status)
+    if (!include_archived) q = q.eq("is_archived", false)
 
-    const { data, error } = await q;
+    const { data, error } = await q
     if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
+      return { content: [{ type: "text", text: error.message }], isError: true }
     }
 
     const rows = (data ?? []).map((c) => {
-      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer;
+      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer
       return {
         id: c.id,
         subject: c.subject,
@@ -66,12 +66,12 @@ export default defineTool({
         customer_name: customer?.full_name ?? null,
         customer_email: customer?.email ?? null,
         preview: c.preview_text,
-      };
-    });
+      }
+    })
 
     return {
       content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
       structuredContent: { conversations: rows, count: rows.length },
-    };
+    }
   },
-});
+})

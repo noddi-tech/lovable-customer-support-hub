@@ -1,53 +1,53 @@
-import { Gauge, Mail, MailOpen, Settings2, Star, Tag, UserCheck } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { getInboxHealth } from '@/lib/inboxHealth';
-import { InboxSlaAlert } from '@/components/dashboard/InboxSlaAlert';
-import type { InboxSlaRisk } from '@/hooks/useSlaRisk';
+import { Gauge, Mail, MailOpen, Settings2, Star, Tag, UserCheck } from "lucide-react"
+import { InboxSlaAlert } from "@/components/dashboard/InboxSlaAlert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import type { InboxSlaRisk } from "@/hooks/useSlaRisk"
+import { getInboxHealth } from "@/lib/inboxHealth"
+import { cn } from "@/lib/utils"
 
 export interface HomeInbox {
-  id: string;
-  name: string;
-  color?: string | null;
-  open_count: number;
-  unread_count: number;
+  id: string
+  name: string
+  color?: string | null
+  open_count: number
+  unread_count: number
 }
 
 export interface InboxCardDefaults {
-  brand?: string | null;
-  assigneeName?: string | null;
+  brand?: string | null
+  assigneeName?: string | null
 }
 
 interface InboxCardProps {
-  inbox: HomeInbox;
-  email?: string;
-  isDefault: boolean;
-  defaults?: InboxCardDefaults;
-  slaRisk?: InboxSlaRisk;
-  onOpen: () => void;
-  onFixSla: () => void;
-  onToggleDefault: () => void;
-  onOpenMetrics: () => void;
-  onConfigure: () => void;
+  inbox: HomeInbox
+  email?: string
+  isDefault: boolean
+  defaults?: InboxCardDefaults
+  slaRisk?: InboxSlaRisk
+  onOpen: () => void
+  onFixSla: () => void
+  onToggleDefault: () => void
+  onOpenMetrics: () => void
+  onConfigure: () => void
 }
 
 interface IconAction {
-  key: string;
-  icon: typeof Star;
-  label: string;
-  title: string;
-  description: string;
-  onClick: () => void;
-  className?: string;
-  iconClassName?: string;
+  key: string
+  icon: typeof Star
+  label: string
+  title: string
+  description: string
+  onClick: () => void
+  className?: string
+  iconClassName?: string
 }
 
 function stop(e: React.MouseEvent, run: () => void) {
-  e.stopPropagation();
-  run();
+  e.stopPropagation()
+  run()
 }
 
 export function InboxCard({
@@ -62,7 +62,7 @@ export function InboxCard({
   onOpenMetrics,
   onConfigure,
 }: InboxCardProps) {
-  const isConfigured = Boolean(email);
+  const isConfigured = Boolean(email)
   const health = isConfigured
     ? getInboxHealth({
         open: inbox.open_count ?? 0,
@@ -70,49 +70,52 @@ export function InboxCard({
         breached: slaRisk?.breached ?? 0,
         atRisk: slaRisk?.atRisk ?? 0,
       })
-    : null;
+    : null
 
   const actions: IconAction[] = [
     {
-      key: 'default',
+      key: "default",
       icon: Star,
-      label: isDefault ? 'Clear default inbox' : `Set ${inbox.name} as default inbox`,
-      title: isDefault ? 'Default inbox' : 'Set as default',
+      label: isDefault ? "Clear default inbox" : `Set ${inbox.name} as default inbox`,
+      title: isDefault ? "Default inbox" : "Set as default",
       description: isDefault
-        ? 'Conversations open in this inbox first. Click to clear it and go back to All inboxes.'
-        : 'Star it and Conversations will open straight into this inbox instead of All inboxes.',
+        ? "Conversations open in this inbox first. Click to clear it and go back to All inboxes."
+        : "Star it and Conversations will open straight into this inbox instead of All inboxes.",
       onClick: onToggleDefault,
-      className: isDefault ? 'text-primary' : undefined,
-      iconClassName: isDefault ? 'fill-current' : undefined,
+      className: isDefault ? "text-primary" : undefined,
+      iconClassName: isDefault ? "fill-current" : undefined,
     },
     {
-      key: 'metrics',
+      key: "metrics",
       icon: Gauge,
       label: `Support KPIs for ${inbox.name}`,
-      title: 'SLA & support KPIs',
-      description: 'Response and resolution times, SLA attainment and current backlog for this inbox.',
+      title: "SLA & support KPIs",
+      description:
+        "Response and resolution times, SLA attainment and current backlog for this inbox.",
       onClick: onOpenMetrics,
     },
     {
-      key: 'settings',
+      key: "settings",
       icon: Settings2,
       label: `Configure ${inbox.name}`,
-      title: 'Inbox settings',
+      title: "Inbox settings",
       description:
-        'Email address, signature, default brand and assignee, SLA targets and automation for this inbox.',
+        "Email address, signature, default brand and assignee, SLA targets and automation for this inbox.",
       onClick: onConfigure,
     },
-  ];
+  ]
 
   return (
     <Card
       aria-disabled={!isConfigured}
       className={cn(
-        'transition-shadow',
-        isConfigured ? 'cursor-pointer hover:shadow-md' : 'cursor-not-allowed opacity-60 bg-muted/30',
-        isDefault && 'ring-1 ring-primary/50',
-        slaRisk?.breached && 'ring-2 ring-red-500 border-red-400',
-        !slaRisk?.breached && slaRisk?.atRisk && 'ring-2 ring-amber-400 border-amber-300',
+        "transition-shadow",
+        isConfigured
+          ? "cursor-pointer hover:shadow-md"
+          : "cursor-not-allowed opacity-60 bg-muted/30",
+        isDefault && "ring-1 ring-primary/50",
+        slaRisk?.breached && "ring-2 ring-red-500 border-red-400",
+        !slaRisk?.breached && slaRisk?.atRisk && "ring-2 ring-amber-400 border-amber-300",
       )}
       onClick={isConfigured ? onOpen : undefined}
     >
@@ -120,8 +123,8 @@ export function InboxCard({
         <div className="flex min-w-0 flex-col leading-tight">
           <span
             className={cn(
-              'flex min-w-0 flex-nowrap items-center gap-1.5 text-[15px] font-medium sm:text-sm',
-              isConfigured ? 'text-foreground' : 'text-muted-foreground',
+              "flex min-w-0 flex-nowrap items-center gap-1.5 text-[15px] font-medium sm:text-sm",
+              isConfigured ? "text-foreground" : "text-muted-foreground",
             )}
           >
             {health && (
@@ -138,8 +141,8 @@ export function InboxCard({
               className="h-2 w-2 shrink-0 rounded-full"
               style={{
                 backgroundColor: isConfigured
-                  ? inbox.color || 'hsl(var(--primary))'
-                  : 'hsl(var(--muted-foreground) / 0.4)',
+                  ? inbox.color || "hsl(var(--primary))"
+                  : "hsl(var(--muted-foreground) / 0.4)",
               }}
             />
             <span className="truncate" title={inbox.name}>
@@ -155,9 +158,11 @@ export function InboxCard({
             )}
           </span>
 
-
-          <span className="block truncate text-xs text-muted-foreground sm:text-[11px]" title={email}>
-            {isConfigured ? email : 'Not configured'}
+          <span
+            className="block truncate text-xs text-muted-foreground sm:text-[11px]"
+            title={email}
+          >
+            {isConfigured ? email : "Not configured"}
           </span>
 
           {(defaults?.brand || defaults?.assigneeName) && (
@@ -233,12 +238,12 @@ export function InboxCard({
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed">
                       <p className="font-medium">
-                        {slaRisk.breached > 0 ? 'SLA breached' : 'SLA at risk'}
+                        {slaRisk.breached > 0 ? "SLA breached" : "SLA at risk"}
                       </p>
                       <p className="text-muted-foreground">
                         {slaRisk.breached > 0
-                          ? `${slaRisk.breached} conversation${slaRisk.breached === 1 ? '' : 's'} passed the promised first-reply deadline${slaRisk.atRisk > 0 ? `, ${slaRisk.atRisk} more about to` : ''}. Click to jump to them.`
-                          : `${slaRisk.atRisk} conversation${slaRisk.atRisk === 1 ? '' : 's'} will breach the promised reply time within the hour. Click to jump to them.`}
+                          ? `${slaRisk.breached} conversation${slaRisk.breached === 1 ? "" : "s"} passed the promised first-reply deadline${slaRisk.atRisk > 0 ? `, ${slaRisk.atRisk} more about to` : ""}. Click to jump to them.`
+                          : `${slaRisk.atRisk} conversation${slaRisk.atRisk === 1 ? "" : "s"} will breach the promised reply time within the hour. Click to jump to them.`}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -246,11 +251,10 @@ export function InboxCard({
               </div>
             </TooltipProvider>
 
-
             {/* action icons on their own line */}
             <TooltipProvider delayDuration={200}>
               <div className="flex items-center gap-0.5">
-                {actions.map(action => (
+                {actions.map((action) => (
                   <Tooltip key={action.key}>
                     <TooltipTrigger asChild>
                       <Button
@@ -258,12 +262,12 @@ export function InboxCard({
                         size="icon"
                         aria-label={action.label}
                         className={cn(
-                          'h-6 w-6 rounded-[5px] text-muted-foreground hover:text-foreground',
+                          "h-6 w-6 rounded-[5px] text-muted-foreground hover:text-foreground",
                           action.className,
                         )}
-                        onClick={e => stop(e, action.onClick)}
+                        onClick={(e) => stop(e, action.onClick)}
                       >
-                        <action.icon className={cn('h-3.5 w-3.5', action.iconClassName)} />
+                        <action.icon className={cn("h-3.5 w-3.5", action.iconClassName)} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-[240px] text-xs leading-relaxed">
@@ -281,7 +285,7 @@ export function InboxCard({
               variant="outline"
               size="sm"
               className="h-7 px-2 text-[11px]"
-              onClick={e => stop(e, onConfigure)}
+              onClick={(e) => stop(e, onConfigure)}
             >
               <Settings2 className="h-3.5 w-3.5 mr-1.5" />
               Configure
@@ -289,7 +293,6 @@ export function InboxCard({
           </div>
         )}
       </CardContent>
-
     </Card>
-  );
+  )
 }

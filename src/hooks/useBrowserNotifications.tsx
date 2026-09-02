@@ -1,108 +1,108 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from "react"
 
-export type NotificationPermission = 'default' | 'granted' | 'denied';
+export type NotificationPermission = "default" | "granted" | "denied"
 
 interface BrowserNotificationOptions {
-  title: string;
-  body: string;
-  icon?: string;
-  badge?: string;
-  tag?: string;
-  data?: any;
-  requireInteraction?: boolean;
+  title: string
+  body: string
+  icon?: string
+  badge?: string
+  tag?: string
+  data?: any
+  requireInteraction?: boolean
   actions?: Array<{
-    action: string;
-    title: string;
-    icon?: string;
-  }>;
+    action: string
+    title: string
+    icon?: string
+  }>
 }
 
 export const useBrowserNotifications = () => {
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSupported, setIsSupported] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>("default")
+  const [isSupported, setIsSupported] = useState(false)
 
   useEffect(() => {
     // Check if notifications are supported
-    const supported = 'Notification' in window;
-    setIsSupported(supported);
+    const supported = "Notification" in window
+    setIsSupported(supported)
 
     if (supported) {
-      setPermission(Notification.permission as NotificationPermission);
+      setPermission(Notification.permission as NotificationPermission)
     }
-  }, []);
+  }, [])
 
   /** Re-read the live browser permission (e.g. after the user changed it in site settings). */
   const refreshPermission = useCallback((): NotificationPermission => {
-    if (!('Notification' in window)) return 'denied';
-    const current = Notification.permission as NotificationPermission;
-    setPermission(current);
-    return current;
-  }, []);
+    if (!("Notification" in window)) return "denied"
+    const current = Notification.permission as NotificationPermission
+    setPermission(current)
+    return current
+  }, [])
 
   // Keep in sync when the user changes the setting in another tab / browser UI
   useEffect(() => {
-    if (!isSupported) return;
-    const onFocus = () => setPermission(Notification.permission as NotificationPermission);
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onFocus);
+    if (!isSupported) return
+    const onFocus = () => setPermission(Notification.permission as NotificationPermission)
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onFocus)
     return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onFocus);
-    };
-  }, [isSupported]);
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onFocus)
+    }
+  }, [isSupported])
 
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) {
-      console.warn('Browser notifications are not supported');
-      return 'denied';
+      console.warn("Browser notifications are not supported")
+      return "denied"
     }
 
     try {
-      const result = await Notification.requestPermission();
-      setPermission(result as NotificationPermission);
-      return result as NotificationPermission;
+      const result = await Notification.requestPermission()
+      setPermission(result as NotificationPermission)
+      return result as NotificationPermission
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return 'denied';
+      console.error("Error requesting notification permission:", error)
+      return "denied"
     }
-  }, [isSupported]);
+  }, [isSupported])
 
   const showNotification = useCallback(
     async (options: BrowserNotificationOptions): Promise<Notification | null> => {
       // Request permission if not already granted
-      if (permission !== 'granted') {
-        const newPermission = await requestPermission();
-        if (newPermission !== 'granted') {
-          return null;
+      if (permission !== "granted") {
+        const newPermission = await requestPermission()
+        if (newPermission !== "granted") {
+          return null
         }
       }
 
       try {
         const notification = new Notification(options.title, {
           body: options.body,
-          icon: options.icon || '/favicon.ico',
+          icon: options.icon || "/favicon.ico",
           badge: options.badge,
           tag: options.tag,
           data: options.data,
           requireInteraction: options.requireInteraction,
           silent: false,
-        });
+        })
 
         // Auto-close after 10 seconds if not requireInteraction
         if (!options.requireInteraction) {
           setTimeout(() => {
-            notification.close();
-          }, 10000);
+            notification.close()
+          }, 10000)
         }
 
-        return notification;
+        return notification
       } catch (error) {
-        console.error('Error showing notification:', error);
-        return null;
+        console.error("Error showing notification:", error)
+        return null
       }
     },
-    [permission, requestPermission]
-  );
+    [permission, requestPermission],
+  )
 
   return {
     permission,
@@ -110,5 +110,5 @@ export const useBrowserNotifications = () => {
     requestPermission,
     refreshPermission,
     showNotification,
-  };
-};
+  }
+}

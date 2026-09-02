@@ -1,112 +1,131 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CallBrandPicker } from './CallBrandPicker';
-import { EntityTagPicker } from '@/components/tags/TagPicker';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Phone, Clock, Calendar, User, MessageSquare, Trash2, RefreshCw } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
-import { useQueryClient } from '@tanstack/react-query';
-import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-import { CallNotesSection } from './CallNotesSection';
-import { NoddiCustomerDetails } from './NoddiCustomerDetails';
-import { formatPhoneNumber } from '@/utils/phoneNumberUtils';
+import { useQueryClient } from "@tanstack/react-query"
+import { format, formatDistanceToNow } from "date-fns"
+import { Calendar, Clock, MessageSquare, Phone, RefreshCw, Trash2, User } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { EntityTagPicker } from "@/components/tags/TagPicker"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
+import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
+import { CallBrandPicker } from "./CallBrandPicker"
+import { CallNotesSection } from "./CallNotesSection"
+import { NoddiCustomerDetails } from "./NoddiCustomerDetails"
 
 interface Call {
-  id: string;
-  customer_phone?: string;
-  agent_phone?: string;
-  customer_id?: string;
+  id: string
+  customer_phone?: string
+  agent_phone?: string
+  customer_id?: string
   customers?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-    phone?: string;
-  };
-  status: string;
-  direction: 'inbound' | 'outbound';
-  started_at: string;
-  ended_at?: string;
-  duration_seconds?: number;
-  provider: string;
-  external_id: string;
+    id: string
+    full_name?: string
+    email?: string
+    phone?: string
+  }
+  status: string
+  direction: "inbound" | "outbound"
+  started_at: string
+  ended_at?: string
+  duration_seconds?: number
+  provider: string
+  external_id: string
 }
 
 interface CallDetailsDialogProps {
-  call: Call | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onNavigateToEvents?: (call: Call) => void;
-  onRemoveCall?: (callId: string) => void;
+  call: Call | null
+  isOpen: boolean
+  onClose: () => void
+  onNavigateToEvents?: (call: Call) => void
+  onRemoveCall?: (callId: string) => void
 }
 
-export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, onRemoveCall }: CallDetailsDialogProps) => {
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const navigate = useNavigate();
+export const CallDetailsDialog = ({
+  call,
+  isOpen,
+  onClose,
+  onNavigateToEvents,
+  onRemoveCall,
+}: CallDetailsDialogProps) => {
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const navigate = useNavigate()
 
-  if (!call) return null;
+  if (!call) return null
 
   const handleRefreshCustomerData = async () => {
-    setIsRefreshing(true);
+    setIsRefreshing(true)
     await queryClient.refetchQueries({
-      queryKey: ['noddi-customer-lookup', call.customers?.email || call.customer_phone],
-    });
-    setIsRefreshing(false);
+      queryKey: ["noddi-customer-lookup", call.customers?.email || call.customer_phone],
+    })
+    setIsRefreshing(false)
     toast({
-      title: 'Customer data refreshed',
-      description: 'Latest information has been loaded',
-    });
-  };
+      title: "Customer data refreshed",
+      description: "Latest information has been loaded",
+    })
+  }
 
   const handleNavigateToEvents = () => {
     if (onNavigateToEvents) {
-      onNavigateToEvents(call);
-      onClose();
+      onNavigateToEvents(call)
+      onClose()
     } else {
-      navigate(`/operations?tab=events&phone=${call.customer_phone}`);
-      onClose();
+      navigate(`/operations?tab=events&phone=${call.customer_phone}`)
+      onClose()
     }
-  };
+  }
 
   const handleRemoveCall = () => {
     if (onRemoveCall) {
-      onRemoveCall(call.id);
-      setShowRemoveDialog(false);
-      onClose();
+      onRemoveCall(call.id)
+      setShowRemoveDialog(false)
+      onClose()
     }
-  };
+  }
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!seconds) return "N/A"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'ringing':
-        return 'warning';
-      case 'answered':
-        return 'info';
+      case "completed":
+        return "success"
+      case "ringing":
+        return "warning"
+      case "answered":
+        return "info"
       default:
-        return 'secondary';
+        return "secondary"
     }
-  };
+  }
 
   const getDirectionColor = (direction: string) => {
-    return direction === 'inbound' ? 'blue' : 'green';
-  };
+    return direction === "inbound" ? "blue" : "green"
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -116,10 +135,8 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
             <Phone className="h-5 w-5" />
             Call Details
           </DialogTitle>
-          <DialogDescription>
-            View call information and manage notes
-          </DialogDescription>
-          
+          <DialogDescription>View call information and manage notes</DialogDescription>
+
           <div className="flex items-center gap-2 pt-4 pr-8">
             <CallBrandPicker callId={call.id} metadata={(call as any).metadata} />
             <EntityTagPicker entityType="call" entityId={call.id} />
@@ -129,22 +146,14 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
               onClick={handleRefreshCustomerData}
               disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNavigateToEvents}
-            >
+            <Button variant="outline" size="sm" onClick={handleNavigateToEvents}>
               <MessageSquare className="h-4 w-4 mr-2" />
               Events
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowRemoveDialog(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowRemoveDialog(true)}>
               <Trash2 className="h-4 w-4 mr-2" />
               Remove
             </Button>
@@ -176,13 +185,13 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Agent</p>
                     <p className="text-sm text-muted-foreground">
-                      {formatPhoneNumber(call.agent_phone) || 'Not assigned'}
+                      {formatPhoneNumber(call.agent_phone) || "Not assigned"}
                     </p>
                   </div>
                 </div>
@@ -194,7 +203,7 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
                   <div>
                     <p className="text-sm font-medium">Started</p>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(call.started_at), 'PPp')}
+                      {format(new Date(call.started_at), "PPp")}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(call.started_at), { addSuffix: true })}
@@ -217,8 +226,8 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
                 <Badge variant={getStatusColor(call.status) as any}>
                   {call.status.charAt(0).toUpperCase() + call.status.slice(1)}
                 </Badge>
-                <Badge 
-                  variant="outline" 
+                <Badge
+                  variant="outline"
                   className={`border-${getDirectionColor(call.direction)}-200 text-${getDirectionColor(call.direction)}-700 bg-${getDirectionColor(call.direction)}-50`}
                 >
                   {call.direction.charAt(0).toUpperCase() + call.direction.slice(1)}
@@ -230,7 +239,7 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
 
               {call.ended_at && (
                 <div className="text-xs text-muted-foreground pt-2 border-t">
-                  <p>Ended: {format(new Date(call.ended_at), 'PPp')}</p>
+                  <p>Ended: {format(new Date(call.ended_at), "PPp")}</p>
                   <p>External ID: {call.external_id}</p>
                 </div>
               )}
@@ -248,7 +257,8 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
           <AlertDialogHeader>
             <AlertDialogTitle>Remove call from history?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will hide the call from your call history. This action can be undone by contacting support.
+              This will hide the call from your call history. This action can be undone by
+              contacting support.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -258,5 +268,5 @@ export const CallDetailsDialog = ({ call, isOpen, onClose, onNavigateToEvents, o
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-  );
-};
+  )
+}

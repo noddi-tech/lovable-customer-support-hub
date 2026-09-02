@@ -6,48 +6,41 @@ import {
   getOrganizations,
   hasRoleForOrganization,
   isNavioCoreOidcUser as isNavioCoreOidcUserFromNidp,
-  PRODUCT_OIDC_ISSUER,
   type NavioClaims,
+  PRODUCT_OIDC_ISSUER,
   type SupabaseUserLike,
-} from "@navio/nidp";
+} from "@navio/nidp"
+import type { User } from "@supabase/supabase-js"
+import { supabase } from "@/integrations/supabase/client"
+import { hasSupportHubNavioAccess, isNetworkSuperuser } from "@/lib/auth-access"
 import {
-  hasSupportHubNavioAccess,
-  isNetworkSuperuser,
-} from "@/lib/auth-access";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { logger } from "@/utils/logger";
-import {
+  type EffectiveScope,
   getAllowedNavioOrgIds,
   getEffectiveScope,
-  type EffectiveScope,
   type LocalOrganization,
-} from "@/lib/auth-scope";
+} from "@/lib/auth-scope"
+import { logger } from "@/utils/logger"
 
-export { PRODUCT_OIDC_ISSUER };
+export { PRODUCT_OIDC_ISSUER }
 
 /** Duck-type cast for @navio/nidp helpers. */
-export function asNidpUser(
-  user: User | null | undefined
-): SupabaseUserLike | null | undefined {
-  return user as unknown as SupabaseUserLike | null | undefined;
+export function asNidpUser(user: User | null | undefined): SupabaseUserLike | null | undefined {
+  return user as unknown as SupabaseUserLike | null | undefined
 }
 
 /**
  * True when this Supabase user authenticated via **Sign in with Navio**
  * (`custom:navio` → product IdP).
  */
-export function isNavioCoreOidcUser(
-  user: User | null | undefined
-): boolean {
-  return isNavioCoreOidcUserFromNidp(asNidpUser(user));
+export function isNavioCoreOidcUser(user: User | null | undefined): boolean {
+  return isNavioCoreOidcUserFromNidp(asNidpUser(user))
 }
 
 /** Employee Google domains that map to network superuser. Matches the RPC guard. */
-const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no", "noddi.co"]);
+const EMPLOYEE_GOOGLE_DOMAINS = new Set(["noddi.no", "noddi.co"])
 
 function isVerifiedGoogleEmail(value: unknown): boolean {
-  return value === true || value === "true" || value === "t" || value === "1";
+  return value === true || value === "true" || value === "t" || value === "1"
 }
 
 /**
@@ -58,20 +51,20 @@ function isVerifiedGoogleEmail(value: unknown): boolean {
  * this is the UI-side mirror (RLS remains the real boundary).
  */
 export function isGoogleAuthUser(user: User | null | undefined): boolean {
-  if (!user) return false;
+  if (!user) return false
   for (const identity of user.identities ?? []) {
-    if (identity.provider !== "google") continue;
-    const data = (identity.identity_data ?? {}) as Record<string, unknown>;
-    const email = typeof data.email === "string" ? data.email.toLowerCase() : "";
-    const domain = email.includes("@") ? email.slice(email.lastIndexOf("@") + 1) : "";
-    const hd = typeof data.hd === "string" ? data.hd.toLowerCase() : "";
-    const domainOk = !!domain && EMPLOYEE_GOOGLE_DOMAINS.has(domain);
-    const hdOk = !hd || EMPLOYEE_GOOGLE_DOMAINS.has(hd);
+    if (identity.provider !== "google") continue
+    const data = (identity.identity_data ?? {}) as Record<string, unknown>
+    const email = typeof data.email === "string" ? data.email.toLowerCase() : ""
+    const domain = email.includes("@") ? email.slice(email.lastIndexOf("@") + 1) : ""
+    const hd = typeof data.hd === "string" ? data.hd.toLowerCase() : ""
+    const domainOk = !!domain && EMPLOYEE_GOOGLE_DOMAINS.has(domain)
+    const hdOk = !hd || EMPLOYEE_GOOGLE_DOMAINS.has(hd)
     if (domainOk && hdOk && isVerifiedGoogleEmail(data.email_verified)) {
-      return true;
+      return true
     }
   }
-  return false;
+  return false
 }
 
 /**
@@ -80,11 +73,11 @@ export function isGoogleAuthUser(user: User | null | undefined): boolean {
  * Used so a Google employee login is never gated by Navio token roles.
  */
 export function isGoogleSignedInSession(user: User | null | undefined): boolean {
-  if (!user) return false;
-  const meta = (user.app_metadata ?? {}) as Record<string, unknown>;
-  const provider = typeof meta.provider === "string" ? meta.provider : "";
-  if (provider === "google") return isGoogleAuthUser(user);
-  return false;
+  if (!user) return false
+  const meta = (user.app_metadata ?? {}) as Record<string, unknown>
+  const provider = typeof meta.provider === "string" ? meta.provider : ""
+  if (provider === "google") return isGoogleAuthUser(user)
+  return false
 }
 
 /**
@@ -95,12 +88,10 @@ export function isGoogleSignedInSession(user: User | null | undefined): boolean 
  */
 export async function ensureNavioSupportHubAccess(user: User): Promise<unknown> {
   if (!isNavioCoreOidcUser(user)) {
-    return null;
+    return null
   }
 
-  const { data, error } = await supabase.rpc(
-    "ensure_authentik_support_hub_access" as never
-  );
+  const { data, error } = await supabase.rpc("ensure_authentik_support_hub_access" as never)
   if (error) {
     console.error("[auth] ensure_authentik_support_hub_access failed", {
       userId: user.id,
@@ -109,40 +100,40 @@ export async function ensureNavioSupportHubAccess(user: User): Promise<unknown> 
       code: error.code,
       details: error.details,
       hint: error.hint,
-    });
-    throw error;
+    })
+    throw error
   }
 
   console.info("[auth] Navio Core session provisioned (profile only, no auto super_admin)", {
     userId: user.id,
     email: user.email,
-  });
-  return data;
+  })
+  return data
 }
 
 function asNavioId(value: string | number | null | undefined): number | null {
-  if (value == null || value === "") return null;
-  const n = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(n) ? n : null;
+  if (value == null || value === "") return null
+  const n = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(n) ? n : null
 }
 
 function claimRoleForSync(claims: Partial<NavioClaims>): string {
   if (isNetworkSuperuser(claims)) {
-    return "super_admin";
+    return "super_admin"
   }
-  const active = getActiveRoles(claims);
+  const active = getActiveRoles(claims)
   if (
     active.includes("org_admin") ||
     active.includes("admin") ||
     hasRoleForOrganization(claims, "org_admin") ||
     hasRoleForOrganization(claims, "admin")
   ) {
-    return "admin";
+    return "admin"
   }
-  return "agent";
+  return "agent"
 }
 
-export { hasSupportHubNavioAccess };
+export { hasSupportHubNavioAccess }
 
 /**
  * Sync local organization_memberships from product IdP SO memberships.
@@ -151,33 +142,32 @@ export { hasSupportHubNavioAccess };
 export async function syncNavioOrganizationMemberships(
   user: User,
   claims?: Partial<NavioClaims>,
-  localOrganizations: LocalOrganization[] = []
+  localOrganizations: LocalOrganization[] = [],
 ): Promise<unknown> {
   if (!isNavioCoreOidcUser(user)) {
-    return null;
+    return null
   }
 
-  const resolvedClaims =
-    claims ?? getNavioAuthContext(asNidpUser(user)).claims;
+  const resolvedClaims = claims ?? getNavioAuthContext(asNidpUser(user)).claims
 
   const scope: EffectiveScope = getEffectiveScope({
     claims: resolvedClaims,
     localOrganizations,
-  });
+  })
 
-  const navioOrgIds = getAllowedNavioOrgIds(scope);
+  const navioOrgIds = getAllowedNavioOrgIds(scope)
   // Prefer numeric ids from memberships even when local map is empty.
   const fromMemberships = getMemberships(resolvedClaims)
     .map((m) => asNavioId(m.service_organization?.id))
-    .filter((id): id is number => id != null);
+    .filter((id): id is number => id != null)
   const fromOrgs = getOrganizations(resolvedClaims)
     .map((o) => asNavioId(o.id))
-    .filter((id): id is number => id != null);
+    .filter((id): id is number => id != null)
 
-  const ids = [...new Set([...navioOrgIds, ...fromMemberships, ...fromOrgs])];
-  const active = getActiveOrganization(resolvedClaims);
-  const defaultId = asNavioId(active?.id);
-  const superuser = isNetworkSuperuser(resolvedClaims);
+  const ids = [...new Set([...navioOrgIds, ...fromMemberships, ...fromOrgs])]
+  const active = getActiveOrganization(resolvedClaims)
+  const defaultId = asNavioId(active?.id)
+  const superuser = isNetworkSuperuser(resolvedClaims)
 
   const { data, error } = await supabase.rpc(
     "sync_navio_organization_memberships" as never,
@@ -186,8 +176,8 @@ export async function syncNavioOrganizationMemberships(
       p_is_claim_superuser: superuser,
       p_default_navio_org_id: defaultId,
       p_role: claimRoleForSync(resolvedClaims),
-    } as never
-  );
+    } as never,
+  )
 
   if (error) {
     console.error("[auth] sync_navio_organization_memberships failed", {
@@ -196,8 +186,8 @@ export async function syncNavioOrganizationMemberships(
       message: error.message,
       code: error.code,
       navioOrgIds: ids,
-    });
-    throw error;
+    })
+    throw error
   }
 
   console.info("[auth] Synced organization memberships from navio claims", {
@@ -205,8 +195,8 @@ export async function syncNavioOrganizationMemberships(
     navioOrgIds: ids,
     isClaimSuperuser: superuser,
     membershipCount: Array.isArray(data) ? (data as unknown[]).length : undefined,
-  });
-  return data;
+  })
+  return data
 }
 
 /**
@@ -214,64 +204,56 @@ export async function syncNavioOrganizationMemberships(
  */
 export async function bootstrapNavioSupportHubAccess(
   user: User,
-  localOrganizations: LocalOrganization[] = []
+  localOrganizations: LocalOrganization[] = [],
 ): Promise<{ claims: Partial<NavioClaims>; hasOrgGraph: boolean }> {
-  const navioAuth = getNavioAuthContext(asNidpUser(user));
+  const navioAuth = getNavioAuthContext(asNidpUser(user))
   if (!navioAuth.isNavioUser) {
-    return { claims: {}, hasOrgGraph: false };
+    return { claims: {}, hasOrgGraph: false }
   }
 
-  await ensureNavioSupportHubAccess(user);
-  await syncNavioOrganizationMemberships(
-    user,
-    navioAuth.claims,
-    localOrganizations
-  );
+  await ensureNavioSupportHubAccess(user)
+  await syncNavioOrganizationMemberships(user, navioAuth.claims, localOrganizations)
 
   if (!navioAuth.hasOrgGraph) {
     console.warn(
       "[auth] Navio session has no org graph (memberships/roles). " +
-        "User may lack SO memberships, or Supabase is not requesting navio:active."
-    );
+        "User may lack SO memberships, or Supabase is not requesting navio:active.",
+    )
   } else {
     console.info("[auth] Navio claim scope", {
       userId: user.id,
       ...navioAuth.summary,
-    });
+    })
   }
 
-  return { claims: navioAuth.claims, hasOrgGraph: navioAuth.hasOrgGraph };
+  return { claims: navioAuth.claims, hasOrgGraph: navioAuth.hasOrgGraph }
 }
 
 /**
  * Google employee login: ensure profile + super_admin (RLS + UI unrestricted).
  * Only company Google accounts exist for Noddi employees.
  */
-export async function ensureGoogleEmployeeSupportHubAccess(
-  user: User
-): Promise<unknown> {
+export async function ensureGoogleEmployeeSupportHubAccess(user: User): Promise<unknown> {
   if (!isGoogleAuthUser(user)) {
-    return null;
+    return null
   }
 
-  const { data, error } = await supabase.rpc(
-    "ensure_google_employee_support_hub_access" as never
-  );
+  const { data, error } = await supabase.rpc("ensure_google_employee_support_hub_access" as never)
   if (error) {
     console.error("[auth] ensure_google_employee_support_hub_access failed", {
       userId: user.id,
       email: user.email,
       message: error.message,
       code: error.code,
-    });
-    throw error;
+    })
+    throw error
   }
 
   console.info("[auth] Google employee session provisioned as super_admin", {
     userId: user.id,
     email: user.email,
-  });
-  return data;
+  })
+  return data
 }
 
 /**
@@ -286,37 +268,37 @@ export async function ensureGoogleEmployeeSupportHubAccess(
  */
 export async function reconcileDuplicateAccounts(): Promise<number> {
   try {
-    const { data, error } = await supabase.rpc('reconcile_my_duplicate_accounts' as never);
+    const { data, error } = await supabase.rpc("reconcile_my_duplicate_accounts" as never)
     if (error) {
-      logger.warn('reconcile_my_duplicate_accounts failed', { error: error.message }, 'Auth');
-      return 0;
+      logger.warn("reconcile_my_duplicate_accounts failed", { error: error.message }, "Auth")
+      return 0
     }
-    const merged = (data as { merged?: number } | null)?.merged ?? 0;
+    const merged = (data as { merged?: number } | null)?.merged ?? 0
     if (merged > 0) {
-      logger.info('Merged duplicate account(s) into current user', { merged }, 'Auth');
+      logger.info("Merged duplicate account(s) into current user", { merged }, "Auth")
     }
-    return merged;
+    return merged
   } catch (err) {
-    logger.warn('reconcileDuplicateAccounts threw', { err: String(err) }, 'Auth');
-    return 0;
+    logger.warn("reconcileDuplicateAccounts threw", { err: String(err) }, "Auth")
+    return 0
   }
 }
 
 export async function bootstrapSupportHubAccess(
   user: User,
-  localOrganizations: LocalOrganization[] = []
+  localOrganizations: LocalOrganization[] = [],
 ): Promise<{ claims: Partial<NavioClaims>; hasOrgGraph: boolean }> {
   // Google employee sessions always win: full super_admin, no Navio role gate.
   if (isGoogleSignedInSession(user)) {
-    await ensureGoogleEmployeeSupportHubAccess(user);
-    return { claims: {}, hasOrgGraph: false };
+    await ensureGoogleEmployeeSupportHubAccess(user)
+    return { claims: {}, hasOrgGraph: false }
   }
   if (isNavioCoreOidcUser(user)) {
-    return bootstrapNavioSupportHubAccess(user, localOrganizations);
+    return bootstrapNavioSupportHubAccess(user, localOrganizations)
   }
   if (isGoogleAuthUser(user)) {
-    await ensureGoogleEmployeeSupportHubAccess(user);
-    return { claims: {}, hasOrgGraph: false };
+    await ensureGoogleEmployeeSupportHubAccess(user)
+    return { claims: {}, hasOrgGraph: false }
   }
-  return { claims: {}, hasOrgGraph: false };
+  return { claims: {}, hasOrgGraph: false }
 }

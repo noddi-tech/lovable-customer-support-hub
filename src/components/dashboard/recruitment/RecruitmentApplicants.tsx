@@ -1,42 +1,47 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import ApplicantsFilterBar from './applicants/ApplicantsFilterBar';
-import ApplicantsTable from './applicants/ApplicantsTable';
-import CreateApplicantDialog from './applicants/CreateApplicantDialog';
-import { QuarantineToolbar } from './applicants/QuarantineToolbar';
-import BulkActionToolbar from './applicants/BulkActionToolbar';
-import BulkRescoreDialog from './applicants/BulkRescoreDialog';
+import { Plus } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  type BulkAction,
+  type BulkActionPayload,
+  useBulkApplicantAction,
+} from "@/hooks/recruitment/useBulkApplicantAction"
+import ApplicantsFilterBar from "./applicants/ApplicantsFilterBar"
+import ApplicantsTable from "./applicants/ApplicantsTable"
 import {
   type ActiveBulkDialog,
-  ConfirmBulkDialog,
-  MoveStageDialog,
   AssignBulkDialog,
+  ConfirmBulkDialog,
+  DeleteBulkDialog,
+  MoveStageDialog,
   RejectBulkDialog,
   SendEmailBulkDialog,
   SendFormBulkDialog,
   TagsBulkDialog,
-  DeleteBulkDialog,
-} from './applicants/BulkActionDialogs';
-import { useBulkApplicantAction, type BulkAction, type BulkActionPayload } from '@/hooks/recruitment/useBulkApplicantAction';
-import type { ApplicantsFilters } from './applicants/useApplicants';
+} from "./applicants/BulkActionDialogs"
+import BulkActionToolbar from "./applicants/BulkActionToolbar"
+import BulkRescoreDialog from "./applicants/BulkRescoreDialog"
+import CreateApplicantDialog from "./applicants/CreateApplicantDialog"
+import { QuarantineToolbar } from "./applicants/QuarantineToolbar"
+import type { ApplicantsFilters } from "./applicants/useApplicants"
 
 const RecruitmentApplicants: React.FC = () => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
   const [filters, setFilters] = useState<ApplicantsFilters>({
-    search: '',
-    source: 'all',
-    positionId: 'all',
-    stageId: 'all',
+    search: "",
+    source: "all",
+    positionId: "all",
+    stageId: "all",
     pendingReviewOnly: false,
     tagIds: [],
-  });
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeDialog, setActiveDialog] = useState<ActiveBulkDialog>(null);
-  const bulkMut = useBulkApplicantAction();
+  })
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [activeDialog, setActiveDialog] = useState<ActiveBulkDialog>(null)
+  const bulkMut = useBulkApplicantAction()
 
-  const N = selectedIds.length;
-  const closeDialog = () => setActiveDialog(null);
+  const N = selectedIds.length
+  const closeDialog = () => setActiveDialog(null)
 
   /**
    * Confirm path — worst-case timing.
@@ -49,13 +54,13 @@ const RecruitmentApplicants: React.FC = () => {
    */
   const runBulk = async (action: BulkAction, payload?: BulkActionPayload) => {
     try {
-      await bulkMut.mutateAsync({ applicant_ids: selectedIds, action, payload });
-      setActiveDialog(null);
-      setTimeout(() => setSelectedIds([]), 0);
+      await bulkMut.mutateAsync({ applicant_ids: selectedIds, action, payload })
+      setActiveDialog(null)
+      setTimeout(() => setSelectedIds([]), 0)
     } catch {
       // Toast handled in mutation onError. Keep dialog open so user can retry/cancel.
     }
-  };
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -83,14 +88,14 @@ const RecruitmentApplicants: React.FC = () => {
         selectedIds={selectedIds}
         onToggleSelect={(id, checked) =>
           setSelectedIds((prev) =>
-            checked ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)
+            checked ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id),
           )
         }
         onToggleSelectAll={(ids, checked) =>
           setSelectedIds((prev) => {
-            if (checked) return Array.from(new Set([...prev, ...ids]));
-            const set = new Set(ids);
-            return prev.filter((id) => !set.has(id));
+            if (checked) return Array.from(new Set([...prev, ...ids]))
+            const set = new Set(ids)
+            return prev.filter((id) => !set.has(id))
           })
         }
       />
@@ -102,85 +107,85 @@ const RecruitmentApplicants: React.FC = () => {
       {/* Bulk dialogs are always mounted at the page level, regardless of selection
           state, to avoid Radix freeze when toolbar unmounts during dialog close. */}
       <MoveStageDialog
-        open={activeDialog === 'move_stage'}
+        open={activeDialog === "move_stage"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(stage_id) => runBulk('move_stage', { stage_id })}
+        onConfirm={(stage_id) => runBulk("move_stage", { stage_id })}
       />
       <AssignBulkDialog
-        open={activeDialog === 'assign'}
+        open={activeDialog === "assign"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(assignee_id) => runBulk('assign', { assignee_id })}
+        onConfirm={(assignee_id) => runBulk("assign", { assignee_id })}
       />
       <RejectBulkDialog
-        open={activeDialog === 'reject'}
+        open={activeDialog === "reject"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(reason) => runBulk('reject', reason ? { reason } : {})}
+        onConfirm={(reason) => runBulk("reject", reason ? { reason } : {})}
       />
       <ConfirmBulkDialog
-        open={activeDialog === 'hire'}
+        open={activeDialog === "hire"}
         title={`Ansette ${N} søkere?`}
         description="Søkerne flyttes til Ansatt-stadiet."
         actionLabel="Ansett"
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={() => runBulk('hire')}
+        onConfirm={() => runBulk("hire")}
       />
       <SendEmailBulkDialog
-        open={activeDialog === 'send_email'}
+        open={activeDialog === "send_email"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(template_id, inbox_id) => runBulk('send_email', { template_id, inbox_id })}
+        onConfirm={(template_id, inbox_id) => runBulk("send_email", { template_id, inbox_id })}
       />
       <SendFormBulkDialog
-        open={activeDialog === 'send_form'}
+        open={activeDialog === "send_form"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={(p) => runBulk('send_form', p)}
+        onConfirm={(p) => runBulk("send_form", p)}
       />
       <BulkRescoreDialog
-        open={activeDialog === 'rescore'}
+        open={activeDialog === "rescore"}
         applicantIds={selectedIds}
         onClose={() => {
-          setActiveDialog(null);
-          setTimeout(() => setSelectedIds([]), 0);
+          setActiveDialog(null)
+          setTimeout(() => setSelectedIds([]), 0)
         }}
       />
       <TagsBulkDialog
-        open={activeDialog === 'add_tags' || activeDialog === 'remove_tags'}
-        mode={activeDialog === 'remove_tags' ? 'remove' : 'add'}
+        open={activeDialog === "add_tags" || activeDialog === "remove_tags"}
+        mode={activeDialog === "remove_tags" ? "remove" : "add"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
         onConfirm={(tag_ids) =>
-          runBulk(activeDialog === 'remove_tags' ? 'remove_tags' : 'add_tags', { tag_ids })
+          runBulk(activeDialog === "remove_tags" ? "remove_tags" : "add_tags", { tag_ids })
         }
       />
       <ConfirmBulkDialog
-        open={activeDialog === 'export_csv'}
+        open={activeDialog === "export_csv"}
         title={`Eksportere ${N} søkere?`}
         description="Du får en CSV-fil med søker-info som lastes ned automatisk."
         actionLabel="Eksporter"
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={() => runBulk('export_csv')}
+        onConfirm={() => runBulk("export_csv")}
       />
       <DeleteBulkDialog
-        open={activeDialog === 'delete'}
+        open={activeDialog === "delete"}
         N={N}
         loading={bulkMut.isPending}
         onClose={closeDialog}
-        onConfirm={() => runBulk('delete')}
+        onConfirm={() => runBulk("delete")}
       />
     </div>
-  );
-};
+  )
+}
 
-export default RecruitmentApplicants;
+export default RecruitmentApplicants

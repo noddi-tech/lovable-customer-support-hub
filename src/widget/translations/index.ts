@@ -1,8 +1,8 @@
-import en from './en.json';
-import no from './no.json';
-import sv from './sv.json';
+import en from "./en.json"
+import no from "./no.json"
+import sv from "./sv.json"
 
-export type WidgetTranslations = typeof en;
+export type WidgetTranslations = typeof en
 
 // The Noddi customer frontend (packages/noddi-web LanguageCode) only supports
 // nb / en / se, so the widget UI mirrors exactly that set. Other translation
@@ -13,31 +13,31 @@ const translations: Record<string, Partial<WidgetTranslations>> = {
   en,
   no,
   sv,
-};
+}
 
 export const SUPPORTED_WIDGET_LANGUAGES = [
-  { code: 'no', name: 'Norsk', flag: '🇳🇴' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
-] as const;
+  { code: "no", name: "Norsk", flag: "🇳🇴" },
+  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "sv", name: "Svenska", flag: "🇸🇪" },
+] as const
 
-export const DEFAULT_WIDGET_LANGUAGE = 'no';
+export const DEFAULT_WIDGET_LANGUAGE = "no"
 
-export type WidgetLanguage = (typeof SUPPORTED_WIDGET_LANGUAGES)[number];
+export type WidgetLanguage = (typeof SUPPORTED_WIDGET_LANGUAGES)[number]
 
 /**
  * Sanitize a host-provided `supportedLocales` list: max 20 entries, each max
  * 20 chars, mapped onto widget UI codes, de-duplicated, host order preserved.
  */
 export function sanitizeSupportedLocales(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const out: string[] = [];
+  if (!Array.isArray(value)) return []
+  const out: string[] = []
   for (const entry of value.slice(0, 20)) {
-    if (typeof entry !== 'string') continue;
-    const code = normalizeWidgetLanguage(entry.trim().slice(0, 20));
-    if (code && !out.includes(code)) out.push(code);
+    if (typeof entry !== "string") continue
+    const code = normalizeWidgetLanguage(entry.trim().slice(0, 20))
+    if (code && !out.includes(code)) out.push(code)
   }
-  return out;
+  return out
 }
 
 /**
@@ -46,13 +46,12 @@ export function sanitizeSupportedLocales(value: unknown): string[] {
  * full widget set when the host sent nothing usable.
  */
 export function resolveWidgetLanguages(allowed?: string[] | null): readonly WidgetLanguage[] {
-  if (!allowed || allowed.length === 0) return SUPPORTED_WIDGET_LANGUAGES;
+  if (!allowed || allowed.length === 0) return SUPPORTED_WIDGET_LANGUAGES
   const picked = allowed
-    .map(code => SUPPORTED_WIDGET_LANGUAGES.find(l => l.code === code))
-    .filter((l): l is WidgetLanguage => Boolean(l));
-  return picked.length > 0 ? picked : SUPPORTED_WIDGET_LANGUAGES;
+    .map((code) => SUPPORTED_WIDGET_LANGUAGES.find((l) => l.code === code))
+    .filter((l): l is WidgetLanguage => Boolean(l))
+  return picked.length > 0 ? picked : SUPPORTED_WIDGET_LANGUAGES
 }
-
 
 /**
  * Map a host locale (BCP-47 like `nb-NO`, `en-US`, `sv-SE`, or the frontend
@@ -60,62 +59,61 @@ export function resolveWidgetLanguages(allowed?: string[] | null): readonly Widg
  * Returns null when the value maps to nothing we support.
  */
 export function normalizeWidgetLanguage(value?: string | null): string | null {
-  if (!value) return null;
-  const raw = String(value).trim().toLowerCase().replace('_', '-');
-  const base = raw.split('-')[0];
-  if (raw === 'no' || base === 'no' || base === 'nb' || base === 'nn') return 'no';
-  if (base === 'en') return 'en';
-  if (base === 'sv' || base === 'se') return 'sv';
-  return null;
+  if (!value) return null
+  const raw = String(value).trim().toLowerCase().replace("_", "-")
+  const base = raw.split("-")[0]
+  if (raw === "no" || base === "no" || base === "nb" || base === "nn") return "no"
+  if (base === "en") return "en"
+  if (base === "sv" || base === "se") return "sv"
+  return null
 }
 
 export function getWidgetTranslations(language: string): WidgetTranslations {
   // Merge over English so newly added keys never render as undefined in a
   // language whose file has not been updated yet.
-  return { ...en, ...(translations[language] || {}) } as WidgetTranslations;
-
+  return { ...en, ...(translations[language] || {}) } as WidgetTranslations
 }
 
 // Default English values (matches database defaults)
-const DEFAULT_GREETING_EN = "Hi there! 👋 How can we help you today?";
-const DEFAULT_RESPONSE_TIME_EN = "We usually respond within a few hours";
+const DEFAULT_GREETING_EN = "Hi there! 👋 How can we help you today?"
+const DEFAULT_RESPONSE_TIME_EN = "We usually respond within a few hours"
 
 export function getLocalizedGreeting(
   greetingText: string,
   language: string,
-  greetingTranslations?: Record<string, string>
+  greetingTranslations?: Record<string, string>,
 ): string {
   // 1. Check for custom translation for this language
-  if (greetingTranslations && greetingTranslations[language]) {
-    return greetingTranslations[language];
+  if (greetingTranslations?.[language]) {
+    return greetingTranslations[language]
   }
-  
+
   // 2. If default text matches English default, use built-in translation
   if (greetingText === DEFAULT_GREETING_EN) {
-    return getWidgetTranslations(language).defaultGreeting;
+    return getWidgetTranslations(language).defaultGreeting
   }
-  
+
   // 3. Otherwise return the default text
-  return greetingText;
+  return greetingText
 }
 
 export function getLocalizedResponseTime(
   responseTimeText: string,
   language: string,
-  responseTimeTranslations?: Record<string, string>
+  responseTimeTranslations?: Record<string, string>,
 ): string {
   // 1. Check for custom translation for this language
-  if (responseTimeTranslations && responseTimeTranslations[language]) {
-    return responseTimeTranslations[language];
+  if (responseTimeTranslations?.[language]) {
+    return responseTimeTranslations[language]
   }
-  
+
   // 2. If default text matches English default, use built-in translation
   if (responseTimeText === DEFAULT_RESPONSE_TIME_EN) {
-    return getWidgetTranslations(language).defaultResponseTime;
+    return getWidgetTranslations(language).defaultResponseTime
   }
-  
+
   // 3. Otherwise return the default text
-  return responseTimeText;
+  return responseTimeText
 }
 
-export default translations;
+export default translations

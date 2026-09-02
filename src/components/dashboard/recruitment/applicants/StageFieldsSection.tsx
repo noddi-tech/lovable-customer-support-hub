@@ -1,26 +1,27 @@
-import React, { useMemo, useState } from 'react';
-import { Check, Pencil, X, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { AlertCircle, Check, Loader2, Pencil, X } from "lucide-react"
+import type React from "react"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useApplicantFieldValues } from "@/hooks/recruitment/useApplicantFieldValues"
+import { type CustomFieldWithType, useCustomFields } from "@/hooks/recruitment/useCustomFields"
 import {
-  useStageFieldRequirements,
   type StageFieldRequirement,
-} from '@/hooks/recruitment/useStageFieldRequirements';
-import { useCustomFields, type CustomFieldWithType } from '@/hooks/recruitment/useCustomFields';
-import { useApplicantFieldValues } from '@/hooks/recruitment/useApplicantFieldValues';
-import { useUpsertApplicantFieldValue } from '@/hooks/recruitment/useUpsertApplicantFieldValue';
-import { CustomFieldValueInput } from './CustomFieldValueInput';
-import { formatFieldValue } from './formatFieldValue';
-import { toast } from 'sonner';
+  useStageFieldRequirements,
+} from "@/hooks/recruitment/useStageFieldRequirements"
+import { useUpsertApplicantFieldValue } from "@/hooks/recruitment/useUpsertApplicantFieldValue"
+import { CustomFieldValueInput } from "./CustomFieldValueInput"
+import { formatFieldValue } from "./formatFieldValue"
 
 interface Props {
-  applicantId: string;
-  pipelineId: string | null;
-  stageId: string | null;
-  positionId: string | null;
-  stageName?: string | null;
+  applicantId: string
+  pipelineId: string | null
+  stageId: string | null
+  positionId: string | null
+  stageName?: string | null
 }
 
 const StageFieldsSection: React.FC<Props> = ({
@@ -30,41 +31,41 @@ const StageFieldsSection: React.FC<Props> = ({
   positionId,
   stageName,
 }) => {
-  const { data: reqs, isLoading } = useStageFieldRequirements(pipelineId, positionId);
-  const { data: fields } = useCustomFields();
-  const { data: values } = useApplicantFieldValues(applicantId, 'all');
-  const upsert = useUpsertApplicantFieldValue();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftValue, setDraftValue] = useState<unknown>(null);
-  const [draftRaw, setDraftRaw] = useState<string | null>(null);
+  const { data: reqs, isLoading } = useStageFieldRequirements(pipelineId, positionId)
+  const { data: fields } = useCustomFields()
+  const { data: values } = useApplicantFieldValues(applicantId, "all")
+  const upsert = useUpsertApplicantFieldValue()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draftValue, setDraftValue] = useState<unknown>(null)
+  const [draftRaw, setDraftRaw] = useState<string | null>(null)
 
   const fieldsByid = useMemo(() => {
-    const m = new Map<string, CustomFieldWithType>();
-    (fields ?? []).forEach((f) => m.set(f.id, f));
-    return m;
-  }, [fields]);
+    const m = new Map<string, CustomFieldWithType>()
+    ;(fields ?? []).forEach((f) => m.set(f.id, f))
+    return m
+  }, [fields])
 
   const valuesByFieldId = useMemo(() => {
-    const m = new Map<string, any>();
-    (values ?? []).forEach((v) => m.set(v.field_id, v));
-    return m;
-  }, [values]);
+    const m = new Map<string, any>()
+    ;(values ?? []).forEach((v) => m.set(v.field_id, v))
+    return m
+  }, [values])
 
   // Filter to current stage, dedupe (position-specific wins over org-wide)
   const stageReqs = useMemo(() => {
-    if (!reqs || !stageId) return [] as StageFieldRequirement[];
-    const filtered = reqs.filter((r) => r.stage_id === stageId);
-    const merged = new Map<string, StageFieldRequirement>();
+    if (!reqs || !stageId) return [] as StageFieldRequirement[]
+    const filtered = reqs.filter((r) => r.stage_id === stageId)
+    const merged = new Map<string, StageFieldRequirement>()
     for (const r of filtered) {
-      const ex = merged.get(r.custom_field_id);
+      const ex = merged.get(r.custom_field_id)
       if (!ex || (r.position_id !== null && ex.position_id === null)) {
-        merged.set(r.custom_field_id, r);
+        merged.set(r.custom_field_id, r)
       }
     }
-    return Array.from(merged.values()).sort((a, b) => a.display_order - b.display_order);
-  }, [reqs, stageId]);
+    return Array.from(merged.values()).sort((a, b) => a.display_order - b.display_order)
+  }, [reqs, stageId])
 
-  if (!pipelineId || !stageId) return null;
+  if (!pipelineId || !stageId) return null
   if (isLoading) {
     return (
       <Card>
@@ -75,22 +76,22 @@ const StageFieldsSection: React.FC<Props> = ({
           <Skeleton className="h-16 w-full" />
         </CardContent>
       </Card>
-    );
+    )
   }
-  if (stageReqs.length === 0) return null;
+  if (stageReqs.length === 0) return null
 
   const startEdit = (req: StageFieldRequirement) => {
-    const v = valuesByFieldId.get(req.custom_field_id);
-    setEditingId(req.custom_field_id);
-    setDraftValue(v?.value ?? null);
-    setDraftRaw(v?.raw_value ?? null);
-  };
+    const v = valuesByFieldId.get(req.custom_field_id)
+    setEditingId(req.custom_field_id)
+    setDraftValue(v?.value ?? null)
+    setDraftRaw(v?.raw_value ?? null)
+  }
 
   const cancelEdit = () => {
-    setEditingId(null);
-    setDraftValue(null);
-    setDraftRaw(null);
-  };
+    setEditingId(null)
+    setDraftValue(null)
+    setDraftRaw(null)
+  }
 
   const saveEdit = async (fieldId: string) => {
     try {
@@ -99,34 +100,32 @@ const StageFieldsSection: React.FC<Props> = ({
         field_id: fieldId,
         value: draftValue,
         raw_value: draftRaw,
-      });
-      toast.success('Lagret');
-      cancelEdit();
+      })
+      toast.success("Lagret")
+      cancelEdit()
     } catch (e: any) {
-      toast.error(e?.message ?? 'Kunne ikke lagre');
+      toast.error(e?.message ?? "Kunne ikke lagre")
     }
-  };
+  }
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm">
-          Felt for fase {stageName ? `«${stageName}»` : ''}
-        </CardTitle>
+        <CardTitle className="text-sm">Felt for fase {stageName ? `«${stageName}»` : ""}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <ul className="divide-y">
           {stageReqs.map((req) => {
-            const field = fieldsByid.get(req.custom_field_id);
-            if (!field) return null;
-            const v = valuesByFieldId.get(req.custom_field_id);
+            const field = fieldsByid.get(req.custom_field_id)
+            if (!field) return null
+            const v = valuesByFieldId.get(req.custom_field_id)
             const isEmpty =
               v == null ||
               v.value == null ||
-              (typeof v.value === 'string' && v.value.trim() === '') ||
-              (Array.isArray(v.value) && v.value.length === 0);
-            const isRequired = req.requirement_type === 'required';
-            const editing = editingId === req.custom_field_id;
+              (typeof v.value === "string" && v.value.trim() === "") ||
+              (Array.isArray(v.value) && v.value.length === 0)
+            const isRequired = req.requirement_type === "required"
+            const editing = editingId === req.custom_field_id
             return (
               <li key={req.id} className="px-4 py-3 text-sm">
                 <div className="flex items-start gap-2">
@@ -134,7 +133,10 @@ const StageFieldsSection: React.FC<Props> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground">{field.display_name}</span>
                       {isRequired ? (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 border-red-300 text-red-700">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] h-4 px-1.5 border-red-300 text-red-700"
+                        >
                           Påkrevd
                         </Badge>
                       ) : (
@@ -155,8 +157,8 @@ const StageFieldsSection: React.FC<Props> = ({
                           value={draftValue}
                           options={(field.options as any) ?? null}
                           onChange={(val, raw) => {
-                            setDraftValue(val);
-                            setDraftRaw(raw);
+                            setDraftValue(val)
+                            setDraftRaw(raw)
                           }}
                           autoFocus
                         />
@@ -202,12 +204,12 @@ const StageFieldsSection: React.FC<Props> = ({
                   )}
                 </div>
               </li>
-            );
+            )
           })}
         </ul>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default StageFieldsSection;
+export default StageFieldsSection

@@ -1,11 +1,11 @@
-import type { Stage } from './types';
+import type { Stage } from "./types"
 
 interface Props {
-  stages: Stage[];
+  stages: Stage[]
 }
 
 export function PipelineKanbanPreview({ stages }: Props) {
-  const sorted = [...stages].sort((a, b) => a.order - b.order);
+  const sorted = [...stages].sort((a, b) => a.order - b.order)
 
   return (
     <div className="space-y-2">
@@ -33,5 +33,5 @@ export function PipelineKanbanPreview({ stages }: Props) {
         </div>
       </div>
     </div>
-  );
+  )
 }

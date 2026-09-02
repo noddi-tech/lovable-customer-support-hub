@@ -1,12 +1,14 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Heading } from '@/components/ui/heading';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
 
 const Terms = () => {
   return (
     <div className="min-h-screen bg-gradient-surface p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <Heading level={1} className="mb-2">Terms of Service</Heading>
+          <Heading level={1} className="mb-2">
+            Terms of Service
+          </Heading>
           <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
         </div>
 
@@ -16,7 +18,9 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              By accessing and using our customer support platform, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+              By accessing and using our customer support platform, you accept and agree to be bound
+              by the terms and provision of this agreement. If you do not agree to abide by the
+              above, please do not use this service.
             </p>
           </CardContent>
         </Card>
@@ -26,9 +30,7 @@ const Terms = () => {
             <CardTitle className="text-primary">Service Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>
-              Our platform provides customer support management services, including:
-            </p>
+            <p>Our platform provides customer support management services, including:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Email integration and synchronization</li>
               <li>Conversation management and organization</li>
@@ -60,9 +62,7 @@ const Terms = () => {
             <CardTitle className="text-primary">Email Integration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p>
-              By connecting your email accounts to our platform, you grant us permission to:
-            </p>
+            <p>By connecting your email accounts to our platform, you grant us permission to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Access and sync your email messages</li>
               <li>Send emails on your behalf when requested</li>
@@ -70,7 +70,8 @@ const Terms = () => {
               <li>Manage email labels and organization</li>
             </ul>
             <p>
-              You may revoke these permissions at any time by disconnecting your email accounts from the platform.
+              You may revoke these permissions at any time by disconnecting your email accounts from
+              the platform.
             </p>
           </CardContent>
         </Card>
@@ -81,7 +82,9 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              You retain ownership of all data you provide to the service. We will handle your data in accordance with our Privacy Policy and will not use your data for purposes other than providing the service to you.
+              You retain ownership of all data you provide to the service. We will handle your data
+              in accordance with our Privacy Policy and will not use your data for purposes other
+              than providing the service to you.
             </p>
           </CardContent>
         </Card>
@@ -92,7 +95,9 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              While we strive to maintain high service availability, we do not guarantee uninterrupted access to the platform. We may perform maintenance, updates, or experience technical difficulties that temporarily affect service availability.
+              While we strive to maintain high service availability, we do not guarantee
+              uninterrupted access to the platform. We may perform maintenance, updates, or
+              experience technical difficulties that temporarily affect service availability.
             </p>
           </CardContent>
         </Card>
@@ -103,7 +108,9 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              Our liability for any claims arising from your use of the service is limited to the amount you have paid for the service in the 12 months preceding the claim. We are not liable for any indirect, incidental, or consequential damages.
+              Our liability for any claims arising from your use of the service is limited to the
+              amount you have paid for the service in the 12 months preceding the claim. We are not
+              liable for any indirect, incidental, or consequential damages.
             </p>
           </CardContent>
         </Card>
@@ -114,7 +121,9 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              We reserve the right to modify these terms at any time. We will notify users of significant changes via email or through the platform. Continued use of the service after changes constitutes acceptance of the new terms.
+              We reserve the right to modify these terms at any time. We will notify users of
+              significant changes via email or through the platform. Continued use of the service
+              after changes constitutes acceptance of the new terms.
             </p>
           </CardContent>
         </Card>
@@ -125,13 +134,14 @@ const Terms = () => {
           </CardHeader>
           <CardContent>
             <p>
-              If you have any questions about these Terms of Service, please contact us at legal@yourcompany.com.
+              If you have any questions about these Terms of Service, please contact us at
+              legal@yourcompany.com.
             </p>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Terms;
+export default Terms

@@ -1,16 +1,16 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { AutomationExecution } from './types';
-import { ExecutionLogRow, ExecutionLogRowTooltipProvider } from './ExecutionLogRow';
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ExecutionLogRow, ExecutionLogRowTooltipProvider } from "./ExecutionLogRow"
+import type { AutomationExecution } from "./types"
 
 interface Props {
-  executions: AutomationExecution[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onOpenExecution: (execution: AutomationExecution) => void;
-  onAcknowledge: (execution: AutomationExecution) => void;
+  executions: AutomationExecution[]
+  totalCount: number
+  page: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  onOpenExecution: (execution: AutomationExecution) => void
+  onAcknowledge: (execution: AutomationExecution) => void
 }
 
 export function ExecutionLogTable({
@@ -22,10 +22,10 @@ export function ExecutionLogTable({
   onOpenExecution,
   onAcknowledge,
 }: Props) {
-  const start = totalCount === 0 ? 0 : page * pageSize + 1;
-  const end = Math.min((page + 1) * pageSize, totalCount);
-  const hasPrev = page > 0;
-  const hasNext = end < totalCount;
+  const start = totalCount === 0 ? 0 : page * pageSize + 1
+  const end = Math.min((page + 1) * pageSize, totalCount)
+  const hasPrev = page > 0
+  const hasNext = end < totalCount
 
   return (
     <ExecutionLogRowTooltipProvider>
@@ -71,11 +71,23 @@ export function ExecutionLogTable({
             Viser {start}–{end} av {totalCount}
           </p>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={!hasPrev} onClick={() => onPageChange(page - 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!hasPrev}
+              onClick={() => onPageChange(page - 1)}
+            >
               <ChevronLeft className="h-4 w-4" />
               Forrige
             </Button>
-            <Button type="button" variant="outline" size="sm" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!hasNext}
+              onClick={() => onPageChange(page + 1)}
+            >
               Neste
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -83,5 +95,5 @@ export function ExecutionLogTable({
         </div>
       </div>
     </ExecutionLogRowTooltipProvider>
-  );
+  )
 }

@@ -1,50 +1,65 @@
-import React, { useState, useCallback } from 'react';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCenter } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Undo,
-  Redo,
-  Eye,
-  Save,
-  Send,
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+} from "@dnd-kit/core"
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import {
   Calendar,
   Download,
-  Smartphone,
+  Eye,
   Monitor,
   Moon,
-  Sun
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useToast } from '@/hooks/use-toast';
-import { NewsletterCanvas } from './newsletter/NewsletterCanvas';
-import { BlocksPalette } from './newsletter/BlocksPalette';
-import { PropertiesPanel } from './newsletter/PropertiesPanel';
-import { PreviewDialog } from './newsletter/PreviewDialog';
-import { TemplateLibrary } from './newsletter/TemplateLibrary';
-import { GlobalStylesPanel } from './newsletter/GlobalStylesPanel';
-import { PersonalizationPanel } from './newsletter/PersonalizationPanel';
-import { SaveDraftDialog } from './newsletter/SaveDraftDialog';
-import { ScheduleDialog } from './newsletter/ScheduleDialog';
-import { useNewsletterStore } from './newsletter/useNewsletterStore';
-import { CampaignBuilderShell } from './newsletter/CampaignBuilderShell';
-import { PaneColumn } from './newsletter/PaneColumn';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { PaneTabProbe } from '@/dev/PaneTabProbe';
+  Redo,
+  Save,
+  Send,
+  Smartphone,
+  Sun,
+  Undo,
+} from "lucide-react"
+import { useCallback, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PaneTabProbe } from "@/dev/PaneTabProbe"
+import { useToast } from "@/hooks/use-toast"
+import { BlocksPalette } from "./newsletter/BlocksPalette"
+import { CampaignBuilderShell } from "./newsletter/CampaignBuilderShell"
+import { GlobalStylesPanel } from "./newsletter/GlobalStylesPanel"
+import { NewsletterCanvas } from "./newsletter/NewsletterCanvas"
+import { PaneColumn } from "./newsletter/PaneColumn"
+import { PersonalizationPanel } from "./newsletter/PersonalizationPanel"
+import { PreviewDialog } from "./newsletter/PreviewDialog"
+import { PropertiesPanel } from "./newsletter/PropertiesPanel"
+import { SaveDraftDialog } from "./newsletter/SaveDraftDialog"
+import { ScheduleDialog } from "./newsletter/ScheduleDialog"
+import { TemplateLibrary } from "./newsletter/TemplateLibrary"
+import { useNewsletterStore } from "./newsletter/useNewsletterStore"
 
 export interface NewsletterBlock {
-  id: string;
-  type: 'text' | 'image' | 'button' | 'divider' | 'spacer' | 'columns' | 'social' | 'product' | 'ticket' | 'html';
-  content: any;
-  styles: any;
+  id: string
+  type:
+    | "text"
+    | "image"
+    | "button"
+    | "divider"
+    | "spacer"
+    | "columns"
+    | "social"
+    | "product"
+    | "ticket"
+    | "html"
+  content: any
+  styles: any
 }
 
 const NewsletterBuilder = () => {
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  
+  const { t } = useTranslation()
+  const { toast } = useToast()
+
   const {
     blocks,
     selectedBlockId,
@@ -55,41 +70,43 @@ const NewsletterBuilder = () => {
     selectBlock,
     undo,
     redo,
-    clearNewsletter
-  } = useNewsletterStore();
+    clearNewsletter,
+  } = useNewsletterStore()
 
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
-  const [showPreview, setShowPreview] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showSaveDraft, setShowSaveDraft] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [activeLeftPanel, setActiveLeftPanel] = useState<'blocks' | 'templates'>('blocks');
-  const [activeRightPanel, setActiveRightPanel] = useState<'properties' | 'global' | 'personalization'>('properties');
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop")
+  const [showPreview, setShowPreview] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [showSaveDraft, setShowSaveDraft] = useState(false)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [activeLeftPanel, setActiveLeftPanel] = useState<"blocks" | "templates">("blocks")
+  const [activeRightPanel, setActiveRightPanel] = useState<
+    "properties" | "global" | "personalization"
+  >("properties")
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  }, []);
+    setActiveId(event.active.id as string)
+  }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveId(null);
+    setActiveId(null)
     // Handle drag end logic here - reordering blocks
-  }, []);
+  }, [])
 
   const handleTestEmail = useCallback(() => {
     toast({
       title: "Test Email",
       description: "Test email functionality will be implemented soon",
-    });
-  }, [toast]);
+    })
+  }, [toast])
 
   const handleExportHTML = useCallback(() => {
     toast({
       title: "Export HTML",
       description: "HTML export functionality will be implemented soon",
-    });
-  }, [toast]);
+    })
+  }, [toast])
 
   // Render the toolbar
   const renderToolbar = () => (
@@ -121,21 +138,21 @@ const NewsletterBuilder = () => {
           className="h-8 gap-2 shrink-0"
         >
           <Eye className="h-4 w-4" />
-          {t('preview')}
+          {t("preview")}
         </Button>
         <div className="flex rounded-md border overflow-hidden shrink-0">
           <Button
-            variant={previewDevice === 'desktop' ? 'default' : 'ghost'}
+            variant={previewDevice === "desktop" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setPreviewDevice('desktop')}
+            onClick={() => setPreviewDevice("desktop")}
             className="h-8 rounded-none"
           >
             <Monitor className="h-4 w-4" />
           </Button>
           <Button
-            variant={previewDevice === 'mobile' ? 'default' : 'ghost'}
+            variant={previewDevice === "mobile" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setPreviewDevice('mobile')}
+            onClick={() => setPreviewDevice("mobile")}
             className="h-8 rounded-none"
           >
             <Smartphone className="h-4 w-4" />
@@ -169,7 +186,7 @@ const NewsletterBuilder = () => {
           className="h-8 gap-2 shrink-0"
         >
           <Save className="h-4 w-4" />
-          {t('saveDraft')}
+          {t("saveDraft")}
         </Button>
         <Button
           variant="outline"
@@ -178,7 +195,7 @@ const NewsletterBuilder = () => {
           className="h-8 gap-2 shrink-0"
         >
           <Send className="h-4 w-4" />
-          {t('sendTest')}
+          {t("sendTest")}
         </Button>
         <Button
           variant="outline"
@@ -187,7 +204,7 @@ const NewsletterBuilder = () => {
           className="h-8 gap-2 shrink-0"
         >
           <Download className="h-4 w-4" />
-          {t('exportHTML')}
+          {t("exportHTML")}
         </Button>
         <Separator orientation="vertical" className="h-6 shrink-0" />
         <Button
@@ -197,19 +214,15 @@ const NewsletterBuilder = () => {
           className="h-8 gap-2 shrink-0"
         >
           <Calendar className="h-4 w-4" />
-          {t('schedule')}
+          {t("schedule")}
         </Button>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-8 gap-2 shrink-0"
-        >
+        <Button variant="default" size="sm" className="h-8 gap-2 shrink-0">
           <Send className="h-4 w-4" />
-          {t('send')}
+          {t("send")}
         </Button>
       </div>
     </div>
-  );
+  )
 
   // Render left pane (blocks and templates)
   const renderLeftPane = () => (
@@ -219,8 +232,8 @@ const NewsletterBuilder = () => {
         <div className="px-3 pt-3 bg-card">
           <div data-testid="builder-left-tabs">
             <TabsList className="flex flex-wrap items-center gap-2 min-w-0 overflow-visible rounded-lg bg-muted p-1 mb-3">
-              <TabsTrigger value="blocks">{t('blocks')}</TabsTrigger>
-              <TabsTrigger value="templates">{t('templates')}</TabsTrigger>
+              <TabsTrigger value="blocks">{t("blocks")}</TabsTrigger>
+              <TabsTrigger value="templates">{t("templates")}</TabsTrigger>
             </TabsList>
           </div>
           <Separator />
@@ -238,7 +251,7 @@ const NewsletterBuilder = () => {
         </div>
       </TabsContent>
     </PaneColumn>
-  );
+  )
 
   // Render center pane (canvas/preview)
   const renderCenterPane = () => (
@@ -247,7 +260,7 @@ const NewsletterBuilder = () => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
         <NewsletterCanvas
           blocks={blocks}
           selectedBlockId={selectedBlockId}
@@ -259,13 +272,11 @@ const NewsletterBuilder = () => {
       </SortableContext>
       <DragOverlay>
         {activeId ? (
-          <div className="bg-card border rounded-lg p-4 shadow-lg">
-            {t('dragging')}...
-          </div>
+          <div className="bg-card border rounded-lg p-4 shadow-lg">{t("dragging")}...</div>
         ) : null}
       </DragOverlay>
     </DndContext>
-  );
+  )
 
   // Render right pane (properties/inspector)
   const renderRightPane = () => (
@@ -274,11 +285,20 @@ const NewsletterBuilder = () => {
       header={
         <div className="px-3 pt-3 bg-card">
           <div data-testid="builder-right-tabs">
-            <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)}>
+            <Tabs
+              value={activeRightPanel}
+              onValueChange={(value) => setActiveRightPanel(value as any)}
+            >
               <TabsList className="flex flex-wrap items-center gap-2 min-w-0 overflow-visible rounded-lg bg-muted p-1 mb-3">
-                <TabsTrigger value="properties" className="text-xs">{t('properties')}</TabsTrigger>
-                <TabsTrigger value="global" className="text-xs">{t('global')}</TabsTrigger>
-                <TabsTrigger value="personalization" className="text-xs">{t('personalization')}</TabsTrigger>
+                <TabsTrigger value="properties" className="text-xs">
+                  {t("properties")}
+                </TabsTrigger>
+                <TabsTrigger value="global" className="text-xs">
+                  {t("global")}
+                </TabsTrigger>
+                <TabsTrigger value="personalization" className="text-xs">
+                  {t("personalization")}
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -286,7 +306,11 @@ const NewsletterBuilder = () => {
         </div>
       }
     >
-      <Tabs value={activeRightPanel} onValueChange={(value) => setActiveRightPanel(value as any)} className="h-full">
+      <Tabs
+        value={activeRightPanel}
+        onValueChange={(value) => setActiveRightPanel(value as any)}
+        className="h-full"
+      >
         <TabsContent value="properties" className="h-full m-0">
           <div className="p-3">
             <PropertiesPanel selectedBlockId={selectedBlockId} />
@@ -304,12 +328,16 @@ const NewsletterBuilder = () => {
         </TabsContent>
       </Tabs>
     </PaneColumn>
-  );
+  )
 
   return (
     <div className="h-full min-h-0 bg-background">
-      {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === '1' && <PaneTabProbe />}
-      <Tabs value={activeLeftPanel} onValueChange={(value) => setActiveLeftPanel(value as any)} className="h-full min-h-0">
+      {import.meta.env.DEV && import.meta.env.VITE_UI_PROBE === "1" && <PaneTabProbe />}
+      <Tabs
+        value={activeLeftPanel}
+        onValueChange={(value) => setActiveLeftPanel(value as any)}
+        className="h-full min-h-0"
+      >
         <CampaignBuilderShell
           toolbar={renderToolbar()}
           left={renderLeftPane()}
@@ -328,17 +356,11 @@ const NewsletterBuilder = () => {
         darkMode={isDarkMode}
       />
 
-      <SaveDraftDialog
-        open={showSaveDraft}
-        onOpenChange={setShowSaveDraft}
-      />
+      <SaveDraftDialog open={showSaveDraft} onOpenChange={setShowSaveDraft} />
 
-      <ScheduleDialog
-        open={showSchedule}
-        onOpenChange={setShowSchedule}
-      />
+      <ScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} />
     </div>
-  );
-};
+  )
+}
 
-export default NewsletterBuilder;
+export default NewsletterBuilder

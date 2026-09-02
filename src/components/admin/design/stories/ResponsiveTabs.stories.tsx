@@ -1,62 +1,78 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '../components/layouts';
-import { Mail, MessageSquare, Phone, Settings, Shield, Palette, Database, Users, Bell } from 'lucide-react';
+import type { Meta, StoryObj } from "@storybook/react"
+import {
+  Bell,
+  Database,
+  Mail,
+  MessageSquare,
+  Palette,
+  Phone,
+  Settings,
+  Shield,
+  Users,
+} from "lucide-react"
+import {
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "../components/layouts"
 
 const meta: Meta<typeof ResponsiveTabs> = {
-  title: 'Layout/ResponsiveTabs',
+  title: "Layout/ResponsiveTabs",
   component: ResponsiveTabs,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
     docs: {
       description: {
-        component: 'A responsive tab component that adapts to different screen sizes with multiple styling variants.',
+        component:
+          "A responsive tab component that adapts to different screen sizes with multiple styling variants.",
       },
     },
   },
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['default', 'pills', 'underline', 'borderless', 'compact'],
-      description: 'Visual style variant',
+      control: "select",
+      options: ["default", "pills", "underline", "borderless", "compact"],
+      description: "Visual style variant",
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of tabs',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of tabs",
     },
     equalWidth: {
-      control: 'boolean',
-      description: 'Whether tabs should have equal width',
+      control: "boolean",
+      description: "Whether tabs should have equal width",
     },
     justifyContent: {
-      control: 'select',
-      options: ['start', 'center', 'end', 'between'],
-      description: 'Alignment of tabs',
+      control: "select",
+      options: ["start", "center", "end", "between"],
+      description: "Alignment of tabs",
     },
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical', 'responsive'],
-      description: 'Tab orientation',
+      control: "select",
+      options: ["horizontal", "vertical", "responsive"],
+      description: "Tab orientation",
     },
     breakpoint: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'xl'],
-      description: 'Breakpoint for responsive orientation',
+      control: "select",
+      options: ["sm", "md", "lg", "xl"],
+      description: "Breakpoint for responsive orientation",
     },
   },
-};
+}
 
-export default meta;
-type Story = StoryObj<typeof ResponsiveTabs>;
+export default meta
+type Story = StoryObj<typeof ResponsiveTabs>
 
 // Basic example
 export const Default: Story = {
   args: {
-    defaultValue: 'general',
-    variant: 'default',
-    size: 'md',
+    defaultValue: "general",
+    variant: "default",
+    size: "md",
     equalWidth: false,
-    justifyContent: 'start',
+    justifyContent: "start",
   },
   render: (args) => (
     <div className="p-6 max-w-4xl mx-auto">
@@ -79,7 +95,8 @@ export const Default: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">General Settings</h3>
             <p className="text-muted-foreground">
-              Configure your general application settings, including language, timezone, and basic preferences.
+              Configure your general application settings, including language, timezone, and basic
+              preferences.
             </p>
             <div className="p-4 bg-muted/50 rounded-lg">
               <p>General settings form would go here...</p>
@@ -90,7 +107,8 @@ export const Default: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Security Settings</h3>
             <p className="text-muted-foreground">
-              Manage your security preferences, including two-factor authentication and password policies.
+              Manage your security preferences, including two-factor authentication and password
+              policies.
             </p>
             <div className="p-4 bg-muted/50 rounded-lg">
               <p>Security settings form would go here...</p>
@@ -101,7 +119,8 @@ export const Default: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Appearance Settings</h3>
             <p className="text-muted-foreground">
-              Customize the look and feel of your application, including themes and layout preferences.
+              Customize the look and feel of your application, including themes and layout
+              preferences.
             </p>
             <div className="p-4 bg-muted/50 rounded-lg">
               <p>Appearance settings form would go here...</p>
@@ -111,16 +130,16 @@ export const Default: Story = {
       </ResponsiveTabs>
     </div>
   ),
-};
+}
 
 // Pills variant
 export const Pills: Story = {
   args: {
-    defaultValue: 'email',
-    variant: 'pills',
-    size: 'md',
+    defaultValue: "email",
+    variant: "pills",
+    size: "md",
     equalWidth: true,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   render: (args) => (
     <div className="p-6 max-w-4xl mx-auto">
@@ -154,7 +173,8 @@ export const Pills: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">SMS Integration</h3>
             <p className="text-muted-foreground">
-              Set up SMS providers like Twilio, configure message templates, and manage phone numbers.
+              Set up SMS providers like Twilio, configure message templates, and manage phone
+              numbers.
             </p>
             <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 rounded-lg border">
               <p>SMS configuration interface would go here...</p>
@@ -175,16 +195,16 @@ export const Pills: Story = {
       </ResponsiveTabs>
     </div>
   ),
-};
+}
 
 // Underline variant
 export const Underline: Story = {
   args: {
-    defaultValue: 'overview',
-    variant: 'underline',
-    size: 'md',
+    defaultValue: "overview",
+    variant: "underline",
+    size: "md",
     equalWidth: false,
-    justifyContent: 'start',
+    justifyContent: "start",
   },
   render: (args) => (
     <div className="p-6 max-w-4xl mx-auto">
@@ -215,7 +235,9 @@ export const Underline: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Analytics Dashboard</h3>
             <div className="p-8 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
-              <p className="text-center text-muted-foreground">Analytics charts would be displayed here...</p>
+              <p className="text-center text-muted-foreground">
+                Analytics charts would be displayed here...
+              </p>
             </div>
           </div>
         </ResponsiveTabsContent>
@@ -223,7 +245,9 @@ export const Underline: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Generated Reports</h3>
             <div className="p-8 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
-              <p className="text-center text-muted-foreground">Reports list would be displayed here...</p>
+              <p className="text-center text-muted-foreground">
+                Reports list would be displayed here...
+              </p>
             </div>
           </div>
         </ResponsiveTabsContent>
@@ -231,23 +255,25 @@ export const Underline: Story = {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Export Data</h3>
             <div className="p-8 bg-muted/30 rounded-lg border-2 border-dashed border-muted">
-              <p className="text-center text-muted-foreground">Export options would be displayed here...</p>
+              <p className="text-center text-muted-foreground">
+                Export options would be displayed here...
+              </p>
             </div>
           </div>
         </ResponsiveTabsContent>
       </ResponsiveTabs>
     </div>
   ),
-};
+}
 
 // Borderless variant
 export const Borderless: Story = {
   args: {
-    defaultValue: 'users',
-    variant: 'borderless',
-    size: 'md',
+    defaultValue: "users",
+    variant: "borderless",
+    size: "md",
     equalWidth: false,
-    justifyContent: 'start',
+    justifyContent: "start",
   },
   render: (args) => (
     <div className="p-6 max-w-4xl mx-auto">
@@ -316,16 +342,16 @@ export const Borderless: Story = {
       </ResponsiveTabs>
     </div>
   ),
-};
+}
 
 // Compact variant
 export const Compact: Story = {
   args: {
-    defaultValue: 'all',
-    variant: 'compact',
-    size: 'sm',
+    defaultValue: "all",
+    variant: "compact",
+    size: "sm",
     equalWidth: true,
-    justifyContent: 'start',
+    justifyContent: "start",
   },
   render: (args) => (
     <div className="p-6 max-w-2xl mx-auto">
@@ -354,16 +380,16 @@ export const Compact: Story = {
       </div>
     </div>
   ),
-};
+}
 
 // Many tabs example (edge case)
 export const ManyTabs: Story = {
   args: {
-    defaultValue: 'tab1',
-    variant: 'default',
-    size: 'sm',
+    defaultValue: "tab1",
+    variant: "default",
+    size: "sm",
     equalWidth: true,
-    justifyContent: 'start',
+    justifyContent: "start",
   },
   render: (args) => (
     <div className="p-6 max-w-6xl mx-auto">
@@ -381,9 +407,9 @@ export const ManyTabs: Story = {
             <div className="p-4 bg-muted/30 rounded-lg">
               <h3 className="font-semibold mb-2">Content for Tab {i + 1}</h3>
               <p className="text-muted-foreground">
-                This demonstrates how the ResponsiveTabs component handles many tabs by wrapping them 
-                responsively. On mobile, they stack vertically, and on larger screens, they wrap 
-                horizontally when there isn't enough space.
+                This demonstrates how the ResponsiveTabs component handles many tabs by wrapping
+                them responsively. On mobile, they stack vertically, and on larger screens, they
+                wrap horizontally when there isn't enough space.
               </p>
             </div>
           </ResponsiveTabsContent>
@@ -391,17 +417,17 @@ export const ManyTabs: Story = {
       </ResponsiveTabs>
     </div>
   ),
-};
+}
 
 // Vertical orientation
 export const VerticalOrientation: Story = {
   args: {
-    defaultValue: 'dashboard',
-    variant: 'pills',
-    size: 'md',
+    defaultValue: "dashboard",
+    variant: "pills",
+    size: "md",
     equalWidth: false,
-    justifyContent: 'start',
-    orientation: 'vertical',
+    justifyContent: "start",
+    orientation: "vertical",
   },
   render: (args) => (
     <div className="p-6 max-w-4xl mx-auto">
@@ -455,4 +481,4 @@ export const VerticalOrientation: Story = {
       </div>
     </div>
   ),
-};
+}

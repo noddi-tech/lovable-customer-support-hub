@@ -1,12 +1,6 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo "🔍 Running UI guardrails..."
-
-# Check for unsafe tab/button patterns
-npx tsx scripts/lint-tabs-overflow.ts
-
-# Run long-labels test to ensure no regressions  
-npx vitest --run --reporter=verbose -t "long-labels"
-
-echo "✅ UI guardrails passed!"
+# Same gate agents/Lovable must run before commit (see AGENTS.md).
+# Autofix first, re-stage fixed paths that were already staged, then verify.
+QUALITY_GATE_RESTAGE=1 sh scripts/quality-gate.sh --fix-and-check

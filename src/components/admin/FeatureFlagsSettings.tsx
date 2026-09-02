@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { Code2, Copy, Flag, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import type React from "react"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -13,84 +12,86 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Flag, Plus, Trash2, Pencil, Search, Code2, Copy } from 'lucide-react';
-import { toast } from 'sonner';
-import { useFeatureFlagList, useFeatureFlagMutations } from '@/hooks/useFeatureFlags';
-import type { FeatureFlagRecord } from '@/lib/feature-flags/types';
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useFeatureFlagList, useFeatureFlagMutations } from "@/hooks/useFeatureFlags"
+import type { FeatureFlagRecord } from "@/lib/feature-flags/types"
 
-const OFREP_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ofrep/ofrep/v1/evaluate/flags`;
+const OFREP_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ofrep/ofrep/v1/evaluate/flags`
 
 interface FormState {
-  id?: string;
-  key: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  onValue: string;
-  offValue: string;
+  id?: string
+  key: string
+  name: string
+  description: string
+  enabled: boolean
+  onValue: string
+  offValue: string
 }
 
 const emptyForm: FormState = {
-  key: '',
-  name: '',
-  description: '',
+  key: "",
+  name: "",
+  description: "",
   enabled: false,
-  onValue: 'true',
-  offValue: 'false',
-};
+  onValue: "true",
+  offValue: "false",
+}
 
 const parseValue = (raw: string): unknown => {
-  const trimmed = raw.trim();
-  if (trimmed === '') return '';
+  const trimmed = raw.trim()
+  if (trimmed === "") return ""
   try {
-    return JSON.parse(trimmed);
+    return JSON.parse(trimmed)
   } catch {
-    return trimmed;
+    return trimmed
   }
-};
+}
 
 export const FeatureFlagsSettings: React.FC = () => {
-  const { data: flags = [], isLoading } = useFeatureFlagList();
-  const { upsertFlag, toggleFlag, deleteFlag } = useFeatureFlagMutations();
-  const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [deleteTarget, setDeleteTarget] = useState<FeatureFlagRecord | null>(null);
+  const { data: flags = [], isLoading } = useFeatureFlagList()
+  const { upsertFlag, toggleFlag, deleteFlag } = useFeatureFlagMutations()
+  const [search, setSearch] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [form, setForm] = useState<FormState>(emptyForm)
+  const [deleteTarget, setDeleteTarget] = useState<FeatureFlagRecord | null>(null)
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return flags;
+    const q = search.trim().toLowerCase()
+    if (!q) return flags
     return flags.filter((f) =>
-      [f.key, f.name ?? '', f.description ?? ''].join(' ').toLowerCase().includes(q),
-    );
-  }, [flags, search]);
+      [f.key, f.name ?? "", f.description ?? ""].join(" ").toLowerCase().includes(q),
+    )
+  }, [flags, search])
 
   const openCreate = () => {
-    setForm(emptyForm);
-    setDialogOpen(true);
-  };
+    setForm(emptyForm)
+    setDialogOpen(true)
+  }
 
   const openEdit = (flag: FeatureFlagRecord) => {
     setForm({
       id: flag.organization_id ? flag.id : undefined,
       key: flag.key,
-      name: flag.name ?? '',
-      description: flag.description ?? '',
+      name: flag.name ?? "",
+      description: flag.description ?? "",
       enabled: flag.enabled,
       onValue: JSON.stringify(flag.variants?.on ?? true),
       offValue: JSON.stringify(flag.variants?.off ?? false),
-    });
-    setDialogOpen(true);
-  };
+    })
+    setDialogOpen(true)
+  }
 
   const save = () => {
     if (!/^[a-z0-9][a-z0-9._-]*$/i.test(form.key.trim())) {
-      toast.error('Use a key like "new_inbox_ui" (letters, numbers, . _ -)');
-      return;
+      toast.error('Use a key like "new_inbox_ui" (letters, numbers, . _ -)')
+      return
     }
-    const on = parseValue(form.onValue);
-    const off = parseValue(form.offValue);
+    const on = parseValue(form.onValue)
+    const off = parseValue(form.offValue)
     upsertFlag.mutate(
       {
         id: form.id,
@@ -98,22 +99,29 @@ export const FeatureFlagsSettings: React.FC = () => {
         name: form.name || null,
         description: form.description || null,
         enabled: form.enabled,
-        value_type: typeof on === 'boolean' ? 'boolean' : typeof on === 'number' ? 'number' : typeof on === 'string' ? 'string' : 'json',
+        value_type:
+          typeof on === "boolean"
+            ? "boolean"
+            : typeof on === "number"
+              ? "number"
+              : typeof on === "string"
+                ? "string"
+                : "json",
         variants: { on, off },
-        default_variant: 'off',
+        default_variant: "off",
       },
       { onSuccess: () => setDialogOpen(false) },
-    );
-  };
+    )
+  }
 
   const copyCurl = (key: string) => {
     const snippet = `curl -X POST "${OFREP_BASE}/${key}" \\
   -H "Authorization: Bearer <SUPABASE_USER_JWT>" \\
   -H "Content-Type: application/json" \\
-  -d '{"context":{"targetingKey":"user-123"}}'`;
-    navigator.clipboard.writeText(snippet);
-    toast.success('OFREP request copied');
-  };
+  -d '{"context":{"targetingKey":"user-123"}}'`
+    navigator.clipboard.writeText(snippet)
+    toast.success("OFREP request copied")
+  }
 
   return (
     <div className="space-y-6">
@@ -125,9 +133,9 @@ export const FeatureFlagsSettings: React.FC = () => {
               Feature flags
             </CardTitle>
             <CardDescription>
-              Toggle features for your organization. The same flags are served over the
-              OpenFeature Remote Evaluation Protocol (OFREP), so services and scripts can read
-              them through the API.
+              Toggle features for your organization. The same flags are served over the OpenFeature
+              Remote Evaluation Protocol (OFREP), so services and scripts can read them through the
+              API.
             </CardDescription>
           </div>
           <Button onClick={openCreate} className="gap-2 shrink-0">
@@ -155,8 +163,8 @@ export const FeatureFlagsSettings: React.FC = () => {
               <Flag className="h-8 w-8 mx-auto text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">
                 {flags.length === 0
-                  ? 'No feature flags yet. Create your first one to start rolling features out safely.'
-                  : 'No flags match your search.'}
+                  ? "No feature flags yet. Create your first one to start rolling features out safely."
+                  : "No flags match your search."}
               </p>
               {flags.length === 0 && (
                 <Button variant="outline" onClick={openCreate} className="gap-2">
@@ -177,14 +185,14 @@ export const FeatureFlagsSettings: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <code className="text-sm font-medium">{flag.key}</code>
                     {!flag.organization_id && <Badge variant="outline">global default</Badge>}
-                    <Badge variant={flag.enabled ? 'default' : 'secondary'}>
-                      {flag.enabled ? 'on' : 'off'}
+                    <Badge variant={flag.enabled ? "default" : "secondary"}>
+                      {flag.enabled ? "on" : "off"}
                     </Badge>
                     <Badge variant="outline">{flag.value_type}</Badge>
                   </div>
                   {(flag.name || flag.description) && (
                     <p className="text-xs text-muted-foreground mt-1 truncate">
-                      {flag.name ? `${flag.name} — ` : ''}
+                      {flag.name ? `${flag.name} — ` : ""}
                       {flag.description}
                     </p>
                   )}
@@ -236,7 +244,7 @@ export const FeatureFlagsSettings: React.FC = () => {
         </CardHeader>
         <CardContent>
           <pre className="text-xs bg-muted/50 rounded-md p-3 overflow-x-auto whitespace-pre-wrap break-all">
-{`POST ${OFREP_BASE}          → evaluate all flags
+            {`POST ${OFREP_BASE}          → evaluate all flags
 POST ${OFREP_BASE}/{key}    → evaluate one flag
 Header: Authorization: Bearer <SUPABASE_USER_JWT>
 Body:   { "context": { "targetingKey": "user-123" } }`}
@@ -247,7 +255,7 @@ Body:   { "context": { "targetingKey": "user-123" } }`}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Edit feature flag' : 'New feature flag'}</DialogTitle>
+            <DialogTitle>{form.id ? "Edit feature flag" : "New feature flag"}</DialogTitle>
             <DialogDescription>
               Values are parsed as JSON when possible, so a flag can serve booleans, numbers,
               strings or objects.
@@ -326,8 +334,8 @@ Body:   { "context": { "targetingKey": "user-123" } }`}
           <DialogHeader>
             <DialogTitle>Delete feature flag</DialogTitle>
             <DialogDescription>
-              {deleteTarget?.key} will be removed. Code reading this flag falls back to its
-              default value.
+              {deleteTarget?.key} will be removed. Code reading this flag falls back to its default
+              value.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -337,8 +345,8 @@ Body:   { "context": { "targetingKey": "user-123" } }`}
             <Button
               variant="destructive"
               onClick={() => {
-                if (deleteTarget) deleteFlag.mutate(deleteTarget.id);
-                setDeleteTarget(null);
+                if (deleteTarget) deleteFlag.mutate(deleteTarget.id)
+                setDeleteTarget(null)
               }}
             >
               Delete
@@ -347,5 +355,5 @@ Body:   { "context": { "targetingKey": "user-123" } }`}
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
+  )
+}

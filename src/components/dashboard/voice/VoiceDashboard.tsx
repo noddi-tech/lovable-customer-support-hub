@@ -1,70 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-responsive';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  Phone, 
-  PhoneIncoming, 
-  PhoneMissed, 
-  Voicemail, 
-  PhoneCall,
-  Calendar,
-  BarChart3,
-  Settings,
+import { useQueryClient } from "@tanstack/react-query"
+import {
   ArrowRight,
+  BarChart3,
+  Calendar,
   ChevronDown,
-  ChevronUp
-} from 'lucide-react';
-import { CallsList } from './CallsList';
-import { CallbackRequestsList } from './CallbackRequestsList';
-import { VoicemailsList } from './VoicemailsList';
-import { CallMetricsCard } from './CallMetricsCard';
-import { LiveDataIndicator } from './LiveDataIndicator';
-import { AircallConnectionPrompt } from './AircallConnectionPrompt';
-import { useNavigate } from 'react-router-dom';
-import { useDailyCallMetrics } from '@/hooks/useDailyCallMetrics';
-import { useAircallPhone } from '@/hooks/useAircallPhone';
-import { useRealtimeConnectionManager } from '@/hooks/useRealtimeConnectionManager';
-import { useQueryClient } from '@tanstack/react-query';
-import { VoiceMetricsDialog } from './VoiceMetricsDialog';
-import { ChannelPageHeader } from '@/components/dashboard/shared/ChannelPageHeader';
+  ChevronUp,
+  Phone,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneMissed,
+  Settings,
+  Voicemail,
+} from "lucide-react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { ChannelPageHeader } from "@/components/dashboard/shared/ChannelPageHeader"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useAircallPhone } from "@/hooks/useAircallPhone"
+import { useDailyCallMetrics } from "@/hooks/useDailyCallMetrics"
+import { useRealtimeConnectionManager } from "@/hooks/useRealtimeConnectionManager"
+import { AircallConnectionPrompt } from "./AircallConnectionPrompt"
+import { CallbackRequestsList } from "./CallbackRequestsList"
+import { CallMetricsCard } from "./CallMetricsCard"
+import { CallsList } from "./CallsList"
+import { LiveDataIndicator } from "./LiveDataIndicator"
+import { VoiceMetricsDialog } from "./VoiceMetricsDialog"
+import { VoicemailsList } from "./VoicemailsList"
 
 export const VoiceDashboard = () => {
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('recent');
-  const [metricsOpen, setMetricsOpen] = useState(false);
+  const navigate = useNavigate()
+  const isMobile = useIsMobile()
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState("recent")
+  const [metricsOpen, setMetricsOpen] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(() => {
-    const saved = localStorage.getItem('voiceDashboardMetricsCollapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-  
-  const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone();
-  const { isConnected: realtimeConnected, lastConnected } = useRealtimeConnectionManager();
-  
-  const { metrics, isLoading } = useDailyCallMetrics();
+    const saved = localStorage.getItem("voiceDashboardMetricsCollapsed")
+    return saved ? JSON.parse(saved) : false
+  })
+
+  const { isInitialized, isConnected, initializePhone, showAircallWorkspace } = useAircallPhone()
+  const { isConnected: realtimeConnected, lastConnected } = useRealtimeConnectionManager()
+
+  const { metrics, isLoading } = useDailyCallMetrics()
 
   useEffect(() => {
-    localStorage.setItem('voiceDashboardMetricsCollapsed', JSON.stringify(metricsCollapsed));
-  }, [metricsCollapsed]);
+    localStorage.setItem("voiceDashboardMetricsCollapsed", JSON.stringify(metricsCollapsed))
+  }, [metricsCollapsed])
 
   const handleLoadPhone = async () => {
     if (!isInitialized) {
-      await initializePhone();
+      await initializePhone()
     }
-    showAircallWorkspace();
-  };
+    showAircallWorkspace()
+  }
 
   const handleRefresh = () => {
-    console.log('[VoiceDashboard] 🔄 Manual refresh triggered');
-    queryClient.invalidateQueries({ queryKey: ['calls'] });
-    queryClient.invalidateQueries({ queryKey: ['call-events'] });
-    queryClient.invalidateQueries({ queryKey: ['callback-requests'] });
-    queryClient.invalidateQueries({ queryKey: ['voicemails'] });
-  };
+    console.log("[VoiceDashboard] 🔄 Manual refresh triggered")
+    queryClient.invalidateQueries({ queryKey: ["calls"] })
+    queryClient.invalidateQueries({ queryKey: ["call-events"] })
+    queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
+    queryClient.invalidateQueries({ queryKey: ["voicemails"] })
+  }
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -94,7 +94,7 @@ export const VoiceDashboard = () => {
               size="icon"
               className="h-8 w-8"
               aria-label="Voice settings"
-              onClick={() => navigate('/voice/settings')}
+              onClick={() => navigate("/voice/settings")}
             >
               <Settings className="h-4 w-4" />
             </Button>
@@ -105,15 +105,10 @@ export const VoiceDashboard = () => {
       <VoiceMetricsDialog open={metricsOpen} onOpenChange={setMetricsOpen} />
 
       {/* Quick Stats - Collapsible */}
-      <Collapsible
-        open={!metricsCollapsed}
-        onOpenChange={(open) => setMetricsCollapsed(!open)}
-      >
+      <Collapsible open={!metricsCollapsed} onOpenChange={(open) => setMetricsCollapsed(!open)}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Today's Metrics
-            </h2>
+            <h2 className="text-sm font-medium text-muted-foreground">Today's Metrics</h2>
             {metricsCollapsed && (
               <div className="flex gap-2 text-xs text-muted-foreground">
                 <span>{metrics.totalCalls} calls</span>
@@ -140,7 +135,7 @@ export const VoiceDashboard = () => {
             </Button>
           </CollapsibleTrigger>
         </div>
-        
+
         <CollapsibleContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 lg:grid-cols-4 pb-2 sm:gap-4">
             <CallMetricsCard
@@ -182,15 +177,21 @@ export const VoiceDashboard = () => {
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
           <TabsTrigger value="recent" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
             <Phone className="h-4 w-4 shrink-0" />
-            <span className="truncate">{isMobile ? 'Recent' : 'Recent Calls'}</span>
+            <span className="truncate">{isMobile ? "Recent" : "Recent Calls"}</span>
           </TabsTrigger>
-          <TabsTrigger value="callbacks" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+          <TabsTrigger
+            value="callbacks"
+            className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+          >
             <PhoneCall className="h-4 w-4 shrink-0" />
             <span className="truncate">Callbacks</span>
           </TabsTrigger>
-          <TabsTrigger value="voicemails" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+          <TabsTrigger
+            value="voicemails"
+            className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+          >
             <Voicemail className="h-4 w-4 shrink-0" />
-            <span className="truncate">{isMobile ? 'Voicemail' : 'Voicemails'}</span>
+            <span className="truncate">{isMobile ? "Voicemail" : "Voicemails"}</span>
           </TabsTrigger>
           <TabsTrigger value="missed" className="gap-1.5 px-1 text-xs sm:gap-2 sm:px-3 sm:text-sm">
             <PhoneMissed className="h-4 w-4 shrink-0" />
@@ -204,14 +205,12 @@ export const VoiceDashboard = () => {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Recent Calls</CardTitle>
-                  <CardDescription>
-                    Your latest call activity
-                  </CardDescription>
+                  <CardDescription>Your latest call activity</CardDescription>
                 </div>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
-                  onClick={() => navigate('/voice?view=all-calls')}
+                  onClick={() => navigate("/voice?view=all-calls")}
                   className="gap-2"
                 >
                   View All
@@ -231,9 +230,7 @@ export const VoiceDashboard = () => {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Callback Requests</CardTitle>
-                  <CardDescription>
-                    Customers waiting for a callback
-                  </CardDescription>
+                  <CardDescription>Customers waiting for a callback</CardDescription>
                 </div>
                 <Button variant="outline" size="sm" className="gap-2">
                   <Calendar className="h-4 w-4" />
@@ -251,9 +248,7 @@ export const VoiceDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Voicemails</CardTitle>
-              <CardDescription>
-                Unread voicemail messages
-              </CardDescription>
+              <CardDescription>Unread voicemail messages</CardDescription>
             </CardHeader>
             <CardContent className="p-3 sm:p-6 sm:pt-0">
               <VoicemailsList />
@@ -267,9 +262,7 @@ export const VoiceDashboard = () => {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Missed Calls</CardTitle>
-                  <CardDescription>
-                    Calls that weren't answered
-                  </CardDescription>
+                  <CardDescription>Calls that weren't answered</CardDescription>
                 </div>
                 <Button variant="outline" size="sm">
                   Call Back All
@@ -290,28 +283,25 @@ export const VoiceDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="h-20 flex-col gap-2"
-              onClick={() => navigate('/voice/analytics')}
+              onClick={() => navigate("/voice/analytics")}
             >
               <BarChart3 className="h-6 w-6" />
               <span className="text-sm">View Full Analytics</span>
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="h-20 flex-col gap-2"
-              onClick={() => navigate('/voice/settings')}
+              onClick={() => navigate("/voice/settings")}
             >
               <Settings className="h-6 w-6" />
               <span className="text-sm">Configure Settings</span>
             </Button>
-            
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col gap-2"
-            >
+
+            <Button variant="outline" className="h-20 flex-col gap-2">
               <PhoneIncoming className="h-6 w-6" />
               <span className="text-sm">Test Call Flow</span>
             </Button>
@@ -319,5 +309,5 @@ export const VoiceDashboard = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

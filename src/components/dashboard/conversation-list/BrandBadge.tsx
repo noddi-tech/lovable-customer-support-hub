@@ -1,37 +1,48 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { getBrandColor, type ConversationBrand } from '@/lib/conversationBrand';
-import { useNoddiBrands } from '@/hooks/useNoddiBrands';
+import type React from "react"
+import { useNoddiBrands } from "@/hooks/useNoddiBrands"
+import { type ConversationBrand, getBrandColor } from "@/lib/conversationBrand"
+import { cn } from "@/lib/utils"
 
 /** Adds transparency to a hex/rgb color so the same value works for border + fill. */
 const withAlpha = (color: string, alpha: number): string => {
-  const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1] ?? /^#([0-9a-f]{3})$/i.exec(color)?.[1];
+  const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1] ?? /^#([0-9a-f]{3})$/i.exec(color)?.[1]
   if (hex) {
-    const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    const full =
+      hex.length === 3
+        ? hex
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : hex
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16))
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
-  return color;
-};
+  return color
+}
 
 interface BrandBadgeProps {
-  brand: ConversationBrand;
-  compact?: boolean;
+  brand: ConversationBrand
+  compact?: boolean
   /** Larger presentation used in the conversation header. */
-  size?: 'sm' | 'md';
-  className?: string;
+  size?: "sm" | "md"
+  className?: string
 }
 
 /** Shows which brand / site a live chat or widget conversation originated from. */
-export const BrandBadge: React.FC<BrandBadgeProps> = ({ brand, compact, size = 'sm', className }) => {
-  const { findBrand } = useNoddiBrands();
-  const match = findBrand(brand.label);
-  const label = match?.name ?? brand.label;
-  const color = match?.color_primary || getBrandColor(match?.slug ?? brand.key);
-  const logo = match?.logo_url ?? null;
+export const BrandBadge: React.FC<BrandBadgeProps> = ({
+  brand,
+  compact,
+  size = "sm",
+  className,
+}) => {
+  const { findBrand } = useNoddiBrands()
+  const match = findBrand(brand.label)
+  const label = match?.name ?? brand.label
+  const color = match?.color_primary || getBrandColor(match?.slug ?? brand.key)
+  const logo = match?.logo_url ?? null
 
-  const dot = size === 'md' ? 'h-2 w-2' : 'h-1.5 w-1.5';
-  const logoSize = size === 'md' ? 'h-4 w-4' : compact ? 'h-2.5 w-2.5' : 'h-3 w-3';
+  const dot = size === "md" ? "h-2 w-2" : "h-1.5 w-1.5"
+  const logoSize = size === "md" ? "h-4 w-4" : compact ? "h-2.5 w-2.5" : "h-3 w-3"
 
   return (
     <span
@@ -41,8 +52,8 @@ export const BrandBadge: React.FC<BrandBadgeProps> = ({ brand, compact, size = '
           : `Brand: ${label}`
       }
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 max-w-full',
-        size === 'md' ? 'text-xs px-2 py-0.5 gap-1.5' : compact ? 'text-[9px]' : 'text-[10px]',
+        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0 max-w-full",
+        size === "md" ? "text-xs px-2 py-0.5 gap-1.5" : compact ? "text-[9px]" : "text-[10px]",
         className,
       )}
       style={{ borderColor: withAlpha(color, 0.4), backgroundColor: withAlpha(color, 0.08), color }}
@@ -52,12 +63,12 @@ export const BrandBadge: React.FC<BrandBadgeProps> = ({ brand, compact, size = '
           src={logo}
           alt=""
           loading="lazy"
-          className={cn(logoSize, 'shrink-0 rounded-sm object-contain')}
+          className={cn(logoSize, "shrink-0 rounded-sm object-contain")}
         />
       ) : (
-        <span className={cn(dot, 'rounded-full shrink-0')} style={{ backgroundColor: color }} />
+        <span className={cn(dot, "rounded-full shrink-0")} style={{ backgroundColor: color }} />
       )}
       <span className="truncate font-medium">{label}</span>
     </span>
-  );
-};
+  )
+}

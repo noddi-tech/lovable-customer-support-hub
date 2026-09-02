@@ -1,6 +1,5 @@
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -8,28 +7,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useUserTimezone } from "@/hooks/useUserTimezone"
 
 export interface Recipient {
-  plate: string;
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  matched: boolean;
-  selected: boolean;
-  reason?: string;
-  source?: string;
-  booking_date?: string | null;
-  booking_time?: string | null;
-  booking_time_start?: string | null;
-  booking_time_end?: string | null;
-  booking_service?: string | null;
+  plate: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  matched: boolean
+  selected: boolean
+  reason?: string
+  source?: string
+  booking_date?: string | null
+  booking_time?: string | null
+  booking_time_start?: string | null
+  booking_time_end?: string | null
+  booking_service?: string | null
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -38,7 +33,7 @@ const REASON_LABELS: Record<string, string> = {
   no_user_on_car: "Car found but no linked user",
   no_email_on_booking: "Booking found but no email",
   api_error: "API error during lookup",
-};
+}
 
 const SOURCE_LABELS: Record<string, string> = {
   cache: "Local cache",
@@ -47,36 +42,47 @@ const SOURCE_LABELS: Record<string, string> = {
   booking_by_car_id: "Booking (by car)",
   booking_by_search: "Booking (by search)",
   local_customers: "Local customer DB",
-};
+}
 
 interface RecipientReviewProps {
-  recipients: Recipient[];
-  onToggle: (index: number) => void;
-  onToggleAll: (checked: boolean) => void;
+  recipients: Recipient[]
+  onToggle: (index: number) => void
+  onToggleAll: (checked: boolean) => void
 }
 
 function formatBookingDate(isoDate: string, timezone: string): string {
   try {
-    const d = new Date(isoDate);
-    return d.toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: timezone });
+    const d = new Date(isoDate)
+    return d.toLocaleDateString("nb-NO", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      timeZone: timezone,
+    })
   } catch {
-    return isoDate;
+    return isoDate
   }
 }
 
 function formatTimeInTz(isoTime: string, timezone: string): string {
   try {
-    return new Date(isoTime).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: timezone });
+    return new Date(isoTime).toLocaleTimeString("nb-NO", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    })
   } catch {
-    return isoTime;
+    return isoTime
   }
 }
 
 export function RecipientReview({ recipients, onToggle, onToggleAll }: RecipientReviewProps) {
-  const { timezone } = useUserTimezone();
-  const matchedCount = recipients.filter((r) => r.matched).length;
-  const selectedCount = recipients.filter((r) => r.selected).length;
-  const allSelected = matchedCount > 0 && recipients.filter((r) => r.matched).every((r) => r.selected);
+  const { timezone } = useUserTimezone()
+  const matchedCount = recipients.filter((r) => r.matched).length
+  const selectedCount = recipients.filter((r) => r.selected).length
+  const allSelected =
+    matchedCount > 0 && recipients.filter((r) => r.matched).every((r) => r.selected)
 
   return (
     <div className="space-y-3">
@@ -85,15 +91,10 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
           <p className="text-sm font-medium">
             {matchedCount} of {recipients.length} customers matched
           </p>
-          <p className="text-sm text-muted-foreground">
-            {selectedCount} selected for sending
-          </p>
+          <p className="text-sm text-muted-foreground">{selectedCount} selected for sending</p>
         </div>
         <div className="flex items-center gap-2">
-          <Checkbox
-            checked={allSelected}
-            onCheckedChange={(checked) => onToggleAll(!!checked)}
-          />
+          <Checkbox checked={allSelected} onCheckedChange={(checked) => onToggleAll(!!checked)} />
           <span className="text-sm">Select all matched</span>
         </div>
       </div>
@@ -131,13 +132,19 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
                         {r.booking_time_start ? (
                           <p className="text-xs text-muted-foreground">
                             {formatTimeInTz(r.booking_time_start, timezone)}
-                            {r.booking_time_end && `–${formatTimeInTz(r.booking_time_end, timezone)}`}
+                            {r.booking_time_end &&
+                              `–${formatTimeInTz(r.booking_time_end, timezone)}`}
                           </p>
                         ) : r.booking_time ? (
                           <p className="text-xs text-muted-foreground">{r.booking_time}</p>
                         ) : null}
                         {r.booking_service && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]" title={r.booking_service}>{r.booking_service}</p>
+                          <p
+                            className="text-xs text-muted-foreground truncate max-w-[200px]"
+                            title={r.booking_service}
+                          >
+                            {r.booking_service}
+                          </p>
                         )}
                       </div>
                     ) : (
@@ -174,5 +181,5 @@ export function RecipientReview({ recipients, onToggle, onToggleAll }: Recipient
         </TooltipProvider>
       </div>
     </div>
-  );
+  )
 }

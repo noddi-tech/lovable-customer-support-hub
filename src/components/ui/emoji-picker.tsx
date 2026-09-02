@@ -1,51 +1,54 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent } from '@/components/admin/design/components/layouts';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Smile, Search } from 'lucide-react';
-import { emojiCategories, type EmojiData, getEmojiSuggestions } from '@/utils/emojiUtils';
+import { Search, Smile } from "lucide-react"
+import type React from "react"
+import { useEffect, useRef, useState } from "react"
+import {
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/admin/design/components/layouts"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { type EmojiData, emojiCategories, getEmojiSuggestions } from "@/utils/emojiUtils"
 
 interface EmojiPickerProps {
-  onEmojiSelect: (emoji: string) => void;
-  trigger?: React.ReactNode;
+  onEmojiSelect: (emoji: string) => void
+  trigger?: React.ReactNode
 }
 
-export const EmojiPicker: React.FC<EmojiPickerProps> = ({ 
-  onEmojiSelect, 
-  trigger 
-}) => {
-  const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<EmojiData[]>([]);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect, trigger }) => {
+  const [open, setOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<EmojiData[]>([])
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Handle search
   useEffect(() => {
     if (searchQuery.trim()) {
-      const results = getEmojiSuggestions(searchQuery);
-      setSearchResults(results);
+      const results = getEmojiSuggestions(searchQuery)
+      setSearchResults(results)
     } else {
-      setSearchResults([]);
+      setSearchResults([])
     }
-  }, [searchQuery]);
+  }, [searchQuery])
 
   // Focus search when opened
   useEffect(() => {
     if (open && searchInputRef.current) {
       setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
+        searchInputRef.current?.focus()
+      }, 100)
     }
-  }, [open]);
+  }, [open])
 
   const handleEmojiClick = (emoji: string) => {
-    onEmojiSelect(emoji);
-    setOpen(false);
-    setSearchQuery('');
-    setSearchResults([]);
-  };
+    onEmojiSelect(emoji)
+    setOpen(false)
+    setSearchQuery("")
+    setSearchResults([])
+  }
 
   const renderEmojiGrid = (emojis: Array<{ emoji: string; name: string; shortcode: string }>) => (
     <div className="grid grid-cols-8 gap-1 p-2">
@@ -61,19 +64,17 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
         </Button>
       ))}
     </div>
-  );
+  )
 
   const defaultTrigger = (
     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
       <Smile className="h-4 w-4" />
     </Button>
-  );
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {trigger || defaultTrigger}
-      </PopoverTrigger>
+      <PopoverTrigger asChild>{trigger || defaultTrigger}</PopoverTrigger>
       <PopoverContent className="w-80 p-0" side="top" align="start">
         <div className="border-b p-3">
           <div className="relative">
@@ -91,9 +92,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
         {searchQuery && searchResults.length > 0 ? (
           <ScrollArea className="h-60">
             <div className="p-2">
-              <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                Search Results
-              </h4>
+              <h4 className="text-sm font-medium mb-2 text-muted-foreground">Search Results</h4>
               {renderEmojiGrid(searchResults)}
             </div>
           </ScrollArea>
@@ -103,7 +102,13 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
             <p className="text-xs mt-1">Try searching for :smile: or :heart:</p>
           </div>
         ) : (
-          <ResponsiveTabs defaultValue="Smileys & People" variant="compact" size="sm" equalWidth className="w-full">
+          <ResponsiveTabs
+            defaultValue="Smileys & People"
+            variant="compact"
+            size="sm"
+            equalWidth
+            className="w-full"
+          >
             <ResponsiveTabsList className="text-xs h-8">
               <ResponsiveTabsTrigger value="Smileys & People" className="text-xs p-1">
                 😀
@@ -126,9 +131,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
               {Object.entries(emojiCategories).map(([category, emojis]) => (
                 <ResponsiveTabsContent key={category} value={category} className="mt-0">
                   <div className="p-2">
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                      {category}
-                    </h4>
+                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">{category}</h4>
                     {renderEmojiGrid(emojis)}
                   </div>
                 </ResponsiveTabsContent>
@@ -142,5 +145,5 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

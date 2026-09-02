@@ -1,51 +1,50 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWidgetAnalytics } from '@/hooks/useWidgetAnalytics';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
-} from 'recharts';
-import { 
-  MessageCircle, 
-  Clock, 
-  CheckCircle, 
-  TrendingUp, 
-  TrendingDown,
-  Users,
+import {
+  CheckCircle,
+  Clock,
   Mail,
-  Timer
-} from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+  MessageCircle,
+  Timer,
+  TrendingDown,
+  TrendingUp,
+  Users,
+} from "lucide-react"
+import type React from "react"
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useWidgetAnalytics } from "@/hooks/useWidgetAnalytics"
 
 interface WidgetAnalyticsProps {
-  widgetId: string | null;
+  widgetId: string | null
 }
 
 const CHART_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--success))',
-  'hsl(var(--warning))',
-  'hsl(var(--destructive))',
-];
+  "hsl(var(--primary))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+]
 
 export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) => {
-  const { data: analytics, isLoading } = useWidgetAnalytics({ widgetId, days: 30 });
+  const { data: analytics, isLoading } = useWidgetAnalytics({ widgetId, days: 30 })
 
   if (!widgetId) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         Select a widget to view analytics
       </div>
-    );
+    )
   }
 
   if (isLoading) {
@@ -67,10 +66,10 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
-  if (!analytics) return null;
+  if (!analytics) return null
 
   return (
     <div className="space-y-6">
@@ -88,16 +87,18 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
           icon={MessageCircle}
           trend={analytics.chatsTrend}
         />
-        <MetricCard
-          title="Contact Forms"
-          value={analytics.contactFormSubmissions}
-          icon={Mail}
-        />
+        <MetricCard title="Contact Forms" value={analytics.contactFormSubmissions} icon={Mail} />
         <MetricCard
           title="Completion Rate"
           value={`${analytics.chatCompletionRate}%`}
           icon={CheckCircle}
-          status={analytics.chatCompletionRate > 70 ? 'good' : analytics.chatCompletionRate > 40 ? 'warning' : 'danger'}
+          status={
+            analytics.chatCompletionRate > 70
+              ? "good"
+              : analytics.chatCompletionRate > 40
+                ? "warning"
+                : "danger"
+          }
         />
       </div>
 
@@ -109,7 +110,13 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
               title="Avg Response Time"
               value={`${analytics.avgResponseTimeMinutes}m`}
               icon={Timer}
-              status={analytics.avgResponseTimeMinutes < 5 ? 'good' : analytics.avgResponseTimeMinutes < 15 ? 'warning' : 'danger'}
+              status={
+                analytics.avgResponseTimeMinutes < 5
+                  ? "good"
+                  : analytics.avgResponseTimeMinutes < 15
+                    ? "warning"
+                    : "danger"
+              }
             />
           )}
           {analytics.avgChatDurationMinutes !== null && (
@@ -132,25 +139,22 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={analytics.volumeByDate}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
                 />
-                <YAxis 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
+                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "6px",
                   }}
                 />
-                <Area 
+                <Area
                   type="monotone"
-                  dataKey="chats" 
+                  dataKey="chats"
                   stroke="hsl(var(--primary))"
                   fill="hsl(var(--primary) / 0.2)"
                   name="Chat Sessions"
@@ -183,9 +187,9 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
                     label={({ status, count }) => `${status}: ${count}`}
                   >
                     {analytics.chatsByStatus.map((_, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={CHART_COLORS[index % CHART_COLORS.length]} 
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
                       />
                     ))}
                   </Pie>
@@ -231,24 +235,24 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
         </Card>
       )}
     </div>
-  );
-};
+  )
+}
 
 // Metric Card Component
 interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  trend?: number;
-  status?: 'good' | 'warning' | 'danger' | 'neutral';
+  title: string
+  value: string | number
+  icon: React.ComponentType<{ className?: string }>
+  trend?: number
+  status?: "good" | "warning" | "danger" | "neutral"
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ 
-  title, 
-  value, 
-  icon: Icon, 
+const MetricCard: React.FC<MetricCardProps> = ({
+  title,
+  value,
+  icon: Icon,
   trend,
-  status = 'neutral'
+  status = "neutral",
 }) => (
   <Card>
     <CardContent className="p-6">
@@ -263,26 +267,36 @@ const MetricCard: React.FC<MetricCardProps> = ({
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
-              <span className={trend > 0 ? 'text-green-600' : 'text-red-600'}>
+              <span className={trend > 0 ? "text-green-600" : "text-red-600"}>
                 {Math.abs(trend)}% from last period
               </span>
             </div>
           )}
         </div>
-        <div className={`p-3 rounded-full ${
-          status === 'good' ? 'bg-green-100 dark:bg-green-950/30' :
-          status === 'warning' ? 'bg-amber-100 dark:bg-amber-950/30' :
-          status === 'danger' ? 'bg-red-100 dark:bg-red-950/30' :
-          'bg-primary/10'
-        }`}>
-          <Icon className={`h-5 w-5 ${
-            status === 'good' ? 'text-green-600 dark:text-green-400' :
-            status === 'warning' ? 'text-amber-600 dark:text-amber-400' :
-            status === 'danger' ? 'text-red-600 dark:text-red-400' :
-            'text-primary'
-          }`} />
+        <div
+          className={`p-3 rounded-full ${
+            status === "good"
+              ? "bg-green-100 dark:bg-green-950/30"
+              : status === "warning"
+                ? "bg-amber-100 dark:bg-amber-950/30"
+                : status === "danger"
+                  ? "bg-red-100 dark:bg-red-950/30"
+                  : "bg-primary/10"
+          }`}
+        >
+          <Icon
+            className={`h-5 w-5 ${
+              status === "good"
+                ? "text-green-600 dark:text-green-400"
+                : status === "warning"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : status === "danger"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-primary"
+            }`}
+          />
         </div>
       </div>
     </CardContent>
   </Card>
-);
+)

@@ -1,37 +1,31 @@
-import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
-import { Check, Loader2, Pencil, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import InlineEditableRow from './InlineEditableRow';
-import {
-  LANGUAGE_OPTIONS,
-  LICENSE_CLASSES,
-  PERMIT_OPTIONS,
-} from '../edit/schema';
-import { useUpdateApplicant } from '../hooks/useUpdateApplicant';
-import type { ApplicantProfileData } from '../useApplicantProfile';
+import { format } from "date-fns"
+import { nb } from "date-fns/locale"
+import { Check, Loader2, Pencil, X } from "lucide-react"
+import React, { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { LANGUAGE_OPTIONS, LICENSE_CLASSES, PERMIT_OPTIONS } from "../edit/schema"
+import { useUpdateApplicant } from "../hooks/useUpdateApplicant"
+import type { ApplicantProfileData } from "../useApplicantProfile"
+import InlineEditableRow from "./InlineEditableRow"
 
 const LANG_LABELS: Record<string, string> = LANGUAGE_OPTIONS.reduce(
   (acc, o) => ({ ...acc, [o.value]: o.label }),
   {} as Record<string, string>,
-);
+)
 
 const PERMIT_LABELS: Record<string, string> = PERMIT_OPTIONS.reduce(
   (acc, o) => ({ ...acc, [o.value]: o.label }),
   {} as Record<string, string>,
-);
+)
 
-const Empty: React.FC = () => (
-  <span className="text-muted-foreground">Ikke oppgitt</span>
-);
+const Empty: React.FC = () => <span className="text-muted-foreground">Ikke oppgitt</span>
 
 interface RowProps {
-  applicant: ApplicantProfileData;
+  applicant: ApplicantProfileData
 }
 
 /* ---------- Single-value rows (use InlineEditableRow) ---------- */
@@ -42,10 +36,10 @@ export const LocationRow: React.FC<RowProps> = ({ applicant }) => (
     field="location"
     label="Sted"
     type="text"
-    rawValue={applicant.location ?? ''}
+    rawValue={applicant.location ?? ""}
     display={applicant.location ? <span>{applicant.location}</span> : <Empty />}
   />
-);
+)
 
 export const YearsExperienceRow: React.FC<RowProps> = ({ applicant }) => (
   <InlineEditableRow
@@ -53,16 +47,12 @@ export const YearsExperienceRow: React.FC<RowProps> = ({ applicant }) => (
     field="years_experience"
     label="Erfaring"
     type="number"
-    rawValue={applicant.years_experience == null ? '' : String(applicant.years_experience)}
+    rawValue={applicant.years_experience == null ? "" : String(applicant.years_experience)}
     display={
-      applicant.years_experience != null ? (
-        <span>{applicant.years_experience} år</span>
-      ) : (
-        <Empty />
-      )
+      applicant.years_experience != null ? <span>{applicant.years_experience} år</span> : <Empty />
     }
   />
-);
+)
 
 export const OwnVehicleRow: React.FC<RowProps> = ({ applicant }) => (
   <InlineEditableRow
@@ -81,7 +71,7 @@ export const OwnVehicleRow: React.FC<RowProps> = ({ applicant }) => (
       )
     }
   />
-);
+)
 
 export const AvailabilityDateRow: React.FC<RowProps> = ({ applicant }) => (
   <InlineEditableRow
@@ -89,18 +79,16 @@ export const AvailabilityDateRow: React.FC<RowProps> = ({ applicant }) => (
     field="availability_date"
     label="Tilgjengelig fra"
     type="date"
-    rawValue={applicant.availability_date ?? ''}
+    rawValue={applicant.availability_date ?? ""}
     display={
       applicant.availability_date ? (
-        <span>
-          {format(new Date(applicant.availability_date), 'd. MMM yyyy', { locale: nb })}
-        </span>
+        <span>{format(new Date(applicant.availability_date), "d. MMM yyyy", { locale: nb })}</span>
       ) : (
         <Empty />
       )
     }
   />
-);
+)
 
 export const LanguageNorwegianRow: React.FC<RowProps> = ({ applicant }) => (
   <InlineEditableRow
@@ -112,7 +100,7 @@ export const LanguageNorwegianRow: React.FC<RowProps> = ({ applicant }) => (
     rawValue={applicant.language_norwegian}
     display={<span>{LANG_LABELS[applicant.language_norwegian] ?? <Empty />}</span>}
   />
-);
+)
 
 export const WorkPermitStatusRow: React.FC<RowProps> = ({ applicant }) => (
   <InlineEditableRow
@@ -124,16 +112,16 @@ export const WorkPermitStatusRow: React.FC<RowProps> = ({ applicant }) => (
     rawValue={applicant.work_permit_status}
     display={<span>{PERMIT_LABELS[applicant.work_permit_status] ?? <Empty />}</span>}
   />
-);
+)
 
 /* ---------- Multi-value rows (popover editors) ---------- */
 
 const MultiValueRow: React.FC<{
-  label: string;
-  display: React.ReactNode;
-  editor: (ctx: { close: () => void }) => React.ReactNode;
+  label: string
+  display: React.ReactNode
+  editor: (ctx: { close: () => void }) => React.ReactNode
 }> = ({ label, display, editor }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
   return (
     <div className="group flex flex-col gap-1 py-2 border-b last:border-0">
       <dt className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-2">
@@ -159,19 +147,18 @@ const MultiValueRow: React.FC<{
         </div>
       </dd>
     </div>
-  );
-};
+  )
+}
 
 export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
-  const update = useUpdateApplicant();
-  const current = applicant.drivers_license_classes ?? [];
-  const [selected, setSelected] = useState<string[]>(current);
+  const update = useUpdateApplicant()
+  const current = applicant.drivers_license_classes ?? []
+  const [selected, setSelected] = useState<string[]>(current)
 
   // Re-sync local draft when the underlying value changes (after a save elsewhere).
   React.useEffect(() => {
-    setSelected(current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current.join('|')]);
+    setSelected(current)
+  }, [current])
 
   const display = current.length ? (
     <div className="flex flex-wrap gap-1">
@@ -183,10 +170,10 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
     </div>
   ) : (
     <Empty />
-  );
+  )
 
   const toggle = (c: string) =>
-    setSelected((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+    setSelected((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
 
   return (
     <MultiValueRow
@@ -196,19 +183,13 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {LICENSE_CLASSES.map((c) => {
-              const checked = selected.includes(c);
+              const checked = selected.includes(c)
               return (
-                <label
-                  key={c}
-                  className="flex items-center gap-1.5 text-sm cursor-pointer"
-                >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(c)}
-                  />
+                <label key={c} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <Checkbox checked={checked} onCheckedChange={() => toggle(c)} />
                   <span>{c}</span>
                 </label>
-              );
+              )
             })}
           </div>
           <div className="flex justify-end gap-1.5">
@@ -216,8 +197,8 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
               size="sm"
               variant="outline"
               onClick={() => {
-                setSelected(current);
-                close();
+                setSelected(current)
+                close()
               }}
             >
               <X className="h-3.5 w-3.5" />
@@ -231,8 +212,8 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
                   await update.mutateAsync({
                     id: applicant.id,
                     patch: { drivers_license_classes: selected },
-                  });
-                  close();
+                  })
+                  close()
                 } catch {
                   /* toast handled in hook */
                 }
@@ -249,19 +230,18 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
         </div>
       )}
     />
-  );
-};
+  )
+}
 
 export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
-  const update = useUpdateApplicant();
-  const current = applicant.certifications ?? [];
-  const [items, setItems] = useState<string[]>(current);
-  const [input, setInput] = useState('');
+  const update = useUpdateApplicant()
+  const current = applicant.certifications ?? []
+  const [items, setItems] = useState<string[]>(current)
+  const [input, setInput] = useState("")
 
   React.useEffect(() => {
-    setItems(current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current.join('|')]);
+    setItems(current)
+  }, [current])
 
   const display = current.length ? (
     <div className="flex flex-wrap gap-1">
@@ -273,20 +253,20 @@ export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
     </div>
   ) : (
     <Empty />
-  );
+  )
 
   const add = () => {
-    const t = input.trim();
-    if (!t) return;
+    const t = input.trim()
+    if (!t) return
     if (items.includes(t)) {
-      setInput('');
-      return;
+      setInput("")
+      return
     }
-    setItems((p) => [...p, t]);
-    setInput('');
-  };
+    setItems((p) => [...p, t])
+    setInput("")
+  }
 
-  const remove = (c: string) => setItems((p) => p.filter((x) => x !== c));
+  const remove = (c: string) => setItems((p) => p.filter((x) => x !== c))
 
   return (
     <MultiValueRow
@@ -317,9 +297,9 @@ export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  add();
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  add()
                 }
               }}
               placeholder="Skriv og trykk Enter"
@@ -334,9 +314,9 @@ export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
               size="sm"
               variant="outline"
               onClick={() => {
-                setItems(current);
-                setInput('');
-                close();
+                setItems(current)
+                setInput("")
+                close()
               }}
             >
               <X className="h-3.5 w-3.5" />
@@ -350,8 +330,8 @@ export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
                   await update.mutateAsync({
                     id: applicant.id,
                     patch: { certifications: items },
-                  });
-                  close();
+                  })
+                  close()
                 } catch {
                   /* toast handled in hook */
                 }
@@ -368,5 +348,5 @@ export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
         </div>
       )}
     />
-  );
-};
+  )
+}

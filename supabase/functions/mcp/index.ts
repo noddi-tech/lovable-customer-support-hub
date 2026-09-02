@@ -5,7 +5,7 @@
 // src/lib/mcp/index.ts
 import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.2";
 
-// src/lib/mcp/tools/search-conversations.ts
+// src/lib/mcp/tools/add-internal-note.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z } from "npm:zod@^3.25.76";
 
@@ -28,10 +28,7 @@ function supabaseProjectUrl() {
   return url;
 }
 function supabasePublishableKey() {
-  const direct = configuredEnv([
-    "SUPABASE_PUBLISHABLE_KEY",
-    "VITE_SUPABASE_PUBLISHABLE_KEY"
-  ]);
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
   if (direct) return direct;
   const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
   if (keyset) {
@@ -65,51 +62,45 @@ async function resolveProfileId(ctx) {
   return data?.id ?? null;
 }
 
-// src/lib/mcp/tools/search-conversations.ts
-var search_conversations_default = defineTool({
-  name: "search_conversations",
-  title: "Search conversations",
-  description: "Search support conversations by subject text, status, or channel. Returns the most recently updated matches with customer name and preview text.",
+// src/lib/mcp/tools/add-internal-note.ts
+var add_internal_note_default = defineTool({
+  name: "add_internal_note",
+  title: "Add internal note",
+  description: "Add an internal note to a conversation. Notes are visible to agents only and are never emailed to the customer.",
   inputSchema: {
-    query: z.string().trim().optional().describe("Text to match against the conversation subject. Omit to list recent conversations."),
-    status: z.string().trim().optional().describe("Filter by status, e.g. 'open', 'pending', 'closed'."),
-    channel: z.string().trim().optional().describe("Filter by channel, e.g. 'email', 'widget'."),
-    limit: z.number().int().min(1).max(50).optional().describe("Max results (default 20).")
+    conversation_id: z.string().uuid().describe("The conversation to attach the note to."),
+    note: z.string().trim().min(1).describe("The note text. Plain text.")
   },
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ query, status, channel, limit }, ctx) => {
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async ({ conversation_id, note }, ctx) => {
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
     const supabase = supabaseForUser(ctx);
-    let q = supabase.from("conversations").select(
-      "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)"
-    ).is("deleted_at", null).order("updated_at", { ascending: false }).limit(limit ?? 20);
-    if (query) q = q.ilike("subject", `%${query}%`);
-    if (status) q = q.eq("status", status);
-    if (channel) q = q.eq("channel", channel);
-    const { data, error } = await q;
+    const { data: conversation, error: convError } = await supabase.from("conversations").select("id").eq("id", conversation_id).is("deleted_at", null).maybeSingle();
+    if (convError) {
+      return { content: [{ type: "text", text: convError.message }], isError: true };
+    }
+    if (!conversation) {
+      return {
+        content: [{ type: "text", text: `No conversation found with id ${conversation_id}` }],
+        isError: true
+      };
+    }
+    const { data, error } = await supabase.from("messages").insert({
+      conversation_id,
+      sender_id: ctx.getUserId(),
+      sender_type: "agent",
+      is_internal: true,
+      content: note,
+      content_type: "text"
+    }).select("id, created_at").maybeSingle();
     if (error) {
       return { content: [{ type: "text", text: error.message }], isError: true };
     }
-    const rows = (data ?? []).map((c) => {
-      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer;
-      return {
-        id: c.id,
-        subject: c.subject,
-        status: c.status,
-        priority: c.priority,
-        channel: c.channel,
-        is_read: c.is_read,
-        updated_at: c.updated_at,
-        customer_name: customer?.full_name ?? null,
-        customer_email: customer?.email ?? null,
-        preview: c.preview_text
-      };
-    });
     return {
-      content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { conversations: rows, count: rows.length }
+      content: [{ type: "text", text: `Internal note added (id ${data?.id}).` }],
+      structuredContent: { message_id: data?.id, created_at: data?.created_at }
     };
   }
 });
@@ -231,47 +222,55 @@ var list_my_conversations_default = defineTool3({
   }
 });
 
-// src/lib/mcp/tools/add-internal-note.ts
+// src/lib/mcp/tools/search-conversations.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z4 } from "npm:zod@^3.25.76";
-var add_internal_note_default = defineTool4({
-  name: "add_internal_note",
-  title: "Add internal note",
-  description: "Add an internal note to a conversation. Notes are visible to agents only and are never emailed to the customer.",
+var search_conversations_default = defineTool4({
+  name: "search_conversations",
+  title: "Search conversations",
+  description: "Search support conversations by subject text, status, or channel. Returns the most recently updated matches with customer name and preview text.",
   inputSchema: {
-    conversation_id: z4.string().uuid().describe("The conversation to attach the note to."),
-    note: z4.string().trim().min(1).describe("The note text. Plain text.")
+    query: z4.string().trim().optional().describe(
+      "Text to match against the conversation subject. Omit to list recent conversations."
+    ),
+    status: z4.string().trim().optional().describe("Filter by status, e.g. 'open', 'pending', 'closed'."),
+    channel: z4.string().trim().optional().describe("Filter by channel, e.g. 'email', 'widget'."),
+    limit: z4.number().int().min(1).max(50).optional().describe("Max results (default 20).")
   },
-  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  handler: async ({ conversation_id, note }, ctx) => {
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ query, status, channel, limit }, ctx) => {
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
     const supabase = supabaseForUser(ctx);
-    const { data: conversation, error: convError } = await supabase.from("conversations").select("id").eq("id", conversation_id).is("deleted_at", null).maybeSingle();
-    if (convError) {
-      return { content: [{ type: "text", text: convError.message }], isError: true };
-    }
-    if (!conversation) {
-      return {
-        content: [{ type: "text", text: `No conversation found with id ${conversation_id}` }],
-        isError: true
-      };
-    }
-    const { data, error } = await supabase.from("messages").insert({
-      conversation_id,
-      sender_id: ctx.getUserId(),
-      sender_type: "agent",
-      is_internal: true,
-      content: note,
-      content_type: "text"
-    }).select("id, created_at").maybeSingle();
+    let q = supabase.from("conversations").select(
+      "id, subject, status, priority, channel, preview_text, is_read, updated_at, customer:customers(full_name, email)"
+    ).is("deleted_at", null).order("updated_at", { ascending: false }).limit(limit ?? 20);
+    if (query) q = q.ilike("subject", `%${query}%`);
+    if (status) q = q.eq("status", status);
+    if (channel) q = q.eq("channel", channel);
+    const { data, error } = await q;
     if (error) {
       return { content: [{ type: "text", text: error.message }], isError: true };
     }
+    const rows = (data ?? []).map((c) => {
+      const customer = Array.isArray(c.customer) ? c.customer[0] : c.customer;
+      return {
+        id: c.id,
+        subject: c.subject,
+        status: c.status,
+        priority: c.priority,
+        channel: c.channel,
+        is_read: c.is_read,
+        updated_at: c.updated_at,
+        customer_name: customer?.full_name ?? null,
+        customer_email: customer?.email ?? null,
+        preview: c.preview_text
+      };
+    });
     return {
-      content: [{ type: "text", text: `Internal note added (id ${data?.id}).` }],
-      structuredContent: { message_id: data?.id, created_at: data?.created_at }
+      content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
+      structuredContent: { conversations: rows, count: rows.length }
     };
   }
 });

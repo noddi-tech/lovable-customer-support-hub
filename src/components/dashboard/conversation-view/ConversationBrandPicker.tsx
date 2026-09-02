@@ -1,11 +1,11 @@
-import React from 'react';
-import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
-import { BrandPickerButton } from '@/components/brands/BrandPickerButton';
+import type React from "react"
+import { BrandPickerButton } from "@/components/brands/BrandPickerButton"
+import { useConversationBrandActions } from "@/hooks/useConversationBrandActions"
 
 interface ConversationBrandPickerProps {
-  conversationId: string;
-  metadata: unknown;
-  channel?: string | null;
+  conversationId: string
+  metadata: unknown
+  channel?: string | null
 }
 
 /**
@@ -18,7 +18,7 @@ export const ConversationBrandPicker: React.FC<ConversationBrandPickerProps> = (
   metadata,
   channel,
 }) => {
-  const { setBrand } = useConversationBrandActions();
+  const { setBrand } = useConversationBrandActions()
 
   return (
     <BrandPickerButton
@@ -27,5 +27,5 @@ export const ConversationBrandPicker: React.FC<ConversationBrandPickerProps> = (
       title="Set brand for this conversation"
       onSelect={(brandName) => setBrand(conversationId, brandName)}
     />
-  );
-};
+  )
+}

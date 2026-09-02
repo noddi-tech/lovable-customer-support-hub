@@ -1,8 +1,8 @@
-import { ReactElement } from 'react'
-import { render as rtlRender, RenderOptions } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter } from 'react-router-dom'
-import { ThemeProvider } from 'next-themes'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { type RenderOptions, render as rtlRender } from "@testing-library/react"
+import { ThemeProvider } from "next-themes"
+import type { ReactElement } from "react"
+import { BrowserRouter } from "react-router-dom"
 
 // Create a custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
@@ -25,49 +25,47 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   )
 }
 
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => rtlRender(ui, { wrapper: AllTheProviders, ...options })
+const customRender = (ui: ReactElement, options?: Omit<RenderOptions, "wrapper">) =>
+  rtlRender(ui, { wrapper: AllTheProviders, ...options })
 
 // Re-export everything from testing library
-export * from '@testing-library/react'
+export * from "@testing-library/react"
 export { customRender as render }
 
 // Test utilities
 export const createMockConversation = (overrides = {}) => ({
-  id: '123e4567-e89b-12d3-a456-426614174000',
-  subject: 'Test Conversation',
-  status: 'open' as const,
-  priority: 'normal' as const,
+  id: "123e4567-e89b-12d3-a456-426614174000",
+  subject: "Test Conversation",
+  status: "open" as const,
+  priority: "normal" as const,
   is_read: false,
   is_archived: false,
-  channel: 'email' as const,
+  channel: "email" as const,
   updated_at: new Date().toISOString(),
   customer: {
-    id: '123e4567-e89b-12d3-a456-426614174001',
-    full_name: 'John Doe',
-    email: 'john@example.com',
+    id: "123e4567-e89b-12d3-a456-426614174001",
+    full_name: "John Doe",
+    email: "john@example.com",
   },
   ...overrides,
 })
 
 export const createMockMessage = (overrides = {}) => ({
-  id: '123e4567-e89b-12d3-a456-426614174002',
-  conversation_id: '123e4567-e89b-12d3-a456-426614174000',
-  content: 'Test message content',
-  sender_type: 'customer',
+  id: "123e4567-e89b-12d3-a456-426614174002",
+  conversation_id: "123e4567-e89b-12d3-a456-426614174000",
+  content: "Test message content",
+  sender_type: "customer",
   is_internal: false,
-  content_type: 'text/plain',
+  content_type: "text/plain",
   created_at: new Date().toISOString(),
-  attachments: '[]',
+  attachments: "[]",
   ...overrides,
 })
 
 export const createMockUser = (overrides = {}) => ({
-  id: '123e4567-e89b-12d3-a456-426614174003',
-  email: 'agent@example.com',
-  full_name: 'Agent Smith',
-  role: 'agent',
+  id: "123e4567-e89b-12d3-a456-426614174003",
+  email: "agent@example.com",
+  full_name: "Agent Smith",
+  role: "agent",
   ...overrides,
 })

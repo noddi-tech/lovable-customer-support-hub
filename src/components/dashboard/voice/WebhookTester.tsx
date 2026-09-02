@@ -1,71 +1,71 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AlertCircle, CheckCircle } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export const WebhookTester: React.FC = () => {
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const testWebhook = async () => {
-    setIsLoading(true);
-    setTestResult(null);
+    setIsLoading(true)
+    setTestResult(null)
 
     try {
       // Create a sample Aircall webhook payload
       const testPayload = {
-        event: 'call.created',
+        event: "call.created",
         timestamp: new Date().toISOString(),
         data: {
-          id: 'test-call-' + Date.now(),
-          status: 'ringing',
-          direction: 'inbound',
-          from: { phone_number: '+1234567890' },
-          to: { phone_number: '+0987654321' },
+          id: `test-call-${Date.now()}`,
+          status: "ringing",
+          direction: "inbound",
+          from: { phone_number: "+1234567890" },
+          to: { phone_number: "+0987654321" },
           started_at: new Date().toISOString(),
-          raw_digits: '+1234567890'
-        }
-      };
+          raw_digits: "+1234567890",
+        },
+      }
 
-      console.log('Testing webhook with payload:', testPayload);
+      console.log("Testing webhook with payload:", testPayload)
 
       // Test direct webhook call
-      const webhookUrl = 'https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall';
-      
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload)
-      });
+      const webhookUrl =
+        "https://qgfaycwsangsqzpveoup.supabase.co/functions/v1/call-events-webhook/aircall"
 
-      const result = await response.text();
-      console.log('Webhook response:', result);
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(testPayload),
+      })
+
+      const result = await response.text()
+      console.log("Webhook response:", result)
 
       if (response.ok) {
         setTestResult({
           success: true,
-          message: `Webhook test successful! Response: ${result}`
-        });
+          message: `Webhook test successful! Response: ${result}`,
+        })
       } else {
         setTestResult({
           success: false,
-          message: `Webhook failed with status ${response.status}: ${result}`
-        });
+          message: `Webhook failed with status ${response.status}: ${result}`,
+        })
       }
-
     } catch (error) {
-      console.error('Webhook test error:', error);
+      console.error("Webhook test error:", error)
       setTestResult({
         success: false,
-        message: `Error testing webhook: ${error.message}`
-      });
+        message: `Error testing webhook: ${error.message}`,
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Card className="mt-4">
@@ -77,33 +77,33 @@ export const WebhookTester: React.FC = () => {
           <p className="text-sm text-muted-foreground mb-2">
             Test if the webhook endpoint is reachable and working
           </p>
-          <Button 
-            onClick={testWebhook} 
-            disabled={isLoading}
-            size="sm"
-          >
-            {isLoading ? 'Testing...' : 'Test Webhook'}
+          <Button onClick={testWebhook} disabled={isLoading} size="sm">
+            {isLoading ? "Testing..." : "Test Webhook"}
           </Button>
         </div>
 
         {testResult && (
-          <div className={`flex items-start gap-2 p-3 rounded-lg ${
-            testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}>
+          <div
+            className={`flex items-start gap-2 p-3 rounded-lg ${
+              testResult.success
+                ? "bg-green-50 border border-green-200"
+                : "bg-red-50 border border-red-200"
+            }`}
+          >
             {testResult.success ? (
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
             ) : (
               <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
             )}
             <div>
-              <p className={`text-sm font-medium ${
-                testResult.success ? 'text-green-800' : 'text-red-800'
-              }`}>
-                {testResult.success ? 'Test Successful' : 'Test Failed'}
+              <p
+                className={`text-sm font-medium ${
+                  testResult.success ? "text-green-800" : "text-red-800"
+                }`}
+              >
+                {testResult.success ? "Test Successful" : "Test Failed"}
               </p>
-              <p className={`text-xs ${
-                testResult.success ? 'text-green-700' : 'text-red-700'
-              }`}>
+              <p className={`text-xs ${testResult.success ? "text-green-700" : "text-red-700"}`}>
                 {testResult.message}
               </p>
             </div>
@@ -120,7 +120,8 @@ export const WebhookTester: React.FC = () => {
               </code>
             </div>
             <div>
-              <strong>Required Events:</strong> call.created, call.answered, call.hungup, call.missed
+              <strong>Required Events:</strong> call.created, call.answered, call.hungup,
+              call.missed
             </div>
             <div>
               <strong>Method:</strong> POST
@@ -129,5 +130,5 @@ export const WebhookTester: React.FC = () => {
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

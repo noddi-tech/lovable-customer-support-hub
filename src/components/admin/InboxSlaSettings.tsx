@@ -1,57 +1,62 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Timer, RotateCcw } from 'lucide-react';
+import { RotateCcw, Timer } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   SLA_PRIORITIES,
   type SlaPriority,
   useInboxSlaPolicies,
   useSaveInboxSla,
-} from '@/hooks/useInboxSla';
-import { formatMinutes } from '@/hooks/useInboxSupportMetrics';
+} from "@/hooks/useInboxSla"
+import { formatMinutes } from "@/hooks/useInboxSupportMetrics"
 
 const PRIORITY_LABELS: Record<SlaPriority, string> = {
-  urgent: 'Urgent',
-  high: 'High',
-  normal: 'Normal',
-  low: 'Low',
-};
+  urgent: "Urgent",
+  high: "High",
+  normal: "Normal",
+  low: "Low",
+}
 
 interface RowState {
-  first: string;
-  resolution: string;
+  first: string
+  resolution: string
 }
 
 export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
-  const { data: policies = [], isLoading } = useInboxSlaPolicies(inboxId);
-  const { save, reset } = useSaveInboxSla(inboxId);
-  const [rows, setRows] = useState<Record<SlaPriority, RowState>>({} as Record<SlaPriority, RowState>);
+  const { data: policies = [], isLoading } = useInboxSlaPolicies(inboxId)
+  const { save, reset } = useSaveInboxSla(inboxId)
+  const [rows, setRows] = useState<Record<SlaPriority, RowState>>(
+    {} as Record<SlaPriority, RowState>,
+  )
 
   const byPriority = useMemo(() => {
-    const map: Record<string, { own?: typeof policies[number]; org?: typeof policies[number] }> = {};
+    const map: Record<
+      string,
+      { own?: (typeof policies)[number]; org?: (typeof policies)[number] }
+    > = {}
     for (const p of policies) {
-      map[p.priority] = map[p.priority] || {};
-      if (p.inbox_id === inboxId) map[p.priority].own = p;
-      else if (p.inbox_id === null) map[p.priority].org = p;
+      map[p.priority] = map[p.priority] || {}
+      if (p.inbox_id === inboxId) map[p.priority].own = p
+      else if (p.inbox_id === null) map[p.priority].org = p
     }
-    return map;
-  }, [policies, inboxId]);
+    return map
+  }, [policies, inboxId])
 
   useEffect(() => {
-    const next = {} as Record<SlaPriority, RowState>;
+    const next = {} as Record<SlaPriority, RowState>
     for (const priority of SLA_PRIORITIES) {
-      const entry = byPriority[priority];
-      const effective = entry?.own || entry?.org;
+      const entry = byPriority[priority]
+      const effective = entry?.own || entry?.org
       next[priority] = {
         first: String(effective?.first_response_minutes ?? 240),
         resolution: String(effective?.resolution_minutes ?? 1440),
-      };
+      }
     }
-    setRows(next);
-  }, [byPriority]);
+    setRows(next)
+  }, [byPriority])
 
   return (
     <Card>
@@ -60,8 +65,8 @@ export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
           <Timer className="w-4 h-4" /> SLA levels
         </CardTitle>
         <CardDescription>
-          First-reply and resolution targets for conversations landing in this inbox. Targets are set per
-          priority; when no inbox-specific value exists, the organization default applies.
+          First-reply and resolution targets for conversations landing in this inbox. Targets are
+          set per priority; when no inbox-specific value exists, the organization default applies.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -69,21 +74,21 @@ export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
           <p className="text-sm text-muted-foreground">Loading SLA targets…</p>
         ) : (
           SLA_PRIORITIES.map((priority) => {
-            const entry = byPriority[priority];
-            const row = rows[priority] || { first: '', resolution: '' };
-            const isOverride = Boolean(entry?.own);
-            const orgDefault = entry?.org;
+            const entry = byPriority[priority]
+            const row = rows[priority] || { first: "", resolution: "" }
+            const isOverride = Boolean(entry?.own)
+            const orgDefault = entry?.org
 
             return (
               <div key={priority} className="rounded-md border p-3 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">{PRIORITY_LABELS[priority]}</span>
-                  <Badge variant={isOverride ? 'default' : 'secondary'} className="text-[10px]">
-                    {isOverride ? 'Inbox override' : 'Organization default'}
+                  <Badge variant={isOverride ? "default" : "secondary"} className="text-[10px]">
+                    {isOverride ? "Inbox override" : "Organization default"}
                   </Badge>
                   {orgDefault && (
                     <span className="text-[11px] text-muted-foreground">
-                      Org default: {formatMinutes(orgDefault.first_response_minutes)} first reply ·{' '}
+                      Org default: {formatMinutes(orgDefault.first_response_minutes)} first reply ·{" "}
                       {formatMinutes(orgDefault.resolution_minutes)} resolution
                     </span>
                   )}
@@ -99,10 +104,15 @@ export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
                       min={1}
                       value={row.first}
                       onChange={(e) =>
-                        setRows((prev) => ({ ...prev, [priority]: { ...prev[priority], first: e.target.value } }))
+                        setRows((prev) => ({
+                          ...prev,
+                          [priority]: { ...prev[priority], first: e.target.value },
+                        }))
                       }
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">{formatMinutes(Number(row.first))}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {formatMinutes(Number(row.first))}
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor={`sla-res-${priority}`} className="text-xs">
@@ -120,7 +130,9 @@ export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
                         }))
                       }
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">{formatMinutes(Number(row.resolution))}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {formatMinutes(Number(row.resolution))}
+                    </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -149,16 +161,16 @@ export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
                   )}
                 </div>
               </div>
-            );
+            )
           })
         )}
         <p className="text-xs text-muted-foreground">
-          The first-reply clock starts when the email arrives and stops on the first outgoing agent reply.
-          Breach warnings and Slack alerts use these targets.
+          The first-reply clock starts when the email arrives and stops on the first outgoing agent
+          reply. Breach warnings and Slack alerts use these targets.
         </p>
       </CardContent>
     </Card>
-  );
+  )
 }
 
-export default InboxSlaSettings;
+export default InboxSlaSettings

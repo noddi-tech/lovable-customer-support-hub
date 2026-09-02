@@ -1,32 +1,32 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
 
 export interface OrganizationMembership {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  role: 'super_admin' | 'admin' | 'agent' | 'user';
-  status: 'active' | 'pending' | 'inactive';
-  is_default: boolean;
-  joined_at: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  user_id: string
+  organization_id: string
+  role: "super_admin" | "admin" | "agent" | "user"
+  status: "active" | "pending" | "inactive"
+  is_default: boolean
+  joined_at: string
+  created_at: string
+  updated_at: string
 }
 
 interface OrganizationStore {
-  currentOrganizationId: string | null;
-  memberships: OrganizationMembership[];
+  currentOrganizationId: string | null
+  memberships: OrganizationMembership[]
   /** @deprecated Prefer effectiveScope.isSuperuser from useAuth; kept for brief compat */
-  isSuperAdminMode: boolean;
-  
-  setCurrentOrganization: (orgId: string | null, force?: boolean) => void;
-  setMemberships: (memberships: OrganizationMembership[]) => void;
-  setSuperAdminMode: (enabled: boolean) => void;
-  clearOrganizationContext: () => void;
-  
+  isSuperAdminMode: boolean
+
+  setCurrentOrganization: (orgId: string | null, force?: boolean) => void
+  setMemberships: (memberships: OrganizationMembership[]) => void
+  setSuperAdminMode: (enabled: boolean) => void
+  clearOrganizationContext: () => void
+
   // Computed helpers
-  getCurrentMembership: () => OrganizationMembership | undefined;
-  canAccessOrganization: (orgId: string) => boolean;
+  getCurrentMembership: () => OrganizationMembership | undefined
+  canAccessOrganization: (orgId: string) => boolean
 }
 
 export const useOrganizationStore = create<OrganizationStore>()(
@@ -37,49 +37,49 @@ export const useOrganizationStore = create<OrganizationStore>()(
       isSuperAdminMode: false,
 
       setCurrentOrganization: (orgId, force = false) => {
-        if (orgId == null || orgId === 'all') {
+        if (orgId == null || orgId === "all") {
           // Only allow clearing filter when force (claim/local superuser).
           if (force) {
-            set({ currentOrganizationId: null });
+            set({ currentOrganizationId: null })
           }
-          return;
+          return
         }
 
-        const { memberships, isSuperAdminMode } = get();
-        const membership = memberships.find(m => m.organization_id === orgId);
-        
+        const { memberships, isSuperAdminMode } = get()
+        const membership = memberships.find((m) => m.organization_id === orgId)
+
         // Allow if user is member OR forced (scoped superuser)
         if (membership || force || isSuperAdminMode) {
-          set({ currentOrganizationId: orgId });
+          set({ currentOrganizationId: orgId })
         } else {
-          console.error('Cannot set organization - user is not a member of', orgId);
+          console.error("Cannot set organization - user is not a member of", orgId)
         }
       },
 
       setMemberships: (memberships) => {
-        set({ memberships });
-        
+        set({ memberships })
+
         // Auto-set current organization if not set or no longer in memberships
-        const { currentOrganizationId } = get();
+        const { currentOrganizationId } = get()
         const stillValid =
           currentOrganizationId &&
           memberships.some(
-            (m) => m.organization_id === currentOrganizationId && m.status === 'active'
-          );
+            (m) => m.organization_id === currentOrganizationId && m.status === "active",
+          )
 
         if (!stillValid && memberships.length > 0) {
-          const defaultMembership = memberships.find(m => m.is_default && m.status === 'active');
-          const firstActive = memberships.find(m => m.status === 'active');
-          const orgId = defaultMembership?.organization_id || firstActive?.organization_id;
-          
+          const defaultMembership = memberships.find((m) => m.is_default && m.status === "active")
+          const firstActive = memberships.find((m) => m.status === "active")
+          const orgId = defaultMembership?.organization_id || firstActive?.organization_id
+
           if (orgId) {
-            set({ currentOrganizationId: orgId });
+            set({ currentOrganizationId: orgId })
           }
         }
       },
 
       setSuperAdminMode: (enabled) => {
-        set({ isSuperAdminMode: enabled });
+        set({ isSuperAdminMode: enabled })
       },
 
       clearOrganizationContext: () => {
@@ -87,28 +87,29 @@ export const useOrganizationStore = create<OrganizationStore>()(
           currentOrganizationId: null,
           memberships: [],
           isSuperAdminMode: false,
-        });
+        })
       },
 
       // Computed helpers
       getCurrentMembership: () => {
-        const { currentOrganizationId, memberships } = get();
-        return memberships.find(m => m.organization_id === currentOrganizationId);
+        const { currentOrganizationId, memberships } = get()
+        return memberships.find((m) => m.organization_id === currentOrganizationId)
       },
 
       canAccessOrganization: (orgId) => {
-        const { memberships, isSuperAdminMode } = get();
-        return isSuperAdminMode || memberships.some(
-          m => m.organization_id === orgId && m.status === 'active'
-        );
+        const { memberships, isSuperAdminMode } = get()
+        return (
+          isSuperAdminMode ||
+          memberships.some((m) => m.organization_id === orgId && m.status === "active")
+        )
       },
     }),
     {
-      name: 'organization-context',
+      name: "organization-context",
       partialize: (state) => ({
         currentOrganizationId: state.currentOrganizationId,
         // Do not persist isSuperAdminMode — derives from session/claims each load
       }),
-    }
-  )
-);
+    },
+  ),
+)

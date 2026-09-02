@@ -1,111 +1,147 @@
-import React, { useState } from 'react';
-import { EmojiPicker } from '@/components/ui/emoji-picker';
-import { getAllBlocks, type BlockDefinition, type ApiEndpointConfig } from '@/widget/components/blocks';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  FileJson,
+  Globe,
+  Loader2,
+  Play,
+  Plus,
+  Server,
+  Settings2,
+  Trash2,
+  X,
+  Zap,
+} from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog"
+import { EmojiPicker } from "@/components/ui/emoji-picker"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 import {
-  BookOpen,
-  Settings2,
-  Play,
-  ChevronDown,
-  ChevronUp,
-  Zap,
-  Check,
-  X,
-  Copy,
-  Plus,
-  ArrowRight,
-  ArrowLeft,
-  Globe,
-  Server,
-  FileJson,
-  Trash2,
-  Loader2,
-} from 'lucide-react';
+  type ApiEndpointConfig,
+  type BlockDefinition,
+  getAllBlocks,
+} from "@/widget/components/blocks"
 
 // ── UI Component options ──
 
 const UI_COMPONENT_OPTIONS = [
-  { value: 'text_input', label: 'Text Input', description: 'Standard text field' },
-  { value: 'email_input', label: 'Email Input', description: 'Email-formatted input' },
-  { value: 'calendar', label: 'Calendar / Date Picker', description: 'Date selection' },
-  { value: 'select', label: 'Dropdown Select', description: 'Single-choice dropdown' },
-  { value: 'checkbox', label: 'Checkbox', description: 'Toggle yes/no' },
-  { value: 'radio', label: 'Radio Group', description: 'Multiple choice, single selection' },
-  { value: 'slider', label: 'Slider', description: 'Numeric range' },
-  { value: 'textarea', label: 'Text Area', description: 'Multi-line text input' },
-  { value: 'custom', label: 'Custom (code only)', description: 'Placeholder for code-defined blocks' },
-];
+  { value: "text_input", label: "Text Input", description: "Standard text field" },
+  { value: "email_input", label: "Email Input", description: "Email-formatted input" },
+  { value: "calendar", label: "Calendar / Date Picker", description: "Date selection" },
+  { value: "select", label: "Dropdown Select", description: "Single-choice dropdown" },
+  { value: "checkbox", label: "Checkbox", description: "Toggle yes/no" },
+  { value: "radio", label: "Radio Group", description: "Multiple choice, single selection" },
+  { value: "slider", label: "Slider", description: "Numeric range" },
+  { value: "textarea", label: "Text Area", description: "Multi-line text input" },
+  {
+    value: "custom",
+    label: "Custom (code only)",
+    description: "Placeholder for code-defined blocks",
+  },
+]
 
 // ── Preview renderer for custom blocks ──
 
 function renderCustomBlockPreview(uiComponent: string) {
   switch (uiComponent) {
-    case 'calendar':
+    case "calendar":
       return (
         <div className="h-[260px] overflow-hidden flex items-start justify-center">
           <Calendar mode="single" className="rounded-md border pointer-events-none" />
         </div>
-      );
-    case 'text_input':
-      return <Input placeholder="Sample text..." readOnly className="pointer-events-none" />;
-    case 'email_input':
-      return <Input type="email" placeholder="you@example.com" readOnly className="pointer-events-none" />;
-    case 'select':
+      )
+    case "text_input":
+      return <Input placeholder="Sample text..." readOnly className="pointer-events-none" />
+    case "email_input":
+      return (
+        <Input
+          type="email"
+          placeholder="you@example.com"
+          readOnly
+          className="pointer-events-none"
+        />
+      )
+    case "select":
       return (
         <Select>
-          <SelectTrigger className="pointer-events-none"><SelectValue placeholder="Choose option..." /></SelectTrigger>
+          <SelectTrigger className="pointer-events-none">
+            <SelectValue placeholder="Choose option..." />
+          </SelectTrigger>
         </Select>
-      );
-    case 'checkbox':
+      )
+    case "checkbox":
       return (
         <div className="flex items-center gap-2 pointer-events-none">
           <Checkbox checked />
           <Label className="text-xs">Sample option</Label>
         </div>
-      );
-    case 'radio':
+      )
+    case "radio":
       return (
         <RadioGroup defaultValue="a" className="pointer-events-none space-y-1">
-          <div className="flex items-center gap-2"><RadioGroupItem value="a" id="ra" /><Label htmlFor="ra" className="text-xs">Option A</Label></div>
-          <div className="flex items-center gap-2"><RadioGroupItem value="b" id="rb" /><Label htmlFor="rb" className="text-xs">Option B</Label></div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="a" id="ra" />
+            <Label htmlFor="ra" className="text-xs">
+              Option A
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="b" id="rb" />
+            <Label htmlFor="rb" className="text-xs">
+              Option B
+            </Label>
+          </div>
         </RadioGroup>
-      );
-    case 'slider':
-      return <Slider defaultValue={[50]} max={100} step={1} className="pointer-events-none" />;
-    case 'textarea':
-      return <Textarea placeholder="Multi-line text..." readOnly rows={2} className="pointer-events-none" />;
+      )
+    case "slider":
+      return <Slider defaultValue={[50]} max={100} step={1} className="pointer-events-none" />
+    case "textarea":
+      return (
+        <Textarea
+          placeholder="Multi-line text..."
+          readOnly
+          rows={2}
+          className="pointer-events-none"
+        />
+      )
     default:
-      return <p className="text-xs text-muted-foreground italic">Custom component</p>;
+      return <p className="text-xs text-muted-foreground italic">Custom component</p>
   }
 }
 
@@ -113,102 +149,171 @@ function renderCustomBlockPreview(uiComponent: string) {
 
 function renderInteractiveCustomBlock(uiComponent: string) {
   switch (uiComponent) {
-    case 'calendar':
+    case "calendar":
       return (
         <Calendar
           mode="single"
           className="rounded-md border"
           onSelect={(date: Date | undefined) => {
-            if (date) toast({ title: 'Action triggered', description: `Selected date: ${date.toLocaleDateString()}` });
+            if (date)
+              toast({
+                title: "Action triggered",
+                description: `Selected date: ${date.toLocaleDateString()}`,
+              })
           }}
         />
-      );
-    case 'text_input':
-      return <Input placeholder="Type something…" onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Value: "${e.target.value}"` }); }} />;
-    case 'email_input':
-      return <Input type="email" placeholder="you@example.com" onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Email: "${e.target.value}"` }); }} />;
-    case 'select':
+      )
+    case "text_input":
       return (
-        <Select onValueChange={(v) => toast({ title: 'Action triggered', description: `Selected: "${v}"` })}>
-          <SelectTrigger><SelectValue placeholder="Choose option..." /></SelectTrigger>
+        <Input
+          placeholder="Type something…"
+          onBlur={(e) => {
+            if (e.target.value)
+              toast({ title: "Action triggered", description: `Value: "${e.target.value}"` })
+          }}
+        />
+      )
+    case "email_input":
+      return (
+        <Input
+          type="email"
+          placeholder="you@example.com"
+          onBlur={(e) => {
+            if (e.target.value)
+              toast({ title: "Action triggered", description: `Email: "${e.target.value}"` })
+          }}
+        />
+      )
+    case "select":
+      return (
+        <Select
+          onValueChange={(v) =>
+            toast({ title: "Action triggered", description: `Selected: "${v}"` })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Choose option..." />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="option_a">Option A</SelectItem>
             <SelectItem value="option_b">Option B</SelectItem>
             <SelectItem value="option_c">Option C</SelectItem>
           </SelectContent>
         </Select>
-      );
-    case 'checkbox':
+      )
+    case "checkbox":
       return (
         <div className="flex items-center gap-2">
-          <Checkbox onCheckedChange={(v) => toast({ title: 'Action triggered', description: `Checked: ${v}` })} id="sandbox-cb" />
-          <Label htmlFor="sandbox-cb" className="text-xs">Sample option</Label>
+          <Checkbox
+            onCheckedChange={(v) =>
+              toast({ title: "Action triggered", description: `Checked: ${v}` })
+            }
+            id="sandbox-cb"
+          />
+          <Label htmlFor="sandbox-cb" className="text-xs">
+            Sample option
+          </Label>
         </div>
-      );
-    case 'radio':
+      )
+    case "radio":
       return (
-        <RadioGroup onValueChange={(v) => toast({ title: 'Action triggered', description: `Selected: "${v}"` })} className="space-y-1">
-          <div className="flex items-center gap-2"><RadioGroupItem value="a" id="sra" /><Label htmlFor="sra" className="text-xs">Option A</Label></div>
-          <div className="flex items-center gap-2"><RadioGroupItem value="b" id="srb" /><Label htmlFor="srb" className="text-xs">Option B</Label></div>
+        <RadioGroup
+          onValueChange={(v) =>
+            toast({ title: "Action triggered", description: `Selected: "${v}"` })
+          }
+          className="space-y-1"
+        >
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="a" id="sra" />
+            <Label htmlFor="sra" className="text-xs">
+              Option A
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="b" id="srb" />
+            <Label htmlFor="srb" className="text-xs">
+              Option B
+            </Label>
+          </div>
         </RadioGroup>
-      );
-    case 'slider':
-      return <Slider defaultValue={[50]} max={100} step={1} onValueCommit={(v) => toast({ title: 'Action triggered', description: `Value: ${v[0]}` })} />;
-    case 'textarea':
-      return <Textarea placeholder="Multi-line text..." rows={2} onBlur={(e) => { if (e.target.value) toast({ title: 'Action triggered', description: `Value: "${e.target.value}"` }); }} />;
+      )
+    case "slider":
+      return (
+        <Slider
+          defaultValue={[50]}
+          max={100}
+          step={1}
+          onValueCommit={(v) => toast({ title: "Action triggered", description: `Value: ${v[0]}` })}
+        />
+      )
+    case "textarea":
+      return (
+        <Textarea
+          placeholder="Multi-line text..."
+          rows={2}
+          onBlur={(e) => {
+            if (e.target.value)
+              toast({ title: "Action triggered", description: `Value: "${e.target.value}"` })
+          }}
+        />
+      )
     default:
-      return <p className="text-xs text-muted-foreground italic">No interactive sandbox for this component type.</p>;
+      return (
+        <p className="text-xs text-muted-foreground italic">
+          No interactive sandbox for this component type.
+        </p>
+      )
   }
 }
 
 // ── Types for custom DB blocks ──
 
 interface CustomBlockRow {
-  id: string;
-  organization_id: string;
-  type_key: string;
-  label: string;
-  icon: string;
-  description: string | null;
-  marker: string;
-  closing_marker: string | null;
-  field_type: string | null;
-  requires_api: boolean;
-  api_endpoints: any;
-  ui_component: string | null;
-  created_at: string;
+  id: string
+  organization_id: string
+  type_key: string
+  label: string
+  icon: string
+  description: string | null
+  marker: string
+  closing_marker: string | null
+  field_type: string | null
+  requires_api: boolean
+  api_endpoints: any
+  ui_component: string | null
+  created_at: string
 }
 
 // ── Sample data for interactive sandbox ──
 
 function getSampleData(type: string): Record<string, any> {
   switch (type) {
-    case 'action_menu':
-      return { options: ['Check order status', 'Talk to an agent', 'Cancel my order'] };
-    case 'yes_no':
-      return { question: 'Was this helpful?' };
-    case 'confirm':
-      return { summary: 'Cancel your booking for March 15?' };
-    case 'text_input':
-      return { placeholder: 'Enter your name…' };
-    case 'email_input':
-      return { placeholder: 'you@example.com' };
-    case 'phone_verify':
-      return {};
-    case 'rating':
-      return { maxStars: 5 };
-    case 'address_search':
-      return { placeholder: 'Search your address...' };
+    case "action_menu":
+      return { options: ["Check order status", "Talk to an agent", "Cancel my order"] }
+    case "yes_no":
+      return { question: "Was this helpful?" }
+    case "confirm":
+      return { summary: "Cancel your booking for March 15?" }
+    case "text_input":
+      return { placeholder: "Enter your name…" }
+    case "email_input":
+      return { placeholder: "you@example.com" }
+    case "phone_verify":
+      return {}
+    case "rating":
+      return { maxStars: 5 }
+    case "address_search":
+      return { placeholder: "Search your address..." }
     default:
-      return {};
+      return {}
   }
 }
 
 // ── Library card ──
 
 const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
-  const [expanded, setExpanded] = useState(false);
-  const PreviewComp = block.flowMeta.previewComponent;
+  const [expanded, setExpanded] = useState(false)
+  const PreviewComp = block.flowMeta.previewComponent
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -228,9 +333,7 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
             )}
           </div>
         </div>
-        <CardDescription className="text-xs mt-1">
-          {block.flowMeta.description}
-        </CardDescription>
+        <CardDescription className="text-xs mt-1">{block.flowMeta.description}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex-1 space-y-3 pt-0">
@@ -263,7 +366,7 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          {expanded ? 'Close sandbox' : 'Try it'}
+          {expanded ? "Close sandbox" : "Try it"}
         </Button>
 
         {expanded && (
@@ -279,9 +382,9 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
               widgetKey="sandbox"
               onAction={(val, key) => {
                 toast({
-                  title: 'Action triggered',
+                  title: "Action triggered",
                   description: `Value: "${val}" — Block key: ${key}`,
-                });
+                })
               }}
               data={getSampleData(block.type)}
             />
@@ -289,13 +392,16 @@ const BlockCard: React.FC<{ block: BlockDefinition }> = ({ block }) => {
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 // ── Custom block card (unified layout matching BlockCard) ──
 
-const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({ block, onDelete }) => {
-  const [expanded, setExpanded] = useState(false);
+const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({
+  block,
+  onDelete,
+}) => {
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -308,7 +414,9 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
             <CardTitle className="text-base">{block.label}</CardTitle>
           </div>
           <div className="flex gap-1.5">
-            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">Custom</Badge>
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">
+              Custom
+            </Badge>
             {block.requires_api && (
               <Badge variant="outline" className="text-[10px] gap-1">
                 <Zap className="h-3 w-3" /> API
@@ -317,7 +425,7 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
           </div>
         </div>
         <CardDescription className="text-xs mt-1">
-          {block.description || 'No description'}
+          {block.description || "No description"}
         </CardDescription>
       </CardHeader>
 
@@ -335,7 +443,7 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
           <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
             Preview
           </p>
-          {renderCustomBlockPreview(block.ui_component || 'custom')}
+          {renderCustomBlockPreview(block.ui_component || "custom")}
         </div>
 
         <Button
@@ -345,7 +453,7 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          {expanded ? 'Close sandbox' : 'Try it'}
+          {expanded ? "Close sandbox" : "Try it"}
         </Button>
 
         {expanded && (
@@ -353,25 +461,35 @@ const CustomBlockCard: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
             <p className="text-[10px] font-medium text-primary mb-3 uppercase tracking-wider">
               Interactive Sandbox
             </p>
-            {renderInteractiveCustomBlock(block.ui_component || 'custom')}
+            {renderInteractiveCustomBlock(block.ui_component || "custom")}
           </div>
         )}
 
         <div className="flex items-center gap-2">
-          <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{block.marker}</code>
+          <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+            {block.marker}
+          </code>
           <div className="flex-1" />
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => onDelete(block.id)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            onClick={() => onDelete(block.id)}
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 // ── API Endpoint detail card ──
 
-const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> = ({ endpoint, index }) => (
+const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> = ({
+  endpoint,
+  index,
+}) => (
   <div className="rounded-md border bg-muted/20 p-3 space-y-2">
     <div className="flex items-center gap-2">
       <span className="text-xs font-bold text-muted-foreground">{index + 1}.</span>
@@ -386,7 +504,9 @@ const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> =
         <Server className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
         <div>
           <p className="font-medium text-muted-foreground">Edge Function</p>
-          <code className="text-[11px] bg-muted px-1 py-0.5 rounded font-mono">{endpoint.edgeFunction}</code>
+          <code className="text-[11px] bg-muted px-1 py-0.5 rounded font-mono">
+            {endpoint.edgeFunction}
+          </code>
         </div>
       </div>
       {endpoint.externalApi && (
@@ -394,7 +514,9 @@ const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> =
           <Globe className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
           <div>
             <p className="font-medium text-muted-foreground">External API</p>
-            <code className="text-[11px] bg-muted px-1 py-0.5 rounded font-mono">{endpoint.externalApi}</code>
+            <code className="text-[11px] bg-muted px-1 py-0.5 rounded font-mono">
+              {endpoint.externalApi}
+            </code>
           </div>
         </div>
       )}
@@ -424,21 +546,19 @@ const EndpointDetail: React.FC<{ endpoint: ApiEndpointConfig; index: number }> =
       )}
     </div>
   </div>
-);
+)
 
 // ── Expandable manage row ──
 
 const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
-  const [open, setOpen] = useState(false);
-  const PreviewComp = block.flowMeta.previewComponent;
+  const [open, setOpen] = useState(false)
+  const PreviewComp = block.flowMeta.previewComponent
 
   const copyMarker = () => {
-    const text = block.closingMarker
-      ? `${block.marker}…${block.closingMarker}`
-      : block.marker;
-    navigator.clipboard.writeText(text);
-    toast({ title: 'Copied', description: text });
-  };
+    const text = block.closingMarker ? `${block.marker}…${block.closingMarker}` : block.marker
+    navigator.clipboard.writeText(text)
+    toast({ title: "Copied", description: text })
+  }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -456,9 +576,15 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
               </Badge>
             )}
             {block.flowMeta.applicableFieldTypes?.map((ft) => (
-              <Badge key={ft} variant="secondary" className="text-[10px]">{ft}</Badge>
+              <Badge key={ft} variant="secondary" className="text-[10px]">
+                {ft}
+              </Badge>
             ))}
-            {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            {open ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
           </div>
         </div>
       </CollapsibleTrigger>
@@ -469,7 +595,8 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
             <p className="text-xs font-medium text-muted-foreground mb-1">Marker Syntax</p>
             <div className="flex items-center gap-2">
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                {block.marker}{block.closingMarker ? `…${block.closingMarker}` : ''}
+                {block.marker}
+                {block.closingMarker ? `…${block.closingMarker}` : ""}
               </code>
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={copyMarker}>
                 <Copy className="h-3 w-3" />
@@ -489,26 +616,32 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
           )}
 
           <div className="flex gap-6">
-            {block.flowMeta.applicableFieldTypes && block.flowMeta.applicableFieldTypes.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Field Types</p>
-                <div className="flex gap-1">
-                  {block.flowMeta.applicableFieldTypes.map((ft) => (
-                    <Badge key={ft} variant="secondary" className="text-[10px]">{ft}</Badge>
-                  ))}
+            {block.flowMeta.applicableFieldTypes &&
+              block.flowMeta.applicableFieldTypes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Field Types</p>
+                  <div className="flex gap-1">
+                    {block.flowMeta.applicableFieldTypes.map((ft) => (
+                      <Badge key={ft} variant="secondary" className="text-[10px]">
+                        {ft}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            {block.flowMeta.applicableNodeTypes && block.flowMeta.applicableNodeTypes.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Node Types</p>
-                <div className="flex gap-1">
-                  {block.flowMeta.applicableNodeTypes.map((nt) => (
-                    <Badge key={nt} variant="secondary" className="text-[10px]">{nt}</Badge>
-                  ))}
+              )}
+            {block.flowMeta.applicableNodeTypes &&
+              block.flowMeta.applicableNodeTypes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Node Types</p>
+                  <div className="flex gap-1">
+                    {block.flowMeta.applicableNodeTypes.map((nt) => (
+                      <Badge key={nt} variant="secondary" className="text-[10px]">
+                        {nt}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {PreviewComp && (
@@ -522,13 +655,16 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
-};
+  )
+}
 
 // ── Custom block manage row ──
 
-const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({ block, onDelete }) => {
-  const [open, setOpen] = useState(false);
+const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) => void }> = ({
+  block,
+  onDelete,
+}) => {
+  const [open, setOpen] = useState(false)
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -537,16 +673,24 @@ const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
           <span className="text-lg">{block.icon}</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{block.label}</p>
-            <p className="text-xs text-muted-foreground truncate">{block.description || 'No description'}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {block.description || "No description"}
+            </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">Custom</Badge>
+            <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20">
+              Custom
+            </Badge>
             {block.requires_api && (
               <Badge variant="outline" className="text-[10px] gap-1">
                 <Zap className="h-3 w-3" /> API
               </Badge>
             )}
-            {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            {open ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
           </div>
         </div>
       </CollapsibleTrigger>
@@ -557,7 +701,7 @@ const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
             <p className="text-xs font-medium text-muted-foreground mb-1">Marker Syntax</p>
             <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{block.marker}</code>
           </div>
-          {block.ui_component && block.ui_component !== 'custom' && (
+          {block.ui_component && block.ui_component !== "custom" && (
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-2">UI Component Preview</p>
               <div className="rounded-md border bg-muted/20 p-3 max-w-xs overflow-hidden">
@@ -566,87 +710,107 @@ const CustomManageRow: React.FC<{ block: CustomBlockRow; onDelete: (id: string) 
             </div>
           )}
           <div className="flex justify-end">
-            <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => onDelete(block.id)}>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => onDelete(block.id)}
+            >
               <Trash2 className="h-3.5 w-3.5" /> Delete
             </Button>
           </div>
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
-};
+  )
+}
 
 // ── Create Component Dialog ──
 
 interface NewBlockForm {
-  name: string;
-  icon: string;
-  description: string;
-  fieldType: string;
-  uiComponent: string;
-  requiresApi: boolean;
+  name: string
+  icon: string
+  description: string
+  fieldType: string
+  uiComponent: string
+  requiresApi: boolean
   endpoints: Array<{
-    name: string;
-    url: string;
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    bodyFields: Array<{ key: string; type: string }>;
-    responseField: string;
-  }>;
+    name: string
+    url: string
+    method: "GET" | "POST" | "PUT" | "DELETE"
+    bodyFields: Array<{ key: string; type: string }>
+    responseField: string
+  }>
 }
 
 const emptyEndpoint = () => ({
-  name: '',
-  url: '',
-  method: 'POST' as const,
-  bodyFields: [{ key: '', type: 'string' }],
-  responseField: '',
-});
+  name: "",
+  url: "",
+  method: "POST" as const,
+  bodyFields: [{ key: "", type: "string" }],
+  responseField: "",
+})
 
 const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState(1);
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [step, setStep] = useState(1)
   const [form, setForm] = useState<NewBlockForm>({
-    name: '',
-    icon: '🔧',
-    description: '',
-    fieldType: 'custom',
-    uiComponent: 'text_input',
+    name: "",
+    icon: "🔧",
+    description: "",
+    fieldType: "custom",
+    uiComponent: "text_input",
     requiresApi: false,
     endpoints: [emptyEndpoint()],
-  });
+  })
 
-  const currentOrganizationId = useOrganizationStore(s => s.currentOrganizationId);
-  const typeKey = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const marker = `[${typeKey.toUpperCase()}]`;
+  const currentOrganizationId = useOrganizationStore((s) => s.currentOrganizationId)
+  const typeKey = form.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")
+  const marker = `[${typeKey.toUpperCase()}]`
 
-  const totalSteps = form.requiresApi ? 3 : 2;
+  const totalSteps = form.requiresApi ? 3 : 2
 
   const reset = () => {
-    setStep(1);
-    setForm({ name: '', icon: '🔧', description: '', fieldType: 'custom', uiComponent: 'text_input', requiresApi: false, endpoints: [emptyEndpoint()] });
-  };
+    setStep(1)
+    setForm({
+      name: "",
+      icon: "🔧",
+      description: "",
+      fieldType: "custom",
+      uiComponent: "text_input",
+      requiresApi: false,
+      endpoints: [emptyEndpoint()],
+    })
+  }
 
   const handleSave = async () => {
     if (!currentOrganizationId) {
-      toast({ title: 'Error', description: 'No organization selected.', variant: 'destructive' });
-      return;
+      toast({ title: "Error", description: "No organization selected.", variant: "destructive" })
+      return
     }
-    setSaving(true);
+    setSaving(true)
     try {
       const apiEndpoints = form.requiresApi
-        ? form.endpoints.filter(e => e.name).map(ep => ({
-            name: ep.name,
-            edgeFunction: '',
-            externalApi: ep.url,
-            method: ep.method,
-            requestBody: Object.fromEntries(ep.bodyFields.filter(f => f.key).map(f => [f.key, f.type])),
-            responseShape: ep.responseField ? { displayField: ep.responseField } : {},
-            description: ep.name,
-          }))
-        : [];
+        ? form.endpoints
+            .filter((e) => e.name)
+            .map((ep) => ({
+              name: ep.name,
+              edgeFunction: "",
+              externalApi: ep.url,
+              method: ep.method,
+              requestBody: Object.fromEntries(
+                ep.bodyFields.filter((f) => f.key).map((f) => [f.key, f.type]),
+              ),
+              responseShape: ep.responseField ? { displayField: ep.responseField } : {},
+              description: ep.name,
+            }))
+        : []
 
-      const { error } = await supabase.from('widget_block_configs').insert({
+      const { error } = await supabase.from("widget_block_configs").insert({
         organization_id: currentOrganizationId,
         type_key: typeKey,
         label: form.name,
@@ -658,57 +822,73 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
         requires_api: form.requiresApi,
         ui_component: form.uiComponent,
         api_endpoints: apiEndpoints,
-      } as any);
+      } as any)
 
-      if (error) throw error;
+      if (error) throw error
 
-      toast({ title: 'Component saved', description: `"${form.name}" has been created.` });
-      setOpen(false);
-      reset();
-      onSaved();
+      toast({ title: "Component saved", description: `"${form.name}" has been created.` })
+      setOpen(false)
+      reset()
+      onSaved()
     } catch (err: any) {
-      toast({ title: 'Save failed', description: err.message || 'Unknown error', variant: 'destructive' });
+      toast({
+        title: "Save failed",
+        description: err.message || "Unknown error",
+        variant: "destructive",
+      })
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const updateEndpoint = (idx: number, field: string, value: any) => {
-    setForm(prev => {
-      const eps = [...prev.endpoints];
-      eps[idx] = { ...eps[idx], [field]: value };
-      return { ...prev, endpoints: eps };
-    });
-  };
+    setForm((prev) => {
+      const eps = [...prev.endpoints]
+      eps[idx] = { ...eps[idx], [field]: value }
+      return { ...prev, endpoints: eps }
+    })
+  }
 
   const addBodyField = (epIdx: number) => {
-    setForm(prev => {
-      const eps = [...prev.endpoints];
-      eps[epIdx] = { ...eps[epIdx], bodyFields: [...eps[epIdx].bodyFields, { key: '', type: 'string' }] };
-      return { ...prev, endpoints: eps };
-    });
-  };
+    setForm((prev) => {
+      const eps = [...prev.endpoints]
+      eps[epIdx] = {
+        ...eps[epIdx],
+        bodyFields: [...eps[epIdx].bodyFields, { key: "", type: "string" }],
+      }
+      return { ...prev, endpoints: eps }
+    })
+  }
 
   const removeBodyField = (epIdx: number, fieldIdx: number) => {
-    setForm(prev => {
-      const eps = [...prev.endpoints];
-      eps[epIdx] = { ...eps[epIdx], bodyFields: eps[epIdx].bodyFields.filter((_, i) => i !== fieldIdx) };
-      return { ...prev, endpoints: eps };
-    });
-  };
+    setForm((prev) => {
+      const eps = [...prev.endpoints]
+      eps[epIdx] = {
+        ...eps[epIdx],
+        bodyFields: eps[epIdx].bodyFields.filter((_, i) => i !== fieldIdx),
+      }
+      return { ...prev, endpoints: eps }
+    })
+  }
 
   const updateBodyField = (epIdx: number, fieldIdx: number, key: string, value: string) => {
-    setForm(prev => {
-      const eps = [...prev.endpoints];
-      const fields = [...eps[epIdx].bodyFields];
-      fields[fieldIdx] = { ...fields[fieldIdx], [key]: value };
-      eps[epIdx] = { ...eps[epIdx], bodyFields: fields };
-      return { ...prev, endpoints: eps };
-    });
-  };
+    setForm((prev) => {
+      const eps = [...prev.endpoints]
+      const fields = [...eps[epIdx].bodyFields]
+      fields[fieldIdx] = { ...fields[fieldIdx], [key]: value }
+      eps[epIdx] = { ...eps[epIdx], bodyFields: fields }
+      return { ...prev, endpoints: eps }
+    })
+  }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v)
+        if (!v) reset()
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1.5">
           <Plus className="h-4 w-4" /> New Component
@@ -716,11 +896,15 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Component — Step {step}/{totalSteps}</DialogTitle>
+          <DialogTitle>
+            Create Component — Step {step}/{totalSteps}
+          </DialogTitle>
           <DialogDescription>
-            {step === 1 && 'Define the basic metadata for your new interactive block.'}
-            {step === 2 && form.requiresApi && 'Configure the API endpoints this component will call.'}
-            {step === (form.requiresApi ? 3 : 2) && 'Review and save your new component.'}
+            {step === 1 && "Define the basic metadata for your new interactive block."}
+            {step === 2 &&
+              form.requiresApi &&
+              "Configure the API endpoints this component will call."}
+            {step === (form.requiresApi ? 3 : 2) && "Review and save your new component."}
           </DialogDescription>
         </DialogHeader>
 
@@ -731,7 +915,7 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
               <div>
                 <Label className="text-xs">Icon</Label>
                 <EmojiPicker
-                  onEmojiSelect={(emoji) => setForm(f => ({ ...f, icon: emoji }))}
+                  onEmojiSelect={(emoji) => setForm((f) => ({ ...f, icon: emoji }))}
                   trigger={
                     <Button variant="outline" className="h-10 w-10 text-xl p-0">
                       {form.icon}
@@ -741,22 +925,37 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
               </div>
               <div>
                 <Label className="text-xs">Name</Label>
-                <Input placeholder="e.g. Date Picker" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
+                <Input
+                  placeholder="e.g. Date Picker"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                />
               </div>
             </div>
             {form.name && (
               <p className="text-xs text-muted-foreground">
-                Type: <code className="bg-muted px-1 rounded font-mono">{typeKey}</code> · Marker: <code className="bg-muted px-1 rounded font-mono">{marker}</code>
+                Type: <code className="bg-muted px-1 rounded font-mono">{typeKey}</code> · Marker:{" "}
+                <code className="bg-muted px-1 rounded font-mono">{marker}</code>
               </p>
             )}
             <div>
               <Label className="text-xs">Description</Label>
-              <Textarea placeholder="What does this component do for the customer?" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
+              <Textarea
+                placeholder="What does this component do for the customer?"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                rows={3}
+              />
             </div>
             <div>
               <Label className="text-xs">Field Type</Label>
-              <Select value={form.fieldType} onValueChange={(v) => setForm(f => ({ ...f, fieldType: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.fieldType}
+                onValueChange={(v) => setForm((f) => ({ ...f, fieldType: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text">Text</SelectItem>
                   <SelectItem value="email">Email</SelectItem>
@@ -769,10 +968,15 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
             </div>
             <div>
               <Label className="text-xs">UI Component</Label>
-              <Select value={form.uiComponent} onValueChange={(v) => setForm(f => ({ ...f, uiComponent: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.uiComponent}
+                onValueChange={(v) => setForm((f) => ({ ...f, uiComponent: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {UI_COMPONENT_OPTIONS.map(opt => (
+                  {UI_COMPONENT_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
@@ -780,12 +984,18 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                {UI_COMPONENT_OPTIONS.find(o => o.value === form.uiComponent)?.description}
+                {UI_COMPONENT_OPTIONS.find((o) => o.value === form.uiComponent)?.description}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Switch checked={form.requiresApi} onCheckedChange={(v) => setForm(f => ({ ...f, requiresApi: v }))} id="needs-api" />
-              <Label htmlFor="needs-api" className="text-sm">Requires API</Label>
+              <Switch
+                checked={form.requiresApi}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, requiresApi: v }))}
+                id="needs-api"
+              />
+              <Label htmlFor="needs-api" className="text-sm">
+                Requires API
+              </Label>
             </div>
           </div>
         )}
@@ -798,20 +1008,39 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium">Endpoint {epIdx + 1}</p>
                   {form.endpoints.length > 1 && (
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setForm(f => ({ ...f, endpoints: f.endpoints.filter((_, i) => i !== epIdx) }))}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          endpoints: f.endpoints.filter((_, i) => i !== epIdx),
+                        }))
+                      }
+                    >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
                 <div>
                   <Label className="text-xs">Name</Label>
-                  <Input placeholder="e.g. Fetch Booking" value={ep.name} onChange={(e) => updateEndpoint(epIdx, 'name', e.target.value)} />
+                  <Input
+                    placeholder="e.g. Fetch Booking"
+                    value={ep.name}
+                    onChange={(e) => updateEndpoint(epIdx, "name", e.target.value)}
+                  />
                 </div>
                 <div className="grid grid-cols-[100px_1fr] gap-2">
                   <div>
                     <Label className="text-xs">Method</Label>
-                    <Select value={ep.method} onValueChange={(v) => updateEndpoint(epIdx, 'method', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select
+                      value={ep.method}
+                      onValueChange={(v) => updateEndpoint(epIdx, "method", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="GET">GET</SelectItem>
                         <SelectItem value="POST">POST</SelectItem>
@@ -822,28 +1051,52 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                   </div>
                   <div>
                     <Label className="text-xs">Endpoint URL</Label>
-                    <Input placeholder="https://api.noddi.co/v1/..." value={ep.url} onChange={(e) => updateEndpoint(epIdx, 'url', e.target.value)} />
+                    <Input
+                      placeholder="https://api.noddi.co/v1/..."
+                      value={ep.url}
+                      onChange={(e) => updateEndpoint(epIdx, "url", e.target.value)}
+                    />
                   </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label className="text-xs">Request Body Fields</Label>
-                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => addBodyField(epIdx)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs gap-1"
+                      onClick={() => addBodyField(epIdx)}
+                    >
                       <Plus className="h-3 w-3" /> Add
                     </Button>
                   </div>
                   {ep.bodyFields.map((bf, bfIdx) => (
                     <div key={bfIdx} className="flex items-center gap-2 mb-1.5">
-                      <Input placeholder="key" className="text-xs" value={bf.key} onChange={(e) => updateBodyField(epIdx, bfIdx, 'key', e.target.value)} />
-                      <Select value={bf.type} onValueChange={(v) => updateBodyField(epIdx, bfIdx, 'type', v)}>
-                        <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <Input
+                        placeholder="key"
+                        className="text-xs"
+                        value={bf.key}
+                        onChange={(e) => updateBodyField(epIdx, bfIdx, "key", e.target.value)}
+                      />
+                      <Select
+                        value={bf.type}
+                        onValueChange={(v) => updateBodyField(epIdx, bfIdx, "type", v)}
+                      >
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="string">string</SelectItem>
                           <SelectItem value="number">number</SelectItem>
                           <SelectItem value="boolean">boolean</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => removeBodyField(epIdx, bfIdx)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0"
+                        onClick={() => removeBodyField(epIdx, bfIdx)}
+                      >
                         <X className="h-3 w-3" />
                       </Button>
                     </div>
@@ -851,11 +1104,23 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                 </div>
                 <div>
                   <Label className="text-xs">Response Display Field</Label>
-                  <Input placeholder="e.g. data.booking.status" className="text-xs" value={ep.responseField} onChange={(e) => updateEndpoint(epIdx, 'responseField', e.target.value)} />
+                  <Input
+                    placeholder="e.g. data.booking.status"
+                    className="text-xs"
+                    value={ep.responseField}
+                    onChange={(e) => updateEndpoint(epIdx, "responseField", e.target.value)}
+                  />
                 </div>
               </div>
             ))}
-            <Button variant="outline" size="sm" className="w-full gap-1.5" onClick={() => setForm(f => ({ ...f, endpoints: [...f.endpoints, emptyEndpoint()] }))}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={() =>
+                setForm((f) => ({ ...f, endpoints: [...f.endpoints, emptyEndpoint()] }))
+              }
+            >
               <Plus className="h-3.5 w-3.5" /> Add Endpoint
             </Button>
           </div>
@@ -867,30 +1132,50 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
             <div className="rounded-md border p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{form.icon}</span>
-                <span className="font-medium">{form.name || 'Untitled'}</span>
-                {form.requiresApi && <Badge variant="outline" className="text-[10px] gap-1"><Zap className="h-3 w-3" /> API</Badge>}
+                <span className="font-medium">{form.name || "Untitled"}</span>
+                {form.requiresApi && (
+                  <Badge variant="outline" className="text-[10px] gap-1">
+                    <Zap className="h-3 w-3" /> API
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">{form.description || 'No description'}</p>
+              <p className="text-xs text-muted-foreground">
+                {form.description || "No description"}
+              </p>
               <div className="flex gap-2 text-xs">
                 <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{marker}</code>
-                <Badge variant="secondary" className="text-[10px]">field: {form.fieldType}</Badge>
-                <Badge variant="secondary" className="text-[10px]">ui: {UI_COMPONENT_OPTIONS.find(o => o.value === form.uiComponent)?.label}</Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  field: {form.fieldType}
+                </Badge>
+                <Badge variant="secondary" className="text-[10px]">
+                  ui: {UI_COMPONENT_OPTIONS.find((o) => o.value === form.uiComponent)?.label}
+                </Badge>
               </div>
               {/* Preview of chosen UI component */}
               <div className="rounded-md border bg-muted/20 p-3 mt-2 overflow-hidden">
-                <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Component Preview</p>
+                <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                  Component Preview
+                </p>
                 {renderCustomBlockPreview(form.uiComponent)}
               </div>
-              {form.requiresApi && form.endpoints.filter(e => e.name).length > 0 && (
+              {form.requiresApi && form.endpoints.filter((e) => e.name).length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground">Endpoints:</p>
-                  {form.endpoints.filter(e => e.name).map((ep, i) => (
-                    <div key={i} className="text-xs flex items-center gap-2">
-                      <Badge variant="outline" className="text-[9px]">{ep.method}</Badge>
-                      <span>{ep.name}</span>
-                      {ep.url && <code className="text-[10px] bg-muted px-1 rounded font-mono truncate max-w-[200px]">{ep.url}</code>}
-                    </div>
-                  ))}
+                  {form.endpoints
+                    .filter((e) => e.name)
+                    .map((ep, i) => (
+                      <div key={i} className="text-xs flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px]">
+                          {ep.method}
+                        </Badge>
+                        <span>{ep.name}</span>
+                        {ep.url && (
+                          <code className="text-[10px] bg-muted px-1 rounded font-mono truncate max-w-[200px]">
+                            {ep.url}
+                          </code>
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
             </div>
@@ -899,13 +1184,23 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
 
         <DialogFooter className="flex justify-between gap-2">
           {step > 1 && (
-            <Button variant="outline" size="sm" onClick={() => setStep(s => s - 1)} className="gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setStep((s) => s - 1)}
+              className="gap-1"
+            >
               <ArrowLeft className="h-3.5 w-3.5" /> Back
             </Button>
           )}
           <div className="flex-1" />
           {step < totalSteps ? (
-            <Button size="sm" onClick={() => setStep(s => s + 1)} disabled={!form.name.trim()} className="gap-1">
+            <Button
+              size="sm"
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!form.name.trim()}
+              className="gap-1"
+            >
               Next <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           ) : (
@@ -917,12 +1212,16 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
 // ── Manage view with expandable rows ──
 
-const ManageView: React.FC<{ blocks: BlockDefinition[]; customBlocks: CustomBlockRow[]; onDeleteCustom: (id: string) => void }> = ({ blocks, customBlocks, onDeleteCustom }) => (
+const ManageView: React.FC<{
+  blocks: BlockDefinition[]
+  customBlocks: CustomBlockRow[]
+  onDeleteCustom: (id: string) => void
+}> = ({ blocks, customBlocks, onDeleteCustom }) => (
   <div className="space-y-1">
     {customBlocks.map((block) => (
       <CustomManageRow key={block.id} block={block} onDelete={onDeleteCustom} />
@@ -934,41 +1233,41 @@ const ManageView: React.FC<{ blocks: BlockDefinition[]; customBlocks: CustomBloc
       <p className="text-sm text-muted-foreground text-center py-8">No components registered.</p>
     )}
   </div>
-);
+)
 
 // ── Main export ──
 
 export const ComponentLibrary: React.FC = () => {
-  const blocks = getAllBlocks();
-  const currentOrganizationId = useOrganizationStore(s => s.currentOrganizationId);
-  const queryClient = useQueryClient();
+  const blocks = getAllBlocks()
+  const currentOrganizationId = useOrganizationStore((s) => s.currentOrganizationId)
+  const queryClient = useQueryClient()
 
   const { data: customBlocks = [], isLoading } = useQuery({
-    queryKey: ['widget-block-configs', currentOrganizationId],
+    queryKey: ["widget-block-configs", currentOrganizationId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('widget_block_configs')
-        .select('*')
-        .eq('organization_id', currentOrganizationId!);
-      if (error) throw error;
-      return (data || []) as unknown as CustomBlockRow[];
+        .from("widget_block_configs")
+        .select("*")
+        .eq("organization_id", currentOrganizationId!)
+      if (error) throw error
+      return (data || []) as unknown as CustomBlockRow[]
     },
     enabled: !!currentOrganizationId,
-  });
+  })
 
   const handleDeleteCustom = async (id: string) => {
-    const { error } = await supabase.from('widget_block_configs').delete().eq('id', id);
+    const { error } = await supabase.from("widget_block_configs").delete().eq("id", id)
     if (error) {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" })
     } else {
-      toast({ title: 'Deleted' });
-      queryClient.invalidateQueries({ queryKey: ['widget-block-configs', currentOrganizationId] });
+      toast({ title: "Deleted" })
+      queryClient.invalidateQueries({ queryKey: ["widget-block-configs", currentOrganizationId] })
     }
-  };
+  }
 
   const handleSaved = () => {
-    queryClient.invalidateQueries({ queryKey: ['widget-block-configs', currentOrganizationId] });
-  };
+    queryClient.invalidateQueries({ queryKey: ["widget-block-configs", currentOrganizationId] })
+  }
 
   return (
     <div className="space-y-4">
@@ -976,7 +1275,8 @@ export const ComponentLibrary: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold">Interactive Block Components</h3>
           <p className="text-sm text-muted-foreground">
-            {blocks.length + customBlocks.length} components — browse, inspect, and test interactive UI blocks.
+            {blocks.length + customBlocks.length} components — browse, inspect, and test interactive
+            UI blocks.
           </p>
         </div>
         <CreateComponentDialog onSaved={handleSaved} />
@@ -1012,10 +1312,14 @@ export const ComponentLibrary: React.FC = () => {
 
         <TabsContent value="manage">
           <div className="mt-2">
-            <ManageView blocks={blocks} customBlocks={customBlocks} onDeleteCustom={handleDeleteCustom} />
+            <ManageView
+              blocks={blocks}
+              customBlocks={customBlocks}
+              onDeleteCustom={handleDeleteCustom}
+            />
           </div>
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}

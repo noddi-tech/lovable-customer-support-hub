@@ -1,115 +1,110 @@
-import React, { useMemo, useRef, useState } from 'react';
 import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
   closestCorners,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+  PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core';
-import { useQueryClient } from '@tanstack/react-query';
-import PipelineColumn from './PipelineColumn';
-import PipelineCard from './PipelineCard';
-import StageMoveConfirmDialog from './StageMoveConfirmDialog';
-import StageRequiredFieldsModal from '../applicants/StageRequiredFieldsModal';
-import { useStageMoveAutomation } from './useStageMoveAutomation';
-import type { PipelineApplication, PipelineFilters } from './usePipeline';
-import type { PipelineStage } from '../applicants/useApplicants';
-import { useOrganizationStore } from '@/stores/organizationStore';
+} from "@dnd-kit/core"
+import { useQueryClient } from "@tanstack/react-query"
+import type React from "react"
+import { useMemo, useRef, useState } from "react"
+import { useOrganizationStore } from "@/stores/organizationStore"
+import StageRequiredFieldsModal from "../applicants/StageRequiredFieldsModal"
+import type { PipelineStage } from "../applicants/useApplicants"
+import PipelineCard from "./PipelineCard"
+import PipelineColumn from "./PipelineColumn"
+import StageMoveConfirmDialog from "./StageMoveConfirmDialog"
+import type { PipelineApplication, PipelineFilters } from "./usePipeline"
+import { useStageMoveAutomation } from "./useStageMoveAutomation"
 
 interface Props {
-  applications: PipelineApplication[];
-  stages: PipelineStage[];
-  filters: PipelineFilters;
+  applications: PipelineApplication[]
+  stages: PipelineStage[]
+  filters: PipelineFilters
 }
 
 const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
-  const queryClient = useQueryClient();
-  const { currentOrganizationId } = useOrganizationStore();
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const snapshotRef = useRef<PipelineApplication[] | null>(null);
+  const queryClient = useQueryClient()
+  const { currentOrganizationId } = useOrganizationStore()
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const snapshotRef = useRef<PipelineApplication[] | null>(null)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   const queryKey = useMemo(
-    () => ['pipeline-applications', currentOrganizationId, filters.positionId, filters.assignedTo],
-    [currentOrganizationId, filters.positionId, filters.assignedTo]
-  );
+    () => ["pipeline-applications", currentOrganizationId, filters.positionId, filters.assignedTo],
+    [currentOrganizationId, filters.positionId, filters.assignedTo],
+  )
 
   const revertOptimistic = () => {
     // Restore the pre-drag snapshot synchronously so the card animates back
     // to its original column instead of flashing through a refetch.
     if (snapshotRef.current) {
-      queryClient.setQueryData<PipelineApplication[]>(queryKey, snapshotRef.current);
+      queryClient.setQueryData<PipelineApplication[]>(queryKey, snapshotRef.current)
     } else {
-      queryClient.invalidateQueries({ queryKey: ['pipeline-applications'] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
     }
-    snapshotRef.current = null;
-  };
+    snapshotRef.current = null
+  }
 
   const automation = useStageMoveAutomation({
     onComplete: () => {
-      snapshotRef.current = null;
+      snapshotRef.current = null
     },
     onCancel: revertOptimistic,
-  });
+  })
 
   const grouped = useMemo(() => {
-    const map: Record<string, PipelineApplication[]> = {};
-    for (const s of stages) map[s.id] = [];
+    const map: Record<string, PipelineApplication[]> = {}
+    for (const s of stages) map[s.id] = []
     for (const app of applications) {
-      if (!map[app.current_stage_id]) map[app.current_stage_id] = [];
-      map[app.current_stage_id].push(app);
+      if (!map[app.current_stage_id]) map[app.current_stage_id] = []
+      map[app.current_stage_id].push(app)
     }
-    return map;
-  }, [applications, stages]);
+    return map
+  }, [applications, stages])
 
-  const sortedStages = useMemo(
-    () => [...stages].sort((a, b) => a.order - b.order),
-    [stages]
-  );
+  const sortedStages = useMemo(() => [...stages].sort((a, b) => a.order - b.order), [stages])
 
-  const activeApp = activeId ? applications.find((a) => a.id === activeId) ?? null : null;
+  const activeApp = activeId ? (applications.find((a) => a.id === activeId) ?? null) : null
 
   const handleDragStart = (e: DragStartEvent) => {
-    setActiveId(String(e.active.id));
-  };
+    setActiveId(String(e.active.id))
+  }
 
   const handleDragEnd = (e: DragEndEvent) => {
-    setActiveId(null);
-    const { active, over } = e;
-    if (!over) return;
+    setActiveId(null)
+    const { active, over } = e
+    if (!over) return
 
-    const app = applications.find((a) => a.id === String(active.id));
-    if (!app) return;
+    const app = applications.find((a) => a.id === String(active.id))
+    if (!app) return
 
-    const overId = String(over.id);
-    let toStageId = overId;
+    const overId = String(over.id)
+    let toStageId = overId
     if (!stages.find((s) => s.id === overId)) {
-      const overApp = applications.find((a) => a.id === overId);
-      if (overApp) toStageId = overApp.current_stage_id;
-      else return;
+      const overApp = applications.find((a) => a.id === overId)
+      if (overApp) toStageId = overApp.current_stage_id
+      else return
     }
 
-    if (toStageId === app.current_stage_id) return;
+    if (toStageId === app.current_stage_id) return
 
-    const toStage = stages.find((s) => s.id === toStageId);
-    if (!toStage) return;
+    const toStage = stages.find((s) => s.id === toStageId)
+    if (!toStage) return
 
     // Optimistic update — card visually moves immediately.
-    snapshotRef.current = applications;
+    snapshotRef.current = applications
     queryClient.setQueryData<PipelineApplication[]>(queryKey, (old) => {
-      if (!old) return old;
-      return old.map((a) =>
-        a.id === app.id ? { ...a, current_stage_id: toStageId } : a
-      );
-    });
+      if (!old) return old
+      return old.map((a) => (a.id === app.id ? { ...a, current_stage_id: toStageId } : a))
+    })
 
-    const applicantName = `${app.applicants?.first_name ?? ''} ${app.applicants?.last_name ?? ''}`.trim();
+    const applicantName =
+      `${app.applicants?.first_name ?? ""} ${app.applicants?.last_name ?? ""}`.trim()
 
     void automation.handleStageMove({
       applicationId: app.id,
@@ -118,8 +113,8 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
       fromStageId: app.current_stage_id,
       toStageId,
       stageName: toStage.name,
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -131,16 +126,10 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
       >
         <div className="flex gap-4 overflow-x-auto flex-1 min-h-0 pb-2">
           {sortedStages.map((stage) => (
-            <PipelineColumn
-              key={stage.id}
-              stage={stage}
-              applications={grouped[stage.id] ?? []}
-            />
+            <PipelineColumn key={stage.id} stage={stage} applications={grouped[stage.id] ?? []} />
           ))}
         </div>
-        <DragOverlay>
-          {activeApp ? <PipelineCard app={activeApp} isOverlay /> : null}
-        </DragOverlay>
+        <DragOverlay>{activeApp ? <PipelineCard app={activeApp} isOverlay /> : null}</DragOverlay>
       </DndContext>
 
       <StageMoveConfirmDialog
@@ -166,7 +155,7 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
         />
       )}
     </>
-  );
-};
+  )
+}
 
-export default PipelineBoard;
+export default PipelineBoard

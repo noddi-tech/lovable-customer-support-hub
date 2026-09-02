@@ -1,38 +1,38 @@
-import React, { useEffect, useState } from 'react';
-
+import { AlertCircle, Loader2, Plus } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, Loader2, Plus } from 'lucide-react';
-import { useJobPositions } from '../positions/usePositions';
-import CreatePositionDialog from '../positions/CreatePositionDialog';
+} from "@/components/ui/select"
+import CreatePositionDialog from "../positions/CreatePositionDialog"
+import { useJobPositions } from "../positions/usePositions"
 
 const SOURCES = [
-  { value: 'meta_lead_ad', label: 'Meta Lead Ad' },
-  { value: 'finn', label: 'Finn.no' },
-  { value: 'csv_import', label: 'CSV Import' },
-  { value: 'website', label: 'Nettside' },
-  { value: 'referral', label: 'Referanse' },
-];
+  { value: "meta_lead_ad", label: "Meta Lead Ad" },
+  { value: "finn", label: "Finn.no" },
+  { value: "csv_import", label: "CSV Import" },
+  { value: "website", label: "Nettside" },
+  { value: "referral", label: "Referanse" },
+]
 
 interface Props {
-  validCount: number;
-  positionId: string;
-  source: string;
-  gdprConfirmed: boolean;
-  onPositionChange: (id: string) => void;
-  onSourceChange: (s: string) => void;
-  onGdprChange: (b: boolean) => void;
-  onBack: () => void;
-  onImport: () => void;
+  validCount: number
+  positionId: string
+  source: string
+  gdprConfirmed: boolean
+  onPositionChange: (id: string) => void
+  onSourceChange: (s: string) => void
+  onGdprChange: (b: boolean) => void
+  onBack: () => void
+  onImport: () => void
 }
 
 const ImportConfigureStep: React.FC<Props> = ({
@@ -46,24 +46,21 @@ const ImportConfigureStep: React.FC<Props> = ({
   onBack,
   onImport,
 }) => {
-  const { data: positions, isLoading: positionsLoading } = useJobPositions();
-  const [createOpen, setCreateOpen] = useState(false);
+  const { data: positions, isLoading: positionsLoading } = useJobPositions()
+  const [createOpen, setCreateOpen] = useState(false)
 
-  const open = (positions ?? []).filter(
-    (p) => (p.status ?? '').trim().toLowerCase() === 'open',
-  );
-  const positionTitle = open.find((p) => p.id === positionId)?.title;
-  const noOpenPositions = !positionsLoading && open.length === 0;
+  const open = (positions ?? []).filter((p) => (p.status ?? "").trim().toLowerCase() === "open")
+  const positionTitle = open.find((p) => p.id === positionId)?.title
+  const noOpenPositions = !positionsLoading && open.length === 0
 
   useEffect(() => {
-    if (source === 'meta_lead_ad' && !gdprConfirmed) onGdprChange(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source]);
+    if (source === "meta_lead_ad" && !gdprConfirmed) onGdprChange(true)
+  }, [source, onGdprChange, gdprConfirmed])
 
   const handleCreated = (id: string) => {
     // The query invalidates on success; pre-select the newly created position.
-    onPositionChange(id);
-  };
+    onPositionChange(id)
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -89,8 +86,8 @@ const ImportConfigureStep: React.FC<Props> = ({
               <div className="space-y-2 flex-1">
                 <p className="font-medium text-sm">Ingen åpne stillinger</p>
                 <p className="text-sm text-muted-foreground">
-                  Du må publisere en stilling før du kan koble søkerne til den. Opprett én
-                  her uten å forlate importflyten — den blir publisert med en gang.
+                  Du må publisere en stilling før du kan koble søkerne til den. Opprett én her uten
+                  å forlate importflyten — den blir publisert med en gang.
                 </p>
                 <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -138,8 +135,8 @@ const ImportConfigureStep: React.FC<Props> = ({
             className="mt-0.5"
           />
           <Label htmlFor="gdpr" className="text-sm leading-relaxed cursor-pointer font-normal">
-            Alle søkere har gitt samtykke til behandling av personopplysninger. Meta Lead Ads
-            krever samtykke, men bekreft at du har rettmessig grunnlag.
+            Alle søkere har gitt samtykke til behandling av personopplysninger. Meta Lead Ads krever
+            samtykke, men bekreft at du har rettmessig grunnlag.
           </Label>
         </div>
       </Card>
@@ -149,7 +146,8 @@ const ImportConfigureStep: React.FC<Props> = ({
           Vil importere <strong>{validCount} søkere</strong>
           {positionTitle ? (
             <>
-              {' '}til stillingen <strong>"{positionTitle}"</strong>
+              {" "}
+              til stillingen <strong>"{positionTitle}"</strong>
             </>
           ) : null}
           .
@@ -172,7 +170,7 @@ const ImportConfigureStep: React.FC<Props> = ({
         onCreated={handleCreated}
       />
     </div>
-  );
-};
+  )
+}
 
-export default ImportConfigureStep;
+export default ImportConfigureStep

@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Check, Pencil } from 'lucide-react';
-import { useTags, TAG_COLORS, type Tag } from '@/hooks/useTags';
-import { TagBadge } from '@/components/tags/TagBadge';
-import { cn } from '@/lib/utils';
+import { Check, Pencil, Plus, Trash2 } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { TagBadge } from "@/components/tags/TagBadge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { TAG_COLORS, type Tag, useTags } from "@/hooks/useTags"
+import { cn } from "@/lib/utils"
 
-const ColorSwatches: React.FC<{ value: string; onChange: (c: string) => void }> = ({ value, onChange }) => (
+const ColorSwatches: React.FC<{ value: string; onChange: (c: string) => void }> = ({
+  value,
+  onChange,
+}) => (
   <div className="flex flex-wrap items-center gap-1.5">
     {TAG_COLORS.map((c) => (
       <button
@@ -15,7 +19,10 @@ const ColorSwatches: React.FC<{ value: string; onChange: (c: string) => void }> 
         type="button"
         aria-label={`Color ${c}`}
         onClick={() => onChange(c)}
-        className={cn('h-5 w-5 rounded-full border', value === c && 'ring-2 ring-ring ring-offset-1')}
+        className={cn(
+          "h-5 w-5 rounded-full border",
+          value === c && "ring-2 ring-ring ring-offset-1",
+        )}
         style={{ backgroundColor: c }}
       />
     ))}
@@ -27,20 +34,20 @@ const ColorSwatches: React.FC<{ value: string; onChange: (c: string) => void }> 
       className="h-6 w-8 cursor-pointer rounded border bg-background p-0.5"
     />
   </div>
-);
+)
 
 /** Create, rename, recolor and delete the organization's custom tags. */
 export const TagManagementSettings: React.FC = () => {
-  const { tags, createTag, updateTag, deleteTag } = useTags();
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(TAG_COLORS[0]);
-  const [editing, setEditing] = useState<Tag | null>(null);
+  const { tags, createTag, updateTag, deleteTag } = useTags()
+  const [name, setName] = useState("")
+  const [color, setColor] = useState(TAG_COLORS[0])
+  const [editing, setEditing] = useState<Tag | null>(null)
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
-    await createTag.mutateAsync({ name, color });
-    setName('');
-  };
+    if (!name.trim()) return
+    await createTag.mutateAsync({ name, color })
+    setName("")
+  }
 
   return (
     <Card className="max-w-2xl">
@@ -57,11 +64,15 @@ export const TagManagementSettings: React.FC = () => {
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder="New tag name"
               className="h-9"
             />
-            <Button onClick={handleCreate} disabled={!name.trim() || createTag.isPending} className="h-9">
+            <Button
+              onClick={handleCreate}
+              disabled={!name.trim() || createTag.isPending}
+              className="h-9"
+            >
               <Plus className="mr-1 h-4 w-4" /> Add
             </Button>
           </div>
@@ -79,13 +90,20 @@ export const TagManagementSettings: React.FC = () => {
                     onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                     className="h-8 max-w-[12rem]"
                   />
-                  <ColorSwatches value={editing.color} onChange={(c) => setEditing({ ...editing, color: c })} />
+                  <ColorSwatches
+                    value={editing.color}
+                    onChange={(c) => setEditing({ ...editing, color: c })}
+                  />
                   <Button
                     size="sm"
                     className="ml-auto h-8"
                     onClick={async () => {
-                      await updateTag.mutateAsync({ id: tag.id, name: editing.name, color: editing.color });
-                      setEditing(null);
+                      await updateTag.mutateAsync({
+                        id: tag.id,
+                        name: editing.name,
+                        color: editing.color,
+                      })
+                      setEditing(null)
                     }}
                   >
                     <Check className="h-4 w-4" />
@@ -95,7 +113,12 @@ export const TagManagementSettings: React.FC = () => {
                 <>
                   <TagBadge tag={tag} />
                   <div className="ml-auto flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-8" onClick={() => setEditing(tag)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setEditing(tag)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -114,5 +137,5 @@ export const TagManagementSettings: React.FC = () => {
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

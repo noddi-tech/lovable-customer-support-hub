@@ -1,20 +1,20 @@
-import React from 'react';
-import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { MessageItem } from '@/components/conversations/MessageItem';
-import { useApplicantConversationMessages } from '@/hooks/recruitment/useRecruitmentEmail';
-import { InlineReplyBox } from './InlineReplyBox';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { MessageItem } from "@/components/conversations/MessageItem"
+import { useApplicantConversationMessages } from "@/hooks/recruitment/useRecruitmentEmail"
+import { cn } from "@/lib/utils"
+import { InlineReplyBox } from "./InlineReplyBox"
 
 interface Props {
-  conversationId: string;
-  applicantId: string;
-  inboxId: string | null;
+  conversationId: string
+  applicantId: string
+  inboxId: string | null
   applicant: {
-    first_name?: string | null;
-    last_name?: string | null;
-    email?: string | null;
-  };
-  subjectHint?: string | null;
+    first_name?: string | null
+    last_name?: string | null
+    email?: string | null
+  }
+  subjectHint?: string | null
 }
 
 export const InlineEmailThread: React.FC<Props> = ({
@@ -24,14 +24,15 @@ export const InlineEmailThread: React.FC<Props> = ({
   applicant,
   subjectHint,
 }) => {
-  const { data: messages, isLoading, error } = useApplicantConversationMessages(conversationId);
+  const { data: messages, isLoading, error } = useApplicantConversationMessages(conversationId)
 
   const customerForItem = {
     customer: {
-      full_name: [applicant.first_name, applicant.last_name].filter(Boolean).join(' ').trim() || undefined,
+      full_name:
+        [applicant.first_name, applicant.last_name].filter(Boolean).join(" ").trim() || undefined,
       email: applicant.email || undefined,
     },
-  };
+  }
 
   return (
     <div className="border-t border-border bg-background">
@@ -52,22 +53,22 @@ export const InlineEmailThread: React.FC<Props> = ({
           </div>
         )}
         {messages?.map((msg) => {
-          const isAgent = msg.authorType === 'agent' || msg.authorType === 'ai_draft';
+          const isAgent = msg.authorType === "agent" || msg.authorType === "ai_draft"
           return (
             <div
               key={msg.dedupKey || msg.id}
-              className={cn('flex w-full', isAgent ? 'justify-end' : 'justify-start')}
+              className={cn("flex w-full", isAgent ? "justify-end" : "justify-start")}
             >
               <div
                 className={cn(
-                  'max-w-[85%] min-w-0',
-                  isAgent && '[&_>div]:bg-primary/5 [&_>div]:border-primary/20'
+                  "max-w-[85%] min-w-0",
+                  isAgent && "[&_>div]:bg-primary/5 [&_>div]:border-primary/20",
                 )}
               >
                 <MessageItem message={msg} conversation={customerForItem} />
               </div>
             </div>
-          );
+          )
         })}
       </div>
       {inboxId && (
@@ -84,7 +85,7 @@ export const InlineEmailThread: React.FC<Props> = ({
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default InlineEmailThread;
+export default InlineEmailThread

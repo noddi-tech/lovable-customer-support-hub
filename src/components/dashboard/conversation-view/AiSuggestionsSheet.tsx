@@ -1,20 +1,25 @@
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CheckCircle2, Loader2, Sparkles } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 interface AiSuggestionsSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  suggestions: string[];
-  onUseAsIs: (suggestion: string) => void;
-  onRefine: (refinementInstructions: string, originalText: string) => Promise<void>;
-  isRefining?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  suggestions: string[]
+  onUseAsIs: (suggestion: string) => void
+  onRefine: (refinementInstructions: string, originalText: string) => Promise<void>
+  isRefining?: boolean
 }
 
 export function AiSuggestionsSheet({
@@ -25,36 +30,36 @@ export function AiSuggestionsSheet({
   onRefine,
   isRefining = false,
 }: AiSuggestionsSheetProps) {
-  const [refiningIndex, setRefiningIndex] = useState<number | null>(null);
-  const [refinementText, setRefinementText] = useState('');
+  const [refiningIndex, setRefiningIndex] = useState<number | null>(null)
+  const [refinementText, setRefinementText] = useState("")
 
   const handleUse = (suggestion: string) => {
-    onUseAsIs(suggestion);
-    onOpenChange(false);
-  };
+    onUseAsIs(suggestion)
+    onOpenChange(false)
+  }
 
   const handleStartRefine = (index: number) => {
-    setRefiningIndex(index);
-    setRefinementText('');
-  };
+    setRefiningIndex(index)
+    setRefinementText("")
+  }
 
   const handleCancelRefine = () => {
-    setRefiningIndex(null);
-    setRefinementText('');
-  };
+    setRefiningIndex(null)
+    setRefinementText("")
+  }
 
   const handleSubmitRefine = async (originalText: string) => {
-    if (!refinementText.trim()) return;
-    await onRefine(refinementText, originalText);
-    setRefiningIndex(null);
-    setRefinementText('');
-  };
+    if (!refinementText.trim()) return
+    await onRefine(refinementText, originalText)
+    setRefiningIndex(null)
+    setRefinementText("")
+  }
 
   const handleClose = () => {
-    setRefiningIndex(null);
-    setRefinementText('');
-    onOpenChange(false);
-  };
+    setRefiningIndex(null)
+    setRefinementText("")
+    onOpenChange(false)
+  }
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
@@ -76,7 +81,7 @@ export function AiSuggestionsSheet({
                 key={index}
                 className={cn(
                   "rounded-lg border border-border bg-card p-4 flex flex-col gap-3 transition-colors",
-                  "hover:border-primary/40"
+                  "hover:border-primary/40",
                 )}
               >
                 {/* Suggestion text */}
@@ -94,7 +99,9 @@ export function AiSuggestionsSheet({
 
                   {refiningIndex === index ? (
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium">How would you like to adjust this?</Label>
+                      <Label className="text-xs font-medium">
+                        How would you like to adjust this?
+                      </Label>
                       <Textarea
                         value={refinementText}
                         onChange={(e) => setRefinementText(e.target.value)}
@@ -161,5 +168,5 @@ export function AiSuggestionsSheet({
         </ScrollArea>
       </SheetContent>
     </Sheet>
-  );
+  )
 }

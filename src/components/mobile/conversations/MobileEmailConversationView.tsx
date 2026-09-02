@@ -1,72 +1,75 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { canGoBackInApp, getConversationBackPath } from '@/utils/conversationNavigation';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, CircleDot, Clock, CheckCircle2, Archive, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { getCustomerDisplayWithNoddi, getCustomerInitial } from '@/utils/customerDisplayName';
-import { useNoddihKundeData } from '@/hooks/useNoddihKundeData';
-import { useConversationView } from '@/contexts/ConversationViewContext';
-import { useThreadMessagesList } from '@/hooks/conversations/useThreadMessagesList';
-import { createNormalizationContext } from '@/lib/normalizeMessage';
-import { useAuth } from '@/hooks/useAuth';
-import { MobileEmailMessageCard } from './MobileEmailMessageCard';
-import { MobileCustomerSummaryCard } from './MobileCustomerSummaryCard';
-import { LazyReplyArea } from '@/components/conversations/LazyReplyArea';
-import { cn } from '@/lib/utils';
-import { DescribedSelectItem } from '@/components/ui/described-select-item';
-import { CONVERSATION_STATUS_DESCRIPTIONS } from '@/lib/option-descriptions';
+import { Archive, ArrowLeft, CheckCircle2, CircleDot, Clock, Loader2 } from "lucide-react"
+import type React from "react"
+import { useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import { LazyReplyArea } from "@/components/conversations/LazyReplyArea"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DescribedSelectItem } from "@/components/ui/described-select-item"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
+import { useAuth } from "@/hooks/useAuth"
+import { useNoddihKundeData } from "@/hooks/useNoddihKundeData"
+import { createNormalizationContext } from "@/lib/normalizeMessage"
+import { CONVERSATION_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
+import { canGoBackInApp, getConversationBackPath } from "@/utils/conversationNavigation"
+import { getCustomerDisplayWithNoddi } from "@/utils/customerDisplayName"
+import { MobileCustomerSummaryCard } from "./MobileCustomerSummaryCard"
+import { MobileEmailMessageCard } from "./MobileEmailMessageCard"
 
 interface MobileEmailConversationViewProps {
-  conversationId: string;
-  conversation: any;
+  conversationId: string
+  conversation: any
 }
 
 export const MobileEmailConversationView: React.FC<MobileEmailConversationViewProps> = ({
   conversationId,
   conversation,
 }) => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { conversationIds, updateStatus } = useConversationView();
-  const { data: noddiData } = useNoddihKundeData(conversation.customer || null);
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { conversationIds, updateStatus } = useConversationView()
+  const { data: noddiData } = useNoddihKundeData(conversation.customer || null)
 
-  const customerDisplay = useMemo(() =>
-    getCustomerDisplayWithNoddi(noddiData, conversation.customer?.full_name, conversation.customer?.email),
-    [noddiData, conversation.customer?.full_name, conversation.customer?.email]
-  );
+  const customerDisplay = useMemo(
+    () =>
+      getCustomerDisplayWithNoddi(
+        noddiData,
+        conversation.customer?.full_name,
+        conversation.customer?.email,
+      ),
+    [noddiData, conversation.customer?.full_name, conversation.customer?.email],
+  )
 
-  const normCtx = useMemo(() => createNormalizationContext({
-    currentUserEmail: user?.email,
-    agentDomains: ['noddi.no'],
-    agentEmails: [],
-    conversationCustomerEmail: conversation?.customer?.email,
-    conversationCustomerName: conversation?.customer?.full_name,
-  }), [user?.email, conversation?.customer?.email, conversation?.customer?.full_name]);
+  const normCtx = useMemo(
+    () =>
+      createNormalizationContext({
+        currentUserEmail: user?.email,
+        agentDomains: ["noddi.no"],
+        agentEmails: [],
+        conversationCustomerEmail: conversation?.customer?.email,
+        conversationCustomerName: conversation?.customer?.full_name,
+      }),
+    [user?.email, conversation?.customer?.email, conversation?.customer?.full_name],
+  )
 
-  const fetchIds = conversationIds || conversationId;
-  const {
-    messages,
-    isLoading,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useThreadMessagesList(fetchIds, normCtx);
+  const fetchIds = conversationIds || conversationId
+  const { messages, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useThreadMessagesList(fetchIds, normCtx)
 
   const handleBack = () => {
     if (canGoBackInApp()) {
-      navigate(-1);
+      navigate(-1)
     } else {
-      navigate(getConversationBackPath(window.location.pathname));
+      navigate(getConversationBackPath(window.location.pathname))
     }
-  };
+  }
 
   // Messages in ASC order (oldest first)
-  const sortedMessages = [...messages].reverse();
+  const sortedMessages = [...messages].reverse()
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
@@ -79,31 +82,60 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium truncate">
-              {customerDisplay.displayName}
-            </span>
+            <span className="text-xs font-medium truncate">{customerDisplay.displayName}</span>
             {conversation.is_archived && (
-              <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0 bg-muted text-muted-foreground">
+              <Badge
+                variant="outline"
+                className="text-[9px] h-4 px-1 shrink-0 bg-muted text-muted-foreground"
+              >
                 <Archive className="h-2.5 w-2.5 mr-0.5" />
                 Archived
               </Badge>
             )}
           </div>
           {conversation.subject && (
-            <p className="text-[10px] text-muted-foreground truncate">
-              {conversation.subject}
-            </p>
+            <p className="text-[10px] text-muted-foreground truncate">{conversation.subject}</p>
           )}
         </div>
 
-        <Select value={conversation?.status || 'open'} onValueChange={(s) => updateStatus({ status: s })}>
+        <Select
+          value={conversation?.status || "open"}
+          onValueChange={(s) => updateStatus({ status: s })}
+        >
           <SelectTrigger className="h-6 w-[80px] text-[10px] shrink-0">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <DescribedSelectItem value="open" title="Open" description={CONVERSATION_STATUS_DESCRIPTIONS.open}><div className="flex items-center gap-1"><CircleDot className="h-3 w-3" />Open</div></DescribedSelectItem>
-            <DescribedSelectItem value="pending" title="Pending" description={CONVERSATION_STATUS_DESCRIPTIONS.pending}><div className="flex items-center gap-1"><Clock className="h-3 w-3" />Pending</div></DescribedSelectItem>
-            <DescribedSelectItem value="closed" title="Closed" description={CONVERSATION_STATUS_DESCRIPTIONS.closed}><div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Closed</div></DescribedSelectItem>
+            <DescribedSelectItem
+              value="open"
+              title="Open"
+              description={CONVERSATION_STATUS_DESCRIPTIONS.open}
+            >
+              <div className="flex items-center gap-1">
+                <CircleDot className="h-3 w-3" />
+                Open
+              </div>
+            </DescribedSelectItem>
+            <DescribedSelectItem
+              value="pending"
+              title="Pending"
+              description={CONVERSATION_STATUS_DESCRIPTIONS.pending}
+            >
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Pending
+              </div>
+            </DescribedSelectItem>
+            <DescribedSelectItem
+              value="closed"
+              title="Closed"
+              description={CONVERSATION_STATUS_DESCRIPTIONS.closed}
+            >
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                Closed
+              </div>
+            </DescribedSelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -138,8 +170,13 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
                   className="text-xs"
                 >
                   {isFetchingNextPage ? (
-                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Loading...</>
-                  ) : 'Load older messages'}
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Load older messages"
+                  )}
                 </Button>
               </div>
             )}
@@ -154,5 +191,5 @@ export const MobileEmailConversationView: React.FC<MobileEmailConversationViewPr
         </ScrollArea>
       )}
     </div>
-  );
-};
+  )
+}

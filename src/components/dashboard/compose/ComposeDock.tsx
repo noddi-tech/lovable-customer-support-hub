@@ -1,6 +1,6 @@
-import React from 'react';
-import { useCompose } from '@/contexts/ComposeContext';
-import { ComposeWindow } from './ComposeWindow';
+import type React from "react"
+import { useCompose } from "@/contexts/ComposeContext"
+import { ComposeWindow } from "./ComposeWindow"
 
 /**
  * Renders all open compose windows docked to the bottom-right of the screen,
@@ -8,9 +8,9 @@ import { ComposeWindow } from './ComposeWindow';
  * into title bars.
  */
 export const ComposeDock: React.FC = () => {
-  const { openWindows } = useCompose();
+  const { openWindows } = useCompose()
 
-  if (openWindows.length === 0) return null;
+  if (openWindows.length === 0) return null
 
   return (
     <div className="fixed bottom-0 right-0 z-[60] flex items-end gap-3 p-0 pr-4 pointer-events-none">
@@ -20,5 +20,5 @@ export const ComposeDock: React.FC = () => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}

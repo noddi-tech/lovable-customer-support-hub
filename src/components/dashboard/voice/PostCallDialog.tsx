@@ -1,125 +1,133 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Clock, Calendar, CheckCircle, FileText, Send } from 'lucide-react';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { format } from "date-fns"
+import { Calendar, CheckCircle, Clock, FileText, Phone, Send } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 interface Call {
-  id: string;
-  customer_phone?: string;
-  customer_id?: string;
-  direction: 'inbound' | 'outbound';
-  started_at: string;
-  ended_at?: string;
-  duration_seconds?: number;
-  status: string;
+  id: string
+  customer_phone?: string
+  customer_id?: string
+  direction: "inbound" | "outbound"
+  started_at: string
+  ended_at?: string
+  duration_seconds?: number
+  status: string
   customer?: {
-    full_name?: string;
-    email?: string;
-  };
+    full_name?: string
+    email?: string
+  }
 }
 
 interface PostCallDialogProps {
-  call: Call | null;
-  isOpen: boolean;
-  onClose: () => void;
+  call: Call | null
+  isOpen: boolean
+  onClose: () => void
 }
 
 export const PostCallDialog = ({ call, isOpen, onClose }: PostCallDialogProps) => {
-  const [activeTab, setActiveTab] = useState<'note' | 'callback' | 'email'>('note');
-  const [content, setContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"note" | "callback" | "email">("note")
+  const [content, setContent] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
-  if (!call) return null;
+  if (!call) return null
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'N/A';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+    if (!seconds) return "N/A"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
 
   const handleSave = async () => {
     if (!content.trim()) {
       toast({
-        title: 'Content required',
-        description: 'Please enter some content before saving.',
-        variant: 'destructive',
-      });
-      return;
+        title: "Content required",
+        description: "Please enter some content before saving.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
 
-      if (!profile) throw new Error('Profile not found');
+      if (!profile) throw new Error("Profile not found")
 
-      if (activeTab === 'note') {
-        await supabase.from('call_notes').insert({
+      if (activeTab === "note") {
+        await supabase.from("call_notes").insert({
           call_id: call.id,
           content: content.trim(),
           organization_id: profile.organization_id,
           created_by_id: user.id,
-        });
+        })
 
         toast({
-          title: 'Note saved',
-          description: 'Your call note has been saved successfully.',
-        });
-      } else if (activeTab === 'callback') {
-        await supabase.from('internal_events').insert({
+          title: "Note saved",
+          description: "Your call note has been saved successfully.",
+        })
+      } else if (activeTab === "callback") {
+        await supabase.from("internal_events").insert({
           organization_id: profile.organization_id,
-          event_type: 'callback_scheduled',
+          event_type: "callback_scheduled",
           call_id: call.id,
           customer_phone: call.customer_phone,
           event_data: { note: content.trim() },
-          status: 'pending',
-        });
+          status: "pending",
+        })
 
         toast({
-          title: 'Callback scheduled',
-          description: 'Callback has been added to your tasks.',
-        });
-      } else if (activeTab === 'email') {
+          title: "Callback scheduled",
+          description: "Callback has been added to your tasks.",
+        })
+      } else if (activeTab === "email") {
         toast({
-          title: 'Email draft created',
-          description: 'Email draft has been prepared.',
-        });
+          title: "Email draft created",
+          description: "Email draft has been prepared.",
+        })
       }
 
-      setContent('');
-      onClose();
+      setContent("")
+      onClose()
     } catch (error) {
-      console.error('Error saving post-call action:', error);
+      console.error("Error saving post-call action:", error)
       toast({
-        title: 'Error',
-        description: 'Failed to save. Please try again.',
-        variant: 'destructive',
-      });
+        title: "Error",
+        description: "Failed to save. Please try again.",
+        variant: "destructive",
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleSkip = () => {
-    setContent('');
-    onClose();
-  };
+    setContent("")
+    onClose()
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -129,9 +137,7 @@ export const PostCallDialog = ({ call, isOpen, onClose }: PostCallDialogProps) =
             <CheckCircle className="h-5 w-5 text-success" />
             Call Completed
           </DialogTitle>
-          <DialogDescription>
-            Quick actions and notes for this call
-          </DialogDescription>
+          <DialogDescription>Quick actions and notes for this call</DialogDescription>
         </DialogHeader>
 
         {/* Call Summary */}
@@ -142,10 +148,10 @@ export const PostCallDialog = ({ call, isOpen, onClose }: PostCallDialogProps) =
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="font-medium">
-                    {call.customer?.full_name || call.customer_phone || 'Unknown'}
+                    {call.customer?.full_name || call.customer_phone || "Unknown"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
+                    {call.direction === "inbound" ? "Incoming" : "Outgoing"}
                   </p>
                 </div>
               </div>
@@ -159,9 +165,9 @@ export const PostCallDialog = ({ call, isOpen, onClose }: PostCallDialogProps) =
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">{format(new Date(call.started_at), 'p')}</p>
+                  <p className="font-medium">{format(new Date(call.started_at), "p")}</p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(call.started_at), 'PP')}
+                    {format(new Date(call.started_at), "PP")}
                   </p>
                 </div>
               </div>
@@ -198,10 +204,18 @@ export const PostCallDialog = ({ call, isOpen, onClose }: PostCallDialogProps) =
               autoFocus
             />
             <div className="flex gap-2">
-              <Badge variant="outline" className="cursor-pointer" onClick={() => setContent(content + '\n- ')}>
+              <Badge
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => setContent(`${content}\n- `)}
+              >
                 + Bullet point
               </Badge>
-              <Badge variant="outline" className="cursor-pointer" onClick={() => setContent(content + '\n[ ] ')}>
+              <Badge
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => setContent(`${content}\n[ ] `)}
+              >
                 + Task
               </Badge>
             </div>
@@ -246,11 +260,13 @@ Thanks for speaking with me today. Here's a summary of what we discussed..."
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading ? 'Saving...' : `Save ${activeTab === 'note' ? 'Note' : activeTab === 'callback' ? 'Callback' : 'Draft'}`}
+              {isLoading
+                ? "Saving..."
+                : `Save ${activeTab === "note" ? "Note" : activeTab === "callback" ? "Callback" : "Draft"}`}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

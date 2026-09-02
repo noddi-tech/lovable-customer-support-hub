@@ -1,56 +1,62 @@
-import { formatDistanceToNow } from 'date-fns';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mail, CheckCircle, XCircle, Clock, Send, RefreshCw, User } from 'lucide-react';
-import { useInviteEmailLogs, InviteEmailLog } from '@/hooks/useInviteEmailLogs';
+import { formatDistanceToNow } from "date-fns"
+import { CheckCircle, Clock, Mail, RefreshCw, Send, User, XCircle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { type InviteEmailLog, useInviteEmailLogs } from "@/hooks/useInviteEmailLogs"
 
 interface InviteHistoryDialogProps {
-  email: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  email: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistoryDialogProps) {
-  const { data: logs = [], isLoading } = useInviteEmailLogs(email);
+  const { data: logs = [], isLoading } = useInviteEmailLogs(email)
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'delivered':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'bounced':
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-destructive" />;
-      case 'sent':
-        return <Send className="h-4 w-4 text-blue-500" />;
+      case "delivered":
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case "bounced":
+      case "failed":
+        return <XCircle className="h-4 w-4 text-destructive" />
+      case "sent":
+        return <Send className="h-4 w-4 text-blue-500" />
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />
     }
-  };
+  }
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      sent: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
-      delivered: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
-      bounced: 'bg-destructive/10 text-destructive',
-      failed: 'bg-destructive/10 text-destructive',
-      not_applicable: 'bg-muted text-muted-foreground',
-    };
-    return variants[status] || 'bg-muted text-muted-foreground';
-  };
+      sent: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400",
+      delivered: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
+      bounced: "bg-destructive/10 text-destructive",
+      failed: "bg-destructive/10 text-destructive",
+      not_applicable: "bg-muted text-muted-foreground",
+    }
+    return variants[status] || "bg-muted text-muted-foreground"
+  }
 
   const getEmailTypeLabel = (type: string) => {
     switch (type) {
-      case 'invite':
-        return 'Initial Invite';
-      case 'resend_invite':
-        return 'Resent Invite';
-      case 'direct_creation':
-        return 'Direct Creation';
+      case "invite":
+        return "Initial Invite"
+      case "resend_invite":
+        return "Resent Invite"
+      case "direct_creation":
+        return "Direct Creation"
       default:
-        return type;
+        return type
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,7 +68,7 @@ export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistory
           </DialogTitle>
           <DialogDescription>{email}</DialogDescription>
         </DialogHeader>
-        
+
         <ScrollArea className="max-h-[400px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -76,10 +82,7 @@ export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistory
           ) : (
             <div className="space-y-3">
               {logs.map((log: InviteEmailLog) => (
-                <div
-                  key={log.id}
-                  className="p-3 rounded-lg border border-border bg-card"
-                >
+                <div key={log.id} className="p-3 rounded-lg border border-border bg-card">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(log.status)}
@@ -91,7 +94,7 @@ export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistory
                       {formatDistanceToNow(new Date(log.created_at))} ago
                     </span>
                   </div>
-                  
+
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-muted-foreground">Type:</span>
@@ -99,7 +102,7 @@ export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistory
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-muted-foreground">Provider:</span>
-                      <span className="capitalize">{log.provider.replace('_', ' ')}</span>
+                      <span className="capitalize">{log.provider.replace("_", " ")}</span>
                     </div>
                     {log.metadata?.resent_by && (
                       <div className="flex items-center gap-2 text-sm">
@@ -121,5 +124,5 @@ export function InviteHistoryDialog({ email, open, onOpenChange }: InviteHistory
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

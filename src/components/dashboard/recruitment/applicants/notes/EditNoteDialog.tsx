@@ -1,56 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useUpdateApplicantNote } from '../hooks/useUpdateApplicantNote';
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useUpdateApplicantNote } from "../hooks/useUpdateApplicantNote"
 
 const NOTE_TYPES = [
-  { value: 'internal', label: 'Internt notat' },
-  { value: 'interview_feedback', label: 'Intervjufeedback' },
-  { value: 'private', label: 'Privat' },
-];
+  { value: "internal", label: "Internt notat" },
+  { value: "interview_feedback", label: "Intervjufeedback" },
+  { value: "private", label: "Privat" },
+]
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   note: {
-    id: string;
-    applicant_id: string;
-    application_id: string | null;
-    content: string;
-    note_type: string;
-  } | null;
+    id: string
+    applicant_id: string
+    application_id: string | null
+    content: string
+    note_type: string
+  } | null
 }
 
 const EditNoteDialog: React.FC<Props> = ({ open, onOpenChange, note }) => {
-  const updateMut = useUpdateApplicantNote();
-  const [content, setContent] = useState('');
-  const [type, setType] = useState('internal');
+  const updateMut = useUpdateApplicantNote()
+  const [content, setContent] = useState("")
+  const [type, setType] = useState("internal")
 
   useEffect(() => {
     if (open && note) {
-      setContent(note.content);
-      setType(note.note_type);
+      setContent(note.content)
+      setType(note.note_type)
     }
-  }, [open, note]);
+  }, [open, note])
 
   const submit = async () => {
-    if (!note || !content.trim()) return;
+    if (!note || !content.trim()) return
     try {
       await updateMut.mutateAsync({
         noteId: note.id,
@@ -58,12 +59,12 @@ const EditNoteDialog: React.FC<Props> = ({ open, onOpenChange, note }) => {
         applicationId: note.application_id,
         content: content.trim(),
         note_type: type,
-      });
-      onOpenChange(false);
+      })
+      onOpenChange(false)
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,7 +96,11 @@ const EditNoteDialog: React.FC<Props> = ({ open, onOpenChange, note }) => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateMut.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={updateMut.isPending}
+          >
             Avbryt
           </Button>
           <Button onClick={submit} disabled={!content.trim() || updateMut.isPending}>
@@ -105,7 +110,7 @@ const EditNoteDialog: React.FC<Props> = ({ open, onOpenChange, note }) => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
-export default EditNoteDialog;
+export default EditNoteDialog

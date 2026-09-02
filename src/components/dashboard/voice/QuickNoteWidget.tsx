@@ -1,75 +1,77 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Send, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
+import { FileText, Send, X } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
+import { cn } from "@/lib/utils"
 
 interface QuickNoteWidgetProps {
-  callId: string;
-  onSaved?: () => void;
-  className?: string;
+  callId: string
+  onSaved?: () => void
+  className?: string
 }
 
 export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetProps) => {
-  const [note, setNote] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
+  const [note, setNote] = useState("")
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
 
   const quickTemplates = [
-    '✅ Issue resolved',
-    '📞 Callback needed',
-    '📧 Follow-up required',
-    '❓ More info needed',
-    '⭐ VIP customer',
-  ];
+    "✅ Issue resolved",
+    "📞 Callback needed",
+    "📧 Follow-up required",
+    "❓ More info needed",
+    "⭐ VIP customer",
+  ]
 
   const handleSave = async () => {
-    if (!note.trim()) return;
+    if (!note.trim()) return
 
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single()
 
-      if (!profile) throw new Error('Profile not found');
+      if (!profile) throw new Error("Profile not found")
 
-      await supabase.from('call_notes').insert({
+      await supabase.from("call_notes").insert({
         call_id: callId,
         content: note.trim(),
         organization_id: profile.organization_id,
         created_by_id: user.id,
-      });
+      })
 
       toast({
-        title: 'Note saved',
-        description: 'Your note has been added to the call.',
-      });
+        title: "Note saved",
+        description: "Your note has been added to the call.",
+      })
 
-      setNote('');
-      setIsExpanded(false);
-      onSaved?.();
+      setNote("")
+      setIsExpanded(false)
+      onSaved?.()
     } catch (error) {
-      console.error('Error saving note:', error);
+      console.error("Error saving note:", error)
       toast({
-        title: 'Error',
-        description: 'Failed to save note. Please try again.',
-        variant: 'destructive',
-      });
+        title: "Error",
+        description: "Failed to save note. Please try again.",
+        variant: "destructive",
+      })
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   if (!isExpanded) {
     return (
@@ -82,7 +84,7 @@ export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetP
         <FileText className="h-4 w-4" />
         Quick Note
       </Button>
-    );
+    )
   }
 
   return (
@@ -111,12 +113,12 @@ export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetP
           className="min-h-[80px] resize-none"
           autoFocus
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              handleSave();
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              handleSave()
             }
           }}
         />
-        
+
         <div className="flex flex-wrap gap-1">
           {quickTemplates.map((template) => (
             <Badge
@@ -131,9 +133,7 @@ export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetP
         </div>
 
         <div className="flex justify-between items-center pt-1">
-          <div className="text-xs text-muted-foreground">
-            Cmd/Ctrl + Enter to save
-          </div>
+          <div className="text-xs text-muted-foreground">Cmd/Ctrl + Enter to save</div>
           <Button
             onClick={handleSave}
             disabled={!note.trim() || isSaving}
@@ -141,10 +141,10 @@ export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetP
             className="gap-2"
           >
             <Send className="h-3 w-3" />
-            {isSaving ? 'Saving...' : 'Save Note'}
+            {isSaving ? "Saving..." : "Save Note"}
           </Button>
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

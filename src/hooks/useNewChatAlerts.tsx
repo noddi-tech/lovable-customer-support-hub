@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useAgentAvailability } from '@/hooks/useAgentAvailability';
-import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
-import { useNotificationSound } from '@/hooks/useNotificationSound';
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useAgentAvailability } from "@/hooks/useAgentAvailability"
+import { useAuth } from "@/hooks/useAuth"
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications"
+import { useNotificationSound } from "@/hooks/useNotificationSound"
+import { supabase } from "@/integrations/supabase/client"
 
 export interface NewChatAlert {
-  sessionId: string;
-  visitorName: string;
-  startedAt: string;
+  sessionId: string
+  visitorName: string
+  startedAt: string
 }
 
 /**
@@ -18,58 +18,57 @@ export interface NewChatAlert {
  * is in the background) plus an in-app banner the agent must acknowledge.
  */
 export function useNewChatAlerts() {
-  const { user, profile } = useAuth();
-  const { status } = useAgentAvailability();
-  const { showNotification, permission } = useBrowserNotifications();
-  const { playNotificationSound } = useNotificationSound();
-  const queryClient = useQueryClient();
+  const { user, profile } = useAuth()
+  const { status } = useAgentAvailability()
+  const { showNotification, permission } = useBrowserNotifications()
+  const { playNotificationSound } = useNotificationSound()
+  const queryClient = useQueryClient()
 
-  const [alerts, setAlerts] = useState<NewChatAlert[]>([]);
-  const seenRef = useRef<Set<string>>(new Set());
-  const organizationId = profile?.organization_id;
-  const isOnline = status === 'online';
+  const [alerts, setAlerts] = useState<NewChatAlert[]>([])
+  const seenRef = useRef<Set<string>>(new Set())
+  const organizationId = profile?.organization_id
+  const isOnline = status === "online"
 
   const dismiss = useCallback((sessionId: string) => {
-    setAlerts((prev) => prev.filter((a) => a.sessionId !== sessionId));
-  }, []);
+    setAlerts((prev) => prev.filter((a) => a.sessionId !== sessionId))
+  }, [])
 
-  const dismissAll = useCallback(() => setAlerts([]), []);
+  const dismissAll = useCallback(() => setAlerts([]), [])
 
   useEffect(() => {
-    if (!user || !organizationId || !isOnline) return;
+    if (!user || !organizationId || !isOnline) return
 
     const channel = supabase
-      .channel('new-chat-session-alerts')
+      .channel("new-chat-session-alerts")
       .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'widget_chat_sessions' },
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "widget_chat_sessions" },
         async (payload) => {
           const session = payload.new as {
-            id: string;
-            status: string;
-            visitor_name: string | null;
-            visitor_email: string | null;
-            started_at: string | null;
-            widget_config_id: string | null;
-          };
+            id: string
+            status: string
+            visitor_name: string | null
+            visitor_email: string | null
+            started_at: string | null
+            widget_config_id: string | null
+          }
 
-          if (seenRef.current.has(session.id)) return;
-          if (session.status !== 'waiting' && session.status !== 'active') return;
+          if (seenRef.current.has(session.id)) return
+          if (session.status !== "waiting" && session.status !== "active") return
 
           // Scope to this organization's widgets
           if (session.widget_config_id) {
             const { data: config } = await supabase
-              .from('widget_configs')
-              .select('id, organization_id')
-              .eq('id', session.widget_config_id)
-              .maybeSingle();
-            if (!config || config.organization_id !== organizationId) return;
+              .from("widget_configs")
+              .select("id, organization_id")
+              .eq("id", session.widget_config_id)
+              .maybeSingle()
+            if (!config || config.organization_id !== organizationId) return
           }
 
-          seenRef.current.add(session.id);
+          seenRef.current.add(session.id)
 
-          const visitorName =
-            session.visitor_name || session.visitor_email || 'New visitor';
+          const visitorName = session.visitor_name || session.visitor_email || "New visitor"
 
           setAlerts((prev) => [
             {
@@ -78,35 +77,35 @@ export function useNewChatAlerts() {
               startedAt: session.started_at || new Date().toISOString(),
             },
             ...prev.filter((a) => a.sessionId !== session.id),
-          ]);
+          ])
 
-          playNotificationSound();
-          queryClient.invalidateQueries({ queryKey: ['sidebar-nav-counts'] });
-          queryClient.invalidateQueries({ queryKey: ['live-chat-sessions'] });
+          playNotificationSound()
+          queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
+          queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
 
-          if (permission === 'granted') {
+          if (permission === "granted") {
             const notification = await showNotification({
-              title: '💬 New live chat',
+              title: "💬 New live chat",
               body: `${visitorName} is waiting for a reply`,
               tag: `chat-session-${session.id}`,
               requireInteraction: true,
               data: { sessionId: session.id },
-            });
+            })
             if (notification) {
               notification.onclick = () => {
-                window.focus();
-                window.location.href = '/interactions/chat/active';
-                notification.close();
-              };
+                window.focus()
+                window.location.href = "/interactions/chat/active"
+                notification.close()
+              }
             }
           }
-        }
+        },
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
+      supabase.removeChannel(channel)
+    }
   }, [
     user,
     organizationId,
@@ -115,12 +114,12 @@ export function useNewChatAlerts() {
     showNotification,
     playNotificationSound,
     queryClient,
-  ]);
+  ])
 
   // Drop alerts when the agent goes offline
   useEffect(() => {
-    if (!isOnline) setAlerts([]);
-  }, [isOnline]);
+    if (!isOnline) setAlerts([])
+  }, [isOnline])
 
-  return { alerts, dismiss, dismissAll, isOnline };
+  return { alerts, dismiss, dismissAll, isOnline }
 }

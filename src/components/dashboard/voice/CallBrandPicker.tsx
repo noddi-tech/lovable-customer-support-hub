@@ -1,16 +1,20 @@
-import React from 'react';
-import { useCallBrandActions } from '@/hooks/useCallBrandActions';
-import { BrandPickerButton } from '@/components/brands/BrandPickerButton';
+import type React from "react"
+import { BrandPickerButton } from "@/components/brands/BrandPickerButton"
+import { useCallBrandActions } from "@/hooks/useCallBrandActions"
 
 interface CallBrandPickerProps {
-  callId: string;
-  metadata: unknown;
-  className?: string;
+  callId: string
+  metadata: unknown
+  className?: string
 }
 
 /** Detail / active-call control to assign the brand a call belonged to. */
-export const CallBrandPicker: React.FC<CallBrandPickerProps> = ({ callId, metadata, className }) => {
-  const { setBrand } = useCallBrandActions();
+export const CallBrandPicker: React.FC<CallBrandPickerProps> = ({
+  callId,
+  metadata,
+  className,
+}) => {
+  const { setBrand } = useCallBrandActions()
 
   return (
     <BrandPickerButton
@@ -21,5 +25,5 @@ export const CallBrandPicker: React.FC<CallBrandPickerProps> = ({ callId, metada
       stopPropagation
       onSelect={(brandName) => setBrand(callId, brandName)}
     />
-  );
-};
+  )
+}

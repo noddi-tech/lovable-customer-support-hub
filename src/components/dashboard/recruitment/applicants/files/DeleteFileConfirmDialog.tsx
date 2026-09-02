@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,20 +8,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useDeleteApplicantFile } from '../hooks/useDeleteApplicantFile';
+} from "@/components/ui/alert-dialog"
+import { useDeleteApplicantFile } from "../hooks/useDeleteApplicantFile"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  applicantId: string;
-  applicationId: string | null;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  applicantId: string
+  applicationId: string | null
   file: {
-    id: string;
-    file_name: string;
-    file_type: string;
-    storage_path: string;
-  } | null;
+    id: string
+    file_name: string
+    file_type: string
+    storage_path: string
+  } | null
 }
 
 const DeleteFileConfirmDialog: React.FC<Props> = ({
@@ -31,10 +31,10 @@ const DeleteFileConfirmDialog: React.FC<Props> = ({
   applicationId,
   file,
 }) => {
-  const deleteMut = useDeleteApplicantFile();
+  const deleteMut = useDeleteApplicantFile()
 
   const confirm = async () => {
-    if (!file) return;
+    if (!file) return
     try {
       await deleteMut.mutateAsync({
         fileId: file.id,
@@ -43,12 +43,12 @@ const DeleteFileConfirmDialog: React.FC<Props> = ({
         storagePath: file.storage_path,
         fileName: file.file_name,
         fileType: file.file_type,
-      });
-      onOpenChange(false);
+      })
+      onOpenChange(false)
     } catch {
       // hook toasts
     }
-  };
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -56,8 +56,8 @@ const DeleteFileConfirmDialog: React.FC<Props> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Slett fil?</AlertDialogTitle>
           <AlertDialogDescription>
-            «{file?.file_name}» slettes permanent fra både lagring og databasen.
-            Hendelsen logges i revisjonsloggen.
+            «{file?.file_name}» slettes permanent fra både lagring og databasen. Hendelsen logges i
+            revisjonsloggen.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -65,8 +65,8 @@ const DeleteFileConfirmDialog: React.FC<Props> = ({
           <AlertDialogAction
             disabled={deleteMut.isPending}
             onClick={(e) => {
-              e.preventDefault();
-              void confirm();
+              e.preventDefault()
+              void confirm()
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
@@ -75,7 +75,7 @@ const DeleteFileConfirmDialog: React.FC<Props> = ({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default DeleteFileConfirmDialog;
+export default DeleteFileConfirmDialog

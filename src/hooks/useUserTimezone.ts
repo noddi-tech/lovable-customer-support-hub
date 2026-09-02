@@ -1,58 +1,64 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 /** Detect whether the user's browser locale prefers 24h or 12h time */
-function detectBrowserTimeFormat(): '12h' | '24h' {
+function detectBrowserTimeFormat(): "12h" | "24h" {
   try {
-    const resolved = new Intl.DateTimeFormat(navigator.language, { hour: 'numeric' }).resolvedOptions() as any;
-    const hourCycle = resolved.hourCycle;
-    return hourCycle === 'h23' || hourCycle === 'h24' ? '24h' : '12h';
+    const resolved = new Intl.DateTimeFormat(navigator.language, {
+      hour: "numeric",
+    }).resolvedOptions() as any
+    const hourCycle = resolved.hourCycle
+    return hourCycle === "h23" || hourCycle === "h24" ? "24h" : "12h"
   } catch {
-    return '12h';
+    return "12h"
   }
 }
 
 export function useUserTimezone() {
-  const { user } = useAuth();
-  
+  const { user } = useAuth()
+
   // Memoize browser timezone to prevent recalculation
   const browserTimezone = useMemo(() => {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  }, []);
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  }, [])
 
-  const browserTimeFormat = useMemo(() => detectBrowserTimeFormat(), []);
+  const browserTimeFormat = useMemo(() => detectBrowserTimeFormat(), [])
 
   // Use React Query for optimized caching and deduplication
-  const { data: profile, isLoading, error } = useQuery({
-    queryKey: ['user-timezone', user?.id],
+  const {
+    data: profile,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["user-timezone", user?.id],
     queryFn: async () => {
-      if (!user) return null;
-      
+      if (!user) return null
+
       const { data, error } = await supabase
-        .from('profiles')
-        .select('timezone, time_format')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
+        .from("profiles")
+        .select("timezone, time_format")
+        .eq("user_id", user.id)
+        .single()
+
+      if (error) throw error
+      return data
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes - timezone rarely changes
     gcTime: 30 * 60 * 1000, // 30 minutes cache
     retry: (failureCount, error: any) => {
       // Don't retry on auth errors
-      if (error?.code === 'PGRST116') return false;
-      return failureCount < 2;
+      if (error?.code === "PGRST116") return false
+      return failureCount < 2
     },
     meta: {
       errorHandler: (error: any) => {
-        console.error('Failed to load user timezone:', error);
-      }
-    }
-  });
+        console.error("Failed to load user timezone:", error)
+      },
+    },
+  })
 
   // Auto-update timezone if user exists but no timezone is set
   useEffect(() => {
@@ -60,25 +66,28 @@ export function useUserTimezone() {
       if (user && profile === null && !isLoading && !error) {
         try {
           await supabase
-            .from('profiles')
-            .update({ 
-              timezone: browserTimezone, 
-              time_format: browserTimeFormat 
+            .from("profiles")
+            .update({
+              timezone: browserTimezone,
+              time_format: browserTimeFormat,
             })
-            .eq('user_id', user.id);
+            .eq("user_id", user.id)
         } catch (error) {
-          console.error('Failed to auto-update timezone:', error);
+          console.error("Failed to auto-update timezone:", error)
         }
       }
-    };
+    }
 
-    autoUpdateTimezone();
-  }, [user, profile, isLoading, error, browserTimezone]);
+    autoUpdateTimezone()
+  }, [user, profile, isLoading, error, browserTimezone, browserTimeFormat])
 
   // Memoized return values to prevent unnecessary re-renders
-  return useMemo(() => ({
-    timezone: profile?.timezone || browserTimezone,
-    timeFormat: profile?.time_format || browserTimeFormat,
-    isLoading: isLoading && !!user
-  }), [profile, browserTimezone, browserTimeFormat, isLoading, user]);
+  return useMemo(
+    () => ({
+      timezone: profile?.timezone || browserTimezone,
+      timeFormat: profile?.time_format || browserTimeFormat,
+      isLoading: isLoading && !!user,
+    }),
+    [profile, browserTimezone, browserTimeFormat, isLoading, user],
+  )
 }

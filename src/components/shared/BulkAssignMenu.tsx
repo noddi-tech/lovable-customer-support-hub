@@ -1,33 +1,38 @@
-import React, { useState } from 'react';
-import { UserPlus, UserMinus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MemberOptionContent, rememberAssignee, useMemberSearch } from '@/components/shared/MemberPicker';
+import { UserMinus, UserPlus } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import {
+  MemberOptionContent,
+  rememberAssignee,
+  useMemberSearch,
+} from "@/components/shared/MemberPicker"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface BulkAssignMenuProps {
-  onAssign: (memberId: string | null) => void | Promise<void>;
-  className?: string;
-  size?: 'sm' | 'default';
-  label?: string;
+  onAssign: (memberId: string | null) => void | Promise<void>
+  className?: string
+  size?: "sm" | "default"
+  label?: string
 }
 
 /** Searchable team-member picker used by bulk actions bars. */
 export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
   onAssign,
   className,
-  size = 'sm',
-  label = 'Assign',
+  size = "sm",
+  label = "Assign",
 }) => {
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(false);
-  const { recent, rest } = useMemberSearch(search);
+  const [search, setSearch] = useState("")
+  const [open, setOpen] = useState(false)
+  const { recent, rest } = useMemberSearch(search)
 
   const pick = async (id: string | null) => {
-    setOpen(false);
-    setSearch('');
-    if (id) rememberAssignee(id);
-    await onAssign(id);
-  };
+    setOpen(false)
+    setSearch("")
+    if (id) rememberAssignee(id)
+    await onAssign(id)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -40,7 +45,6 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
       <PopoverContent align="end" className="w-60 p-0">
         <div className="p-2">
           <input
-            autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search people…"
@@ -90,5 +94,5 @@ export const BulkAssignMenu: React.FC<BulkAssignMenuProps> = ({
         </div>
       </PopoverContent>
     </Popover>
-  );
-};
+  )
+}

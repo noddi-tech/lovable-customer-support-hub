@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ApplicantAuditPicker } from './ApplicantAuditPicker';
-import { ApplicantAuditTimeline } from './ApplicantAuditTimeline';
-import { Download } from 'lucide-react';
-import type { UnifiedAuditEvent } from '../types';
+import { Download } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import type { UnifiedAuditEvent } from "../types"
+import { ApplicantAuditPicker } from "./ApplicantAuditPicker"
+import { ApplicantAuditTimeline } from "./ApplicantAuditTimeline"
 
 interface Props {
-  organizationId: string | null;
-  onRowClick: (event: UnifiedAuditEvent) => void;
-  onExport: (applicantId: string) => void;
+  organizationId: string | null
+  onRowClick: (event: UnifiedAuditEvent) => void
+  onExport: (applicantId: string) => void
 }
 
 export function ApplicantAuditPanel({ organizationId, onRowClick, onExport }: Props) {
-  const [selected, setSelected] = useState<{ id: string; label: string } | null>(null);
+  const [selected, setSelected] = useState<{ id: string; label: string } | null>(null)
 
   return (
     <div className="space-y-4">
@@ -45,5 +45,5 @@ export function ApplicantAuditPanel({ organizationId, onRowClick, onExport }: Pr
         </Card>
       )}
     </div>
-  );
+  )
 }

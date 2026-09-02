@@ -1,41 +1,40 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Check, X } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useQuarantineApprove } from '@/hooks/recruitment/useQuarantineApprove';
-import { useApplicantPipeline } from './useApplicants';
+} from "@/components/ui/select"
+import { useQuarantineApprove } from "@/hooks/recruitment/useQuarantineApprove"
+import { useToast } from "@/hooks/use-toast"
+import { useApplicantPipeline } from "./useApplicants"
 
 interface Props {
-  selectedIds: string[];
-  onClear: () => void;
+  selectedIds: string[]
+  onClear: () => void
 }
 
 export function QuarantineToolbar({ selectedIds, onClear }: Props) {
-  const approve = useQuarantineApprove();
-  const { data: pipeline } = useApplicantPipeline();
-  const { toast } = useToast();
-  const [stageId, setStageId] = useState<string>('');
+  const approve = useQuarantineApprove()
+  const { data: pipeline } = useApplicantPipeline()
+  const { toast } = useToast()
+  const [stageId, setStageId] = useState<string>("")
 
   const handleApprove = async () => {
     try {
       const res = await approve.mutateAsync({
         applicant_ids: selectedIds,
         target_stage_id: stageId || null,
-      });
-      toast({ title: `Godkjente ${res.approved} søkere` });
-      onClear();
+      })
+      toast({ title: `Godkjente ${res.approved} søkere` })
+      onClear()
     } catch (e: any) {
-      toast({ title: 'Godkjenning feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Godkjenning feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <div className="sticky bottom-4 z-30 mx-auto w-full max-w-3xl rounded-lg border bg-background shadow-lg p-3 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -62,5 +61,5 @@ export function QuarantineToolbar({ selectedIds, onClear }: Props) {
         Godkjenn valgte ({selectedIds.length})
       </Button>
     </div>
-  );
+  )
 }

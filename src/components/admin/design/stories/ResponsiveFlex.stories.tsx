@@ -1,23 +1,23 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { ResponsiveFlex } from '../components/layouts/ResponsiveFlex';
+import type { Meta, StoryObj } from "@storybook/react"
+import { ResponsiveFlex } from "../components/layouts/ResponsiveFlex"
 
 const meta: Meta<typeof ResponsiveFlex> = {
-  title: 'Layout/ResponsiveFlex',
+  title: "Layout/ResponsiveFlex",
   component: ResponsiveFlex,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
-  tags: ['autodocs'],
-};
+  tags: ["autodocs"],
+}
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 const FlexItem = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-muted p-4 rounded border-2 border-dashed border-border text-center">
     {children}
   </div>
-);
+)
 
 export const Default: Story = {
   args: {
@@ -29,13 +29,13 @@ export const Default: Story = {
       </>
     ),
   },
-};
+}
 
 export const ResponsiveDirection: Story = {
   args: {
-    direction: 'responsive',
-    breakpoint: 'md',
-    gap: { sm: '2', md: '4' },
+    direction: "responsive",
+    breakpoint: "md",
+    gap: { sm: "2", md: "4" },
     children: (
       <>
         <FlexItem>
@@ -53,17 +53,13 @@ export const ResponsiveDirection: Story = {
       </>
     ),
   },
-};
+}
 
 export const FlexWrap: Story = {
   args: {
-    direction: 'row',
-    gap: '4',
+    direction: "row",
+    gap: "4",
     wrap: true,
-    children: Array.from({ length: 12 }, (_, i) => (
-      <FlexItem key={i}>
-        Item {i + 1}
-      </FlexItem>
-    )),
+    children: Array.from({ length: 12 }, (_, i) => <FlexItem key={i}>Item {i + 1}</FlexItem>),
   },
-};
+}

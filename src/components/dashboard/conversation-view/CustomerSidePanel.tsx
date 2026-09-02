@@ -1,120 +1,128 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  X, 
-  Mail, 
-  Phone, 
-  Calendar,
-  Tag,
+import { useQueryClient } from "@tanstack/react-query"
+import {
+  AlertCircle,
   Archive,
-  Clock,
-  Trash2,
+  Calendar,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
   CircleDot,
-  AlertCircle,
+  Clock,
   Loader2,
-  UserPlus
-} from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useConversationView } from '@/contexts/ConversationViewContext';
-import { NoddiCustomerDetails } from '@/components/dashboard/voice/NoddiCustomerDetails';
-import { CustomerNoddiTicketsCard } from '@/components/noddi-tickets/CustomerNoddiTicketsCard';
-import { ConversationCaseSection } from '@/components/cases/ConversationCaseSection';
-import { CustomerTimeline } from '@/components/cases/CustomerTimeline';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { getCustomerCacheKey } from '@/utils/customerCacheKey';
-import type { NoddiLookupResponse } from '@/hooks/useNoddihKundeData';
-import { useAuth } from '@/hooks/useAuth';
+  Mail,
+  Phone,
+  Tag,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react"
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { ConversationCaseSection } from "@/components/cases/ConversationCaseSection"
+import { CustomerTimeline } from "@/components/cases/CustomerTimeline"
+import { NoddiCustomerDetails } from "@/components/dashboard/voice/NoddiCustomerDetails"
+import { CustomerNoddiTicketsCard } from "@/components/noddi-tickets/CustomerNoddiTicketsCard"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useConversationView } from "@/contexts/ConversationViewContext"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
+import type { NoddiLookupResponse } from "@/hooks/useNoddihKundeData"
+import { supabase } from "@/integrations/supabase/client"
+import { cn } from "@/lib/utils"
+import { getCustomerCacheKey } from "@/utils/customerCacheKey"
 
 interface CustomerSidePanelProps {
-  conversation: any;
-  onClose?: () => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
+  conversation: any
+  onClose?: () => void
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export const CustomerSidePanel = ({ 
-  conversation, 
+export const CustomerSidePanel = ({
+  conversation,
   onClose,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
 }: CustomerSidePanelProps) => {
-  const { t } = useTranslation();
-  const { dateTime } = useDateFormatting();
-  const { dispatch, updateStatus } = useConversationView();
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [selectedUserGroupId, setSelectedUserGroupId] = useState<number | undefined>(undefined);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
-  const organizationId = profile?.organization_id;
-  const [alternativeEmail, setAlternativeEmail] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [alternativeEmailResult, setAlternativeEmailResult] = useState(false);
-  const [noddiData, setNoddiData] = useState<NoddiLookupResponse | null>(null);
-  const [searchMode, setSearchMode] = useState<'email' | 'name'>('email');
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
-  const [matchingCustomers, setMatchingCustomers] = useState<any[]>([]);
-  const [nameSearchLoading, setNameSearchLoading] = useState(false);
+  const { t } = useTranslation()
+  const { dateTime } = useDateFormatting()
+  const { dispatch, updateStatus } = useConversationView()
+  const [statusLoading, setStatusLoading] = useState(false)
+  const [selectedUserGroupId, setSelectedUserGroupId] = useState<number | undefined>(undefined)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const { profile } = useAuth()
+  const organizationId = profile?.organization_id
+  const [alternativeEmail, setAlternativeEmail] = useState("")
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [alternativeEmailResult, setAlternativeEmailResult] = useState(false)
+  const [noddiData, setNoddiData] = useState<NoddiLookupResponse | null>(null)
+  const [searchMode, setSearchMode] = useState<"email" | "name">("email")
+  const [searchFirstName, setSearchFirstName] = useState("")
+  const [searchLastName, setSearchLastName] = useState("")
+  const [matchingCustomers, setMatchingCustomers] = useState<any[]>([])
+  const [nameSearchLoading, setNameSearchLoading] = useState(false)
 
   // Noddi user groups + car in context, used to look up the customer's open tickets
   const customerUserGroupIds = (() => {
-    const ids: number[] = [];
-    if (selectedUserGroupId) ids.push(selectedUserGroupId);
-    const d = noddiData?.data;
-    if (d?.user_group_id) ids.push(d.user_group_id);
-    for (const g of d?.all_user_groups ?? []) if (g?.id) ids.push(g.id);
-    return Array.from(new Set(ids));
-  })();
+    const ids: number[] = []
+    if (selectedUserGroupId) ids.push(selectedUserGroupId)
+    const d = noddiData?.data
+    if (d?.user_group_id) ids.push(d.user_group_id)
+    for (const g of d?.all_user_groups ?? []) if (g?.id) ids.push(g.id)
+    return Array.from(new Set(ids))
+  })()
 
   const customerLicensePlate = (() => {
-    const label = noddiData?.data?.ui_meta?.vehicle_label;
-    if (!label) return null;
-    const match = label.match(/[A-Z]{2}\s?\d{3,5}/i);
-    return match ? match[0].toUpperCase() : null;
-  })();
+    const label = noddiData?.data?.ui_meta?.vehicle_label
+    if (!label) return null
+    const match = label.match(/[A-Z]{2}\s?\d{3,5}/i)
+    return match ? match[0].toUpperCase() : null
+  })()
 
   const handleAlternativeEmailSearch = async () => {
-    if (!alternativeEmail || !conversation.customer?.id) return;
+    if (!alternativeEmail || !conversation.customer?.id) return
 
     if (!organizationId) {
       toast({
-        title: 'Session error',
-        description: 'Unable to determine your organization. Please refresh the page.',
-        variant: 'destructive'
-      });
-      return;
+        title: "Session error",
+        description: "Unable to determine your organization. Please refresh the page.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setSearchLoading(true);
-    setAlternativeEmailResult(false);
+    setSearchLoading(true)
+    setAlternativeEmailResult(false)
 
     try {
       // 1. Test lookup with alternative email via noddi-customer-lookup
-      const { data: lookupData, error: lookupError } =
-        await supabase.functions.invoke("noddi-customer-lookup", {
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke(
+        "noddi-customer-lookup",
+        {
           body: {
             email: alternativeEmail,
             customerId: conversation.customer.id,
             organizationId,
           },
-        });
+        },
+      )
 
-      if (lookupError) throw lookupError;
+      if (lookupError) throw lookupError
 
       // 2. If data found, save alternative email to customer metadata
       if (lookupData?.data?.found) {
@@ -126,114 +134,113 @@ export const CustomerSidePanel = ({
               alternativeEmail,
               primaryEmail: conversation.customer.email,
             },
-          }
-        );
+          },
+        )
 
-        if (updateError) throw updateError;
+        if (updateError) throw updateError
 
         // 3. Update local state to show the data
-        setNoddiData(lookupData);
-        setAlternativeEmailResult(true);
+        setNoddiData(lookupData)
+        setAlternativeEmailResult(true)
 
         toast({
           title: "Booking data found",
           description: `Found booking data for ${alternativeEmail}!`,
-        });
+        })
 
         // 4. Invalidate cache for BOTH old and new email keys
         if (organizationId) {
           // Invalidate old cache key (primary email)
           const oldCacheKey = getCustomerCacheKey({
             email: conversation.customer.email,
-            phone: conversation.customer.phone
-          });
-          await queryClient.invalidateQueries({ 
-            queryKey: ['noddi-customer-lookup', oldCacheKey, organizationId],
-            exact: true 
-          });
-          
+            phone: conversation.customer.phone,
+          })
+          await queryClient.invalidateQueries({
+            queryKey: ["noddi-customer-lookup", oldCacheKey, organizationId],
+            exact: true,
+          })
+
           // Invalidate new cache key (alternative email)
           const newCacheKey = getCustomerCacheKey({
             email: alternativeEmail,
-            phone: conversation.customer.phone
-          });
-          await queryClient.invalidateQueries({ 
-            queryKey: ['noddi-customer-lookup', newCacheKey, organizationId],
-            exact: true 
-          });
-          
-          console.log('[AlternativeEmailSearch] Invalidated cache keys:', { oldCacheKey, newCacheKey });
+            phone: conversation.customer.phone,
+          })
+          await queryClient.invalidateQueries({
+            queryKey: ["noddi-customer-lookup", newCacheKey, organizationId],
+            exact: true,
+          })
+
+          console.log("[AlternativeEmailSearch] Invalidated cache keys:", {
+            oldCacheKey,
+            newCacheKey,
+          })
         }
-        
+
         // Invalidate conversation metadata to refresh with updated customer data
         await queryClient.invalidateQueries({
-          queryKey: ['conversation-meta'],
-          predicate: (query) => 
-            query.queryKey[0] === 'conversation-meta' && 
-            query.queryKey[1] === conversation.id
-        });
+          queryKey: ["conversation-meta"],
+          predicate: (query) =>
+            query.queryKey[0] === "conversation-meta" && query.queryKey[1] === conversation.id,
+        })
       } else {
         toast({
           title: "No booking data",
           description: `No booking data found for ${alternativeEmail}`,
           variant: "destructive",
-        });
+        })
       }
     } catch (error) {
-      console.error("[Alternative Email Search] Error:", error);
+      console.error("[Alternative Email Search] Error:", error)
       toast({
         title: "Search failed",
         description: "Failed to search with alternative email",
         variant: "destructive",
-      });
+      })
     } finally {
-      setSearchLoading(false);
+      setSearchLoading(false)
     }
-  };
+  }
 
   const handleNameSearch = async () => {
-    const firstName = searchFirstName.trim();
-    const lastName = searchLastName.trim();
-    
+    const firstName = searchFirstName.trim()
+    const lastName = searchLastName.trim()
+
     if (firstName.length < 2) {
       toast({
         title: "Invalid search",
         description: "Please enter at least 2 characters for first name",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     if (!organizationId) {
       toast({
-        title: 'Session error',
-        description: 'Unable to determine your organization. Please refresh the page.',
-        variant: 'destructive'
-      });
-      return;
+        title: "Session error",
+        description: "Unable to determine your organization. Please refresh the page.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setNameSearchLoading(true);
-    setMatchingCustomers([]);
+    setNameSearchLoading(true)
+    setMatchingCustomers([])
 
     try {
       // Call Noddi search API with separate fields
       const body: any = {
         firstName,
         organizationId,
-      };
-      
-      // Only include lastName if it's not empty
-      if (lastName) {
-        body.lastName = lastName;
       }
 
-      const { data, error } = await supabase.functions.invoke(
-        "noddi-search-by-name",
-        { body }
-      );
+      // Only include lastName if it's not empty
+      if (lastName) {
+        body.lastName = lastName
+      }
 
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("noddi-search-by-name", { body })
+
+      if (error) throw error
 
       if (data?.results && data.results.length > 0) {
         // Transform Noddi results to local customer format with basic metadata
@@ -246,97 +253,101 @@ export const CustomerSidePanel = ({
             noddi_user_id: result.noddi_user_id,
             user_group_id: result.user_group_id,
             is_new: result.is_new,
-            noddi_email: result.noddi_email // Store Noddi email in metadata
-          }
-        }));
+            noddi_email: result.noddi_email, // Store Noddi email in metadata
+          },
+        }))
 
-        setMatchingCustomers(transformedCustomers);
+        setMatchingCustomers(transformedCustomers)
         toast({
           title: "Found customers",
           description: `Found ${transformedCustomers.length} customer${transformedCustomers.length > 1 ? "s" : ""} in Noddi`,
-        });
+        })
       } else {
-        const searchTerm = lastName ? `"${firstName} ${lastName}"` : `"${firstName}"`;
+        const searchTerm = lastName ? `"${firstName} ${lastName}"` : `"${firstName}"`
         toast({
           title: "No matches",
           description: `No customers found in Noddi matching ${searchTerm}`,
           variant: "destructive",
-        });
+        })
       }
     } catch (error) {
-      console.error("[Name Search] Error:", error);
+      console.error("[Name Search] Error:", error)
       toast({
         title: "Search failed",
         description: "Failed to search Noddi customers by name",
         variant: "destructive",
-      });
+      })
     } finally {
-      setNameSearchLoading(false);
+      setNameSearchLoading(false)
     }
-  };
+  }
 
   const handleSelectCustomer = async (selectedCustomer: any) => {
-    if (!selectedCustomer.email && !selectedCustomer.phone && !selectedCustomer.metadata?.noddi_email) {
+    if (
+      !selectedCustomer.email &&
+      !selectedCustomer.phone &&
+      !selectedCustomer.metadata?.noddi_email
+    ) {
       toast({
         title: "Cannot link",
         description: "Selected customer has no email, phone, or Noddi account",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
 
     if (!organizationId) {
       toast({
-        title: 'Session error',
-        description: 'Unable to determine your organization. Please refresh the page.',
-        variant: 'destructive'
-      });
-      return;
+        title: "Session error",
+        description: "Unable to determine your organization. Please refresh the page.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setSearchLoading(true);
+    setSearchLoading(true)
 
     try {
       // Step 1: Always resolve the *selected* customer first, independent of
       // whatever customer (if any) is currently linked to the conversation.
       // This prevents linking the wrong customer when conversation.customer_id
       // already points at a different (stale/unrelated) record.
-      const conversationCustomerId = conversation.customer_id;
-      let customerId: string | null = null;
+      const conversationCustomerId = conversation.customer_id
+      let customerId: string | null = null
 
       // Helper: try to find an existing local customer by (org, lower(email))
       // to avoid the idx_customers_org_email_unique conflict (23505).
       const findCustomerByEmail = async (email: string | null | undefined) => {
-        if (!email) return null;
+        if (!email) return null
         const { data } = await supabase
           .from("customers")
           .select("id")
           .eq("organization_id", organizationId)
           .ilike("email", email)
-          .maybeSingle();
-        return data?.id ?? null;
-      };
+          .maybeSingle()
+        return data?.id ?? null
+      }
 
       // Helper: insert a new customer, but reuse-by-email on 23505
       const createOrReuseCustomer = async (payload: {
-        full_name: string;
-        email: string | null;
-        phone: string | null;
-        metadata: Record<string, any>;
+        full_name: string
+        email: string | null
+        phone: string | null
+        metadata: Record<string, any>
       }): Promise<string> => {
         // Pre-check by email to avoid blind insert -> 23505
-        const existingId = await findCustomerByEmail(payload.email);
+        const existingId = await findCustomerByEmail(payload.email)
         if (existingId) {
           // Update existing row with new info (phone/full_name/metadata)
           const { data: existing } = await supabase
             .from("customers")
             .select("metadata")
             .eq("id", existingId)
-            .single();
+            .single()
           const merged = {
             ...((existing?.metadata as Record<string, any>) || {}),
             ...payload.metadata,
-          };
+          }
           await supabase
             .from("customers")
             .update({
@@ -345,8 +356,8 @@ export const CustomerSidePanel = ({
               metadata: merged,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", existingId);
-          return existingId;
+            .eq("id", existingId)
+          return existingId
         }
 
         const { data: newCustomer, error: createError } = await supabase
@@ -359,31 +370,31 @@ export const CustomerSidePanel = ({
             metadata: payload.metadata,
           })
           .select("id")
-          .single();
+          .single()
 
         if (createError) {
           // Recover from email-unique conflict
           if ((createError as any).code === "23505") {
-            const recoveredId = await findCustomerByEmail(payload.email);
-            if (recoveredId) return recoveredId;
+            const recoveredId = await findCustomerByEmail(payload.email)
+            if (recoveredId) return recoveredId
           }
-          throw createError;
+          throw createError
         }
-        return newCustomer.id;
-      };
+        return newCustomer.id
+      }
 
       // Resolve the selected customer to a local customer id
       if (selectedCustomer.metadata?.is_new) {
         // Create (or reuse) a customer for a brand-new Noddi result
-        const metadata: Record<string, any> = {};
+        const metadata: Record<string, any> = {}
         if (selectedCustomer.metadata?.noddi_email) {
-          metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+          metadata.alternative_emails = [selectedCustomer.metadata.noddi_email]
         }
         if (selectedCustomer.metadata?.noddi_user_id) {
-          metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
+          metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id
         }
         if (selectedCustomer.metadata?.user_group_id) {
-          metadata.user_group_id = selectedCustomer.metadata.user_group_id;
+          metadata.user_group_id = selectedCustomer.metadata.user_group_id
         }
 
         customerId = await createOrReuseCustomer({
@@ -395,25 +406,24 @@ export const CustomerSidePanel = ({
             null,
           phone: selectedCustomer.phone ?? null,
           metadata,
-        });
+        })
 
         toast({
           title: "Customer linked",
           description: `Linked customer: ${selectedCustomer.full_name}`,
-        });
+        })
       } else {
-        const resolvedId =
-          selectedCustomer.metadata?.local_customer_id || selectedCustomer.id;
+        const resolvedId = selectedCustomer.metadata?.local_customer_id || selectedCustomer.id
 
         if (typeof resolvedId === "string" && resolvedId.startsWith("noddi-")) {
           // No local customer yet — create or reuse by email
-          const metadata: Record<string, any> = {};
+          const metadata: Record<string, any> = {}
           if (selectedCustomer.metadata?.noddi_user_id)
-            metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id;
+            metadata.noddi_user_id = selectedCustomer.metadata.noddi_user_id
           if (selectedCustomer.metadata?.user_group_id)
-            metadata.user_group_id = selectedCustomer.metadata.user_group_id;
+            metadata.user_group_id = selectedCustomer.metadata.user_group_id
           if (selectedCustomer.metadata?.noddi_email) {
-            metadata.alternative_emails = [selectedCustomer.metadata.noddi_email];
+            metadata.alternative_emails = [selectedCustomer.metadata.noddi_email]
           }
 
           customerId = await createOrReuseCustomer({
@@ -425,40 +435,40 @@ export const CustomerSidePanel = ({
               null,
             phone: selectedCustomer.phone ?? null,
             metadata,
-          });
+          })
         } else {
-          customerId = resolvedId;
+          customerId = resolvedId
         }
       }
 
       if (!customerId) {
-        throw new Error("Could not resolve a customer id for the selection");
+        throw new Error("Could not resolve a customer id for the selection")
       }
 
       // Step 3: Add Noddi email to alternative_emails if not already there
       if (customerId && selectedCustomer.metadata?.noddi_email) {
         const { data: customer } = await supabase
           .from("customers")
-          .select('metadata')
-          .eq('id', customerId)
-          .single();
-        
-        const existingMeta = customer?.metadata as Record<string, any> | null;
-        const currentAltEmails = (existingMeta?.alternative_emails as string[]) || [];
-        const noddiEmail = selectedCustomer.metadata.noddi_email;
-        
+          .select("metadata")
+          .eq("id", customerId)
+          .single()
+
+        const existingMeta = customer?.metadata as Record<string, any> | null
+        const currentAltEmails = (existingMeta?.alternative_emails as string[]) || []
+        const noddiEmail = selectedCustomer.metadata.noddi_email
+
         if (!currentAltEmails.includes(noddiEmail)) {
           await supabase
             .from("customers")
             .update({
               metadata: {
                 ...(existingMeta || {}),
-                alternative_emails: [...currentAltEmails, noddiEmail]
-              }
+                alternative_emails: [...currentAltEmails, noddiEmail],
+              },
             })
-            .eq('id', customerId);
-          
-          console.log(`✅ Added Noddi email to customer ${customerId}: ${noddiEmail}`);
+            .eq("id", customerId)
+
+          console.log(`✅ Added Noddi email to customer ${customerId}: ${noddiEmail}`)
         }
       }
 
@@ -467,20 +477,21 @@ export const CustomerSidePanel = ({
         await supabase
           .from("conversations")
           .update({ customer_id: customerId })
-          .eq("id", conversation.id);
+          .eq("id", conversation.id)
       }
 
       // Prepare alternative emails to pass to edge function
-      const alternativeEmailsToTry: string[] = [];
+      const alternativeEmailsToTry: string[] = []
       if (selectedCustomer.metadata?.noddi_email) {
-        alternativeEmailsToTry.push(selectedCustomer.metadata.noddi_email);
+        alternativeEmailsToTry.push(selectedCustomer.metadata.noddi_email)
       }
 
       // Always call noddi-customer-lookup to get full enriched data (non-fatal)
-      let lookupData: any = null;
+      let lookupData: any = null
       try {
-        const { data, error: lookupError } =
-          await supabase.functions.invoke("noddi-customer-lookup", {
+        const { data, error: lookupError } = await supabase.functions.invoke(
+          "noddi-customer-lookup",
+          {
             body: {
               email: conversation.customer?.email,
               phone: selectedCustomer.phone,
@@ -490,15 +501,16 @@ export const CustomerSidePanel = ({
               noddi_user_id: selectedCustomer.metadata?.noddi_user_id,
               user_group_id: selectedCustomer.metadata?.user_group_id,
             },
-          });
+          },
+        )
 
         if (lookupError) {
-          console.warn("[Select Customer] Noddi lookup failed (non-fatal):", lookupError);
+          console.warn("[Select Customer] Noddi lookup failed (non-fatal):", lookupError)
         } else {
-          lookupData = data;
+          lookupData = data
         }
       } catch (err) {
-        console.warn("[Select Customer] Noddi lookup exception (non-fatal):", err);
+        console.warn("[Select Customer] Noddi lookup exception (non-fatal):", err)
       }
 
       // Link customer to conversation if data found
@@ -506,9 +518,9 @@ export const CustomerSidePanel = ({
         const { error: updateError } = await supabase
           .from("conversations")
           .update({ customer_id: customerId })
-          .eq("id", conversation.id);
+          .eq("id", conversation.id)
 
-        if (updateError) throw updateError;
+        if (updateError) throw updateError
 
         // Save Noddi email as alternative if we have one
         if (selectedCustomer.metadata?.noddi_email) {
@@ -518,84 +530,82 @@ export const CustomerSidePanel = ({
               alternativeEmail: selectedCustomer.metadata.noddi_email, // Store Noddi email as alternative
               primaryEmail: conversation.customer?.email, // Keep conversation email as primary
             },
-          });
+          })
         }
 
         // Update UI - Store noddi data to display immediately
-        setNoddiData(lookupData);
-        setAlternativeEmailResult(true);
-        setMatchingCustomers([]); // Clear search results
+        setNoddiData(lookupData)
+        setAlternativeEmailResult(true)
+        setMatchingCustomers([]) // Clear search results
 
         toast({
           title: "Customer linked",
           description: `Found booking data for ${selectedCustomer.full_name}!`,
-        });
+        })
 
         // CRITICAL: Invalidate cache for BOTH old and new email keys
         if (organizationId) {
           // Invalidate old cache key (primary email)
           const oldCacheKey = getCustomerCacheKey({
             email: conversation.customer?.email,
-            phone: selectedCustomer.phone
-          });
-          await queryClient.invalidateQueries({ 
-            queryKey: ['noddi-customer-lookup', oldCacheKey, organizationId],
-            exact: true 
-          });
-          
+            phone: selectedCustomer.phone,
+          })
+          await queryClient.invalidateQueries({
+            queryKey: ["noddi-customer-lookup", oldCacheKey, organizationId],
+            exact: true,
+          })
+
           // Invalidate new cache key (Noddi email)
           if (selectedCustomer.metadata?.noddi_email) {
             const newCacheKey = getCustomerCacheKey({
               email: selectedCustomer.metadata.noddi_email,
-              phone: selectedCustomer.phone
-            });
-            await queryClient.invalidateQueries({ 
-              queryKey: ['noddi-customer-lookup', newCacheKey, organizationId],
-              exact: true 
-            });
-            
-            console.log('[SelectCustomer] Invalidated cache keys:', { oldCacheKey, newCacheKey });
+              phone: selectedCustomer.phone,
+            })
+            await queryClient.invalidateQueries({
+              queryKey: ["noddi-customer-lookup", newCacheKey, organizationId],
+              exact: true,
+            })
+
+            console.log("[SelectCustomer] Invalidated cache keys:", { oldCacheKey, newCacheKey })
           }
         }
-        
+
         // Invalidate conversation metadata to refresh with updated customer data
         await queryClient.invalidateQueries({
-          queryKey: ['conversation-meta'],
-          predicate: (query) => 
-            query.queryKey[0] === 'conversation-meta' && 
-            query.queryKey[1] === conversation.id
-        });
+          queryKey: ["conversation-meta"],
+          predicate: (query) =>
+            query.queryKey[0] === "conversation-meta" && query.queryKey[1] === conversation.id,
+        })
       } else {
         // Customer was linked but no Noddi booking data found
         toast({
           title: "Customer linked",
           description: `Linked ${selectedCustomer.full_name}, but no Noddi booking data was found.`,
-        });
-        
+        })
+
         // Still invalidate conversation metadata to refresh
         await queryClient.invalidateQueries({
-          queryKey: ['conversation-meta'],
-          predicate: (query) => 
-            query.queryKey[0] === 'conversation-meta' && 
-            query.queryKey[1] === conversation.id
-        });
+          queryKey: ["conversation-meta"],
+          predicate: (query) =>
+            query.queryKey[0] === "conversation-meta" && query.queryKey[1] === conversation.id,
+        })
       }
     } catch (error) {
-      console.error("[Select Customer] Error:", error);
+      console.error("[Select Customer] Error:", error)
       toast({
         title: "Error",
         description: "Failed to link customer",
         variant: "destructive",
-      });
+      })
     } finally {
-      setSearchLoading(false);
+      setSearchLoading(false)
     }
-  };
+  }
 
   const handleUserGroupChange = (groupId: number) => {
     // Instant local switch - no API call needed, data is already cached
-    setSelectedUserGroupId(groupId);
-  };
+    setSelectedUserGroupId(groupId)
+  }
 
   if (isCollapsed) {
     return (
@@ -610,17 +620,21 @@ export const CustomerSidePanel = ({
           <ChevronLeft className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
-    );
+    )
   }
 
   return (
-    <div className={cn(
-      "h-full bg-card flex flex-col transition-all duration-300 ease-in-out border-l border-border",
-      "animate-in slide-in-from-right"
-    )}>
+    <div
+      className={cn(
+        "h-full bg-card flex flex-col transition-all duration-300 ease-in-out border-l border-border",
+        "animate-in slide-in-from-right",
+      )}
+    >
       {/* Header with improved styling */}
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer Details</span>
+        <span className="text-xs font-semibold uppercase text-muted-foreground">
+          Customer Details
+        </span>
         <div className="flex items-center gap-1">
           {onToggleCollapse && (
             <Button
@@ -649,176 +663,197 @@ export const CustomerSidePanel = ({
 
       {/* Status Management - Fixed at top, always visible */}
       <TooltipProvider delayDuration={200}>
-      <div className="p-4 border-b border-border space-y-3 flex-shrink-0">
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-          Status & Actions
-        </h4>
-        
-        {/* Status Dropdown */}
-        <div className="space-y-1.5">
-          <span className="text-xs text-muted-foreground">Status</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div>
-                <Select
-                  value={conversation.status}
-                  onValueChange={async (value) => {
-                    setStatusLoading(true);
-                    await updateStatus({ status: value });
-                    setStatusLoading(false);
+        <div className="p-4 border-b border-border space-y-3 flex-shrink-0">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+            Status & Actions
+          </h4>
+
+          {/* Status Dropdown */}
+          <div className="space-y-1.5">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Select
+                    value={conversation.status}
+                    onValueChange={async (value) => {
+                      setStatusLoading(true)
+                      await updateStatus({ status: value })
+                      setStatusLoading(false)
+                    }}
+                    disabled={statusLoading}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">
+                        <span className="flex items-center gap-1.5">
+                          <CircleDot className="h-3 w-3" /> Open
+                          <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">
+                            O
+                          </kbd>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="pending">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3" /> Pending
+                          <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">
+                            P
+                          </kbd>
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="closed">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3 w-3" /> Closed
+                          <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">
+                            C
+                          </kbd>
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px]">
+                Change the conversation status. Shortcuts: O = Open, P = Pending, C = Closed.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <Separator className="my-3" />
+
+          {/* Quick Actions */}
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">
+            Quick Actions
+          </h4>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={() => {
+                    dispatch({
+                      type: "SET_ASSIGN_DIALOG",
+                      payload: { open: true, userId: "", loading: false },
+                    })
                   }}
-                  disabled={statusLoading}
                 >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">
-                      <span className="flex items-center gap-1.5">
-                        <CircleDot className="h-3 w-3" /> Open
-                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">O</kbd>
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="pending">
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" /> Pending
-                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">P</kbd>
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="closed">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3 w-3" /> Closed
-                        <kbd className="ml-1 rounded border border-border bg-muted px-1 text-[10px] font-mono">C</kbd>
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <UserPlus className="h-4 w-4" />
+                  <span className="text-xs">Assign</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px]">
+                Assign this conversation to a teammate so it shows up in their queue.
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={() => {
+                    dispatch({ type: "SET_TAG_DIALOG", payload: true })
+                  }}
+                >
+                  <Tag className="h-4 w-4" />
+                  <span className="text-xs">Add Tag</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px]">
+                Add a label to categorise this conversation for search and reporting.
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={() => {
+                    dispatch({
+                      type: "SET_SNOOZE_DIALOG",
+                      payload: { open: true, date: new Date(), time: "09:00" },
+                    })
+                  }}
+                >
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xs">Snooze</span>
+                  <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">
+                    S
+                  </kbd>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px]">
+                Hide the conversation until a chosen time, then bring it back to the inbox.
+                Shortcut: S
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={async () => {
+                    await updateStatus({ isArchived: true })
+                  }}
+                >
+                  <Archive className="h-4 w-4" />
+                  <span className="text-xs">Archive</span>
+                  <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">
+                    A
+                  </kbd>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px]">
+                Move the conversation out of the active list while keeping it searchable. Shortcut:
+                A
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 text-destructive hover:text-destructive mt-2"
+                onClick={() => {
+                  dispatch({ type: "SET_DELETE_DIALOG", payload: { open: true, messageId: null } })
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="text-xs">Delete</span>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="left" className="max-w-[220px]">
-              Change the conversation status. Shortcuts: O = Open, P = Pending, C = Closed.
+              Permanently delete this conversation. This cannot be undone.
             </TooltipContent>
           </Tooltip>
         </div>
-        
-        <Separator className="my-3" />
-        
-        {/* Quick Actions */}
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-3">Quick Actions</h4>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="justify-start gap-2"
-                onClick={() => {
-                  dispatch({ type: 'SET_ASSIGN_DIALOG', payload: { open: true, userId: '', loading: false } });
-                }}
-              >
-                <UserPlus className="h-4 w-4" />
-                <span className="text-xs">Assign</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[220px]">
-              Assign this conversation to a teammate so it shows up in their queue.
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="justify-start gap-2"
-                onClick={() => {
-                  dispatch({ type: 'SET_TAG_DIALOG', payload: true });
-                }}
-              >
-                <Tag className="h-4 w-4" />
-                <span className="text-xs">Add Tag</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[220px]">
-              Add a label to categorise this conversation for search and reporting.
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="justify-start gap-2"
-                onClick={() => {
-                  dispatch({ type: 'SET_SNOOZE_DIALOG', payload: { open: true, date: new Date(), time: '09:00' } });
-                }}
-              >
-                <Clock className="h-4 w-4" />
-                <span className="text-xs">Snooze</span>
-                <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">S</kbd>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[220px]">
-              Hide the conversation until a chosen time, then bring it back to the inbox. Shortcut: S
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="justify-start gap-2"
-                onClick={async () => {
-                  await updateStatus({ isArchived: true });
-                }}
-              >
-                <Archive className="h-4 w-4" />
-                <span className="text-xs">Archive</span>
-                <kbd className="ml-auto rounded border border-border bg-muted px-1 text-[10px] font-mono">A</kbd>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-[220px]">
-              Move the conversation out of the active list while keeping it searchable. Shortcut: A
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start gap-2 text-destructive hover:text-destructive mt-2"
-              onClick={() => {
-                dispatch({ type: 'SET_DELETE_DIALOG', payload: { open: true, messageId: null } });
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="text-xs">Delete</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="max-w-[220px]">
-            Permanently delete this conversation. This cannot be undone.
-          </TooltipContent>
-        </Tooltip>
-      </div>
       </TooltipProvider>
 
-
       {/* Customer Info Section - Scrollable */}
-      <div className="flex-1 overflow-y-auto relative" style={{ isolation: 'isolate' }}>
+      <div className="flex-1 overflow-y-auto relative" style={{ isolation: "isolate" }}>
         <div className="p-3 space-y-3">
-
           {/* Enhanced Noddi Customer Details Component */}
           <NoddiCustomerDetails
             customerId={conversation.customer?.id}
             customerEmail={conversation.customer?.email}
             customerPhone={conversation.customer?.phone}
             customerName={conversation.customer?.full_name}
-            noddiEmail={(conversation.customer?.metadata as any)?.primary_noddi_email || (conversation.customer?.metadata as any)?.alternative_emails?.[0]}
+            noddiEmail={
+              (conversation.customer?.metadata as any)?.primary_noddi_email ||
+              (conversation.customer?.metadata as any)?.alternative_emails?.[0]
+            }
             onDataLoaded={setNoddiData}
             noddiData={noddiData}
             onUserGroupChange={handleUserGroupChange}
@@ -837,9 +872,15 @@ export const CustomerSidePanel = ({
 
           {/* Shortcut hint for toggling this sidebar */}
           <p className="text-[11px] text-muted-foreground">
-            Tip: press{' '}
-            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">⌘J</kbd>
-            {' '}(<kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">Ctrl+J</kbd>) to open or collapse the customer details sidebar.
+            Tip: press{" "}
+            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+              ⌘J
+            </kbd>{" "}
+            (
+            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+              Ctrl+J
+            </kbd>
+            ) to open or collapse the customer details sidebar.
           </p>
 
           {/* Unified history across email, chat, phone, notes and cases */}
@@ -847,7 +888,6 @@ export const CustomerSidePanel = ({
             customerId={conversation.customer?.id}
             currentConversationId={conversation.id}
           />
-
 
           {/* Open Noddi tickets for this customer (matched on user group / car) */}
           <CustomerNoddiTicketsCard
@@ -857,14 +897,15 @@ export const CustomerSidePanel = ({
 
           {/* Alternative Lookup - only show if no data found */}
           {conversation.customer?.id && noddiData && !noddiData?.data?.found && (
-            <Card className="border-amber-200 bg-amber-50/50 relative z-20" style={{ pointerEvents: 'auto' }}>
+            <Card
+              className="border-amber-200 bg-amber-50/50 relative z-20"
+              style={{ pointerEvents: "auto" }}
+            >
               <CardContent className="pt-4">
                 <div className="flex items-start gap-2 mb-3">
                   <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-amber-900 mb-1">
-                      No booking data found
-                    </p>
+                    <p className="text-sm font-medium text-amber-900 mb-1">No booking data found</p>
                     <p className="text-xs text-amber-700">
                       Search by alternative email or customer name
                     </p>
@@ -874,23 +915,23 @@ export const CustomerSidePanel = ({
                 {/* Tab Navigation */}
                 <div className="flex gap-2 mb-3 border-b border-amber-200">
                   <button
-                    onClick={() => setSearchMode('email')}
+                    onClick={() => setSearchMode("email")}
                     className={cn(
                       "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
-                      searchMode === 'email'
+                      searchMode === "email"
                         ? "border-amber-600 text-amber-900"
-                        : "border-transparent text-amber-700 hover:text-amber-900"
+                        : "border-transparent text-amber-700 hover:text-amber-900",
                     )}
                   >
                     Search by Email
                   </button>
                   <button
-                    onClick={() => setSearchMode('name')}
+                    onClick={() => setSearchMode("name")}
                     className={cn(
                       "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
-                      searchMode === 'name'
+                      searchMode === "name"
                         ? "border-amber-600 text-amber-900"
-                        : "border-transparent text-amber-700 hover:text-amber-900"
+                        : "border-transparent text-amber-700 hover:text-amber-900",
                     )}
                   >
                     Search by Name
@@ -898,21 +939,21 @@ export const CustomerSidePanel = ({
                 </div>
 
                 {/* Email Search Tab */}
-                {searchMode === 'email' && (
+                {searchMode === "email" && (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-amber-900">
                       Alternative email address:
                     </label>
-                    <div className="flex gap-2 relative z-10" style={{ pointerEvents: 'auto' }}>
+                    <div className="flex gap-2 relative z-10" style={{ pointerEvents: "auto" }}>
                       <Input
                         type="email"
                         placeholder="alternative@email.com"
                         value={alternativeEmail}
                         onChange={(e) => setAlternativeEmail(e.target.value)}
                         className="text-sm h-8 relative z-10"
-                        style={{ pointerEvents: 'auto' }}
+                        style={{ pointerEvents: "auto" }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAlternativeEmailSearch();
+                          if (e.key === "Enter") handleAlternativeEmailSearch()
                         }}
                       />
                       <Button
@@ -921,18 +962,14 @@ export const CustomerSidePanel = ({
                         disabled={!alternativeEmail || searchLoading}
                         className="h-8"
                       >
-                        {searchLoading ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          "Search"
-                        )}
+                        {searchLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
                       </Button>
                     </div>
                   </div>
                 )}
 
                 {/* Name Search Tab */}
-                {searchMode === 'name' && (
+                {searchMode === "name" && (
                   <div className="space-y-3">
                     {/* First Name Field */}
                     <div className="space-y-1.5">
@@ -946,7 +983,7 @@ export const CustomerSidePanel = ({
                         onChange={(e) => setSearchFirstName(e.target.value)}
                         className="text-sm h-8"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
+                          if (e.key === "Enter" && searchFirstName.length >= 2) handleNameSearch()
                         }}
                       />
                     </div>
@@ -963,7 +1000,7 @@ export const CustomerSidePanel = ({
                         onChange={(e) => setSearchLastName(e.target.value)}
                         className="text-sm h-8"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && searchFirstName.length >= 2) handleNameSearch();
+                          if (e.key === "Enter" && searchFirstName.length >= 2) handleNameSearch()
                         }}
                       />
                     </div>
@@ -975,11 +1012,7 @@ export const CustomerSidePanel = ({
                       disabled={!searchFirstName || searchFirstName.length < 2 || nameSearchLoading}
                       className="h-8 w-full"
                     >
-                      {nameSearchLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        "Search"
-                      )}
+                      {nameSearchLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
                     </Button>
 
                     {/* Matching Customers List */}
@@ -1013,7 +1046,10 @@ export const CustomerSidePanel = ({
                                 </span>
                               )}
                               {customer.metadata?.unpaid_count > 0 && (
-                                <span className="text-destructive text-[10px] font-semibold" title={`${customer.metadata.unpaid_count} unpaid booking(s)`}>
+                                <span
+                                  className="text-destructive text-[10px] font-semibold"
+                                  title={`${customer.metadata.unpaid_count} unpaid booking(s)`}
+                                >
                                   ⚠️ {customer.metadata.unpaid_count} unpaid
                                 </span>
                               )}
@@ -1028,7 +1064,9 @@ export const CustomerSidePanel = ({
                                 <span className="flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
                                   {customer.metadata.noddi_email}
-                                  <span className="text-[10px] font-medium text-amber-600">(Noddi)</span>
+                                  <span className="text-[10px] font-medium text-amber-600">
+                                    (Noddi)
+                                  </span>
                                 </span>
                               )}
                               {customer.email && (
@@ -1063,17 +1101,17 @@ export const CustomerSidePanel = ({
               </CardContent>
             </Card>
           )}
-          
+
           <Separator />
-          
+
           {/* Customer Basic Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs">
               <Mail className="h-3 w-3 text-muted-foreground" />
               <span className="text-muted-foreground">Email:</span>
-              <span className="font-medium truncate">{conversation.customer?.email || 'N/A'}</span>
+              <span className="font-medium truncate">{conversation.customer?.email || "N/A"}</span>
             </div>
-            
+
             {conversation.customer?.phone && (
               <div className="flex items-center gap-2 text-xs">
                 <Phone className="h-3 w-3 text-muted-foreground" />
@@ -1088,7 +1126,7 @@ export const CustomerSidePanel = ({
           {/* Conversation Details */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase">Conversation</h4>
-            
+
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Status:</span>
@@ -1114,7 +1152,10 @@ export const CustomerSidePanel = ({
               {conversation.is_archived && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Archived:</span>
-                  <Badge variant="outline" className="text-[10px] h-4 px-1 bg-muted text-muted-foreground">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] h-4 px-1 bg-muted text-muted-foreground"
+                  >
                     <Archive className="h-3 w-3 mr-0.5" />
                     Yes
                   </Badge>
@@ -1124,9 +1165,7 @@ export const CustomerSidePanel = ({
               {conversation.assigned_to && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Assigned to:</span>
-                  <span className="font-medium">
-                    {conversation.assigned_to.full_name}
-                  </span>
+                  <span className="font-medium">{conversation.assigned_to.full_name}</span>
                 </div>
               )}
             </div>
@@ -1137,7 +1176,7 @@ export const CustomerSidePanel = ({
           {/* Timestamps */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase">Timeline</h4>
-            
+
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-xs">
                 <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -1163,5 +1202,5 @@ export const CustomerSidePanel = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

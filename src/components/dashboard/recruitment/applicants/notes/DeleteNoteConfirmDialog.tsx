@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,37 +8,37 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useDeleteApplicantNote } from '../hooks/useDeleteApplicantNote';
+} from "@/components/ui/alert-dialog"
+import { useDeleteApplicantNote } from "../hooks/useDeleteApplicantNote"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   note: {
-    id: string;
-    applicant_id: string;
-    application_id: string | null;
-    content: string;
-  } | null;
+    id: string
+    applicant_id: string
+    application_id: string | null
+    content: string
+  } | null
 }
 
 const DeleteNoteConfirmDialog: React.FC<Props> = ({ open, onOpenChange, note }) => {
-  const deleteMut = useDeleteApplicantNote();
+  const deleteMut = useDeleteApplicantNote()
 
   const confirm = async () => {
-    if (!note) return;
+    if (!note) return
     try {
       await deleteMut.mutateAsync({
         noteId: note.id,
         applicantId: note.applicant_id,
         applicationId: note.application_id,
         preview: note.content,
-      });
-      onOpenChange(false);
+      })
+      onOpenChange(false)
     } catch {
       // hook toasts
     }
-  };
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -54,8 +54,8 @@ const DeleteNoteConfirmDialog: React.FC<Props> = ({ open, onOpenChange, note }) 
           <AlertDialogAction
             disabled={deleteMut.isPending}
             onClick={(e) => {
-              e.preventDefault();
-              void confirm();
+              e.preventDefault()
+              void confirm()
             }}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
@@ -64,7 +64,7 @@ const DeleteNoteConfirmDialog: React.FC<Props> = ({ open, onOpenChange, note }) 
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default DeleteNoteConfirmDialog;
+export default DeleteNoteConfirmDialog

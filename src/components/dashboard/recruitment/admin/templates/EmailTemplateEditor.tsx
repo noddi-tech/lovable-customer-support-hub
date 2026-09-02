@@ -1,20 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Trash2, Mail, Send, Save, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Mail, RotateCcw, Save, Send, Trash2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,43 +12,50 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/hooks/useAuth"
+import type { Stage } from "../pipeline/types"
+import { useDefaultPipeline } from "../pipeline/usePipelineAdmin"
+import { EmailTemplateDeletedView } from "./EmailTemplateDeletedView"
+import { EmailTemplatePreview } from "./EmailTemplatePreview"
+import { EmailTemplateTipTap } from "./EmailTemplateTipTap"
+import { EmailTemplateUsageStats } from "./EmailTemplateUsageStats"
+import { MergeFieldDropdown } from "./MergeFieldDropdown"
+import { PermanentDeleteDialog } from "./PermanentDeleteDialog"
 import {
-  templateFormSchema,
-  type TemplateFormValues,
   type EmailTemplate,
   NEW_TEMPLATE_DEFAULTS,
-} from './types';
-import { EmailTemplateTipTap } from './EmailTemplateTipTap';
-import { EmailTemplatePreview } from './EmailTemplatePreview';
-import { EmailTemplateUsageStats } from './EmailTemplateUsageStats';
-import { EmailTemplateDeletedView } from './EmailTemplateDeletedView';
-import { MergeFieldDropdown } from './MergeFieldDropdown';
-import { PermanentDeleteDialog } from './PermanentDeleteDialog';
+  type TemplateFormValues,
+  templateFormSchema,
+} from "./types"
 import {
   useCreateTemplate,
-  useUpdateTemplate,
-  useSoftDeleteTemplate,
-  useRestoreTemplate,
   useHardDeleteTemplate,
-} from './useEmailTemplate';
-import { useTestSendTemplate } from './useTestSendTemplate';
-import { useDefaultPipeline } from '../pipeline/usePipelineAdmin';
-import { useAuth } from '@/hooks/useAuth';
-import type { Stage } from '../pipeline/types';
+  useRestoreTemplate,
+  useSoftDeleteTemplate,
+  useUpdateTemplate,
+} from "./useEmailTemplate"
+import { useTestSendTemplate } from "./useTestSendTemplate"
 
 interface Props {
-  mode: 'create' | 'edit';
-  template: EmailTemplate | null;
-  onCreated: (id: string) => void;
-  onCancelCreate: () => void;
-  onDeleted: () => void;
+  mode: "create" | "edit"
+  template: EmailTemplate | null
+  onCreated: (id: string) => void
+  onCancelCreate: () => void
+  onDeleted: () => void
 }
 
 export function EmailTemplateEditor({
@@ -70,72 +65,69 @@ export function EmailTemplateEditor({
   onCancelCreate,
   onDeleted,
 }: Props) {
-  const { profile, user } = useAuth();
-  const { data: pipeline } = useDefaultPipeline();
-  const stages = useMemo(
-    () => (pipeline?.stages as unknown as Stage[]) ?? [],
-    [pipeline?.stages],
-  );
+  const { profile, user } = useAuth()
+  const { data: pipeline } = useDefaultPipeline()
+  const stages = useMemo(() => (pipeline?.stages as unknown as Stage[]) ?? [], [pipeline?.stages])
   const orgName = useMemo(() => {
     // Fallback chain: user-known names. Uses pipeline.name as a proxy isn't reliable,
     // so we use a generic placeholder if not derivable from auth.
-    return 'Din organisasjon';
-  }, []);
+    return "Din organisasjon"
+  }, [])
 
-  const createMutation = useCreateTemplate();
-  const updateMutation = useUpdateTemplate();
-  const softDeleteMutation = useSoftDeleteTemplate();
-  const restoreMutation = useRestoreTemplate();
-  const hardDeleteMutation = useHardDeleteTemplate();
-  const testSendMutation = useTestSendTemplate();
+  const createMutation = useCreateTemplate()
+  const updateMutation = useUpdateTemplate()
+  const softDeleteMutation = useSoftDeleteTemplate()
+  const restoreMutation = useRestoreTemplate()
+  const hardDeleteMutation = useHardDeleteTemplate()
+  const testSendMutation = useTestSendTemplate()
 
-  const isDeleted = !!template?.soft_deleted_at;
+  const isDeleted = !!template?.soft_deleted_at
 
   const defaultValues = useMemo<TemplateFormValues>(() => {
-    if (mode === 'create' || !template) return NEW_TEMPLATE_DEFAULTS;
+    if (mode === "create" || !template) return NEW_TEMPLATE_DEFAULTS
     return {
-      name: template.name ?? '',
-      description: template.description ?? '',
-      subject: template.subject ?? '',
-      body: template.body ?? '<p></p>',
+      name: template.name ?? "",
+      description: template.description ?? "",
+      subject: template.subject ?? "",
+      body: template.body ?? "<p></p>",
       stage_trigger: template.stage_trigger,
       is_active: template.is_active,
-    };
-  }, [mode, template]);
+    }
+  }, [mode, template])
 
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateFormSchema),
     defaultValues,
-    mode: 'onChange',
-  });
+    mode: "onChange",
+  })
 
   // Reset when switching template / mode
   useEffect(() => {
-    form.reset(defaultValues);
+    form.reset(defaultValues)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultValues, template?.id, mode]);
+  }, [defaultValues, form.reset])
 
-  const subjectRef = useRef<HTMLInputElement>(null);
+  const subjectRef = useRef<HTMLInputElement>(null)
 
-  const watched = form.watch();
-  const isDirty = form.formState.isDirty;
-  const isValid = form.formState.isValid;
+  const watched = form.watch()
+  const isDirty = form.formState.isDirty
+  const isValid = form.formState.isValid
 
   const previewValues = useMemo<Record<string, string>>(
     () => ({
-      first_name: 'Ola',
-      last_name: 'Nordmann',
-      position_title: 'Dekkskifter – Oslo',
+      first_name: "Ola",
+      last_name: "Nordmann",
+      position_title: "Dekkskifter – Oslo",
       company_name: orgName,
-      recruiter_name: profile?.full_name || 'Rekrutterer',
-      recruiter_email: user?.email || 'rekrutterer@example.no',
-      application_link: 'https://example.no/applicants/example-id',
+      recruiter_name: profile?.full_name || "Rekrutterer",
+      recruiter_email: user?.email || "rekrutterer@example.no",
+      application_link: "https://example.no/applicants/example-id",
     }),
     [orgName, profile?.full_name, user?.email],
-  );
+  )
 
-  const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
-  const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
+  const [softDeleteOpen, setSoftDeleteOpen] = useState(false)
+  const [hardDeleteOpen, setHardDeleteOpen] = useState(false)
 
   if (isDeleted && template) {
     return (
@@ -146,9 +138,9 @@ export function EmailTemplateEditor({
           previewValues={previewValues}
           onRestore={() => {
             restoreMutation.mutate(template.id, {
-              onSuccess: () => toast.success('Mal gjenopprettet.'),
-              onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke gjenopprette'),
-            });
+              onSuccess: () => toast.success("Mal gjenopprettet."),
+              onError: (e: any) => toast.error(e?.message ?? "Kunne ikke gjenopprette"),
+            })
           }}
           onHardDelete={() => setHardDeleteOpen(true)}
           isRestorePending={restoreMutation.isPending}
@@ -161,119 +153,118 @@ export function EmailTemplateEditor({
           onConfirm={() => {
             hardDeleteMutation.mutate(template.id, {
               onSuccess: () => {
-                toast.success('Mal slettet permanent.');
-                setHardDeleteOpen(false);
-                onDeleted();
+                toast.success("Mal slettet permanent.")
+                setHardDeleteOpen(false)
+                onDeleted()
               },
-              onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke slette'),
-            });
+              onError: (e: any) => toast.error(e?.message ?? "Kunne ikke slette"),
+            })
           }}
         />
       </>
-    );
+    )
   }
 
   const onSubmit = (values: TemplateFormValues) => {
-    if (mode === 'create') {
+    if (mode === "create") {
       createMutation.mutate(values, {
         onSuccess: (created) => {
-          toast.success('Mal opprettet.');
-          form.reset(values);
-          onCreated(created.id);
+          toast.success("Mal opprettet.")
+          form.reset(values)
+          onCreated(created.id)
         },
-        onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke opprette mal'),
-      });
+        onError: (e: any) => toast.error(e?.message ?? "Kunne ikke opprette mal"),
+      })
     } else if (template) {
       updateMutation.mutate(
         { id: template.id, values },
         {
           onSuccess: () => {
-            toast.success('Mal oppdatert.');
-            form.reset(values);
+            toast.success("Mal oppdatert.")
+            form.reset(values)
           },
-          onError: (e: any) => toast.error(e?.message ?? 'Kunne ikke oppdatere'),
+          onError: (e: any) => toast.error(e?.message ?? "Kunne ikke oppdatere"),
         },
-      );
+      )
     }
-  };
+  }
 
   const handleReset = () => {
-    if (mode === 'create') {
-      onCancelCreate();
+    if (mode === "create") {
+      onCancelCreate()
     } else {
-      form.reset(defaultValues);
+      form.reset(defaultValues)
     }
-  };
+  }
 
   const insertSubjectMergeField = (key: string) => {
-    const el = subjectRef.current;
+    const el = subjectRef.current
     if (!el) {
-      form.setValue('subject', form.getValues('subject') + key, { shouldDirty: true });
-      return;
+      form.setValue("subject", form.getValues("subject") + key, { shouldDirty: true })
+      return
     }
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const next = el.value.slice(0, start) + key + el.value.slice(end);
-    form.setValue('subject', next, { shouldDirty: true, shouldValidate: true });
+    const start = el.selectionStart ?? el.value.length
+    const end = el.selectionEnd ?? el.value.length
+    const next = el.value.slice(0, start) + key + el.value.slice(end)
+    form.setValue("subject", next, { shouldDirty: true, shouldValidate: true })
     requestAnimationFrame(() => {
-      el.focus();
-      const pos = start + key.length;
-      el.setSelectionRange(pos, pos);
-    });
-  };
+      el.focus()
+      const pos = start + key.length
+      el.setSelectionRange(pos, pos)
+    })
+  }
 
   const handleTestSend = () => {
     if (!user?.email) {
-      toast.error('Mangler din e-postadresse');
-      return;
+      toast.error("Mangler din e-postadresse")
+      return
     }
-    const subject = substitute(watched.subject, previewValues);
-    const html = substitute(watched.body, previewValues);
-    toast.message(`Sender testmail til ${user.email}...`);
+    const subject = substitute(watched.subject, previewValues)
+    const html = substitute(watched.body, previewValues)
+    toast.message(`Sender testmail til ${user.email}...`)
     testSendMutation.mutate(
       { to: user.email, subject, html, fromName: `${orgName} – Rekruttering (test)` },
       {
-        onSuccess: () => toast.success('Testmail sendt. Sjekk innboksen.'),
-        onError: (e: any) =>
-          toast.error(e?.message ?? 'Kunne ikke sende testmail'),
+        onSuccess: () => toast.success("Testmail sendt. Sjekk innboksen."),
+        onError: (e: any) => toast.error(e?.message ?? "Kunne ikke sende testmail"),
       },
-    );
-  };
+    )
+  }
 
-  const nameLen = (watched.name || '').length;
-  const descLen = (watched.description || '').length;
+  const nameLen = (watched.name || "").length
+  const descLen = (watched.description || "").length
 
   const canTestSend =
     !isDirty &&
     !!watched.name?.trim() &&
     !!watched.subject?.trim() &&
-    !!stripHtml(watched.body || '').trim() &&
-    mode === 'edit';
+    !!stripHtml(watched.body || "").trim() &&
+    mode === "edit"
 
   const testSendDisabledReason = isDirty
-    ? 'Lagre endringene dine først.'
-    : !watched.name?.trim() || !watched.subject?.trim() || !stripHtml(watched.body || '').trim()
-      ? 'Navn, emne og innhold må være fylt ut.'
-      : mode === 'create'
-        ? 'Lagre malen først.'
-        : '';
+    ? "Lagre endringene dine først."
+    : !watched.name?.trim() || !watched.subject?.trim() || !stripHtml(watched.body || "").trim()
+      ? "Navn, emne og innhold må være fylt ut."
+      : mode === "create"
+        ? "Lagre malen først."
+        : ""
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pb-20">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">
-            {mode === 'create' ? 'Ny mal' : template?.name || '(uten navn)'}
+            {mode === "create" ? "Ny mal" : template?.name || "(uten navn)"}
           </h2>
           <p className="text-xs text-muted-foreground">
-            {mode === 'create'
-              ? 'Fyll inn feltene under og lagre for å opprette en ny e-postmal.'
-              : 'Rediger innhold, emne og utløsere. Endringer lagres når du klikker Lagre.'}
+            {mode === "create"
+              ? "Fyll inn feltene under og lagre for å opprette en ny e-postmal."
+              : "Rediger innhold, emne og utløsere. Endringer lagres når du klikker Lagre."}
           </p>
         </div>
-        {mode === 'edit' && template && (
+        {mode === "edit" && template && (
           <Button
             type="button"
             variant="ghost"
@@ -297,14 +288,12 @@ export function EmailTemplateEditor({
             Navn <span className="text-destructive">*</span>
           </Label>
           {nameLen > 80 && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {nameLen}/100
-            </span>
+            <span className="text-[10px] text-muted-foreground tabular-nums">{nameLen}/100</span>
           )}
         </div>
         <Input
           id="tpl-name"
-          {...form.register('name')}
+          {...form.register("name")}
           placeholder="f.eks. Innkalling til intervju"
           maxLength={100}
         />
@@ -320,9 +309,7 @@ export function EmailTemplateEditor({
             Beskrivelse
           </Label>
           {descLen > 0 && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              {descLen}/200
-            </span>
+            <span className="text-[10px] text-muted-foreground tabular-nums">{descLen}/200</span>
           )}
         </div>
         <Textarea
@@ -330,9 +317,9 @@ export function EmailTemplateEditor({
           rows={2}
           maxLength={200}
           emojiAutocomplete={false}
-          value={watched.description ?? ''}
+          value={watched.description ?? ""}
           onChange={(e) =>
-            form.setValue('description', e.target.value, {
+            form.setValue("description", e.target.value, {
               shouldDirty: true,
               shouldValidate: true,
             })
@@ -355,7 +342,7 @@ export function EmailTemplateEditor({
             ref={subjectRef}
             value={watched.subject}
             onChange={(e) =>
-              form.setValue('subject', e.target.value, {
+              form.setValue("subject", e.target.value, {
                 shouldDirty: true,
                 shouldValidate: true,
               })
@@ -378,7 +365,7 @@ export function EmailTemplateEditor({
         <EmailTemplateTipTap
           value={watched.body}
           onChange={(html) =>
-            form.setValue('body', html, { shouldDirty: true, shouldValidate: true })
+            form.setValue("body", html, { shouldDirty: true, shouldValidate: true })
           }
         />
         {form.formState.errors.body && (
@@ -392,9 +379,9 @@ export function EmailTemplateEditor({
           Stadium-utløser
         </Label>
         <Select
-          value={watched.stage_trigger ?? '__manual__'}
+          value={watched.stage_trigger ?? "__manual__"}
           onValueChange={(v) =>
-            form.setValue('stage_trigger', v === '__manual__' ? null : v, {
+            form.setValue("stage_trigger", v === "__manual__" ? null : v, {
               shouldDirty: true,
             })
           }
@@ -403,9 +390,7 @@ export function EmailTemplateEditor({
             <SelectValue placeholder="Velg stadium..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__manual__">
-              Manuell (ingen automatisk utløser)
-            </SelectItem>
+            <SelectItem value="__manual__">Manuell (ingen automatisk utløser)</SelectItem>
             {stages.map((s) => (
               <SelectItem key={s.id} value={s.id}>
                 <span className="flex items-center gap-2">
@@ -420,8 +405,7 @@ export function EmailTemplateEditor({
           </SelectContent>
         </Select>
         <p className="text-[11px] text-muted-foreground">
-          Når satt, kan denne malen utløses automatisk fra Automatisering-fanen
-          (bygges senere).
+          Når satt, kan denne malen utløses automatisk fra Automatisering-fanen (bygges senere).
         </p>
       </div>
 
@@ -440,16 +424,14 @@ export function EmailTemplateEditor({
         <Switch
           id="tpl-active"
           checked={watched.is_active}
-          onCheckedChange={(v) =>
-            form.setValue('is_active', v, { shouldDirty: true })
-          }
+          onCheckedChange={(v) => form.setValue("is_active", v, { shouldDirty: true })}
         />
       </div>
 
       {/* Preview */}
       <EmailTemplatePreview
-        subject={watched.subject || ''}
-        body={watched.body || ''}
+        subject={watched.subject || ""}
+        body={watched.body || ""}
         values={previewValues}
       />
 
@@ -467,13 +449,11 @@ export function EmailTemplateEditor({
                   disabled={!canTestSend || testSendMutation.isPending}
                 >
                   <Send />
-                  {testSendMutation.isPending ? 'Sender...' : 'Send testmail til meg'}
+                  {testSendMutation.isPending ? "Sender..." : "Send testmail til meg"}
                 </Button>
               </span>
             </TooltipTrigger>
-            {testSendDisabledReason && (
-              <TooltipContent>{testSendDisabledReason}</TooltipContent>
-            )}
+            {testSendDisabledReason && <TooltipContent>{testSendDisabledReason}</TooltipContent>}
           </Tooltip>
         </TooltipProvider>
         <Button
@@ -481,14 +461,14 @@ export function EmailTemplateEditor({
           variant="ghost"
           size="sm"
           onClick={handleReset}
-          disabled={!isDirty && mode !== 'create'}
+          disabled={!isDirty && mode !== "create"}
         >
           <RotateCcw />
           Avbryt
         </Button>
         <Button type="submit" size="sm" disabled={!isDirty || !isValid || isSaving}>
           <Save />
-          {isSaving ? 'Lagrer...' : 'Lagre endringer'}
+          {isSaving ? "Lagrer..." : "Lagre endringer"}
         </Button>
       </div>
 
@@ -498,9 +478,8 @@ export function EmailTemplateEditor({
           <AlertDialogHeader>
             <AlertDialogTitle>Slett mal?</AlertDialogTitle>
             <AlertDialogDescription>
-              '{template?.name}' vil bli markert som slettet. Den skjules fra
-              standardlisten, men kan gjenopprettes senere. Data beholdes for
-              revisjonsformål.
+              '{template?.name}' vil bli markert som slettet. Den skjules fra standardlisten, men
+              kan gjenopprettes senere. Data beholdes for revisjonsformål.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -508,18 +487,15 @@ export function EmailTemplateEditor({
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                if (!template) return;
+                if (!template) return
                 softDeleteMutation.mutate(template.id, {
                   onSuccess: () => {
-                    toast.success(
-                      "Mal slettet. Kan gjenopprettes fra filteret 'Slettede'.",
-                    );
-                    setSoftDeleteOpen(false);
-                    onDeleted();
+                    toast.success("Mal slettet. Kan gjenopprettes fra filteret 'Slettede'.")
+                    setSoftDeleteOpen(false)
+                    onDeleted()
                   },
-                  onError: (e: any) =>
-                    toast.error(e?.message ?? 'Kunne ikke slette'),
-                });
+                  onError: (e: any) => toast.error(e?.message ?? "Kunne ikke slette"),
+                })
               }}
             >
               <Trash2 />
@@ -529,18 +505,19 @@ export function EmailTemplateEditor({
         </AlertDialogContent>
       </AlertDialog>
     </form>
-  );
+  )
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').trim();
+  return html.replace(/<[^>]*>/g, "").trim()
 }
 
 // Local re-export to avoid circular imports
-import { substituteMergeFields } from './mergeFields';
+import { substituteMergeFields } from "./mergeFields"
+
 function substitute(input: string, values: Record<string, string>): string {
-  return substituteMergeFields(input, values);
+  return substituteMergeFields(input, values)
 }
 
 // Silence unused-import warning
-void Mail;
+void Mail

@@ -1,32 +1,29 @@
-import React from 'react';
+import type React from "react"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useJobPositions } from '../positions/usePositions';
-import { useTeamMembers } from '@/hooks/useTeamMembers';
-import type { PipelineFilters as Filters } from './usePipeline';
+} from "@/components/ui/select"
+import { useTeamMembers } from "@/hooks/useTeamMembers"
+import { useJobPositions } from "../positions/usePositions"
+import type { PipelineFilters as Filters } from "./usePipeline"
 
 interface Props {
-  value: Filters;
-  onChange: (next: Filters) => void;
-  totalCount: number;
+  value: Filters
+  onChange: (next: Filters) => void
+  totalCount: number
 }
 
 const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
-  const { data: positions } = useJobPositions();
-  const { data: team } = useTeamMembers();
-  const openPositions = (positions ?? []).filter((p) => p.status === 'open');
+  const { data: positions } = useJobPositions()
+  const { data: team } = useTeamMembers()
+  const openPositions = (positions ?? []).filter((p) => p.status === "open")
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <Select
-        value={value.positionId}
-        onValueChange={(v) => onChange({ ...value, positionId: v })}
-      >
+      <Select value={value.positionId} onValueChange={(v) => onChange({ ...value, positionId: v })}>
         <SelectTrigger className="w-full sm:w-[220px]">
           <SelectValue placeholder="Stilling" />
         </SelectTrigger>
@@ -40,10 +37,7 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
         </SelectContent>
       </Select>
 
-      <Select
-        value={value.assignedTo}
-        onValueChange={(v) => onChange({ ...value, assignedTo: v })}
-      >
+      <Select value={value.assignedTo} onValueChange={(v) => onChange({ ...value, assignedTo: v })}>
         <SelectTrigger className="w-full sm:w-[200px]">
           <SelectValue placeholder="Tilordnet" />
         </SelectTrigger>
@@ -57,11 +51,9 @@ const PipelineFilters: React.FC<Props> = ({ value, onChange, totalCount }) => {
         </SelectContent>
       </Select>
 
-      <div className="ml-auto text-sm text-muted-foreground">
-        {totalCount} søkere totalt
-      </div>
+      <div className="ml-auto text-sm text-muted-foreground">{totalCount} søkere totalt</div>
     </div>
-  );
-};
+  )
+}
 
-export default PipelineFilters;
+export default PipelineFilters

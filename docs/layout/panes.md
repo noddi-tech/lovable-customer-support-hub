@@ -31,38 +31,37 @@ Page Wrapper (h-full min-h-0 overflow-hidden)
 ## Key Components
 
 ### PaneColumn
+
 Wrapper for a pane in a multi-pane layout. Ensures proper height constraints for nested scrolling.
 
 ```tsx
-import { PaneColumn } from '@/components/layout/Pane';
+import { PaneColumn } from "@/components/layout/Pane";
 
-<PaneColumn className="border-r border-border bg-card">
-  {/* pane content */}
-</PaneColumn>
+<PaneColumn className="border-r border-border bg-card">{/* pane content */}</PaneColumn>;
 ```
 
 ### PaneHeader
+
 Header section for a pane that doesn't participate in scrolling. Use for toolbars, titles, and other fixed content.
 
 ```tsx
-import { PaneHeader } from '@/components/layout/Pane';
+import { PaneHeader } from "@/components/layout/Pane";
 
 <PaneHeader>
   <div className="p-4 border-b">
     <h2>Pane Title</h2>
   </div>
-</PaneHeader>
+</PaneHeader>;
 ```
 
 ### PaneScroll
+
 Scrollable content area for a pane. Uses shadcn ScrollArea with proper height constraints.
 
 ```tsx
-import { PaneScroll } from '@/components/layout/Pane';
+import { PaneScroll } from "@/components/layout/Pane";
 
-<PaneScroll>
-  {/* scrollable content */}
-</PaneScroll>
+<PaneScroll>{/* scrollable content */}</PaneScroll>;
 ```
 
 ## Complete Example
@@ -71,9 +70,7 @@ import { PaneScroll } from '@/components/layout/Pane';
 // Page wrapper
 <div className="h-full min-h-0 overflow-hidden">
   {/* Optional toolbar */}
-  <div className="shrink-0 border-b border-border bg-background">
-    {toolbar}
-  </div>
+  <div className="shrink-0 border-b border-border bg-background">{toolbar}</div>
 
   {/* Three-pane grid */}
   <div className="grid h-full min-h-0 w-full grid-cols-[280px_1fr_360px] gap-6">
@@ -85,17 +82,13 @@ import { PaneScroll } from '@/components/layout/Pane';
         </div>
       </PaneHeader>
       <PaneScroll>
-        <div className="p-4">
-          {/* scrollable content */}
-        </div>
+        <div className="p-4">{/* scrollable content */}</div>
       </PaneScroll>
     </PaneColumn>
 
     {/* Center pane */}
     <PaneColumn>
-      <PaneScroll>
-        {/* preview content */}
-      </PaneScroll>
+      <PaneScroll>{/* preview content */}</PaneScroll>
     </PaneColumn>
 
     {/* Right pane */}
@@ -106,9 +99,7 @@ import { PaneScroll } from '@/components/layout/Pane';
         </div>
       </PaneHeader>
       <PaneScroll>
-        <div className="p-4">
-          {/* scrollable content */}
-        </div>
+        <div className="p-4">{/* scrollable content */}</div>
       </PaneScroll>
     </PaneColumn>
   </div>
@@ -137,16 +128,19 @@ import { PaneScroll } from '@/components/layout/Pane';
 ## Common Issues
 
 ### Page Still Scrolls
+
 - Check that page wrapper has `overflow-hidden`
 - Verify grid container has `h-full min-h-0`
 - Ensure no ancestor has `overflow-auto`
 
 ### Pane Not Scrolling
+
 - Verify pane wrapper has `min-h-0 min-w-0`
 - Check that ScrollArea has `h-full w-full`
 - Ensure content has enough height to trigger scrolling
 
 ### Layout Breaks
+
 - All containers in the height chain need proper constraints
 - Headers and toolbars inside panes need `shrink-0`
 - Use `min-w-0` to prevent content from forcing overflow
@@ -154,6 +148,7 @@ import { PaneScroll } from '@/components/layout/Pane';
 ## Responsive Considerations
 
 For mobile and tablet breakpoints:
+
 - Mobile: Single pane with drawer overlays
 - Tablet: Two panes with left pane as drawer
 - Desktop: Full three panes
@@ -166,7 +161,11 @@ Use the guard test pattern to ensure proper structure:
 
 ```tsx
 test("pane layout has proper structure", () => {
-  render(<div className="h-[900px]"><YourComponent /></div>);
+  render(
+    <div className="h-[900px]">
+      <YourComponent />
+    </div>,
+  );
   const grid = screen.getByTestId("your-grid");
   expect(grid).toBeTruthy();
   expect(grid.childElementCount).toBe(3); // for 3-pane
@@ -182,6 +181,7 @@ npm run lint:panes
 ```
 
 This will flag:
+
 - Grid containers missing `h-full` or `min-h-0`
 - Pane wrappers missing proper constraints
 - Competing `overflow-auto` usage

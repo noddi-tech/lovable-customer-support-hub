@@ -1,14 +1,14 @@
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
+import { Clock } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
 
 interface TimezoneTestProps {
-  className?: string;
+  className?: string
 }
 
 export function TimezoneTest({ className }: TimezoneTestProps) {
-  const { relative, dateTime, time, conversation, date, timezone, isLoading } = useDateFormatting();
-  
+  const { relative, dateTime, time, conversation, date, timezone, isLoading } = useDateFormatting()
+
   if (isLoading) {
     return (
       <Card className={className}>
@@ -19,12 +19,12 @@ export function TimezoneTest({ className }: TimezoneTestProps) {
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const testDate = new Date();
-  const pastDate = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
-  const oldDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 1 week ago
+  const testDate = new Date()
+  const pastDate = new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
+  const oldDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 1 week ago
 
   return (
     <Card className={className}>
@@ -43,7 +43,7 @@ export function TimezoneTest({ className }: TimezoneTestProps) {
             <div>Time: {time(testDate)}</div>
             <div>Date: {date(testDate)}</div>
           </div>
-          
+
           <div>
             <div className="font-medium text-muted-foreground mb-2">2 Hours Ago:</div>
             <div>Relative: {relative(pastDate)}</div>
@@ -51,7 +51,7 @@ export function TimezoneTest({ className }: TimezoneTestProps) {
             <div>Time: {time(pastDate)}</div>
           </div>
         </div>
-        
+
         <div>
           <div className="font-medium text-muted-foreground mb-2">1 Week Ago:</div>
           <div className="text-sm">
@@ -60,5 +60,5 @@ export function TimezoneTest({ className }: TimezoneTestProps) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

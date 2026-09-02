@@ -1,138 +1,144 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Shield, Search, Users, Crown, UserCog, User as UserIcon } from 'lucide-react';
-import { Heading } from '@/components/ui/heading';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery } from "@tanstack/react-query"
+import { Crown, Search, Shield, UserCog, User as UserIcon, Users } from "lucide-react"
+import { useState } from "react"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { supabase } from "@/integrations/supabase/client"
 
 interface UserWithRoles {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name: string | null;
+  id: string
+  user_id: string
+  email: string
+  full_name: string | null
   roles: Array<{
-    id: string;
-    role: string;
-    created_at: string;
-  }>;
+    id: string
+    role: string
+    created_at: string
+  }>
   organization_memberships?: Array<{
-    id: string;
+    id: string
     organization: {
-      name: string;
-      slug: string;
-    };
-    role: string;
-    status: string;
-  }>;
+      name: string
+      slug: string
+    }
+    role: string
+    status: string
+  }>
 }
 
 export default function RoleManagement() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'all' | 'super_admin' | 'admin' | 'agent' | 'user'>('all');
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedRole, setSelectedRole] = useState<
+    "all" | "super_admin" | "admin" | "agent" | "user"
+  >("all")
 
   // Fetch all users with their roles
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users-with-roles'],
+    queryKey: ["users-with-roles"],
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from("profiles")
         .select(`
           id,
           user_id,
           email,
           full_name
         `)
-        .order('full_name');
+        .order("full_name")
 
-      if (profilesError) throw profilesError;
+      if (profilesError) throw profilesError
 
       // Fetch roles for each user
       const usersWithRoles = await Promise.all(
         profiles.map(async (profile) => {
           const [rolesResult, orgsResult] = await Promise.all([
             supabase
-              .from('user_roles')
-              .select('id, role, created_at')
-              .eq('user_id', profile.user_id),
+              .from("user_roles")
+              .select("id, role, created_at")
+              .eq("user_id", profile.user_id),
             supabase
-              .from('organization_memberships')
+              .from("organization_memberships")
               .select(`
                 id,
                 role,
                 status,
                 organization:organizations(name, slug)
               `)
-              .eq('user_id', profile.user_id)
-              .eq('status', 'active')
-          ]);
+              .eq("user_id", profile.user_id)
+              .eq("status", "active"),
+          ])
 
           return {
             ...profile,
             roles: rolesResult.data || [],
             organization_memberships: orgsResult.data || [],
-          };
-        })
-      );
+          }
+        }),
+      )
 
-      return usersWithRoles as UserWithRoles[];
+      return usersWithRoles as UserWithRoles[]
     },
-  });
+  })
 
   // Fetch role statistics
   const { data: roleStats } = useQuery({
-    queryKey: ['role-statistics'],
+    queryKey: ["role-statistics"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role');
+      const { data, error } = await supabase.from("user_roles").select("role")
 
-      if (error) throw error;
+      if (error) throw error
 
       const stats = {
-        super_admin: data.filter(r => r.role === 'super_admin').length,
-        admin: data.filter(r => r.role === 'admin').length,
-        agent: data.filter(r => r.role === 'agent').length,
-        user: data.filter(r => r.role === 'user').length,
+        super_admin: data.filter((r) => r.role === "super_admin").length,
+        admin: data.filter((r) => r.role === "admin").length,
+        agent: data.filter((r) => r.role === "agent").length,
+        user: data.filter((r) => r.role === "user").length,
         total: data.length,
-      };
+      }
 
-      return stats;
+      return stats
     },
-  });
+  })
 
   // Filter users
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = selectedRole === 'all' || 
-      user.roles.some(r => r.role === selectedRole);
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
 
-    return matchesSearch && matchesRole;
-  });
+    const matchesRole = selectedRole === "all" || user.roles.some((r) => r.role === selectedRole)
+
+    return matchesSearch && matchesRole
+  })
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'super_admin': return 'default';
-      case 'admin': return 'secondary';
-      case 'agent': return 'outline';
-      default: return 'outline';
+      case "super_admin":
+        return "default"
+      case "admin":
+        return "secondary"
+      case "agent":
+        return "outline"
+      default:
+        return "outline"
     }
-  };
+  }
 
   const roleInfo = {
-    super_admin: { icon: Crown, label: 'Super Admin', color: 'text-yellow-600 dark:text-yellow-500' },
-    admin: { icon: Shield, label: 'Admin', color: 'text-blue-600 dark:text-blue-500' },
-    agent: { icon: UserCog, label: 'Agent', color: 'text-green-600 dark:text-green-500' },
-    user: { icon: UserIcon, label: 'User', color: 'text-gray-600 dark:text-gray-400' },
-  };
+    super_admin: {
+      icon: Crown,
+      label: "Super Admin",
+      color: "text-yellow-600 dark:text-yellow-500",
+    },
+    admin: { icon: Shield, label: "Admin", color: "text-blue-600 dark:text-blue-500" },
+    agent: { icon: UserCog, label: "Agent", color: "text-green-600 dark:text-green-500" },
+    user: { icon: UserIcon, label: "User", color: "text-gray-600 dark:text-gray-400" },
+  }
 
   return (
     <AdminPortalLayout>
@@ -142,7 +148,10 @@ export default function RoleManagement() {
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <Shield className="h-8 w-8 text-blue-600 dark:text-blue-500" />
-              <Heading level={1} className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 bg-clip-text text-transparent">
+              <Heading
+                level={1}
+                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 bg-clip-text text-transparent"
+              >
                 Role Management
               </Heading>
             </div>
@@ -161,9 +170,9 @@ export default function RoleManagement() {
               <div className="text-2xl font-bold">{roleStats?.total || 0}</div>
             </CardContent>
           </Card>
-          
-          {(['super_admin', 'admin', 'agent', 'user'] as const).map((role) => {
-            const info = roleInfo[role];
+
+          {(["super_admin", "admin", "agent", "user"] as const).map((role) => {
+            const info = roleInfo[role]
             return (
               <Card key={role} className="border-blue-200 dark:border-blue-900/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -174,7 +183,7 @@ export default function RoleManagement() {
                   <div className="text-2xl font-bold">{roleStats?.[role] || 0}</div>
                 </CardContent>
               </Card>
-            );
+            )
           })}
         </div>
 
@@ -191,8 +200,12 @@ export default function RoleManagement() {
                   className="pl-10"
                 />
               </div>
-              
-              <Tabs value={selectedRole} onValueChange={(value: any) => setSelectedRole(value)} className="w-full sm:w-auto">
+
+              <Tabs
+                value={selectedRole}
+                onValueChange={(value: any) => setSelectedRole(value)}
+                className="w-full sm:w-auto"
+              >
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="super_admin">Super Admin</TabsTrigger>
@@ -210,7 +223,7 @@ export default function RoleManagement() {
           <CardHeader>
             <CardTitle>Users & Roles</CardTitle>
             <CardDescription>
-              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
+              {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"} found
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,7 +237,7 @@ export default function RoleManagement() {
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  {searchQuery ? 'No users found matching your search' : 'No users yet'}
+                  {searchQuery ? "No users found matching your search" : "No users yet"}
                 </p>
               </div>
             ) : (
@@ -241,38 +254,39 @@ export default function RoleManagement() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{user.full_name || user.email}</p>
-                          {user.roles.some(r => r.role === 'super_admin') && (
+                          {user.roles.some((r) => r.role === "super_admin") && (
                             <Crown className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
-                        
+
                         {/* Organization memberships */}
-                        {user.organization_memberships && user.organization_memberships.length > 0 && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">Organizations:</span>
-                            {user.organization_memberships.slice(0, 3).map((membership: any) => (
-                              <Badge key={membership.id} variant="outline" className="text-xs">
-                                {membership.organization.name} ({membership.role})
-                              </Badge>
-                            ))}
-                            {user.organization_memberships.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{user.organization_memberships.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {user.organization_memberships &&
+                          user.organization_memberships.length > 0 && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">Organizations:</span>
+                              {user.organization_memberships.slice(0, 3).map((membership: any) => (
+                                <Badge key={membership.id} variant="outline" className="text-xs">
+                                  {membership.organization.name} ({membership.role})
+                                </Badge>
+                              ))}
+                              {user.organization_memberships.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{user.organization_memberships.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {user.roles.length === 0 ? (
                         <Badge variant="outline">No roles</Badge>
                       ) : (
                         user.roles.map((roleItem) => (
                           <Badge key={roleItem.id} variant={getRoleBadgeVariant(roleItem.role)}>
-                            {roleItem.role.replace('_', ' ')}
+                            {roleItem.role.replace("_", " ")}
                           </Badge>
                         ))
                       )}
@@ -285,5 +299,5 @@ export default function RoleManagement() {
         </Card>
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

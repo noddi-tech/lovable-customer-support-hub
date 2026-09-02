@@ -1,20 +1,20 @@
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
-import type { OversiktMetrics } from '@/hooks/recruitment/useOversiktMetrics';
+import { AlertTriangle } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { OversiktMetrics } from "@/hooks/recruitment/useOversiktMetrics"
 
 interface Props {
-  items: OversiktMetrics['needs_attention']['stage_stalled'];
+  items: OversiktMetrics["needs_attention"]["stage_stalled"]
 }
 
 function formatOver(hours: number): string {
-  if (hours >= 48) return `${Math.floor(hours / 24)} dager over SLA`;
-  return `${hours} timer over SLA`;
+  if (hours >= 48) return `${Math.floor(hours / 24)} dager over SLA`
+  return `${hours} timer over SLA`
 }
 
 export default function StalledApplicantsList({ items }: Props) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <Card>
@@ -22,7 +22,9 @@ export default function StalledApplicantsList({ items }: Props) {
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           Fastlåst i steget
-          <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
+          <Badge variant="secondary" className="ml-auto">
+            {items.length}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -53,5 +55,5 @@ export default function StalledApplicantsList({ items }: Props) {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

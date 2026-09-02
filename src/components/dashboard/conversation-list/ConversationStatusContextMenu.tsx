@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import { Check, Clock, MessageCircle, Tag, UserMinus, UserPlus, XCircle } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { BrandMenuOptions } from "@/components/brands/BrandMenuOptions"
+import { MemberOptionContent, memberLabel, useMemberSearch } from "@/components/shared/MemberPicker"
+import { TagContextMenuItems } from "@/components/tags/TagContextMenuItems"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -9,25 +14,21 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { Input } from '@/components/ui/input';
-import { Clock, XCircle, MessageCircle, UserPlus, UserMinus, Check, Tag } from 'lucide-react';
-import { useConversationStatusActions } from '@/hooks/useConversationStatusActions';
-import { useConversationAssignActions } from '@/hooks/useConversationAssignActions';
-import { type TeamMember } from '@/hooks/useTeamMembers';
-import { useConversationBrandActions } from '@/hooks/useConversationBrandActions';
-import { BrandMenuOptions } from '@/components/brands/BrandMenuOptions';
-import { MemberOptionContent, memberLabel, useMemberSearch } from '@/components/shared/MemberPicker';
-import { TagContextMenuItems } from '@/components/tags/TagContextMenuItems';
+} from "@/components/ui/context-menu"
+import { Input } from "@/components/ui/input"
+import { useConversationAssignActions } from "@/hooks/useConversationAssignActions"
+import { useConversationBrandActions } from "@/hooks/useConversationBrandActions"
+import { useConversationStatusActions } from "@/hooks/useConversationStatusActions"
+import type { TeamMember } from "@/hooks/useTeamMembers"
 
 interface ConversationStatusContextMenuProps {
-  conversationId: string;
-  status?: string;
+  conversationId: string
+  status?: string
   /** Currently assigned profile id, used to show a checkmark. */
-  assignedToId?: string | null;
+  assignedToId?: string | null
   /** Current brand label (from conversation metadata), used to show a checkmark. */
-  brandLabel?: string | null;
-  children: React.ReactNode;
+  brandLabel?: string | null
+  children: React.ReactNode
 }
 
 /**
@@ -41,11 +42,11 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   brandLabel,
   children,
 }) => {
-  const { setStatus } = useConversationStatusActions();
-  const { assign } = useConversationAssignActions();
-  const { setBrand } = useConversationBrandActions();
-  const [search, setSearch] = useState('');
-  const { recent, rest } = useMemberSearch(search, { withRecent: true });
+  const { setStatus } = useConversationStatusActions()
+  const { assign } = useConversationAssignActions()
+  const { setBrand } = useConversationBrandActions()
+  const [search, setSearch] = useState("")
+  const { recent, rest } = useMemberSearch(search, { withRecent: true })
 
   const renderMember = (member: TeamMember) => (
     <ContextMenuItem
@@ -56,11 +57,10 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
       <MemberOptionContent member={member} />
       {assignedToId === member.id && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
     </ContextMenuItem>
-  );
-
+  )
 
   return (
-    <ContextMenu onOpenChange={(open) => !open && setSearch('')}>
+    <ContextMenu onOpenChange={(open) => !open && setSearch("")}>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-52">
         <ContextMenuLabel className="text-xs text-muted-foreground">Assign</ContextMenuLabel>
@@ -83,7 +83,9 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
             <div className="max-h-64 overflow-y-auto pb-1">
               {recent.length > 0 && (
                 <>
-                  <ContextMenuLabel className="text-xs text-muted-foreground">Recent</ContextMenuLabel>
+                  <ContextMenuLabel className="text-xs text-muted-foreground">
+                    Recent
+                  </ContextMenuLabel>
                   {recent.map(renderMember)}
                   {rest.length > 0 && <ContextMenuSeparator />}
                 </>
@@ -115,7 +117,6 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
               Separator={ContextMenuSeparator}
             />
           </ContextMenuSubContent>
-
         </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Tags</ContextMenuLabel>
@@ -123,27 +124,27 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
         <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Change status</ContextMenuLabel>
         <ContextMenuItem
-          disabled={status === 'pending'}
-          onSelect={() => setStatus(conversationId, 'pending')}
+          disabled={status === "pending"}
+          onSelect={() => setStatus(conversationId, "pending")}
         >
           <Clock className="w-4 h-4 mr-2" />
           Set to pending
         </ContextMenuItem>
         <ContextMenuItem
-          disabled={status === 'closed'}
-          onSelect={() => setStatus(conversationId, 'closed')}
+          disabled={status === "closed"}
+          onSelect={() => setStatus(conversationId, "closed")}
         >
           <XCircle className="w-4 h-4 mr-2" />
           Close conversation
         </ContextMenuItem>
         <ContextMenuItem
-          disabled={status === 'open'}
-          onSelect={() => setStatus(conversationId, 'open')}
+          disabled={status === "open"}
+          onSelect={() => setStatus(conversationId, "open")}
         >
           <MessageCircle className="w-4 h-4 mr-2" />
           Reopen
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-  );
-};
+  )
+}

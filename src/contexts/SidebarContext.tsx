@@ -1,34 +1,35 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import type React from "react"
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react"
 
 interface SidebarState {
-  selectedTab: string;
-  selectedInboxId?: string;
-  expandedSections: Record<string, boolean>;
-  collapsedMode: boolean;
+  selectedTab: string
+  selectedInboxId?: string
+  expandedSections: Record<string, boolean>
+  collapsedMode: boolean
 }
 
 interface SidebarContextType {
-  state: SidebarState;
-  updateSelectedTab: (tab: string) => void;
-  updateSelectedInboxId: (inboxId?: string) => void;
-  toggleSectionExpanded: (sectionId: string) => void;
-  setSectionExpanded: (sectionId: string, expanded: boolean) => void;
-  toggleCollapsedMode: () => void;
-  setCollapsedMode: (collapsed: boolean) => void;
+  state: SidebarState
+  updateSelectedTab: (tab: string) => void
+  updateSelectedInboxId: (inboxId?: string) => void
+  toggleSectionExpanded: (sectionId: string) => void
+  setSectionExpanded: (sectionId: string, expanded: boolean) => void
+  toggleCollapsedMode: () => void
+  setCollapsedMode: (collapsed: boolean) => void
 }
 
-const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 interface SidebarProviderProps {
-  children: ReactNode;
-  initialTab?: string;
-  initialInboxId?: string;
+  children: ReactNode
+  initialTab?: string
+  initialInboxId?: string
 }
 
 export const SidebarProvider: React.FC<SidebarProviderProps> = ({
   children,
-  initialTab = 'all',
-  initialInboxId
+  initialTab = "all",
+  initialInboxId,
 }) => {
   const [state, setState] = useState<SidebarState>({
     selectedTab: initialTab,
@@ -37,46 +38,46 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
       inbox: true,
       notifications: true,
       channels: true,
-      inboxes: true
+      inboxes: true,
     },
-    collapsedMode: false
-  });
+    collapsedMode: false,
+  })
 
   const updateSelectedTab = useCallback((tab: string) => {
-    setState(prev => ({ ...prev, selectedTab: tab }));
-  }, []);
+    setState((prev) => ({ ...prev, selectedTab: tab }))
+  }, [])
 
   const updateSelectedInboxId = useCallback((inboxId?: string) => {
-    setState(prev => ({ ...prev, selectedInboxId: inboxId }));
-  }, []);
+    setState((prev) => ({ ...prev, selectedInboxId: inboxId }))
+  }, [])
 
   const toggleSectionExpanded = useCallback((sectionId: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       expandedSections: {
         ...prev.expandedSections,
-        [sectionId]: !prev.expandedSections[sectionId]
-      }
-    }));
-  }, []);
+        [sectionId]: !prev.expandedSections[sectionId],
+      },
+    }))
+  }, [])
 
   const setSectionExpanded = useCallback((sectionId: string, expanded: boolean) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       expandedSections: {
         ...prev.expandedSections,
-        [sectionId]: expanded
-      }
-    }));
-  }, []);
+        [sectionId]: expanded,
+      },
+    }))
+  }, [])
 
   const toggleCollapsedMode = useCallback(() => {
-    setState(prev => ({ ...prev, collapsedMode: !prev.collapsedMode }));
-  }, []);
+    setState((prev) => ({ ...prev, collapsedMode: !prev.collapsedMode }))
+  }, [])
 
   const setCollapsedMode = useCallback((collapsed: boolean) => {
-    setState(prev => ({ ...prev, collapsedMode: collapsed }));
-  }, []);
+    setState((prev) => ({ ...prev, collapsedMode: collapsed }))
+  }, [])
 
   const value: SidebarContextType = {
     state,
@@ -85,20 +86,16 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
     toggleSectionExpanded,
     setSectionExpanded,
     toggleCollapsedMode,
-    setCollapsedMode
-  };
+    setCollapsedMode,
+  }
 
-  return (
-    <SidebarContext.Provider value={value}>
-      {children}
-    </SidebarContext.Provider>
-  );
-};
+  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
+}
 
 export const useSidebar = (): SidebarContextType => {
-  const context = useContext(SidebarContext);
+  const context = useContext(SidebarContext)
   if (context === undefined) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
+    throw new Error("useSidebar must be used within a SidebarProvider")
   }
-  return context;
-};
+  return context
+}

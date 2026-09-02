@@ -1,38 +1,39 @@
-import React, { useState } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
-import OversiktFilters from './overview/OversiktFilters';
-import NeedsAttentionSection from './overview/NeedsAttentionSection';
-import PipelineSummary from './overview/PipelineSummary';
-import MetricsRow from './overview/MetricsRow';
-import QuickActionsBar from './overview/QuickActionsBar';
-import EmptyOnboarding from './overview/EmptyOnboarding';
+import type React from "react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  useOversiktMetrics,
   type AssignmentScope,
   type TimeWindow,
-} from '@/hooks/recruitment/useOversiktMetrics';
-import { useOversiktRealtime } from '@/hooks/recruitment/useOversiktRealtime';
-import { useJobPositions } from './positions/usePositions';
-import CreateApplicantDialog from './applicants/CreateApplicantDialog';
-import { useNavigate } from 'react-router-dom';
+  useOversiktMetrics,
+} from "@/hooks/recruitment/useOversiktMetrics"
+import { useOversiktRealtime } from "@/hooks/recruitment/useOversiktRealtime"
+import CreateApplicantDialog from "./applicants/CreateApplicantDialog"
+import EmptyOnboarding from "./overview/EmptyOnboarding"
+import MetricsRow from "./overview/MetricsRow"
+import NeedsAttentionSection from "./overview/NeedsAttentionSection"
+import OversiktFilters from "./overview/OversiktFilters"
+import PipelineSummary from "./overview/PipelineSummary"
+import QuickActionsBar from "./overview/QuickActionsBar"
+import { useJobPositions } from "./positions/usePositions"
 
 const RecruitmentOverview: React.FC = () => {
-  const navigate = useNavigate();
-  const [positionId, setPositionId] = useState<string | null>(null);
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
-  const [scope, setScope] = useState<AssignmentScope>('all');
-  const [createOpen, setCreateOpen] = useState(false);
+  const navigate = useNavigate()
+  const [positionId, setPositionId] = useState<string | null>(null)
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("30d")
+  const [scope, setScope] = useState<AssignmentScope>("all")
+  const [createOpen, setCreateOpen] = useState(false)
 
-  const { connected } = useOversiktRealtime();
+  const { connected } = useOversiktRealtime()
   const { data, isLoading, isFetching, refetch } = useOversiktMetrics({
     position_id: positionId,
     time_window: timeWindow,
     assignment_scope: scope,
-  });
-  const { data: positions } = useJobPositions();
+  })
+  const { data: positions } = useJobPositions()
 
-  const isEmpty = !isLoading && data && data.org_total_applicants === 0;
+  const isEmpty = !isLoading && data && data.org_total_applicants === 0
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
@@ -73,7 +74,7 @@ const RecruitmentOverview: React.FC = () => {
           <MetricsRow data={data.metrics} />
           <QuickActionsBar
             onAddApplicant={() => setCreateOpen(true)}
-            onImport={() => navigate('/admin/recruitment')}
+            onImport={() => navigate("/admin/recruitment")}
           />
         </>
       )}
@@ -88,7 +89,7 @@ const RecruitmentOverview: React.FC = () => {
 
       <CreateApplicantDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
-  );
-};
+  )
+}
 
-export default RecruitmentOverview;
+export default RecruitmentOverview

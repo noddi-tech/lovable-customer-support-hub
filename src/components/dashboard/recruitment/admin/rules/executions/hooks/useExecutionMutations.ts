@@ -1,47 +1,50 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useOrganizationStore } from '@/stores/organizationStore';
-import { toast } from 'sonner';
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
+import { useOrganizationStore } from "@/stores/organizationStore"
 
 export function useExecutionMutations() {
-  const queryClient = useQueryClient();
-  const orgId = useOrganizationStore((s) => s.currentOrganizationId);
+  const queryClient = useQueryClient()
+  const orgId = useOrganizationStore((s) => s.currentOrganizationId)
 
   const invalidate = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['recruitment-automation-failure-count', orgId] }),
-      queryClient.invalidateQueries({ queryKey: ['recruitment-automation-executions', orgId] }),
-    ]);
-  };
+      queryClient.invalidateQueries({ queryKey: ["recruitment-automation-failure-count", orgId] }),
+      queryClient.invalidateQueries({ queryKey: ["recruitment-automation-executions", orgId] }),
+    ])
+  }
 
   const acknowledgeMutation = useMutation({
     mutationFn: async ({ executionId }: { executionId: string; showToast?: boolean }) => {
-      const { data, error } = await supabase.rpc('acknowledge_execution', {
+      const { data, error } = await supabase.rpc("acknowledge_execution", {
         p_execution_id: executionId,
-      });
+      })
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: async (_data, variables) => {
-      await invalidate();
+      await invalidate()
       if (variables.showToast !== false) {
-        toast.success('Feil bekreftet');
+        toast.success("Feil bekreftet")
       }
     },
     onError: (error: any) => {
-      const message = error?.message ?? '';
-      if (message.toLowerCase().includes('already') || message.toLowerCase().includes('acknowledged')) {
-        void invalidate();
-        return;
+      const message = error?.message ?? ""
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("acknowledged")
+      ) {
+        void invalidate()
+        return
       }
-      toast.error(message || 'Kunne ikke bekrefte feil');
+      toast.error(message || "Kunne ikke bekrefte feil")
     },
-  });
+  })
 
   return {
     acknowledgeExecution: (input: { executionId: string; showToast?: boolean }) =>
       acknowledgeMutation.mutate(input),
     acknowledgeMutation,
-  };
+  }
 }

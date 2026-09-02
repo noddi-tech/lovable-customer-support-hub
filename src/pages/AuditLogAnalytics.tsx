@@ -1,72 +1,93 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { AdminPortalLayout } from '@/components/admin/AdminPortalLayout';
-import { Card } from '@/components/ui/card';
-import { Heading } from '@/components/ui/heading';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { BarChart3, TrendingUp, Users, AlertTriangle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { useQuery } from "@tanstack/react-query"
+import { AlertTriangle, BarChart3, TrendingUp, Users } from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { Heading } from "@/components/ui/heading"
+import { Skeleton } from "@/components/ui/skeleton"
+import { supabase } from "@/integrations/supabase/client"
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#10b981', '#ef4444', '#f59e0b'];
+const COLORS = ["#3b82f6", "#8b5cf6", "#f97316", "#10b981", "#ef4444", "#f59e0b"]
 
 export default function AuditLogAnalytics() {
   const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['audit-logs-analytics'],
+    queryKey: ["audit-logs-analytics"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('admin_audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+        .from("admin_audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1000)
 
-      if (error) throw error;
-      return data || [];
+      if (error) throw error
+      return data || []
     },
-  });
+  })
 
   // Calculate analytics
-  const actionTypeDistribution = logs.reduce((acc, log) => {
-    acc[log.action_type] = (acc[log.action_type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const actionTypeDistribution = logs.reduce(
+    (acc, log) => {
+      acc[log.action_type] = (acc[log.action_type] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
 
   const actionTypeData = Object.entries(actionTypeDistribution)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
-    .slice(0, 6);
+    .slice(0, 6)
 
   // Activity by day (last 30 days)
   const last30Days = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (29 - i));
-    return date.toISOString().split('T')[0];
-  });
+    const date = new Date()
+    date.setDate(date.getDate() - (29 - i))
+    return date.toISOString().split("T")[0]
+  })
 
-  const activityByDay = last30Days.map(date => {
-    const count = logs.filter(log => log.created_at.startsWith(date)).length;
-    return { date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), actions: count };
-  });
+  const activityByDay = last30Days.map((date) => {
+    const count = logs.filter((log) => log.created_at.startsWith(date)).length
+    return {
+      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      actions: count,
+    }
+  })
 
   // Top actors
-  const actorActivity = logs.reduce((acc, log) => {
-    acc[log.actor_email] = (acc[log.actor_email] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const actorActivity = logs.reduce(
+    (acc, log) => {
+      acc[log.actor_email] = (acc[log.actor_email] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
 
   const topActors = Object.entries(actorActivity)
     .map(([email, count]) => ({ email, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 10)
 
   // Risk indicators - detect unusual patterns
-  const recentLogs = logs.slice(0, 100);
-  const deletionActions = recentLogs.filter(log => log.action_type.includes('delete')).length;
-  const bulkActions = recentLogs.filter(log => log.action_category === 'bulk_management').length;
-  const highActivityUsers = topActors.filter(actor => actor.count > 50);
+  const recentLogs = logs.slice(0, 100)
+  const deletionActions = recentLogs.filter((log) => log.action_type.includes("delete")).length
+  const bulkActions = recentLogs.filter((log) => log.action_category === "bulk_management").length
+  const highActivityUsers = topActors.filter((actor) => actor.count > 50)
 
-  const riskScore = deletionActions * 2 + bulkActions * 3 + highActivityUsers.length * 5;
-  const riskLevel = riskScore > 50 ? 'high' : riskScore > 20 ? 'medium' : 'low';
+  const riskScore = deletionActions * 2 + bulkActions * 3 + highActivityUsers.length * 5
+  const riskLevel = riskScore > 50 ? "high" : riskScore > 20 ? "medium" : "low"
 
   return (
     <AdminPortalLayout>
@@ -103,7 +124,9 @@ export default function AuditLogAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">Action Types</div>
-                <div className="text-2xl font-bold">{Object.keys(actionTypeDistribution).length}</div>
+                <div className="text-2xl font-bold">
+                  {Object.keys(actionTypeDistribution).length}
+                </div>
               </div>
               <BarChart3 className="h-8 w-8 text-primary opacity-20" />
             </div>
@@ -112,11 +135,22 @@ export default function AuditLogAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">Risk Level</div>
-                <Badge variant={riskLevel === 'high' ? 'destructive' : riskLevel === 'medium' ? 'default' : 'secondary'} className="mt-1">
+                <Badge
+                  variant={
+                    riskLevel === "high"
+                      ? "destructive"
+                      : riskLevel === "medium"
+                        ? "default"
+                        : "secondary"
+                  }
+                  className="mt-1"
+                >
                   {riskLevel.toUpperCase()}
                 </Badge>
               </div>
-              <AlertTriangle className={`h-8 w-8 opacity-20 ${riskLevel === 'high' ? 'text-destructive' : riskLevel === 'medium' ? 'text-yellow-500' : 'text-green-500'}`} />
+              <AlertTriangle
+                className={`h-8 w-8 opacity-20 ${riskLevel === "high" ? "text-destructive" : riskLevel === "medium" ? "text-yellow-500" : "text-green-500"}`}
+              />
             </div>
           </Card>
         </div>
@@ -181,9 +215,14 @@ export default function AuditLogAnalytics() {
             ) : (
               <div className="space-y-2">
                 {topActors.map((actor, index) => (
-                  <div key={actor.email} className="flex items-center justify-between p-2 rounded hover:bg-accent">
+                  <div
+                    key={actor.email}
+                    className="flex items-center justify-between p-2 rounded hover:bg-accent"
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        #{index + 1}
+                      </span>
                       <span className="text-sm">{actor.email}</span>
                     </div>
                     <Badge variant="outline">{actor.count} actions</Badge>
@@ -200,19 +239,17 @@ export default function AuditLogAnalytics() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded bg-muted/30">
               <span className="text-sm">Recent Deletion Actions</span>
-              <Badge variant={deletionActions > 5 ? 'destructive' : 'secondary'}>
+              <Badge variant={deletionActions > 5 ? "destructive" : "secondary"}>
                 {deletionActions}
               </Badge>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-muted/30">
               <span className="text-sm">Bulk Operations</span>
-              <Badge variant={bulkActions > 3 ? 'destructive' : 'secondary'}>
-                {bulkActions}
-              </Badge>
+              <Badge variant={bulkActions > 3 ? "destructive" : "secondary"}>{bulkActions}</Badge>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-muted/30">
               <span className="text-sm">High Activity Users (&gt;50 actions)</span>
-              <Badge variant={highActivityUsers.length > 2 ? 'destructive' : 'secondary'}>
+              <Badge variant={highActivityUsers.length > 2 ? "destructive" : "secondary"}>
                 {highActivityUsers.length}
               </Badge>
             </div>
@@ -220,5 +257,5 @@ export default function AuditLogAnalytics() {
         </Card>
       </div>
     </AdminPortalLayout>
-  );
+  )
 }

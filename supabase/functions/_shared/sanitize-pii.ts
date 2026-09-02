@@ -26,36 +26,36 @@ DO NOT REPLACE (keep as-is):
 - "Noddi" or "Hei" or common Norwegian greetings
 - Generic words that happen to look like names but are common words
 
-OUTPUT: Return the text with ONLY PII replaced. Nothing else changed.`;
+OUTPUT: Return the text with ONLY PII replaced. Nothing else changed.`
 
 export async function sanitizeTextForKnowledge(
   text: string,
   openaiApiKey: string,
 ): Promise<string> {
-  if (!text || text.trim().length === 0) return text;
+  if (!text || text.trim().length === 0) return text
 
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openaiApiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: "gpt-4o-mini",
       temperature: 0,
       max_tokens: 2000,
       messages: [
-        { role: 'system', content: SANITIZE_SYSTEM_PROMPT },
-        { role: 'user', content: text },
+        { role: "system", content: SANITIZE_SYSTEM_PROMPT },
+        { role: "user", content: text },
       ],
     }),
-  });
+  })
 
   if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`PII sanitization failed (${resp.status}): ${errText.slice(0, 200)}`);
+    const errText = await resp.text()
+    throw new Error(`PII sanitization failed (${resp.status}): ${errText.slice(0, 200)}`)
   }
 
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content?.trim() || text;
+  const data = await resp.json()
+  return data.choices?.[0]?.message?.content?.trim() || text
 }

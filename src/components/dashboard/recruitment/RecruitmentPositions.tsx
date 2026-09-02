@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import PositionsTable from './positions/PositionsTable';
-import CreatePositionDialog from './positions/CreatePositionDialog';
+import { Plus } from "lucide-react"
+import type React from "react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import CreatePositionDialog from "./positions/CreatePositionDialog"
+import PositionsTable from "./positions/PositionsTable"
 
 const RecruitmentPositions: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
+  const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div className="p-6 space-y-4">
@@ -25,7 +26,7 @@ const RecruitmentPositions: React.FC = () => {
         onCreated={(id) => navigate(`/operations/recruitment/positions/${id}`)}
       />
     </div>
-  );
-};
+  )
+}
 
-export default RecruitmentPositions;
+export default RecruitmentPositions

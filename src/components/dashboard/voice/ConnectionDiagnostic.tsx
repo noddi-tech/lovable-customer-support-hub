@@ -1,65 +1,80 @@
-import { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { WifiOff, AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertTriangle, RefreshCw, WifiOff } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 
 interface ConnectionDiagnosticProps {
-  isWebSocketBlocked?: boolean;
-  isSDKFailed?: boolean;
-  initializationPhase?: 'idle' | 'diagnostics' | 'creating-workspace' | 'workspace-ready' | 'logging-in' | 'logged-in' | 'needs-login' | 'failed';
-  onRetry?: () => void;
-  isOptedOut?: boolean;
+  isWebSocketBlocked?: boolean
+  isSDKFailed?: boolean
+  initializationPhase?:
+    | "idle"
+    | "diagnostics"
+    | "creating-workspace"
+    | "workspace-ready"
+    | "logging-in"
+    | "logged-in"
+    | "needs-login"
+    | "failed"
+  onRetry?: () => void
+  isOptedOut?: boolean
 }
 
 /**
  * ConnectionDiagnostic Component
- * 
+ *
  * Displays user-friendly messages when WebSocket connections are blocked
  * or when the Aircall SDK fails to initialize properly.
  */
-export const ConnectionDiagnostic = ({ 
-  isWebSocketBlocked, 
+export const ConnectionDiagnostic = ({
+  isWebSocketBlocked,
   isSDKFailed,
   initializationPhase,
   onRetry,
-  isOptedOut
+  isOptedOut,
 }: ConnectionDiagnosticProps) => {
-  const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false)
 
   useEffect(() => {
     // Show diagnostic for various states
-    if (isWebSocketBlocked || isSDKFailed || isOptedOut ||
-        initializationPhase === 'creating-workspace' || 
-        initializationPhase === 'workspace-ready' ||
-        initializationPhase === 'failed') {
-      setShowDiagnostic(true);
-    } else if (initializationPhase === 'logged-in') {
+    if (
+      isWebSocketBlocked ||
+      isSDKFailed ||
+      isOptedOut ||
+      initializationPhase === "creating-workspace" ||
+      initializationPhase === "workspace-ready" ||
+      initializationPhase === "failed"
+    ) {
+      setShowDiagnostic(true)
+    } else if (initializationPhase === "logged-in") {
       // Hide diagnostic after 3 seconds when logged in
-      setTimeout(() => setShowDiagnostic(false), 3000);
+      setTimeout(() => setShowDiagnostic(false), 3000)
     } else {
-      setShowDiagnostic(false);
+      setShowDiagnostic(false)
     }
-  }, [isWebSocketBlocked, isSDKFailed, initializationPhase, isOptedOut]);
+  }, [isWebSocketBlocked, isSDKFailed, initializationPhase, isOptedOut])
 
-  if (!showDiagnostic) return null;
+  if (!showDiagnostic) return null
 
   // Determine variant based on phase
-  const variant = initializationPhase === 'failed' || isSDKFailed || isOptedOut ? 'destructive' : 
-                  initializationPhase === 'logged-in' ? 'default' : 
-                  'default';
-  
+  const variant =
+    initializationPhase === "failed" || isSDKFailed || isOptedOut
+      ? "destructive"
+      : initializationPhase === "logged-in"
+        ? "default"
+        : "default"
+
   const handleReEnable = () => {
-    console.log('🔄 Re-enabling Aircall integration');
-    sessionStorage.removeItem('aircall_opted_out');
-    window.location.reload();
-  };
+    console.log("🔄 Re-enabling Aircall integration")
+    sessionStorage.removeItem("aircall_opted_out")
+    window.location.reload()
+  }
 
   return (
     <Alert variant={variant} className="mb-4">
       <div className="flex items-start gap-3">
         {isWebSocketBlocked ? (
           <WifiOff className="h-5 w-5 mt-0.5" />
-        ) : initializationPhase === 'logged-in' ? (
+        ) : initializationPhase === "logged-in" ? (
           <AlertTriangle className="h-5 w-5 mt-0.5 text-green-600" />
         ) : (
           <AlertTriangle className="h-5 w-5 mt-0.5" />
@@ -67,57 +82,50 @@ export const ConnectionDiagnostic = ({
         <div className="flex-1 space-y-2">
           <AlertTitle>
             {isOptedOut
-              ? 'Phone Integration Disabled'
-              : isWebSocketBlocked 
-              ? 'Connection Blocked' 
-              : initializationPhase === 'creating-workspace'
-              ? 'Initializing Aircall...'
-              : initializationPhase === 'workspace-ready'
-              ? 'Workspace Ready'
-              : initializationPhase === 'logged-in'
-              ? '✅ Connected Successfully'
-              : initializationPhase === 'failed'
-              ? 'Initialization Failed'
-              : 'Phone System Connection Failed'}
+              ? "Phone Integration Disabled"
+              : isWebSocketBlocked
+                ? "Connection Blocked"
+                : initializationPhase === "creating-workspace"
+                  ? "Initializing Aircall..."
+                  : initializationPhase === "workspace-ready"
+                    ? "Workspace Ready"
+                    : initializationPhase === "logged-in"
+                      ? "✅ Connected Successfully"
+                      : initializationPhase === "failed"
+                        ? "Initialization Failed"
+                        : "Phone System Connection Failed"}
           </AlertTitle>
           <AlertDescription className="space-y-2">
             {isOptedOut && (
               <>
                 <p className="text-sm">
-                  You have disabled the phone integration for this session. 
-                  To use Aircall features again, you need to re-enable the integration.
+                  You have disabled the phone integration for this session. To use Aircall features
+                  again, you need to re-enable the integration.
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleReEnable}
-                  className="mt-2"
-                >
+                <Button variant="outline" size="sm" onClick={handleReEnable} className="mt-2">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Re-enable Phone Integration
                 </Button>
               </>
             )}
-            
-            {initializationPhase === 'creating-workspace' && (
-              <p className="text-sm">
-                Setting up Aircall workspace...
-              </p>
+
+            {initializationPhase === "creating-workspace" && (
+              <p className="text-sm">Setting up Aircall workspace...</p>
             )}
-            
-            {initializationPhase === 'workspace-ready' && (
+
+            {initializationPhase === "workspace-ready" && (
               <div className="text-sm space-y-1">
                 <p className="font-medium text-green-600">✅ Workspace is ready</p>
                 <p>Please log in through the Aircall interface to start receiving calls.</p>
               </div>
             )}
-            
-            {initializationPhase === 'logged-in' && (
+
+            {initializationPhase === "logged-in" && (
               <p className="text-sm text-green-600">
                 ✅ You are now connected and ready to receive calls!
               </p>
             )}
-            
+
             {isWebSocketBlocked && (
               <>
                 <p className="text-sm">
@@ -136,8 +144,8 @@ export const ConnectionDiagnostic = ({
                 </p>
               </>
             )}
-            
-            {(isSDKFailed || initializationPhase === 'failed') && (
+
+            {(isSDKFailed || initializationPhase === "failed") && (
               <>
                 <p className="text-sm">
                   Unable to connect to the phone system. This may be due to:
@@ -151,14 +159,9 @@ export const ConnectionDiagnostic = ({
                 </div>
               </>
             )}
-            
+
             {onRetry && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onRetry}
-                className="mt-2"
-              >
+              <Button variant="outline" size="sm" onClick={onRetry} className="mt-2">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry Connection
               </Button>
@@ -167,5 +170,5 @@ export const ConnectionDiagnostic = ({
         </div>
       </div>
     </Alert>
-  );
-};
+  )
+}

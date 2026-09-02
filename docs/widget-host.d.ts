@@ -9,115 +9,113 @@
  * remove a documented field. Unknown keys are dropped server-side.
  */
 
-export type WidgetEnvironment = 'production' | 'staging' | 'development';
+export type WidgetEnvironment = "production" | "staging" | "development"
 
 /** Documented allow-list of context fields. Anything else is dropped. */
 export interface WidgetHostContext {
   /** BCP-47 locale of the visitor, e.g. 'nb-NO'. Max 20 chars. */
-  locale?: string;
+  locale?: string
   /** Deployment the widget runs in. Non-production is badged for agents. */
-  environment?: WidgetEnvironment;
+  environment?: WidgetEnvironment
   /** Product surface, e.g. 'customer' | 'partner' | 'marketing'. Max 40. */
-  sourceApp?: string;
+  sourceApp?: string
   /** Logged-in user id in the host system. Max 64. */
-  userId?: string | number;
+  userId?: string | number
   /** Service department the visitor belongs to. Max 64. */
-  serviceDepartmentId?: string | number;
+  serviceDepartmentId?: string | number
   /** Booking currently open in the host app. Max 64. */
-  bookingId?: string | number;
+  bookingId?: string | number
   /** Booking slug, for draft flows that have no numeric id yet. Max 80. */
-  bookingSlug?: string;
+  bookingSlug?: string
   /** Order currently open in the host app. Max 64. */
-  orderId?: string | number;
+  orderId?: string | number
   /** Licence plate the visitor is working with. Max 16. */
-  licensePlate?: string;
+  licensePlate?: string
   /** Human-readable car description. Max 80. */
-  car?: string;
+  car?: string
   /** SPA route; defaults to the live location. Max 300. */
-  pathname?: string;
+  pathname?: string
   /** Host app release/version. Max 40. */
-  appVersion?: string;
+  appVersion?: string
 }
 
 /** Unverified visitor hint. Never grants access to customer data. */
 export interface WidgetIdentity {
-  userId?: string | number;
-  email?: string;
-  name?: string;
-  phone?: string;
+  userId?: string | number
+  email?: string
+  name?: string
+  phone?: string
 }
 
 export interface WidgetInitOptions {
   /** Required. Public widget key from Admin → Widget settings. */
-  widgetKey: string;
+  widgetKey: string
   /**
    * Languages the host app supports, e.g. ['nb-NO', 'en-US', 'sv-SE'].
    * The picker shows the intersection with the languages the widget ships,
    * in this order. Omit to keep the widget default set. Max 20 entries,
    * 20 chars each; unknown locales are dropped.
    */
-  supportedLocales?: string[];
+  supportedLocales?: string[]
   /**
    * Host gate for the knowledge-base / help-centre home button.
    * `false` always hides it, `true` shows it only when the admin widget
    * config also enables it, omitted keeps the admin config alone.
    */
-  enableKnowledgeSearch?: boolean;
+  enableKnowledgeSearch?: boolean
   /** Brand name or slug from the Noddi brand catalog. Max 40. */
-  brand?: string;
+  brand?: string
   /** Preferred: one nested context object. */
-  context?: WidgetHostContext;
+  context?: WidgetHostContext
   /** Known visitor at boot; equivalent to calling `identify` after init. */
-  identity?: WidgetIdentity;
+  identity?: WidgetIdentity
   /** Override the backend base URL (self-hosting / staging). */
-  apiUrl?: string;
+  apiUrl?: string
   /** Hide the floating launcher and drive the widget yourself. */
-  showButton?: boolean;
-  position?: 'bottom-right' | 'bottom-left';
-  onReady?: () => void;
+  showButton?: boolean
+  position?: "bottom-right" | "bottom-left"
+  onReady?: () => void
 }
 
 export interface WidgetUpdateOptions extends WidgetHostContext {
   /** Mid-session brand change (multi-brand SPAs). */
-  brand?: string;
+  brand?: string
   /** Narrow (or reset) the language picker mid-session. See init. */
-  supportedLocales?: string[];
+  supportedLocales?: string[]
   /** Show/hide the help-centre home button mid-session. See init. */
-  enableKnowledgeSearch?: boolean;
+  enableKnowledgeSearch?: boolean
   /** Preferred nested form; merged over any flat fields above. */
-  context?: WidgetHostContext;
+  context?: WidgetHostContext
   /** `null` clears the visitor (same as `clearIdentity`). */
-  identity?: WidgetIdentity | null;
+  identity?: WidgetIdentity | null
 }
 
 export interface WidgetHostCommands {
-  (command: 'init', options: WidgetInitOptions): void;
-  (command: 'identify', options: WidgetIdentity | null): void;
-  (command: 'clearIdentity'): void;
-  (command: 'update', options: WidgetUpdateOptions): void;
-  (command: 'open' | 'close' | 'toggle' | 'shutdown'): void;
-  (command: 'isReady'): boolean;
-  (command: 'onReady', callback: () => void): void;
+  (command: "init", options: WidgetInitOptions): void
+  (command: "identify", options: WidgetIdentity | null): void
+  (command: "clearIdentity"): void
+  (command: "update", options: WidgetUpdateOptions): void
+  (command: "open" | "close" | "toggle" | "shutdown"): void
+  (command: "isReady"): boolean
+  (command: "onReady", callback: () => void): void
 
-  init(options: WidgetInitOptions): void;
-  identify(options: WidgetIdentity | null): void;
-  clearIdentity(): void;
-  update(options: WidgetUpdateOptions): void;
-  open(): void;
-  close(): void;
-  toggle(): void;
-  shutdown(): void;
-  isReady(): boolean;
-  onReady(callback: () => void): void;
+  init(options: WidgetInitOptions): void
+  identify(options: WidgetIdentity | null): void
+  clearIdentity(): void
+  update(options: WidgetUpdateOptions): void
+  open(): void
+  close(): void
+  toggle(): void
+  shutdown(): void
+  isReady(): boolean
+  onReady(callback: () => void): void
 
   /** Pre-boot command queue installed by the embed snippet. */
-  q?: unknown[];
+  q?: unknown[]
 }
 
 declare global {
   interface Window {
-    NoddiWidget: WidgetHostCommands;
+    NoddiWidget: WidgetHostCommands
   }
 }
-
-export {};

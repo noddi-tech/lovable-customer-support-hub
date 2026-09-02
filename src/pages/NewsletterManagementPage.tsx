@@ -1,69 +1,76 @@
-import React, { useMemo, useCallback } from 'react';
-import { MasterDetailShell } from '@/components/admin/design/components/layouts/MasterDetailShell';
-import { EntityListRow } from '@/components/admin/design/components/lists/EntityListRow';
-import { ReplySidebar } from '@/components/admin/design/components/detail/ReplySidebar';
-import { InboxList } from '@/components/layout/InboxList';
-import { useInteractionsNavigation } from '@/hooks/useInteractionsNavigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Eye, Send, Edit, Calendar, Users, TrendingUp } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns"
+import { Calendar, Edit, Eye, Send, TrendingUp } from "lucide-react"
+import type React from "react"
+import { useCallback, useMemo } from "react"
+import { ReplySidebar } from "@/components/admin/design/components/detail/ReplySidebar"
+import { MasterDetailShell } from "@/components/admin/design/components/layouts/MasterDetailShell"
+import { EntityListRow } from "@/components/admin/design/components/lists/EntityListRow"
+import { InboxList } from "@/components/layout/InboxList"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation"
 
 // Mock data for newsletters
 const mockNewsletters = [
   {
-    id: 'newsletter1',
-    title: 'Weekly Product Updates - March 2025',
-    subtitle: 'New features, bug fixes, and upcoming releases • 2,340 subscribers',
-    status: 'draft' as const,
-    priority: 'normal' as const,
-    timestamp: formatDistanceToNow(new Date(Date.now() - 2 * 60 * 60 * 1000), { addSuffix: true })
+    id: "newsletter1",
+    title: "Weekly Product Updates - March 2025",
+    subtitle: "New features, bug fixes, and upcoming releases • 2,340 subscribers",
+    status: "draft" as const,
+    priority: "normal" as const,
+    timestamp: formatDistanceToNow(new Date(Date.now() - 2 * 60 * 60 * 1000), { addSuffix: true }),
   },
   {
-    id: 'newsletter2',
-    title: 'Black Friday Sale Campaign',
-    subtitle: 'Limited time offers and exclusive discounts • 5,670 subscribers',
-    status: 'scheduled' as const,
-    priority: 'high' as const,
-    timestamp: 'Scheduled for tomorrow 9:00 AM'
+    id: "newsletter2",
+    title: "Black Friday Sale Campaign",
+    subtitle: "Limited time offers and exclusive discounts • 5,670 subscribers",
+    status: "scheduled" as const,
+    priority: "high" as const,
+    timestamp: "Scheduled for tomorrow 9:00 AM",
   },
   {
-    id: 'newsletter3',
-    title: 'Customer Success Stories',
-    subtitle: 'Featuring testimonials and case studies • 3,890 subscribers',
-    status: 'sent' as const,
-    priority: 'normal' as const,
-    timestamp: formatDistanceToNow(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), { addSuffix: true })
+    id: "newsletter3",
+    title: "Customer Success Stories",
+    subtitle: "Featuring testimonials and case studies • 3,890 subscribers",
+    status: "sent" as const,
+    priority: "normal" as const,
+    timestamp: formatDistanceToNow(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), {
+      addSuffix: true,
+    }),
   },
   {
-    id: 'newsletter4',
-    title: 'API Updates & Developer News',
-    subtitle: 'Technical updates for developers • 1,250 subscribers',
-    status: 'draft' as const,
-    priority: 'low' as const,
-    timestamp: formatDistanceToNow(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), { addSuffix: true })
+    id: "newsletter4",
+    title: "API Updates & Developer News",
+    subtitle: "Technical updates for developers • 1,250 subscribers",
+    status: "draft" as const,
+    priority: "low" as const,
+    timestamp: formatDistanceToNow(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), {
+      addSuffix: true,
+    }),
   },
   {
-    id: 'newsletter5',
-    title: 'Monthly Security Update',
-    subtitle: 'Important security patches and best practices • 4,560 subscribers',
-    status: 'sent' as const,
-    priority: 'high' as const,
-    timestamp: formatDistanceToNow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), { addSuffix: true })
-  }
-];
+    id: "newsletter5",
+    title: "Monthly Security Update",
+    subtitle: "Important security patches and best practices • 4,560 subscribers",
+    status: "sent" as const,
+    priority: "high" as const,
+    timestamp: formatDistanceToNow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), {
+      addSuffix: true,
+    }),
+  },
+]
 
 // Mock newsletter details
 const mockNewsletterDetails = {
-  'newsletter1': {
-    title: 'Weekly Product Updates - March 2025',
-    subject: 'Exciting New Features This Week!',
-    status: 'draft',
+  newsletter1: {
+    title: "Weekly Product Updates - March 2025",
+    subject: "Exciting New Features This Week!",
+    status: "draft",
     subscribers: 2340,
-    created: '2 hours ago',
-    lastModified: '30 minutes ago',
-    author: 'Marketing Team',
+    created: "2 hours ago",
+    lastModified: "30 minutes ago",
+    author: "Marketing Team",
     content: `
       <h2>What's New This Week</h2>
       <p>Dear valued customers,</p>
@@ -90,17 +97,17 @@ const mockNewsletterDetails = {
       opens: 0,
       clicks: 0,
       unsubscribes: 0,
-      bounces: 0
-    }
+      bounces: 0,
+    },
   },
-  'newsletter2': {
-    title: 'Black Friday Sale Campaign',
-    subject: '🔥 Black Friday Sale - Up to 50% Off!',
-    status: 'scheduled',
+  newsletter2: {
+    title: "Black Friday Sale Campaign",
+    subject: "🔥 Black Friday Sale - Up to 50% Off!",
+    status: "scheduled",
     subscribers: 5670,
-    created: '1 day ago',
-    lastModified: '2 hours ago',
-    author: 'Sales Team',
+    created: "1 day ago",
+    lastModified: "2 hours ago",
+    author: "Sales Team",
     content: `
       <h2>Black Friday Exclusive Deals</h2>
       <p>The biggest sale of the year is here!</p>
@@ -118,17 +125,17 @@ const mockNewsletterDetails = {
       opens: 0,
       clicks: 0,
       unsubscribes: 0,
-      bounces: 0
-    }
+      bounces: 0,
+    },
   },
-  'newsletter3': {
-    title: 'Customer Success Stories',
-    subject: 'How Our Customers Are Winning',
-    status: 'sent',
+  newsletter3: {
+    title: "Customer Success Stories",
+    subject: "How Our Customers Are Winning",
+    status: "sent",
     subscribers: 3890,
-    created: '4 days ago',
-    lastModified: '3 days ago',
-    author: 'Customer Success Team',
+    created: "4 days ago",
+    lastModified: "3 days ago",
+    author: "Customer Success Team",
     content: `
       <h2>Success Stories</h2>
       <p>See how our customers are achieving amazing results:</p>
@@ -143,66 +150,80 @@ const mockNewsletterDetails = {
       opens: 2847,
       clicks: 456,
       unsubscribes: 23,
-      bounces: 89
-    }
-  }
-};
+      bounces: 89,
+    },
+  },
+}
 
 const NewsletterManagementPage: React.FC = () => {
-  const navigation = useInteractionsNavigation();
-  
+  const navigation = useInteractionsNavigation()
+
   // Get state from URL navigation
-  const { conversationId, inbox } = navigation.currentState;
-  const isDetail = !!conversationId;
+  const { conversationId, inbox } = navigation.currentState
+  const isDetail = !!conversationId
 
   // Transform newsletters to match EntityListRow format
-  const newsletterEntities = useMemo(() => 
-    mockNewsletters.map(newsletter => ({
-      id: newsletter.id,
-      subject: newsletter.title,
-      preview: newsletter.subtitle,
-      status: newsletter.status,
-      priority: newsletter.priority,
-      timestamp: newsletter.timestamp
-    })), []);
+  const newsletterEntities = useMemo(
+    () =>
+      mockNewsletters.map((newsletter) => ({
+        id: newsletter.id,
+        subject: newsletter.title,
+        preview: newsletter.subtitle,
+        status: newsletter.status,
+        priority: newsletter.priority,
+        timestamp: newsletter.timestamp,
+      })),
+    [],
+  )
 
   // Find selected newsletter
-  const selectedNewsletter = conversationId ? 
-    mockNewsletters.find(n => n.id === conversationId) : null;
+  const selectedNewsletter = conversationId
+    ? mockNewsletters.find((n) => n.id === conversationId)
+    : null
 
-  const handleNewsletterSelect = useCallback((newsletter: any) => {
-    navigation.navigateToConversation(newsletter.id);
-  }, [navigation]);
+  const handleNewsletterSelect = useCallback(
+    (newsletter: any) => {
+      navigation.navigateToConversation(newsletter.id)
+    },
+    [navigation],
+  )
 
   const handleBack = useCallback(() => {
-    navigation.clearConversation();
-  }, [navigation]);
+    navigation.clearConversation()
+  }, [navigation])
 
-  const handleInboxSelect = useCallback((inboxId: string) => {
-    navigation.navigateToInbox(inboxId);
-  }, [navigation]);
+  const handleInboxSelect = useCallback(
+    (inboxId: string) => {
+      navigation.navigateToInbox(inboxId)
+    },
+    [navigation],
+  )
 
-  const handleSendNote = useCallback(async (note: string) => {
-    console.log('Adding note to newsletter:', conversationId, 'Note:', note);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }, [conversationId]);
+  const handleSendNote = useCallback(
+    async (note: string) => {
+      console.log("Adding note to newsletter:", conversationId, "Note:", note)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    },
+    [conversationId],
+  )
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'sent': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'draft': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+      case "sent":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+      case "scheduled":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+      case "draft":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
     }
-  };
+  }
 
   // Render inbox list for newsletters
   const renderInboxList = () => (
-    <InboxList
-      selectedInbox={inbox || 'all'}
-      onInboxSelect={handleInboxSelect}
-    />
-  );
+    <InboxList selectedInbox={inbox || "all"} onInboxSelect={handleInboxSelect} />
+  )
 
   // Render newsletter list
   const renderNewsletterList = () => (
@@ -210,7 +231,7 @@ const NewsletterManagementPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Newsletters</h2>
       </div>
-      
+
       <div className="space-y-2">
         {newsletterEntities.map((newsletter) => (
           <EntityListRow
@@ -218,37 +239,45 @@ const NewsletterManagementPage: React.FC = () => {
             subject={newsletter.subject}
             preview={newsletter.preview}
             avatar={{
-              fallback: 'NL',
-              alt: 'Newsletter'
+              fallback: "NL",
+              alt: "Newsletter",
             }}
             selected={newsletter.id === conversationId}
             onClick={() => handleNewsletterSelect(newsletter)}
             badges={[
-              { 
-                label: newsletter.status, 
-                variant: newsletter.status === 'sent' ? 'default' as const : 
-                        newsletter.status === 'scheduled' ? 'secondary' as const : 'outline' as const 
+              {
+                label: newsletter.status,
+                variant:
+                  newsletter.status === "sent"
+                    ? ("default" as const)
+                    : newsletter.status === "scheduled"
+                      ? ("secondary" as const)
+                      : ("outline" as const),
               },
-              { 
-                label: newsletter.priority, 
-                variant: newsletter.priority === 'high' ? 'destructive' as const : 'secondary' as const 
-              }
+              {
+                label: newsletter.priority,
+                variant:
+                  newsletter.priority === "high"
+                    ? ("destructive" as const)
+                    : ("secondary" as const),
+              },
             ]}
             meta={[
-              { label: 'Status', value: newsletter.status },
-              { label: 'Updated', value: newsletter.timestamp }
+              { label: "Status", value: newsletter.status },
+              { label: "Updated", value: newsletter.timestamp },
             ]}
           />
         ))}
       </div>
     </div>
-  );
+  )
 
   // Render newsletter details
   const renderNewsletterDetails = () => {
-    if (!selectedNewsletter) return null;
+    if (!selectedNewsletter) return null
 
-    const newsletter = mockNewsletterDetails[selectedNewsletter.id as keyof typeof mockNewsletterDetails];
+    const newsletter =
+      mockNewsletterDetails[selectedNewsletter.id as keyof typeof mockNewsletterDetails]
     if (!newsletter) {
       return (
         <Card className="h-full">
@@ -256,7 +285,7 @@ const NewsletterManagementPage: React.FC = () => {
             <p className="text-muted-foreground">Newsletter details not found.</p>
           </CardContent>
         </Card>
-      );
+      )
     }
 
     return (
@@ -273,11 +302,13 @@ const NewsletterManagementPage: React.FC = () => {
                 {newsletter.status.charAt(0).toUpperCase() + newsletter.status.slice(1)}
               </Badge>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Subscribers</p>
-                <p className="text-foreground font-semibold">{newsletter.subscribers.toLocaleString()}</p>
+                <p className="text-foreground font-semibold">
+                  {newsletter.subscribers.toLocaleString()}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Created</p>
@@ -306,7 +337,7 @@ const NewsletterManagementPage: React.FC = () => {
                 <Eye className="h-4 w-4 mr-2" />
                 Preview
               </Button>
-              {newsletter.status === 'draft' && (
+              {newsletter.status === "draft" && (
                 <>
                   <Button variant="outline" size="sm">
                     <Calendar className="h-4 w-4 mr-2" />
@@ -318,7 +349,7 @@ const NewsletterManagementPage: React.FC = () => {
                   </Button>
                 </>
               )}
-              {newsletter.status === 'sent' && (
+              {newsletter.status === "sent" && (
                 <Button variant="outline" size="sm">
                   <TrendingUp className="h-4 w-4 mr-2" />
                   View Analytics
@@ -328,36 +359,49 @@ const NewsletterManagementPage: React.FC = () => {
           </div>
 
           {/* Analytics (for sent newsletters) */}
-          {newsletter.status === 'sent' && (
+          {newsletter.status === "sent" && (
             <div>
               <h4 className="font-semibold text-foreground mb-3">Performance Analytics</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{newsletter.analytics.opens.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {newsletter.analytics.opens.toLocaleString()}
+                  </div>
                   <div className="text-sm text-muted-foreground">Opens</div>
                   <div className="text-xs text-muted-foreground">
                     {((newsletter.analytics.opens / newsletter.subscribers) * 100).toFixed(1)}% rate
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{newsletter.analytics.clicks.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {newsletter.analytics.clicks.toLocaleString()}
+                  </div>
                   <div className="text-sm text-muted-foreground">Clicks</div>
                   <div className="text-xs text-muted-foreground">
-                    {((newsletter.analytics.clicks / newsletter.analytics.opens) * 100).toFixed(1)}% CTR
+                    {((newsletter.analytics.clicks / newsletter.analytics.opens) * 100).toFixed(1)}%
+                    CTR
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-destructive">{newsletter.analytics.unsubscribes}</div>
+                  <div className="text-2xl font-bold text-destructive">
+                    {newsletter.analytics.unsubscribes}
+                  </div>
                   <div className="text-sm text-muted-foreground">Unsubscribes</div>
                   <div className="text-xs text-muted-foreground">
-                    {((newsletter.analytics.unsubscribes / newsletter.subscribers) * 100).toFixed(2)}% rate
+                    {((newsletter.analytics.unsubscribes / newsletter.subscribers) * 100).toFixed(
+                      2,
+                    )}
+                    % rate
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{newsletter.analytics.bounces}</div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {newsletter.analytics.bounces}
+                  </div>
                   <div className="text-sm text-muted-foreground">Bounces</div>
                   <div className="text-xs text-muted-foreground">
-                    {((newsletter.analytics.bounces / newsletter.subscribers) * 100).toFixed(2)}% rate
+                    {((newsletter.analytics.bounces / newsletter.subscribers) * 100).toFixed(2)}%
+                    rate
                   </div>
                 </div>
               </div>
@@ -368,7 +412,7 @@ const NewsletterManagementPage: React.FC = () => {
           <div>
             <h4 className="font-semibold text-foreground mb-3">Content Preview</h4>
             <div className="bg-muted/50 p-4 rounded-lg max-h-96 overflow-y-auto">
-              <div 
+              <div
                 className="prose prose-sm max-w-none dark:prose-invert"
                 dangerouslySetInnerHTML={{ __html: newsletter.content }}
               />
@@ -376,12 +420,12 @@ const NewsletterManagementPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-    );
-  };
+    )
+  }
 
   // Render actions sidebar
   const renderActionsSidebar = () => {
-    if (!selectedNewsletter) return null;
+    if (!selectedNewsletter) return null
 
     return (
       <ReplySidebar
@@ -391,8 +435,8 @@ const NewsletterManagementPage: React.FC = () => {
         showMetadata={false}
         showActions={true}
       />
-    );
-  };
+    )
+  }
 
   return (
     <MasterDetailShell
@@ -408,7 +452,7 @@ const NewsletterManagementPage: React.FC = () => {
       detailLeftLabel="Newsletter details"
       detailRightLabel="Newsletter actions"
     />
-  );
-};
+  )
+}
 
-export default NewsletterManagementPage;
+export default NewsletterManagementPage

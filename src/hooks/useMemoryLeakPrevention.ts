@@ -1,262 +1,306 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { logger } from '@/utils/logger';
+import { useCallback, useEffect, useRef } from "react"
+import { logger } from "@/utils/logger"
 
 interface MemoryLeakPreventionOptions {
-  enableLogging?: boolean;
-  maxEventListeners?: number;
-  checkIntervalMs?: number;
+  enableLogging?: boolean
+  maxEventListeners?: number
+  checkIntervalMs?: number
 }
 
 export const useMemoryLeakPrevention = (
   componentName: string,
-  options: MemoryLeakPreventionOptions = {}
+  options: MemoryLeakPreventionOptions = {},
 ) => {
   const {
     enableLogging = false,
     maxEventListeners = 10,
     checkIntervalMs = 30000, // 30 seconds
-  } = options;
+  } = options
 
-  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
-  const intervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set());
-  const eventListenersRef = useRef<Array<{
-    element: EventTarget;
-    type: string;
-    listener: EventListener;
-    options?: AddEventListenerOptions | boolean;
-  }>>(new Array());
-  const observersRef = useRef<Set<MutationObserver | IntersectionObserver | ResizeObserver>>(new Set());
-  const subscriptionsRef = useRef<Set<{ unsubscribe: () => void }>>(new Set());
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
+  const intervalsRef = useRef<Set<ReturnType<typeof setInterval>>>(new Set())
+  const eventListenersRef = useRef<
+    Array<{
+      element: EventTarget
+      type: string
+      listener: EventListener
+      options?: AddEventListenerOptions | boolean
+    }>
+  >([])
+  const observersRef = useRef<Set<MutationObserver | IntersectionObserver | ResizeObserver>>(
+    new Set(),
+  )
+  const subscriptionsRef = useRef<Set<{ unsubscribe: () => void }>>(new Set())
 
   // Memory check interval
-  const memoryCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const memoryCheckRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Enhanced setTimeout with tracking
-  const safeSetTimeout = useCallback((
-    callback: () => void,
-    delay: number
-  ): ReturnType<typeof setTimeout> => {
-    const timeout = setTimeout(() => {
-      timeoutsRef.current.delete(timeout);
-      callback();
-    }, delay);
-    
-    timeoutsRef.current.add(timeout);
-    
-    if (enableLogging) {
-      logger.debug('Timeout created', { 
-        componentName, 
-        delay, 
-        activeTimeouts: timeoutsRef.current.size 
-      }, 'MemoryLeakPrevention');
-    }
-    
-    return timeout;
-  }, [componentName, enableLogging]);
+  const safeSetTimeout = useCallback(
+    (callback: () => void, delay: number): ReturnType<typeof setTimeout> => {
+      const timeout = setTimeout(() => {
+        timeoutsRef.current.delete(timeout)
+        callback()
+      }, delay)
+
+      timeoutsRef.current.add(timeout)
+
+      if (enableLogging) {
+        logger.debug(
+          "Timeout created",
+          {
+            componentName,
+            delay,
+            activeTimeouts: timeoutsRef.current.size,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+
+      return timeout
+    },
+    [componentName, enableLogging],
+  )
 
   // Enhanced setInterval with tracking
-  const safeSetInterval = useCallback((
-    callback: () => void,
-    delay: number
-  ): ReturnType<typeof setInterval> => {
-    const interval = setInterval(callback, delay);
-    intervalsRef.current.add(interval);
-    
-    if (enableLogging) {
-      logger.debug('Interval created', { 
-        componentName, 
-        delay, 
-        activeIntervals: intervalsRef.current.size 
-      }, 'MemoryLeakPrevention');
-    }
-    
-    return interval;
-  }, [componentName, enableLogging]);
+  const safeSetInterval = useCallback(
+    (callback: () => void, delay: number): ReturnType<typeof setInterval> => {
+      const interval = setInterval(callback, delay)
+      intervalsRef.current.add(interval)
+
+      if (enableLogging) {
+        logger.debug(
+          "Interval created",
+          {
+            componentName,
+            delay,
+            activeIntervals: intervalsRef.current.size,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+
+      return interval
+    },
+    [componentName, enableLogging],
+  )
 
   // Enhanced addEventListener with tracking
-  const safeAddEventListener = useCallback((
-    element: EventTarget,
-    type: string,
-    listener: EventListener,
-    options?: AddEventListenerOptions | boolean
-  ) => {
-    element.addEventListener(type, listener, options);
-    
-    const listenerInfo = { element, type, listener, options };
-    eventListenersRef.current.push(listenerInfo);
-    
-    if (eventListenersRef.current.length > maxEventListeners) {
-      logger.warn('High number of event listeners detected', {
-        componentName,
-        count: eventListenersRef.current.length,
-        maxEventListeners
-      }, 'MemoryLeakPrevention');
-    }
-    
-    if (enableLogging) {
-      logger.debug('Event listener added', { 
-        componentName, 
-        type, 
-        activeListeners: eventListenersRef.current.length 
-      }, 'MemoryLeakPrevention');
-    }
-  }, [componentName, enableLogging, maxEventListeners]);
+  const safeAddEventListener = useCallback(
+    (
+      element: EventTarget,
+      type: string,
+      listener: EventListener,
+      options?: AddEventListenerOptions | boolean,
+    ) => {
+      element.addEventListener(type, listener, options)
+
+      const listenerInfo = { element, type, listener, options }
+      eventListenersRef.current.push(listenerInfo)
+
+      if (eventListenersRef.current.length > maxEventListeners) {
+        logger.warn(
+          "High number of event listeners detected",
+          {
+            componentName,
+            count: eventListenersRef.current.length,
+            maxEventListeners,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+
+      if (enableLogging) {
+        logger.debug(
+          "Event listener added",
+          {
+            componentName,
+            type,
+            activeListeners: eventListenersRef.current.length,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+    },
+    [componentName, enableLogging, maxEventListeners],
+  )
 
   // Enhanced observer tracking
-  const trackObserver = useCallback((
-    observer: MutationObserver | IntersectionObserver | ResizeObserver
-  ) => {
-    observersRef.current.add(observer);
-    
-    if (enableLogging) {
-      logger.debug('Observer tracked', { 
-        componentName, 
-        type: observer.constructor.name,
-        activeObservers: observersRef.current.size 
-      }, 'MemoryLeakPrevention');
-    }
-  }, [componentName, enableLogging]);
+  const trackObserver = useCallback(
+    (observer: MutationObserver | IntersectionObserver | ResizeObserver) => {
+      observersRef.current.add(observer)
+
+      if (enableLogging) {
+        logger.debug(
+          "Observer tracked",
+          {
+            componentName,
+            type: observer.constructor.name,
+            activeObservers: observersRef.current.size,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+    },
+    [componentName, enableLogging],
+  )
 
   // Enhanced subscription tracking
-  const trackSubscription = useCallback((
-    subscription: { unsubscribe: () => void }
-  ) => {
-    subscriptionsRef.current.add(subscription);
-    
-    if (enableLogging) {
-      logger.debug('Subscription tracked', { 
-        componentName, 
-        activeSubscriptions: subscriptionsRef.current.size 
-      }, 'MemoryLeakPrevention');
-    }
-  }, [componentName, enableLogging]);
+  const trackSubscription = useCallback(
+    (subscription: { unsubscribe: () => void }) => {
+      subscriptionsRef.current.add(subscription)
+
+      if (enableLogging) {
+        logger.debug(
+          "Subscription tracked",
+          {
+            componentName,
+            activeSubscriptions: subscriptionsRef.current.size,
+          },
+          "MemoryLeakPrevention",
+        )
+      }
+    },
+    [componentName, enableLogging],
+  )
 
   // Clear timeout with tracking
   const safeClearTimeout = useCallback((timeout: ReturnType<typeof setTimeout>) => {
-    clearTimeout(timeout);
-    timeoutsRef.current.delete(timeout);
-  }, []);
+    clearTimeout(timeout)
+    timeoutsRef.current.delete(timeout)
+  }, [])
 
   // Clear interval with tracking
   const safeClearInterval = useCallback((interval: ReturnType<typeof setInterval>) => {
-    clearInterval(interval);
-    intervalsRef.current.delete(interval);
-  }, []);
+    clearInterval(interval)
+    intervalsRef.current.delete(interval)
+  }, [])
 
   // Remove event listener with tracking
-  const safeRemoveEventListener = useCallback((
-    element: EventTarget,
-    type: string,
-    listener: EventListener,
-    options?: AddEventListenerOptions | boolean
-  ) => {
-    element.removeEventListener(type, listener, options);
-    
-    eventListenersRef.current = eventListenersRef.current.filter(
-      item => !(item.element === element && item.type === type && item.listener === listener)
-    );
-  }, []);
+  const safeRemoveEventListener = useCallback(
+    (
+      element: EventTarget,
+      type: string,
+      listener: EventListener,
+      options?: AddEventListenerOptions | boolean,
+    ) => {
+      element.removeEventListener(type, listener, options)
+
+      eventListenersRef.current = eventListenersRef.current.filter(
+        (item) => !(item.element === element && item.type === type && item.listener === listener),
+      )
+    },
+    [],
+  )
 
   // Memory usage check
   const checkMemoryUsage = useCallback(() => {
-    if (typeof window !== 'undefined' && 'performance' in window && 'memory' in window.performance) {
-      const memory = (window.performance as any).memory;
+    if (
+      typeof window !== "undefined" &&
+      "performance" in window &&
+      "memory" in window.performance
+    ) {
+      const memory = (window.performance as any).memory
       const memoryInfo = {
         usedJSHeapSize: memory.usedJSHeapSize,
         totalJSHeapSize: memory.totalJSHeapSize,
         jsHeapSizeLimit: memory.jsHeapSizeLimit,
-        usedPercentage: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100)
-      };
+        usedPercentage: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100),
+      }
 
       if (memoryInfo.usedPercentage > 80) {
-        logger.warn('High memory usage detected', {
-          componentName,
-          ...memoryInfo,
-          activeTimeouts: timeoutsRef.current.size,
-          activeIntervals: intervalsRef.current.size,
-          activeListeners: eventListenersRef.current.length,
-          activeObservers: observersRef.current.size,
-          activeSubscriptions: subscriptionsRef.current.size,
-        }, 'MemoryLeakPrevention');
+        logger.warn(
+          "High memory usage detected",
+          {
+            componentName,
+            ...memoryInfo,
+            activeTimeouts: timeoutsRef.current.size,
+            activeIntervals: intervalsRef.current.size,
+            activeListeners: eventListenersRef.current.length,
+            activeObservers: observersRef.current.size,
+            activeSubscriptions: subscriptionsRef.current.size,
+          },
+          "MemoryLeakPrevention",
+        )
       }
 
       if (enableLogging) {
-        logger.debug('Memory check', { componentName, ...memoryInfo }, 'MemoryLeakPrevention');
+        logger.debug("Memory check", { componentName, ...memoryInfo }, "MemoryLeakPrevention")
       }
     }
-  }, [componentName, enableLogging]);
+  }, [componentName, enableLogging])
 
   // Cleanup all resources
   const cleanup = useCallback(() => {
     // Clear timeouts
-    timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    timeoutsRef.current.clear();
+    timeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+    timeoutsRef.current.clear()
 
     // Clear intervals
-    intervalsRef.current.forEach(interval => clearInterval(interval));
-    intervalsRef.current.clear();
+    intervalsRef.current.forEach((interval) => clearInterval(interval))
+    intervalsRef.current.clear()
 
     // Remove event listeners
     eventListenersRef.current.forEach(({ element, type, listener, options }) => {
       try {
-        element.removeEventListener(type, listener, options);
+        element.removeEventListener(type, listener, options)
       } catch (error) {
-        logger.warn('Error removing event listener', { error, type }, 'MemoryLeakPrevention');
+        logger.warn("Error removing event listener", { error, type }, "MemoryLeakPrevention")
       }
-    });
-    eventListenersRef.current = [];
+    })
+    eventListenersRef.current = []
 
     // Disconnect observers
-    observersRef.current.forEach(observer => {
+    observersRef.current.forEach((observer) => {
       try {
-        observer.disconnect();
+        observer.disconnect()
       } catch (error) {
-        logger.warn('Error disconnecting observer', { error }, 'MemoryLeakPrevention');
+        logger.warn("Error disconnecting observer", { error }, "MemoryLeakPrevention")
       }
-    });
-    observersRef.current.clear();
+    })
+    observersRef.current.clear()
 
     // Unsubscribe from subscriptions
-    subscriptionsRef.current.forEach(subscription => {
+    subscriptionsRef.current.forEach((subscription) => {
       try {
-        subscription.unsubscribe();
+        subscription.unsubscribe()
       } catch (error) {
-        logger.warn('Error unsubscribing', { error }, 'MemoryLeakPrevention');
+        logger.warn("Error unsubscribing", { error }, "MemoryLeakPrevention")
       }
-    });
-    subscriptionsRef.current.clear();
+    })
+    subscriptionsRef.current.clear()
 
     // Clear memory check interval
     if (memoryCheckRef.current) {
-      clearInterval(memoryCheckRef.current);
-      memoryCheckRef.current = null;
+      clearInterval(memoryCheckRef.current)
+      memoryCheckRef.current = null
     }
 
     if (enableLogging) {
-      logger.info('Component cleanup completed', { componentName }, 'MemoryLeakPrevention');
+      logger.info("Component cleanup completed", { componentName }, "MemoryLeakPrevention")
     }
-  }, [componentName, enableLogging]);
+  }, [componentName, enableLogging])
 
   // Set up memory monitoring
   useEffect(() => {
     if (checkIntervalMs > 0) {
-      memoryCheckRef.current = setInterval(checkMemoryUsage, checkIntervalMs);
+      memoryCheckRef.current = setInterval(checkMemoryUsage, checkIntervalMs)
     }
 
     // Initial memory check
-    checkMemoryUsage();
+    checkMemoryUsage()
 
     return () => {
       if (memoryCheckRef.current) {
-        clearInterval(memoryCheckRef.current);
+        clearInterval(memoryCheckRef.current)
       }
-    };
-  }, [checkMemoryUsage, checkIntervalMs]);
+    }
+  }, [checkMemoryUsage, checkIntervalMs])
 
   // Cleanup on unmount
   useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
+    return cleanup
+  }, [cleanup])
 
   return {
     safeSetTimeout,
@@ -277,5 +321,5 @@ export const useMemoryLeakPrevention = (
       observers: observersRef.current.size,
       subscriptions: subscriptionsRef.current.size,
     }),
-  };
-};
+  }
+}

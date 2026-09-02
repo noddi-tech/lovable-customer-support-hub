@@ -4,26 +4,26 @@
  * Always logs warn and error messages
  */
 
-const isDev = import.meta.env.MODE !== 'production';
+const isDev = import.meta.env.MODE !== "production"
 
 export const prodLogger = {
   debug: (...args: any[]) => {
     if (isDev) {
-      console.log(...args);
+      console.log(...args)
     }
   },
-  
+
   info: (...args: any[]) => {
     if (isDev) {
-      console.info(...args);
+      console.info(...args)
     }
   },
-  
+
   warn: (...args: any[]) => {
-    console.warn(...args);
+    console.warn(...args)
   },
-  
+
   error: (...args: any[]) => {
-    console.error(...args);
-  }
-};
+    console.error(...args)
+  },
+}

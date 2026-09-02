@@ -1,24 +1,26 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CaseStatusBadge, CasePriorityBadge, CaseSlaBadge } from '@/components/cases/CaseBadges';
-import { CreateCaseDialog } from '@/components/cases/CreateCaseDialog';
+import { Briefcase, ExternalLink, Plus, Unlink } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { CasePriorityBadge, CaseSlaBadge, CaseStatusBadge } from "@/components/cases/CaseBadges"
+import { CreateCaseDialog } from "@/components/cases/CreateCaseDialog"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  useCases,
-  useConversationCase,
-  useLinkConversationToCase,
-} from '@/hooks/useCases';
-import { Briefcase, ExternalLink, Plus, Unlink } from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useCases, useConversationCase, useLinkConversationToCase } from "@/hooks/useCases"
 
 interface ConversationCaseSectionProps {
-  conversationId: string;
-  caseId?: string | null;
-  customerId?: string | null;
-  subject?: string | null;
-  inboxId?: string | null;
-  channel?: string | null;
+  conversationId: string
+  caseId?: string | null
+  customerId?: string | null
+  subject?: string | null
+  inboxId?: string | null
+  channel?: string | null
 }
 
 export function ConversationCaseSection({
@@ -29,11 +31,14 @@ export function ConversationCaseSection({
   inboxId,
   channel,
 }: ConversationCaseSectionProps) {
-  const navigate = useNavigate();
-  const [createOpen, setCreateOpen] = useState(false);
-  const { data: linkedCase } = useConversationCase(conversationId, caseId);
-  const { data: candidateCases = [] } = useCases({ view: 'open', customerId: customerId ?? undefined });
-  const linkCase = useLinkConversationToCase();
+  const navigate = useNavigate()
+  const [createOpen, setCreateOpen] = useState(false)
+  const { data: linkedCase } = useConversationCase(conversationId, caseId)
+  const { data: candidateCases = [] } = useCases({
+    view: "open",
+    customerId: customerId ?? undefined,
+  })
+  const linkCase = useLinkConversationToCase()
 
   return (
     <Card>
@@ -50,8 +55,12 @@ export function ConversationCaseSection({
               className="w-full rounded-md border p-2.5 text-left transition-colors hover:bg-accent/50"
             >
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground">#{linkedCase.case_number}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{linkedCase.title}</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  #{linkedCase.case_number}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {linkedCase.title}
+                </span>
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -60,7 +69,7 @@ export function ConversationCaseSection({
                 <CaseSlaBadge record={linkedCase} />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Owner: {linkedCase.owner?.full_name ?? 'Unassigned'}
+                Owner: {linkedCase.owner?.full_name ?? "Unassigned"}
               </p>
             </button>
             <Button
@@ -91,7 +100,12 @@ export function ConversationCaseSection({
                 </SelectContent>
               </Select>
             )}
-            <Button size="sm" variant="outline" className="w-full" onClick={() => setCreateOpen(true)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setCreateOpen(true)}
+            >
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Create case
             </Button>
           </>
@@ -101,12 +115,12 @@ export function ConversationCaseSection({
       <CreateCaseDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        defaultTitle={subject ?? ''}
+        defaultTitle={subject ?? ""}
         customerId={customerId ?? null}
         conversationId={conversationId}
         inboxId={inboxId ?? null}
         sourceChannel={channel ?? null}
       />
     </Card>
-  );
+  )
 }

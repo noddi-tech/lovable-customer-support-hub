@@ -1,19 +1,19 @@
-import { useEffect, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { EmailAttachment } from '@/utils/emailFormatting';
-import { createBlobUrl } from '@/utils/imageAssetHandler';
+import { ChevronLeft, ChevronRight, Download, X, ZoomIn, ZoomOut } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import type { EmailAttachment } from "@/utils/emailFormatting"
+import { createBlobUrl } from "@/utils/imageAssetHandler"
 
 interface ImageLightboxProps {
-  images: EmailAttachment[];
-  currentIndex: number;
-  isOpen: boolean;
-  messageId?: string;
-  onClose: () => void;
-  onNext: () => void;
-  onPrevious: () => void;
-  onIndexChange: (index: number) => void;
+  images: EmailAttachment[]
+  currentIndex: number
+  isOpen: boolean
+  messageId?: string
+  onClose: () => void
+  onNext: () => void
+  onPrevious: () => void
+  onIndexChange: (index: number) => void
 }
 
 export const ImageLightbox = ({
@@ -25,49 +25,49 @@ export const ImageLightbox = ({
   onNext,
   onPrevious,
 }: ImageLightboxProps) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  
-  const currentImage = images[currentIndex];
-  
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [zoom, setZoom] = useState(1)
+
+  const currentImage = images[currentIndex]
+
   // Load current image
   useEffect(() => {
     if (currentImage && isOpen) {
-      setZoom(1); // Reset zoom when changing images
-      createBlobUrl(currentImage, messageId).then(url => {
-        setImageUrl(url);
-      });
+      setZoom(1) // Reset zoom when changing images
+      createBlobUrl(currentImage, messageId).then((url) => {
+        setImageUrl(url)
+      })
     }
-  }, [currentImage, messageId, isOpen]);
-  
+  }, [currentImage, messageId, isOpen])
+
   // Keyboard navigation
   useEffect(() => {
-    if (!isOpen) return;
-    
+    if (!isOpen) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft') onPrevious();
-      if (e.key === 'ArrowRight') onNext();
+      if (e.key === "ArrowLeft") onPrevious()
+      if (e.key === "ArrowRight") onNext()
       // Escape is handled natively by the Radix Dialog — don't duplicate
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onNext, onPrevious, onClose]);
-  
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onNext, onPrevious])
+
   const handleDownload = async () => {
-    if (!imageUrl) return;
-    
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = currentImage.filename || 'image';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.5, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.5, 0.5));
-  
+    if (!imageUrl) return
+
+    const link = document.createElement("a")
+    link.href = imageUrl
+    link.download = currentImage.filename || "image"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.5, 3))
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.5, 0.5))
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
@@ -81,12 +81,12 @@ export const ImageLightbox = ({
           >
             <X className="h-6 w-6" />
           </Button>
-          
+
           {/* Image counter */}
           <div className="absolute top-4 left-4 z-50 text-white bg-black/50 px-3 py-1 rounded-full text-sm">
             {currentIndex + 1} / {images.length}
           </div>
-          
+
           {/* Zoom controls */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2">
             <Button
@@ -117,7 +117,7 @@ export const ImageLightbox = ({
               <Download className="h-5 w-5" />
             </Button>
           </div>
-          
+
           {/* Navigation arrows */}
           {images.length > 1 && (
             <>
@@ -139,17 +139,17 @@ export const ImageLightbox = ({
               </Button>
             </>
           )}
-          
+
           {/* Image */}
           {imageUrl && (
             <img
               src={imageUrl}
-              alt={currentImage.filename || 'Image'}
+              alt={currentImage.filename || "Image"}
               className="max-w-full max-h-full object-contain transition-transform"
               style={{ transform: `scale(${zoom})` }}
             />
           )}
-          
+
           {/* Filename */}
           {currentImage.filename && (
             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-50 text-white bg-black/50 px-4 py-2 rounded text-sm max-w-md truncate">
@@ -159,5 +159,5 @@ export const ImageLightbox = ({
         </div>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

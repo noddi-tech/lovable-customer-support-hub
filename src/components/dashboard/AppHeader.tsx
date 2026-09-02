@@ -1,31 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useDateFormatting } from '@/hooks/useDateFormatting';
-import { useIsMobile } from '@/hooks/use-responsive';
-import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { SearchCommandPalette } from '@/components/search/SearchCommandPalette';
-
-import { ConnectionStatusIndicator } from '@/components/layout/ConnectionStatusIndicator';
-
-import { 
-  Search,
-  LogOut,
-  Menu,
-  ArrowLeft,
-  Settings
-} from 'lucide-react';
+import { ArrowLeft, LogOut, Menu, Search, Settings } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
+import { ConnectionStatusIndicator } from "@/components/layout/ConnectionStatusIndicator"
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown"
+import { SearchCommandPalette } from "@/components/search/SearchCommandPalette"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useIsMobile } from "@/hooks/use-responsive"
+import { useAuth } from "@/hooks/useAuth"
+import { useDateFormatting } from "@/hooks/useDateFormatting"
 
 interface AppHeaderProps {
-  onMenuClick?: () => void;
-  onBackClick?: () => void;
-  showBackButton?: boolean;
-  showMenuButton?: boolean;
-  sidebarTrigger?: React.ReactNode;
+  onMenuClick?: () => void
+  onBackClick?: () => void
+  showBackButton?: boolean
+  showMenuButton?: boolean
+  sidebarTrigger?: React.ReactNode
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -33,36 +32,36 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBackClick,
   showBackButton = false,
   showMenuButton = false,
-  sidebarTrigger
+  sidebarTrigger,
 }) => {
-  const { user, profile, signOut } = useAuth();
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { dateTime, timezone } = useDateFormatting();
-  const isMobile = useIsMobile();
-  
-  const [searchOpen, setSearchOpen] = useState(false);
+  const { user, profile, signOut } = useAuth()
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { dateTime, timezone } = useDateFormatting()
+  const isMobile = useIsMobile()
+
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
       }
-    };
-    window.addEventListener('keydown', down);
-    return () => window.removeEventListener('keydown', down);
-  }, []);
+    }
+    window.addEventListener("keydown", down)
+    return () => window.removeEventListener("keydown", down)
+  }, [])
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      navigate('/auth');
+      await signOut()
+      navigate("/auth")
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error)
     }
-  };
+  }
 
   return (
     <div className="app-header-container h-14 bg-card/80 backdrop-blur-sm border-b border-border shadow-sm relative z-[200]">
@@ -73,20 +72,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Mobile Menu/Back Button */}
           {isMobile && (
             <>
-              {sidebarTrigger || (showMenuButton || showBackButton) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={showBackButton ? onBackClick : onMenuClick}
-                  className="flex-shrink-0"
-                >
-                  {showBackButton ? (
-                    <ArrowLeft className="h-4 w-4" />
-                  ) : (
-                    <Menu className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
+              {sidebarTrigger ||
+                ((showMenuButton || showBackButton) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={showBackButton ? onBackClick : onMenuClick}
+                    className="flex-shrink-0"
+                  >
+                    {showBackButton ? (
+                      <ArrowLeft className="h-4 w-4" />
+                    ) : (
+                      <Menu className="h-4 w-4" />
+                    )}
+                  </Button>
+                ))}
               {sidebarTrigger}
             </>
           )}
@@ -96,11 +96,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">CS</span>
             </div>
-            {!isMobile && (
-              <span className="font-semibold text-lg">Customer Support</span>
-            )}
+            {!isMobile && <span className="font-semibold text-lg">Customer Support</span>}
           </div>
-
         </div>
 
         {/* Right Section - Actions, User Menu */}
@@ -108,7 +105,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {/* Timezone Display - Desktop only */}
           {!isMobile && (
             <div className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-              {timezone} • {dateTime(new Date()).split(' ')[1] || 'Now'}
+              {timezone} • {dateTime(new Date()).split(" ")[1] || "Now"}
             </div>
           )}
 
@@ -128,7 +125,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </Button>
 
             <SearchCommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-            
+
             <NotificationDropdown />
           </div>
 
@@ -139,7 +136,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={profile?.avatar_url || user?.user_metadata?.avatar_url} />
                   <AvatarFallback>
-                    {profile?.full_name?.[0] || user?.user_metadata?.full_name?.[0] || user?.email?.[0] || 'U'}
+                    {profile?.full_name?.[0] ||
+                      user?.user_metadata?.full_name?.[0] ||
+                      user?.email?.[0] ||
+                      "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -147,26 +147,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex flex-col space-y-1 p-2">
                 <p className="text-sm font-medium leading-none">
-                  {profile?.full_name || user?.user_metadata?.full_name || 'User'}
+                  {profile?.full_name || user?.user_metadata?.full_name || "User"}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>{t('header.settings', 'Settings')}</span>
+                <span>{t("header.settings", "Settings")}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{t('header.signOut', 'Sign out')}</span>
+                <span>{t("header.signOut", "Sign out")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
     </div>
-  );
-};
+  )
+}

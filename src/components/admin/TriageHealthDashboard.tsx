@@ -1,57 +1,73 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import {
-  Activity, ThumbsUp, ThumbsDown, VolumeX, Sparkles, Check, X, Loader2, TrendingDown, TrendingUp, Info, Send, History,
-} from 'lucide-react';
-import { useTriageHealth } from '@/hooks/useTriageHealth';
-import { usePatternProposals } from '@/hooks/usePatternProposals';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+  Activity,
+  Check,
+  History,
+  Info,
+  Loader2,
+  Send,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  TrendingDown,
+  TrendingUp,
+  VolumeX,
+  X,
+} from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { usePatternProposals } from "@/hooks/usePatternProposals"
+import { useTriageHealth } from "@/hooks/useTriageHealth"
+import { supabase } from "@/integrations/supabase/client"
 
-const formatPct = (v: number) => `${Math.round(v * 100)}%`;
+const formatPct = (v: number) => `${Math.round(v * 100)}%`
 
 export const TriageHealthDashboard = () => {
-  const { data, isLoading } = useTriageHealth();
-  const { data: proposals = [], acceptProposal, rejectProposal, runMining } = usePatternProposals();
-  const [sendingTest, setSendingTest] = useState(false);
-  const [backfilling, setBackfilling] = useState(false);
+  const { data, isLoading } = useTriageHealth()
+  const { data: proposals = [], acceptProposal, rejectProposal, runMining } = usePatternProposals()
+  const [sendingTest, setSendingTest] = useState(false)
+  const [backfilling, setBackfilling] = useState(false)
 
   const sendTestAlert = async () => {
-    setSendingTest(true);
+    setSendingTest(true)
     try {
-      const { data: res, error } = await supabase.functions.invoke('send-test-critical-alert', { body: {} });
-      if (error) throw error;
-      const r = (res ?? {}) as { ok?: boolean; error?: string; error_stage?: string };
+      const { data: res, error } = await supabase.functions.invoke("send-test-critical-alert", {
+        body: {},
+      })
+      if (error) throw error
+      const r = (res ?? {}) as { ok?: boolean; error?: string; error_stage?: string }
       if (r.ok === false) {
-        const stage = r.error_stage ? ` [${r.error_stage}]` : '';
-        throw new Error(`${r.error || 'Ukjent feil'}${stage}`);
+        const stage = r.error_stage ? ` [${r.error_stage}]` : ""
+        throw new Error(`${r.error || "Ukjent feil"}${stage}`)
       }
-      toast.success('Testvarsel sendt — sjekk Slack og reager 👍/👎/🔇');
+      toast.success("Testvarsel sendt — sjekk Slack og reager 👍/👎/🔇")
     } catch (e) {
-      toast.error(`Kunne ikke sende testvarsel: ${e instanceof Error ? e.message : String(e)}`);
+      toast.error(`Kunne ikke sende testvarsel: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
-      setSendingTest(false);
+      setSendingTest(false)
     }
-  };
+  }
 
   const runBackfill = async () => {
-    setBackfilling(true);
+    setBackfilling(true)
     try {
-      const { data: res, error } = await supabase.functions.invoke('backfill-critical-alert-ts', { body: {} });
-      if (error) throw error;
-      if ((res as { error?: string })?.error) throw new Error((res as { error: string }).error);
-      const r = res as { patched?: number; scanned?: number } | null;
-      toast.success(`Backfill ferdig: ${r?.patched ?? 0} av ${r?.scanned ?? 0} oppdatert`);
+      const { data: res, error } = await supabase.functions.invoke("backfill-critical-alert-ts", {
+        body: {},
+      })
+      if (error) throw error
+      if ((res as { error?: string })?.error) throw new Error((res as { error: string }).error)
+      const r = res as { patched?: number; scanned?: number } | null
+      toast.success(`Backfill ferdig: ${r?.patched ?? 0} av ${r?.scanned ?? 0} oppdatert`)
     } catch (e) {
-      toast.error(`Backfill feilet: ${e instanceof Error ? e.message : String(e)}`);
+      toast.error(`Backfill feilet: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
-      setBackfilling(false);
+      setBackfilling(false)
     }
-  };
+  }
 
   if (isLoading || !data) {
     return (
@@ -60,11 +76,11 @@ export const TriageHealthDashboard = () => {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const noAlerts = data.total_alerts === 0;
-  const noFeedback = !noAlerts && data.total_feedback === 0;
+  const noAlerts = data.total_alerts === 0
+  const noFeedback = !noAlerts && data.total_feedback === 0
 
   return (
     <div className="space-y-4">
@@ -134,7 +150,8 @@ export const TriageHealthDashboard = () => {
             <Alert className="mt-4 bg-muted/30 border-border/30">
               <Info className="h-3.5 w-3.5" />
               <AlertDescription className="text-xs">
-                Ingen kritiske varsler de siste 30 dagene. Bruk <strong>Send testvarsel</strong> for å verifisere at flyten fungerer.
+                Ingen kritiske varsler de siste 30 dagene. Bruk <strong>Send testvarsel</strong> for
+                å verifisere at flyten fungerer.
               </AlertDescription>
             </Alert>
           )}
@@ -143,8 +160,10 @@ export const TriageHealthDashboard = () => {
             <Alert className="mt-4 bg-muted/30 border-border/30">
               <Info className="h-3.5 w-3.5" />
               <AlertDescription className="text-xs">
-                Ingen reaksjoner registrert ennå. Be teamet reagere med 👍 / 👎 / 🔇 på Slack-varsler for å bygge opp dataen.
-                Eldre varsler kan ikke reageres på fordi vi ikke lagret Slack-meldings-ID-en — bruk <strong>Backfill gamle varsler</strong> for å forsøke å gjenopprette ID-er for nylige meldinger.
+                Ingen reaksjoner registrert ennå. Be teamet reagere med 👍 / 👎 / 🔇 på
+                Slack-varsler for å bygge opp dataen. Eldre varsler kan ikke reageres på fordi vi
+                ikke lagret Slack-meldings-ID-en — bruk <strong>Backfill gamle varsler</strong> for
+                å forsøke å gjenopprette ID-er for nylige meldinger.
               </AlertDescription>
             </Alert>
           )}
@@ -158,7 +177,9 @@ export const TriageHealthDashboard = () => {
             <CardTitle className="text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               Foreslåtte forbedringer
-              <Badge variant="outline" className="ml-1 border-primary/40">{proposals.length}</Badge>
+              <Badge variant="outline" className="ml-1 border-primary/40">
+                {proposals.length}
+              </Badge>
             </CardTitle>
             <CardDescription className="text-xs">
               AI-genererte forslag basert på reaksjoner og historiske mønstre.
@@ -171,14 +192,16 @@ export const TriageHealthDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px]">
-                        {p.proposal_type === 'remove_keyword' && '🚫 Fjern nøkkelord'}
-                        {p.proposal_type === 'add_keyword' && '➕ Legg til nøkkelord'}
-                        {p.proposal_type === 'raise_threshold' && '⬆️ Hev terskel'}
-                        {p.proposal_type === 'lower_threshold' && '⬇️ Senk terskel'}
+                        {p.proposal_type === "remove_keyword" && "🚫 Fjern nøkkelord"}
+                        {p.proposal_type === "add_keyword" && "➕ Legg til nøkkelord"}
+                        {p.proposal_type === "raise_threshold" && "⬆️ Hev terskel"}
+                        {p.proposal_type === "lower_threshold" && "⬇️ Senk terskel"}
                       </Badge>
                       <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{p.value}</code>
                       {p.threshold_value && (
-                        <Badge variant="outline" className="text-[10px]">→ {p.threshold_value}/5</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          → {p.threshold_value}/5
+                        </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">{p.reason}</p>
@@ -228,14 +251,18 @@ export const TriageHealthDashboard = () => {
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="outline" className="text-[10px] shrink-0">
-                      {t.trigger_type === 'keyword' ? 'KW' : 'AI'}
+                      {t.trigger_type === "keyword" ? "KW" : "AI"}
                     </Badge>
                     <span className="text-sm truncate">{t.trigger_label}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">— {t.total} varsler</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      — {t.total} varsler
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 text-xs">
                     <span className="text-destructive">{formatPct(t.negative_rate)} 👎</span>
-                    {t.mute_rate > 0 && <span className="text-amber-500">{formatPct(t.mute_rate)} 🔇</span>}
+                    {t.mute_rate > 0 && (
+                      <span className="text-amber-500">{formatPct(t.mute_rate)} 🔇</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -263,12 +290,16 @@ export const TriageHealthDashboard = () => {
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Badge variant="outline" className="text-[10px] shrink-0">
-                      {t.trigger_type === 'keyword' ? 'KW' : 'AI'}
+                      {t.trigger_type === "keyword" ? "KW" : "AI"}
                     </Badge>
                     <span className="text-sm truncate">{t.trigger_label}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">— {t.total} varsler</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      — {t.total} varsler
+                    </span>
                   </div>
-                  <span className="text-xs text-success shrink-0">{formatPct(t.positive_rate)} 👍</span>
+                  <span className="text-xs text-success shrink-0">
+                    {formatPct(t.positive_rate)} 👍
+                  </span>
                 </div>
               </div>
             ))}
@@ -276,5 +307,5 @@ export const TriageHealthDashboard = () => {
         </Card>
       )}
     </div>
-  );
-};
+  )
+}

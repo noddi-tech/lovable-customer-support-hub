@@ -1,10 +1,9 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Ticket } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Ticket } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const ServiceTicketsInterface = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   return (
     <div className="pane flex items-center justify-center p-8">
@@ -13,10 +12,8 @@ const ServiceTicketsInterface = () => {
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Ticket className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>{t('serviceTickets')}</CardTitle>
-          <CardDescription>
-            {t('serviceTicketsComingSoon')}
-          </CardDescription>
+          <CardTitle>{t("serviceTickets")}</CardTitle>
+          <CardDescription>{t("serviceTicketsComingSoon")}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -25,7 +22,7 @@ const ServiceTicketsInterface = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default ServiceTicketsInterface;
+export default ServiceTicketsInterface

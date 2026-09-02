@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from "react"
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,16 +9,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useInitiateGdprExport } from '@/hooks/recruitment/useGdprRequests';
+} from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useInitiateGdprExport } from "@/hooks/recruitment/useGdprRequests"
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  applicantId: string;
-  applicantName: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  applicantId: string
+  applicantName: string
 }
 
 const InitiateGdprExportDialog: React.FC<Props> = ({
@@ -26,26 +27,26 @@ const InitiateGdprExportDialog: React.FC<Props> = ({
   applicantId,
   applicantName,
 }) => {
-  const [reason, setReason] = useState('');
-  const mutation = useInitiateGdprExport();
+  const [reason, setReason] = useState("")
+  const mutation = useInitiateGdprExport()
 
   const handleOpenChange = (next: boolean) => {
-    if (!next && !mutation.isPending) setReason('');
-    onOpenChange(next);
-  };
+    if (!next && !mutation.isPending) setReason("")
+    onOpenChange(next)
+  }
 
   const handleConfirm = async () => {
     try {
       await mutation.mutateAsync({
         applicant_id: applicantId,
         reason: reason.trim() || undefined,
-      });
-      setReason('');
-      onOpenChange(false);
+      })
+      setReason("")
+      onOpenChange(false)
     } catch {
       // toast handled in hook
     }
-  };
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
@@ -53,10 +54,10 @@ const InitiateGdprExportDialog: React.FC<Props> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Eksportere persondata?</AlertDialogTitle>
           <AlertDialogDescription>
-            Du oppretter en GDPR-eksport (artikkel 15 + 20) for{' '}
-            <strong className="text-foreground">{applicantName}</strong>. Eksporten
-            inneholder all lagret informasjon om kandidaten i et nedlastbart ZIP-arkiv
-            (JSON + PDF + filer). Lenken er gyldig i 7 dager.
+            Du oppretter en GDPR-eksport (artikkel 15 + 20) for{" "}
+            <strong className="text-foreground">{applicantName}</strong>. Eksporten inneholder all
+            lagret informasjon om kandidaten i et nedlastbart ZIP-arkiv (JSON + PDF + filer). Lenken
+            er gyldig i 7 dager.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-2">
@@ -75,16 +76,16 @@ const InitiateGdprExportDialog: React.FC<Props> = ({
           <AlertDialogAction
             disabled={mutation.isPending}
             onClick={(e) => {
-              e.preventDefault();
-              void handleConfirm();
+              e.preventDefault()
+              void handleConfirm()
             }}
           >
-            {mutation.isPending ? 'Starter…' : 'Start eksport'}
+            {mutation.isPending ? "Starter…" : "Start eksport"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default InitiateGdprExportDialog;
+export default InitiateGdprExportDialog

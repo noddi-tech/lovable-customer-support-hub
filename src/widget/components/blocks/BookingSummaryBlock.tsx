@@ -1,224 +1,359 @@
-import React, { useState } from 'react';
-import { registerBlock, BlockComponentProps, FlowPreviewProps } from './registry';
-import { getApiUrl, proxyHeaders } from '../../api';
+import type React from "react"
+import { useState } from "react"
+import { getApiUrl, proxyHeaders } from "../../api"
+import { type BlockComponentProps, type FlowPreviewProps, registerBlock } from "./registry"
 
 const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
-  primaryColor, messageId, blockIndex, usedBlocks, onAction, onLogEvent, data,
+  primaryColor,
+  messageId,
+  blockIndex,
+  usedBlocks,
+  onAction,
+  onLogEvent,
+  data,
 }) => {
-  const blockKey = `${messageId}:${blockIndex}`;
-  const isUsed = usedBlocks.has(blockKey);
-  const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null;
+  const blockKey = `${messageId}:${blockIndex}`
+  const isUsed = usedBlocks.has(blockKey)
+  const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null
 
-  const [confirming, setConfirming] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState('');
+  const [confirming, setConfirming] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [error, setError] = useState("")
 
   const handleConfirm = async () => {
-    setConfirming(true);
-    setError('');
-    onLogEvent?.('booking_confirm_started', '', 'info');
+    setConfirming(true)
+    setError("")
+    onLogEvent?.("booking_confirm_started", "", "info")
 
     try {
       // Build booking payload
-      const bookingPayload: any = { action: 'create_booking' };
-      if (data.address_id) bookingPayload.address_id = data.address_id;
-      if (data.user_id) bookingPayload.user_id = data.user_id;
-      if (data.user_group_id) bookingPayload.user_group_id = data.user_group_id;
-      if (data.license_plate) bookingPayload.license_plate = data.license_plate;
-      if (data.country_code) bookingPayload.country_code = data.country_code || 'NO';
-      if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids;
-      if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id;
-      if (data.delivery_window_start) bookingPayload.delivery_window_start = data.delivery_window_start;
-      if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end;
+      const bookingPayload: any = { action: "create_booking" }
+      if (data.address_id) bookingPayload.address_id = data.address_id
+      if (data.user_id) bookingPayload.user_id = data.user_id
+      if (data.user_group_id) bookingPayload.user_group_id = data.user_group_id
+      if (data.license_plate) bookingPayload.license_plate = data.license_plate
+      if (data.country_code) bookingPayload.country_code = data.country_code || "NO"
+      if (data.sales_item_ids) bookingPayload.sales_item_ids = data.sales_item_ids
+      if (data.delivery_window_id) bookingPayload.delivery_window_id = data.delivery_window_id
+      if (data.delivery_window_start)
+        bookingPayload.delivery_window_start = data.delivery_window_start
+      if (data.delivery_window_end) bookingPayload.delivery_window_end = data.delivery_window_end
 
       // Re-lookup customer IDs if missing
       if (!bookingPayload.user_id || !bookingPayload.user_group_id) {
-        const phone = localStorage.getItem('noddi_ai_verified_phone');
+        const phone = localStorage.getItem("noddi_ai_verified_phone")
         if (phone) {
-          onLogEvent?.('booking_customer_relookup', phone, 'info');
+          onLogEvent?.("booking_customer_relookup", phone, "info")
           try {
             const lookupResp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
-              method: 'POST',
+              method: "POST",
               headers: proxyHeaders(),
-              body: JSON.stringify({ action: 'lookup_customer', phone }),
-            });
-            const lookupData = await lookupResp.json();
+              body: JSON.stringify({ action: "lookup_customer", phone }),
+            })
+            const lookupData = await lookupResp.json()
             if (lookupData.customer) {
               if (!bookingPayload.user_id && lookupData.customer.userId) {
-                bookingPayload.user_id = lookupData.customer.userId;
+                bookingPayload.user_id = lookupData.customer.userId
               }
               if (!bookingPayload.user_group_id && lookupData.customer.userGroupId) {
-                bookingPayload.user_group_id = lookupData.customer.userGroupId;
+                bookingPayload.user_group_id = lookupData.customer.userGroupId
               }
             }
           } catch (lookupErr) {
-            console.warn('Customer re-lookup failed:', lookupErr);
+            console.warn("Customer re-lookup failed:", lookupErr)
           }
         }
       }
 
       // Recover delivery_window_id from TimeSlotBlock's localStorage if missing
       if (!bookingPayload.delivery_window_id) {
-        onLogEvent?.('booking_delivery_window_recovery', '', 'info');
-        const actionKeys: string[] = [];
+        onLogEvent?.("booking_delivery_window_recovery", "", "info")
+        const actionKeys: string[] = []
         for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.startsWith('noddi_action_')) {
-            actionKeys.push(key!);
+          const key = localStorage.key(i)
+          if (key?.startsWith("noddi_action_")) {
+            actionKeys.push(key!)
             if (key !== `noddi_action_${blockKey}`) {
               try {
-                const val = JSON.parse(localStorage.getItem(key) || '');
+                const val = JSON.parse(localStorage.getItem(key) || "")
                 if (val.delivery_window_id) {
-                  bookingPayload.delivery_window_id = val.delivery_window_id;
+                  bookingPayload.delivery_window_id = val.delivery_window_id
                   if (!bookingPayload.delivery_window_start && val.start_time) {
-                    bookingPayload.delivery_window_start = val.start_time;
+                    bookingPayload.delivery_window_start = val.start_time
                   }
                   if (!bookingPayload.delivery_window_end && val.end_time) {
-                    bookingPayload.delivery_window_end = val.end_time;
+                    bookingPayload.delivery_window_end = val.end_time
                   }
-                  onLogEvent?.('booking_delivery_window_recovered', `window_id=${val.delivery_window_id}`, 'success');
-                  break;
+                  onLogEvent?.(
+                    "booking_delivery_window_recovered",
+                    `window_id=${val.delivery_window_id}`,
+                    "success",
+                  )
+                  break
                 }
-              } catch { /* not relevant JSON */ }
+              } catch {
+                /* not relevant JSON */
+              }
             }
           }
         }
-        onLogEvent?.('booking_recovery_keys_found', actionKeys.join(','), 'info');
+        onLogEvent?.("booking_recovery_keys_found", actionKeys.join(","), "info")
       }
 
       // Final guard: abort if delivery_window_id is still missing
       if (!bookingPayload.delivery_window_id) {
-        setError('Kunne ikke finne valgt tidspunkt. Vennligst gå tilbake og velg et tidspunkt på nytt.');
-        setConfirming(false);
-        onLogEvent?.('booking_delivery_window_missing', '', 'error');
-        return;
+        setError(
+          "Kunne ikke finne valgt tidspunkt. Vennligst gå tilbake og velg et tidspunkt på nytt.",
+        )
+        setConfirming(false)
+        onLogEvent?.("booking_delivery_window_missing", "", "error")
+        return
       }
 
       const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
-        method: 'POST',
+        method: "POST",
         headers: proxyHeaders(),
         body: JSON.stringify(bookingPayload),
-      });
-      const bookingData = await resp.json();
+      })
+      const bookingData = await resp.json()
       if (!resp.ok || !bookingData.booking) {
         if (resp.status >= 500) {
-          setError('Bestilling er midlertidig utilgjengelig, vennligst prøv igjen senere');
+          setError("Bestilling er midlertidig utilgjengelig, vennligst prøv igjen senere")
         } else {
-          setError(bookingData.error || 'Kunne ikke opprette bestilling');
+          setError(bookingData.error || "Kunne ikke opprette bestilling")
         }
-        setConfirming(false);
-        return;
+        setConfirming(false)
+        return
       }
 
-      const booking = bookingData.booking;
+      const booking = bookingData.booking
 
-      setResult(booking);
+      setResult(booking)
       const payload = JSON.stringify({
         confirmed: true,
         booking_id: booking.id,
         booking_number: booking.booking_number || booking.id,
-      });
-      localStorage.setItem(`noddi_action_${blockKey}`, payload);
-      onAction(payload, blockKey);
-      onLogEvent?.('booking_confirmed', `#${booking.booking_number || booking.id}`, 'success');
+      })
+      localStorage.setItem(`noddi_action_${blockKey}`, payload)
+      onAction(payload, blockKey)
+      onLogEvent?.("booking_confirmed", `#${booking.booking_number || booking.id}`, "success")
     } catch {
-      setError('Noe gikk galt, vennligst prøv igjen senere');
+      setError("Noe gikk galt, vennligst prøv igjen senere")
     }
-    setConfirming(false);
-  };
+    setConfirming(false)
+  }
 
   const handleCancel = () => {
-    const payload = JSON.stringify({ confirmed: false });
-    localStorage.setItem(`noddi_action_${blockKey}`, payload);
-    onAction(payload, blockKey);
-    onLogEvent?.('booking_cancelled', '', 'info');
-  };
+    const payload = JSON.stringify({ confirmed: false })
+    localStorage.setItem(`noddi_action_${blockKey}`, payload)
+    onAction(payload, blockKey)
+    onLogEvent?.("booking_cancelled", "", "info")
+  }
 
   // Submitted state
   if (submitted) {
-    let parsed: any;
-    try { parsed = JSON.parse(submitted); } catch { parsed = null; }
+    let parsed: any
+    try {
+      parsed = JSON.parse(submitted)
+    } catch {
+      parsed = null
+    }
     if (parsed?.confirmed) {
       return (
-        <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+        <div
+          style={{
+            margin: "8px 0",
+            padding: "12px",
+            borderRadius: "12px",
+            background: "#f0fdf4",
+            border: "1.5px solid #86efac",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: 700,
+              color: "#15803d",
+              fontSize: "14px",
+            }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
             Bestilling bekreftet!
           </div>
           {parsed.booking_number && (
-            <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ marginTop: "4px", fontSize: "12px", color: "#6b7280" }}>
               Bestilling #{parsed.booking_number}
             </div>
           )}
         </div>
-      );
+      )
     }
     return (
-      <div className="noddi-ai-verified-badge" style={{ margin: '8px 0' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        <span style={{ fontSize: '12px' }}>Bestilling avbrutt</span>
+      <div className="noddi-ai-verified-badge" style={{ margin: "8px 0" }}>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+        <span style={{ fontSize: "12px" }}>Bestilling avbrutt</span>
       </div>
-    );
+    )
   }
 
   // Success state
   if (result) {
     return (
-      <div style={{ margin: '8px 0', padding: '12px', borderRadius: '12px', background: '#f0fdf4', border: '1.5px solid #86efac' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#15803d', fontSize: '14px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+      <div
+        style={{
+          margin: "8px 0",
+          padding: "12px",
+          borderRadius: "12px",
+          background: "#f0fdf4",
+          border: "1.5px solid #86efac",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontWeight: 700,
+            color: "#15803d",
+            fontSize: "14px",
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
           Bestilling bekreftet!
         </div>
-        <div style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+        <div style={{ marginTop: "4px", fontSize: "12px", color: "#6b7280" }}>
           Bestilling #{result.booking_number || result.id}
         </div>
       </div>
-    );
+    )
   }
 
   // Summary card
-  const rows: Array<{ label: string; value: string }> = [];
-  if (data.address) rows.push({ label: '📍 Adresse', value: data.address });
-  if (data.car) rows.push({ label: '🚗 Bil', value: data.car });
-  if (data.service) rows.push({ label: '🛠️ Tjeneste', value: data.service });
-  if (data.date) rows.push({ label: '📅 Dato', value: data.date });
-  if (data.time) rows.push({ label: '🕐 Tid', value: data.time });
-  if (data.price) rows.push({ label: '💰 Pris', value: data.price });
+  const rows: Array<{ label: string; value: string }> = []
+  if (data.address) rows.push({ label: "📍 Adresse", value: data.address })
+  if (data.car) rows.push({ label: "🚗 Bil", value: data.car })
+  if (data.service) rows.push({ label: "🛠️ Tjeneste", value: data.service })
+  if (data.date) rows.push({ label: "📅 Dato", value: data.date })
+  if (data.time) rows.push({ label: "🕐 Tid", value: data.time })
+  if (data.price) rows.push({ label: "💰 Pris", value: data.price })
 
   return (
-    <div style={{ margin: '8px 0', border: '1.5px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', background: '#fafafa' }}>
+    <div
+      style={{
+        margin: "8px 0",
+        border: "1.5px solid #e5e7eb",
+        borderRadius: "12px",
+        overflow: "hidden",
+        background: "#fafafa",
+      }}
+    >
       {/* Summary rows */}
-      <div style={{ padding: '12px' }}>
-        {rows.length > 0 ? rows.map((r, i) => (
-          <div key={i} style={{
-            display: 'flex', justifyContent: 'space-between', padding: '4px 0',
-            fontSize: '13px', borderBottom: i < rows.length - 1 ? '1px solid #f3f4f6' : 'none',
-          }}>
-            <span style={{ color: '#6b7280' }}>{r.label}</span>
-            <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{r.value}</span>
-          </div>
-        )) : (
-          <div style={{ fontSize: '13px', color: '#6b7280' }}>Se gjennom bestillingsdetaljer</div>
+      <div style={{ padding: "12px" }}>
+        {rows.length > 0 ? (
+          rows.map((r, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "4px 0",
+                fontSize: "13px",
+                borderBottom: i < rows.length - 1 ? "1px solid #f3f4f6" : "none",
+              }}
+            >
+              <span style={{ color: "#6b7280" }}>{r.label}</span>
+              <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>
+                {r.value}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div style={{ fontSize: "13px", color: "#6b7280" }}>Se gjennom bestillingsdetaljer</div>
         )}
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '8px', padding: '0 12px 12px' }}>
+      <div style={{ display: "flex", gap: "8px", padding: "0 12px 12px" }}>
         <button
           onClick={handleConfirm}
           disabled={isUsed || confirming}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-            border: 'none', background: primaryColor, color: '#fff',
-            cursor: isUsed || confirming ? 'default' : 'pointer',
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            padding: "10px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            border: "none",
+            background: primaryColor,
+            color: "#fff",
+            cursor: isUsed || confirming ? "default" : "pointer",
             opacity: confirming ? 0.7 : 1,
           }}
         >
           {confirming ? (
-            <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'noddi-spin 0.6s linear infinite' }} />
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                border: "2px solid rgba(255,255,255,0.3)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "noddi-spin 0.6s linear infinite",
+              }}
+            />
           ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           )}
           Bekreft bestilling
         </button>
@@ -226,59 +361,79 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
           onClick={handleCancel}
           disabled={isUsed || confirming}
           style={{
-            padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-            border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444',
-            cursor: isUsed || confirming ? 'default' : 'pointer',
+            padding: "10px 16px",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            border: "1.5px solid #ef4444",
+            background: "transparent",
+            color: "#ef4444",
+            cursor: isUsed || confirming ? "default" : "pointer",
           }}
         >
           Avbryt
         </button>
       </div>
-      {error && <div style={{ padding: '0 12px 12px', color: '#ef4444', fontSize: '12px' }}>{error}</div>}
+      {error && (
+        <div style={{ padding: "0 12px 12px", color: "#ef4444", fontSize: "12px" }}>{error}</div>
+      )}
     </div>
-  );
-};
+  )
+}
 
 const BookingSummaryPreview: React.FC<FlowPreviewProps> = () => (
   <div className="rounded-md bg-white dark:bg-background border p-2">
     <p className="text-[9px] text-muted-foreground font-medium mb-1">Customer sees:</p>
     <div className="space-y-0.5 text-[8px] mb-1.5">
-      <div className="flex justify-between"><span className="text-muted-foreground">📍 Address</span><span className="font-semibold">Holtet 45</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">🚗 Car</span><span className="font-semibold">Tesla Model 3</span></div>
-      <div className="flex justify-between"><span className="text-muted-foreground">🛠️ Service</span><span className="font-semibold">Dekkskift</span></div>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">📍 Address</span>
+        <span className="font-semibold">Holtet 45</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">🚗 Car</span>
+        <span className="font-semibold">Tesla Model 3</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-muted-foreground">🛠️ Service</span>
+        <span className="font-semibold">Dekkskift</span>
+      </div>
     </div>
     <div className="flex gap-1">
-      <div className="flex-1 bg-green-500 text-white rounded-md py-0.5 text-center text-[8px] font-semibold">✓ Confirm</div>
-      <div className="border border-red-400 text-red-500 rounded-md py-0.5 px-2 text-[8px] font-semibold">Cancel</div>
+      <div className="flex-1 bg-green-500 text-white rounded-md py-0.5 text-center text-[8px] font-semibold">
+        ✓ Confirm
+      </div>
+      <div className="border border-red-400 text-red-500 rounded-md py-0.5 px-2 text-[8px] font-semibold">
+        Cancel
+      </div>
     </div>
   </div>
-);
+)
 
 registerBlock({
-  type: 'booking_summary',
-  marker: '[BOOKING_SUMMARY]',
-  closingMarker: '[/BOOKING_SUMMARY]',
+  type: "booking_summary",
+  marker: "[BOOKING_SUMMARY]",
+  closingMarker: "[/BOOKING_SUMMARY]",
   parseContent: (inner) => {
     // Parse JSON data from inner content
     try {
-      return JSON.parse(inner.trim());
+      return JSON.parse(inner.trim())
     } catch {
       // AI emitted human-readable text instead of JSON — extract what we can
-      const data: any = { summary: inner.trim() };
-      const dateMatch = inner.match(/(\d{1,2}\.\s*\w+\s*\d{4})/);
-      if (dateMatch) data.date = dateMatch[1];
-      const priceMatch = inner.match(/(\d+)\s*kr/i);
-      if (priceMatch) data.price = priceMatch[0];
-      const timeMatch = inner.match(/(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})/);
-      if (timeMatch) data.time = timeMatch[0];
+      const data: any = { summary: inner.trim() }
+      const dateMatch = inner.match(/(\d{1,2}\.\s*\w+\s*\d{4})/)
+      if (dateMatch) data.date = dateMatch[1]
+      const priceMatch = inner.match(/(\d+)\s*kr/i)
+      if (priceMatch) data.price = priceMatch[0]
+      const timeMatch = inner.match(/(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})/)
+      if (timeMatch) data.time = timeMatch[0]
       // Try to extract address-like lines
-      const addressMatch = inner.match(/(?:Adresse|Address)[:\s]+(.+)/i);
-      if (addressMatch) data.address = addressMatch[1].trim();
-      const serviceMatch = inner.match(/(?:Tjeneste|Service)[:\s]+(.+)/i);
-      if (serviceMatch) data.service = serviceMatch[1].trim();
-      const carMatch = inner.match(/(?:Bil|Car|Kjøretøy)[:\s]+(.+)/i);
-      if (carMatch) data.car = carMatch[1].trim();
-      return data;
+      const addressMatch = inner.match(/(?:Adresse|Address)[:\s]+(.+)/i)
+      if (addressMatch) data.address = addressMatch[1].trim()
+      const serviceMatch = inner.match(/(?:Tjeneste|Service)[:\s]+(.+)/i)
+      if (serviceMatch) data.service = serviceMatch[1].trim()
+      const carMatch = inner.match(/(?:Bil|Car|Kjøretøy)[:\s]+(.+)/i)
+      if (carMatch) data.car = carMatch[1].trim()
+      return data
     }
   },
   component: BookingSummaryBlock,
@@ -286,23 +441,29 @@ registerBlock({
   apiConfig: {
     endpoints: [
       {
-        name: 'Create Booking (Shopping Cart)',
-        edgeFunction: 'noddi-booking-proxy',
-        externalApi: 'POST /v1/bookings/shopping-cart-for-new-booking/',
-        method: 'POST',
-        requestBody: { action: 'create_booking', address_id: 'number', car_id: 'number', sales_item_ids: 'number[]', delivery_window_id: 'number' },
-        responseShape: { booking: '{ id, booking_number }' },
-        description: 'Create and finalize the booking via shopping cart',
+        name: "Create Booking (Shopping Cart)",
+        edgeFunction: "noddi-booking-proxy",
+        externalApi: "POST /v1/bookings/shopping-cart-for-new-booking/",
+        method: "POST",
+        requestBody: {
+          action: "create_booking",
+          address_id: "number",
+          car_id: "number",
+          sales_item_ids: "number[]",
+          delivery_window_id: "number",
+        },
+        responseShape: { booking: "{ id, booking_number }" },
+        description: "Create and finalize the booking via shopping cart",
       },
     ],
   },
   flowMeta: {
-    label: 'Booking Summary',
-    icon: '📋',
-    description: 'Shows booking summary with confirm/cancel. Creates the booking on confirm.',
-    applicableFieldTypes: ['booking_summary'],
+    label: "Booking Summary",
+    icon: "📋",
+    description: "Shows booking summary with confirm/cancel. Creates the booking on confirm.",
+    applicableFieldTypes: ["booking_summary"],
     previewComponent: BookingSummaryPreview,
   },
-});
+})
 
-export default BookingSummaryBlock;
+export default BookingSummaryBlock

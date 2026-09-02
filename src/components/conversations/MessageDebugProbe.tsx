@@ -3,53 +3,56 @@
  * Only renders when VITE_UI_PROBE=1 is set
  */
 
-import { Badge } from "@/components/ui/badge";
-import { type NormalizedMessage } from "@/lib/normalizeMessage";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge"
+import type { NormalizedMessage } from "@/lib/normalizeMessage"
+import { cn } from "@/lib/utils"
 
 // Helper function to create simple hash (internal implementation)
 function simpleHash(s: string): string {
-  let h = 0; 
-  for (let i = 0; i < s.length; i++) { 
-    h = ((h << 5) - h) + s.charCodeAt(i); 
-    h |= 0; 
+  let h = 0
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i)
+    h |= 0
   }
-  return Math.abs(h).toString(36);
+  return Math.abs(h).toString(36)
 }
 
 // Helper function to create soft dedup key (matches normalizeMessage.ts)
 function createSoftDedupKey(message: NormalizedMessage): string {
-  const timeStr = typeof message.createdAt === 'string' 
-    ? new Date(message.createdAt).toISOString().split('T')[0] 
-    : new Date(message.createdAt).toISOString().split('T')[0];
-  
-  const senderKey = message.from.email || 'unknown';
-  const contentHash = simpleHash(message.visibleBody);
-  
-  return `${senderKey}-${timeStr}-${contentHash}`;
+  const timeStr =
+    typeof message.createdAt === "string"
+      ? new Date(message.createdAt).toISOString().split("T")[0]
+      : new Date(message.createdAt).toISOString().split("T")[0]
+
+  const senderKey = message.from.email || "unknown"
+  const contentHash = simpleHash(message.visibleBody)
+
+  return `${senderKey}-${timeStr}-${contentHash}`
 }
 
 interface MessageDebugProbeProps {
-  message: NormalizedMessage;
-  className?: string;
+  message: NormalizedMessage
+  className?: string
 }
 
 export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps) => {
   // Only render if UI probe is enabled
-  const isProbeMode = import.meta.env.VITE_UI_PROBE === '1';
-  
+  const isProbeMode = import.meta.env.VITE_UI_PROBE === "1"
+
   if (!isProbeMode) {
-    return null;
+    return null
   }
-  
-  const visibleHash = simpleHash(message.visibleBody);
-  const fullHash = simpleHash(message.originalMessage?.content || '');
-  
+
+  const visibleHash = simpleHash(message.visibleBody)
+  const fullHash = simpleHash(message.originalMessage?.content || "")
+
   return (
-    <div className={cn(
-      "mt-2 p-2 bg-muted/50 rounded text-xs font-mono text-muted-foreground border-l-2 border-orange-500",
-      className
-    )}>
+    <div
+      className={cn(
+        "mt-2 p-2 bg-muted/50 rounded text-xs font-mono text-muted-foreground border-l-2 border-orange-500",
+        className,
+      )}
+    >
       <div className="flex flex-wrap gap-1 items-center">
         <Badge variant="outline" className="text-xs">
           ID: {message.id.slice(-8)}
@@ -57,14 +60,17 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
         <Badge variant="outline" className="text-xs">
           {message.direction}
         </Badge>
-        <Badge variant={message.authorType === 'agent' ? 'default' : 'secondary'} className="text-xs">
+        <Badge
+          variant={message.authorType === "agent" ? "default" : "secondary"}
+          className="text-xs"
+        >
           {message.authorType}
         </Badge>
         <Badge variant="outline" className="text-xs">
           {message.channel}
         </Badge>
       </div>
-      
+
       <div className="mt-1 space-y-1">
         <div>
           <span className="text-orange-600">Author:</span> {message.authorLabel}
@@ -73,18 +79,18 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
           <span className="text-orange-600">From:</span> {JSON.stringify(message.from)}
         </div>
         <div>
-          <span className="text-orange-600">Time:</span> {
-            typeof message.createdAt === 'string' 
-              ? new Date(message.createdAt).toLocaleTimeString()
-              : new Date(message.createdAt).toLocaleTimeString()
-          }
+          <span className="text-orange-600">Time:</span>{" "}
+          {typeof message.createdAt === "string"
+            ? new Date(message.createdAt).toLocaleTimeString()
+            : new Date(message.createdAt).toLocaleTimeString()}
         </div>
         <div className="flex gap-2">
           <span>
             <span className="text-orange-600">Visible:</span> {message.visibleBody.length} chars
           </span>
           <span>
-            <span className="text-orange-600">Full:</span> {(message.originalMessage?.content || '').length} chars
+            <span className="text-orange-600">Full:</span>{" "}
+            {(message.originalMessage?.content || "").length} chars
           </span>
         </div>
         <div>
@@ -94,27 +100,34 @@ export const MessageDebugProbe = ({ message, className }: MessageDebugProbeProps
           <span className="text-orange-600">Dedup Key:</span> {message.dedupKey.substring(0, 20)}
         </div>
         <div>
-          <span className="text-orange-600">Headers:</span> {
-            message.originalMessage?.email_headers 
-              ? Object.keys(message.originalMessage.email_headers).join(', ').substring(0, 50) + '...'
-              : 'none'
-          }
+          <span className="text-orange-600">Headers:</span>{" "}
+          {message.originalMessage?.email_headers
+            ? `${Object.keys(message.originalMessage.email_headers).join(", ").substring(0, 50)}...`
+            : "none"}
         </div>
         <div>
-          <span className="text-orange-600">Detected From:</span> {message.authorLabel} — Raw: {(message.originalMessage?.email_headers?.From || message.originalMessage?.email_headers?.from || message.originalMessage?.sender_email || message.originalMessage?.from || 'n/a')}
+          <span className="text-orange-600">Detected From:</span> {message.authorLabel} — Raw:{" "}
+          {message.originalMessage?.email_headers?.From ||
+            message.originalMessage?.email_headers?.from ||
+            message.originalMessage?.sender_email ||
+            message.originalMessage?.from ||
+            "n/a"}
         </div>
         <div>
-          <span className="text-orange-600">Real From:</span> {message.from.email} ({message.from.name || 'no name'})
+          <span className="text-orange-600">Real From:</span> {message.from.email} (
+          {message.from.name || "no name"})
         </div>
         <div>
-          <span className="text-orange-600">Author Type:</span> {message.authorType} | {message.authorLabel}
+          <span className="text-orange-600">Author Type:</span> {message.authorType} |{" "}
+          {message.authorLabel}
         </div>
         {message.quotedBlocks && message.quotedBlocks.length > 0 && (
           <div>
-            <span className="text-orange-600">Quoted:</span> {message.quotedBlocks.length} blocks ({message.quotedBlocks.map(b => b.kind).join(', ')})
+            <span className="text-orange-600">Quoted:</span> {message.quotedBlocks.length} blocks (
+            {message.quotedBlocks.map((b) => b.kind).join(", ")})
           </div>
         )}
       </div>
     </div>
-  );
-};
+  )
+}

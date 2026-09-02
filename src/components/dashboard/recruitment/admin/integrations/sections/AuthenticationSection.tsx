@@ -1,5 +1,5 @@
-import { ComingSoonCard } from '../cards/ComingSoonCard';
-import { KeyRound, Shield } from 'lucide-react';
+import { KeyRound, Shield } from "lucide-react"
+import { ComingSoonCard } from "../cards/ComingSoonCard"
 
 export function AuthenticationSection() {
   return (
@@ -8,9 +8,7 @@ export function AuthenticationSection() {
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Autentisering
         </h3>
-        <p className="text-xs text-muted-foreground">
-          Single Sign-On og identitetsleverandører.
-        </p>
+        <p className="text-xs text-muted-foreground">Single Sign-On og identitetsleverandører.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <ComingSoonCard
@@ -25,5 +23,5 @@ export function AuthenticationSection() {
         />
       </div>
     </section>
-  );
+  )
 }

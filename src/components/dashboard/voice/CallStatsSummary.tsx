@@ -1,46 +1,46 @@
-import React from 'react';
-import { Phone, PhoneCall, PhoneOff, PhoneMissed } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Phone, PhoneCall, PhoneMissed, PhoneOff } from "lucide-react"
+import type React from "react"
+import { Card, CardContent } from "@/components/ui/card"
 
 interface CallStatsSummaryProps {
-  callsByStatus: Record<string, number>;
-  activeCalls: number;
+  callsByStatus: Record<string, number>
+  activeCalls: number
 }
 
-export const CallStatsSummary: React.FC<CallStatsSummaryProps> = ({ 
-  callsByStatus, 
-  activeCalls 
+export const CallStatsSummary: React.FC<CallStatsSummaryProps> = ({
+  callsByStatus,
+  activeCalls,
 }) => {
   const stats = [
     {
-      title: 'Active Calls',
+      title: "Active Calls",
       value: activeCalls,
       icon: PhoneCall,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      color: "text-green-600",
+      bgColor: "bg-green-100",
     },
     {
-      title: 'Missed Calls',
+      title: "Missed Calls",
       value: callsByStatus.missed || 0,
       icon: PhoneMissed,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100'
+      color: "text-red-600",
+      bgColor: "bg-red-100",
     },
     {
-      title: 'Completed',
+      title: "Completed",
       value: callsByStatus.completed || 0,
       icon: PhoneOff,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100'
+      color: "text-gray-600",
+      bgColor: "bg-gray-100",
     },
     {
-      title: 'Total Today',
+      title: "Total Today",
       value: Object.values(callsByStatus).reduce((a, b) => a + b, 0),
       icon: Phone,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
-    }
-  ];
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+  ]
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -60,5 +60,5 @@ export const CallStatsSummary: React.FC<CallStatsSummaryProps> = ({
         </Card>
       ))}
     </div>
-  );
-};
+  )
+}

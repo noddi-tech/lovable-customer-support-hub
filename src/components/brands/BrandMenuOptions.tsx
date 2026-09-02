@@ -1,25 +1,25 @@
-import React from 'react';
-import { Ban, Check } from 'lucide-react';
-import { useNoddiBrands } from '@/hooks/useNoddiBrands';
+import { Ban, Check } from "lucide-react"
+import type React from "react"
 import {
-  useBrandSearch,
-  BrandSearchInput,
   BrandOptionContent,
-} from '@/components/dashboard/conversation-list/BrandSearch';
+  BrandSearchInput,
+  useBrandSearch,
+} from "@/components/dashboard/conversation-list/BrandSearch"
+import { useNoddiBrands } from "@/hooks/useNoddiBrands"
 
 interface MenuItemProps {
-  className?: string;
-  onSelect?: (event: Event) => void;
-  children?: React.ReactNode;
+  className?: string
+  onSelect?: (event: Event) => void
+  children?: React.ReactNode
 }
 
 interface BrandMenuOptionsProps {
   /** Current brand label stored on the entity metadata, used for the checkmark. */
-  currentLabel?: string | null;
-  onSelect: (brandName: string | null) => void;
+  currentLabel?: string | null
+  onSelect: (brandName: string | null) => void
   /** Menu primitives so the same list works inside dropdown and context menus. */
-  Item: React.ComponentType<MenuItemProps>;
-  Separator: React.ComponentType<Record<string, unknown>>;
+  Item: React.ComponentType<MenuItemProps>
+  Separator: React.ComponentType<Record<string, unknown>>
 }
 
 /**
@@ -33,9 +33,9 @@ export const BrandMenuOptions: React.FC<BrandMenuOptionsProps> = ({
   Item,
   Separator,
 }) => {
-  const { brands, findBrand } = useNoddiBrands();
-  const { search, setSearch, filtered } = useBrandSearch(brands);
-  const currentSlug = findBrand(currentLabel)?.slug ?? null;
+  const { brands, findBrand } = useNoddiBrands()
+  const { search, setSearch, filtered } = useBrandSearch(brands)
+  const currentSlug = findBrand(currentLabel)?.slug ?? null
 
   return (
     <>
@@ -55,5 +55,5 @@ export const BrandMenuOptions: React.FC<BrandMenuOptionsProps> = ({
         Clear brand
       </Item>
     </>
-  );
-};
+  )
+}

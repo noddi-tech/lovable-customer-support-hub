@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,18 +8,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { SOURCE_OPTIONS } from './schema';
+} from "@/components/ui/alert-dialog"
+import { SOURCE_OPTIONS } from "./schema"
 
-const labelFor = (v: string) => SOURCE_OPTIONS.find((o) => o.value === v)?.label ?? v;
+const labelFor = (v: string) => SOURCE_OPTIONS.find((o) => o.value === v)?.label ?? v
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  fromValue: string;
-  toValue: string;
-  onConfirm: () => void;
-  isPending?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  fromValue: string
+  toValue: string
+  onConfirm: () => void
+  isPending?: boolean
 }
 
 const SourceChangeWarningDialog: React.FC<Props> = ({
@@ -36,9 +36,8 @@ const SourceChangeWarningDialog: React.FC<Props> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Endre kilde for søker?</AlertDialogTitle>
           <AlertDialogDescription>
-            Endring av kilde påvirker analytikk i Revisjon → Analyse (Kilde-ROI).
-            Endringen logges i revisjonsloggen. Endre fra «{labelFor(fromValue)}» til
-            «{labelFor(toValue)}»?
+            Endring av kilde påvirker analytikk i Revisjon → Analyse (Kilde-ROI). Endringen logges i
+            revisjonsloggen. Endre fra «{labelFor(fromValue)}» til «{labelFor(toValue)}»?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -46,8 +45,8 @@ const SourceChangeWarningDialog: React.FC<Props> = ({
           <AlertDialogAction
             disabled={isPending}
             onClick={(e) => {
-              e.preventDefault();
-              onConfirm();
+              e.preventDefault()
+              onConfirm()
             }}
           >
             Endre kilde
@@ -55,7 +54,7 @@ const SourceChangeWarningDialog: React.FC<Props> = ({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
-};
+  )
+}
 
-export default SourceChangeWarningDialog;
+export default SourceChangeWarningDialog

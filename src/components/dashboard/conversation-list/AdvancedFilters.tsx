@@ -1,74 +1,78 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { CalendarIcon, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import type { PriorityFilter, AdvancedFilters } from '@/types/interactions';
+import { format } from "date-fns"
+import { CalendarIcon, X } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import type { AdvancedFilters, PriorityFilter } from "@/types/interactions"
 
 interface AdvancedFiltersProps {
-  filters: AdvancedFilters;
-  onFiltersChange: (filters: AdvancedFilters) => void;
-  agents: Array<{ id: string; name: string }>;
+  filters: AdvancedFilters
+  onFiltersChange: (filters: AdvancedFilters) => void
+  agents: Array<{ id: string; name: string }>
 }
 
 export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFiltersProps) {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(
-    filters.dateFrom ? new Date(filters.dateFrom) : undefined
-  );
+    filters.dateFrom ? new Date(filters.dateFrom) : undefined,
+  )
   const [dateTo, setDateTo] = useState<Date | undefined>(
-    filters.dateTo ? new Date(filters.dateTo) : undefined
-  );
+    filters.dateTo ? new Date(filters.dateTo) : undefined,
+  )
 
   const handlePriorityChange = (priority: string) => {
     onFiltersChange({
       ...filters,
-      priority: priority === 'all' ? undefined : (priority as PriorityFilter),
-    });
-  };
+      priority: priority === "all" ? undefined : (priority as PriorityFilter),
+    })
+  }
 
   const handleAssigneeChange = (assigneeId: string) => {
     onFiltersChange({
       ...filters,
-      assigneeId: assigneeId === 'all' ? undefined : assigneeId,
-    });
-  };
+      assigneeId: assigneeId === "all" ? undefined : assigneeId,
+    })
+  }
 
   const handleDateFromChange = (date: Date | undefined) => {
-    setDateFrom(date);
+    setDateFrom(date)
     onFiltersChange({
       ...filters,
       dateFrom: date ? date.toISOString() : undefined,
-    });
-  };
+    })
+  }
 
   const handleDateToChange = (date: Date | undefined) => {
-    setDateTo(date);
+    setDateTo(date)
     onFiltersChange({
       ...filters,
       dateTo: date ? date.toISOString() : undefined,
-    });
-  };
+    })
+  }
 
   const clearAllFilters = () => {
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    onFiltersChange({});
-  };
+    setDateFrom(undefined)
+    setDateTo(undefined)
+    onFiltersChange({})
+  }
 
-  const hasActiveFilters = filters.priority || filters.assigneeId || filters.dateFrom || filters.dateTo;
+  const hasActiveFilters =
+    filters.priority || filters.assigneeId || filters.dateFrom || filters.dateTo
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-4 border-b bg-muted/30">
       <div className="flex items-center gap-2">
         <Label className="text-sm font-medium">Priority:</Label>
-        <Select
-          value={filters.priority || 'all'}
-          onValueChange={handlePriorityChange}
-        >
+        <Select value={filters.priority || "all"} onValueChange={handlePriorityChange}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -84,10 +88,7 @@ export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFi
 
       <div className="flex items-center gap-2">
         <Label className="text-sm font-medium">Assignee:</Label>
-        <Select
-          value={filters.assigneeId || 'all'}
-          onValueChange={handleAssigneeChange}
-        >
+        <Select value={filters.assigneeId || "all"} onValueChange={handleAssigneeChange}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -109,12 +110,12 @@ export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFi
             <Button
               variant="outline"
               className={cn(
-                'w-36 justify-start text-left font-normal',
-                !dateFrom && 'text-muted-foreground'
+                "w-36 justify-start text-left font-normal",
+                !dateFrom && "text-muted-foreground",
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateFrom ? format(dateFrom, 'PP') : 'Pick date'}
+              {dateFrom ? format(dateFrom, "PP") : "Pick date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
@@ -135,36 +136,26 @@ export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFi
             <Button
               variant="outline"
               className={cn(
-                'w-36 justify-start text-left font-normal',
-                !dateTo && 'text-muted-foreground'
+                "w-36 justify-start text-left font-normal",
+                !dateTo && "text-muted-foreground",
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateTo ? format(dateTo, 'PP') : 'Pick date'}
+              {dateTo ? format(dateTo, "PP") : "Pick date"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={dateTo}
-              onSelect={handleDateToChange}
-              initialFocus
-            />
+            <Calendar mode="single" selected={dateTo} onSelect={handleDateToChange} initialFocus />
           </PopoverContent>
         </Popover>
       </div>
 
       {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearAllFilters}
-          className="ml-auto"
-        >
+        <Button variant="ghost" size="sm" onClick={clearAllFilters} className="ml-auto">
           <X className="h-4 w-4 mr-1" />
           Clear Filters
         </Button>
       )}
     </div>
-  );
+  )
 }

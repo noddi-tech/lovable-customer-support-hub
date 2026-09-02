@@ -1,50 +1,45 @@
-import React, { useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { ResponsiveContainer, ResponsiveGrid, ResponsiveTabs, ResponsiveTabsList, ResponsiveTabsTrigger, ResponsiveTabsContent, LayoutItem, AdaptiveSection } from '@/components/admin/design/components/layouts';
-import { UserManagement } from './UserManagement';
-import { DepartmentManagement } from './DepartmentManagement';
-import { MessagingSettings } from './MessagingSettings';
-import { GeneralSettings } from './GeneralSettings';
-import { DesignLibrary } from './DesignLibrary';
-import { ComponentConfigurationPanel } from './ComponentConfigurationPanel';
-import { AircallSettings } from './AircallSettings';
-import { SendgridSetupWizard } from './SendgridSetupWizard';
-import { GoogleGroupSetup } from './GoogleGroupSetup';
-import { EmailAccountConnection } from '@/components/dashboard/EmailAccountConnection';
-import { EmailTemplateSettings } from '@/components/settings/EmailTemplateSettings';
-import { VoiceIntegrationsList } from './VoiceIntegrationsList';
-import { InboundRoutesList } from './InboundRoutesList';
-import { InboxManagement } from './InboxManagement';
-import { InboxSettingsPage } from './InboxSettingsPage';
-import { SystemHealthPage } from './SystemHealthPage';
-import { HelpScoutImport } from './HelpScoutImport';
-import { EmailIntegrationWizard } from './EmailIntegrationWizard';
-import { IntegrationSettings } from './IntegrationSettings';
-import { AdminDashboard } from './AdminDashboard';
-import { FeatureFlagsSettings } from './FeatureFlagsSettings';
-import { EdgeFunctionsOverview } from './EdgeFunctionsOverview';
-import { WidgetSettings } from './widget';
-import { AiChatbotSettings as AiChatbotSettingsContent } from './AiChatbotSettings';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
-import { useTranslation } from 'react-i18next';
-import { Mail, Phone, Shield, Plus, Inbox } from 'lucide-react';
+import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { Link, useLocation } from "react-router-dom"
+import {
+  LayoutItem,
+  ResponsiveGrid,
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/admin/design/components/layouts"
+import { EmailTemplateSettings } from "@/components/settings/EmailTemplateSettings"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AdminDashboard } from "./AdminDashboard"
+import { AiChatbotSettings as AiChatbotSettingsContent } from "./AiChatbotSettings"
+import { ComponentConfigurationPanel } from "./ComponentConfigurationPanel"
+import { DepartmentManagement } from "./DepartmentManagement"
+import { DesignLibrary } from "./DesignLibrary"
+import { EdgeFunctionsOverview } from "./EdgeFunctionsOverview"
+import { FeatureFlagsSettings } from "./FeatureFlagsSettings"
+import { GeneralSettings } from "./GeneralSettings"
+import { InboxManagement } from "./InboxManagement"
+import { InboxSettingsPage } from "./InboxSettingsPage"
+import { IntegrationSettings } from "./IntegrationSettings"
+import { SystemHealthPage } from "./SystemHealthPage"
+import { UserManagement } from "./UserManagement"
+import { WidgetSettings } from "./widget"
 
 export const AdminPortal = () => {
-  const { t } = useTranslation();
-  const location = useLocation();
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  
+  const { t } = useTranslation()
+  const location = useLocation()
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
+
   // Extract the admin path to determine which content to show
-  const pathParts = location.pathname.split('/').filter(Boolean);
-  const adminPath = pathParts.length > 1 ? pathParts[1] : '';
+  const pathParts = location.pathname.split("/").filter(Boolean)
+  const adminPath = pathParts.length > 1 ? pathParts[1] : ""
 
   const renderContent = () => {
     switch (adminPath) {
-      case 'users':
+      case "users":
         return (
-          <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6" className="h-full">
+          <ResponsiveGrid cols={{ sm: "1", lg: "2" }} gap="6" className="h-full">
             <LayoutItem className="lg:col-span-2">
               <ResponsiveTabs defaultValue="user-list" variant="pills" size="md" equalWidth>
                 <ResponsiveTabsList className="w-full">
@@ -60,24 +55,24 @@ export const AdminPortal = () => {
               </ResponsiveTabs>
             </LayoutItem>
           </ResponsiveGrid>
-        );
+        )
 
-      case 'inboxes':
-        return pathParts[2] ? <InboxSettingsPage inboxId={pathParts[2]} /> : <InboxManagement />;
+      case "inboxes":
+        return pathParts[2] ? <InboxSettingsPage inboxId={pathParts[2]} /> : <InboxManagement />
 
-      case 'integrations':
-        return <IntegrationSettings />;
+      case "integrations":
+        return <IntegrationSettings />
 
-      case 'feature-flags':
-        return <FeatureFlagsSettings />;
+      case "feature-flags":
+        return <FeatureFlagsSettings />
 
-      case 'health':
-        return <SystemHealthPage />;
+      case "health":
+        return <SystemHealthPage />
 
-      case 'edge-functions':
-        return <EdgeFunctionsOverview />;
+      case "edge-functions":
+        return <EdgeFunctionsOverview />
 
-      case 'voice':
+      case "voice":
         // Redirect to integrations tab
         return (
           <Card className="bg-gradient-surface border-border/50 shadow-surface">
@@ -89,22 +84,25 @@ export const AdminPortal = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                All voice and phone configurations have been consolidated under the new Integrations & Routing section.
+                All voice and phone configurations have been consolidated under the new Integrations
+                & Routing section.
               </p>
               <Link to="/admin/integrations" className="text-primary hover:underline">
                 Go to Integrations & Routing →
               </Link>
             </CardContent>
           </Card>
-        );
+        )
 
-      case 'design':
+      case "design":
         return (
-          <ResponsiveGrid cols={{ sm: '1', md: '2', lg: '4' }} gap="6">
+          <ResponsiveGrid cols={{ sm: "1", md: "2", lg: "4" }} gap="6">
             <LayoutItem className="md:col-span-2 lg:col-span-4">
               <ResponsiveTabs defaultValue="email-branding" variant="pills" size="md" equalWidth>
                 <ResponsiveTabsList className="w-full">
-                  <ResponsiveTabsTrigger value="email-branding">Email Signature & Branding</ResponsiveTabsTrigger>
+                  <ResponsiveTabsTrigger value="email-branding">
+                    Email Signature & Branding
+                  </ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="library">Design Library</ResponsiveTabsTrigger>
                   <ResponsiveTabsTrigger value="components">Components</ResponsiveTabsTrigger>
                 </ResponsiveTabsList>
@@ -120,25 +118,21 @@ export const AdminPortal = () => {
               </ResponsiveTabs>
             </LayoutItem>
           </ResponsiveGrid>
-        );
+        )
 
-      case 'general':
-        return <GeneralSettings />;
+      case "general":
+        return <GeneralSettings />
 
-      case 'widget':
-        return <WidgetSettings />;
+      case "widget":
+        return <WidgetSettings />
 
-      case 'ai-chatbot':
-        return <AiChatbotSettingsContent />;
-        
+      case "ai-chatbot":
+        return <AiChatbotSettingsContent />
+
       default:
-        return <AdminDashboard />;
+        return <AdminDashboard />
     }
-  };
+  }
 
-  return (
-    <div className="h-full px-4 md:px-6 lg:px-8 py-6">
-      {renderContent()}
-    </div>
-  );
-};
+  return <div className="h-full px-4 md:px-6 lg:px-8 py-6">{renderContent()}</div>
+}

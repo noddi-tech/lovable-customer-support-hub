@@ -1,25 +1,25 @@
-import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
-import { useSessionSync } from '@/hooks/useSessionSync';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, RefreshCw } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { useSessionSync } from "@/hooks/useSessionSync"
 
 interface SessionSyncButtonProps {
-  onSyncSuccess?: () => void;
-  showAlert?: boolean;
+  onSyncSuccess?: () => void
+  showAlert?: boolean
 }
 
 export function SessionSyncButton({ onSyncSuccess, showAlert = true }: SessionSyncButtonProps) {
-  const { isSyncing, forceSessionSync, hasSession, canSync, syncAttempts } = useSessionSync();
+  const { isSyncing, forceSessionSync, hasSession, canSync, syncAttempts } = useSessionSync()
 
   const handleSync = async () => {
-    const success = await forceSessionSync();
+    const success = await forceSessionSync()
     if (success && onSyncSuccess) {
-      onSyncSuccess();
+      onSyncSuccess()
     }
-  };
+  }
 
   if (!showAlert && hasSession) {
-    return null;
+    return null
   }
 
   return (
@@ -32,20 +32,22 @@ export function SessionSyncButton({ onSyncSuccess, showAlert = true }: SessionSy
           </AlertDescription>
         </Alert>
       )}
-      
+
       {canSync && (
-        <Button 
+        <Button
           onClick={handleSync}
           disabled={isSyncing}
           variant="outline"
           size="sm"
           className="w-full"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Syncing Session...' : `Sync Session${syncAttempts > 0 ? ` (${syncAttempts})` : ''}`}
+          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+          {isSyncing
+            ? "Syncing Session..."
+            : `Sync Session${syncAttempts > 0 ? ` (${syncAttempts})` : ""}`}
         </Button>
       )}
-      
+
       {!canSync && syncAttempts >= 3 && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -55,5 +57,5 @@ export function SessionSyncButton({ onSyncSuccess, showAlert = true }: SessionSy
         </Alert>
       )}
     </div>
-  );
+  )
 }

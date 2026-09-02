@@ -1,68 +1,68 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 
 export interface NotificationPreferences {
-  id: string;
-  user_id: string;
-  organization_id: string;
+  id: string
+  user_id: string
+  organization_id: string
   // Conversation/Email notifications
-  email_on_conversation_assigned: boolean;
-  email_on_new_email: boolean;
-  email_on_customer_reply: boolean;
-  app_on_conversation_assigned: boolean;
-  app_on_new_email: boolean;
-  app_on_customer_reply: boolean;
+  email_on_conversation_assigned: boolean
+  email_on_new_email: boolean
+  email_on_customer_reply: boolean
+  app_on_conversation_assigned: boolean
+  app_on_new_email: boolean
+  app_on_customer_reply: boolean
   // Call notifications
-  email_on_missed_call: boolean;
-  email_on_voicemail: boolean;
-  app_on_incoming_call: boolean;
-  app_on_missed_call: boolean;
-  app_on_voicemail: boolean;
+  email_on_missed_call: boolean
+  email_on_voicemail: boolean
+  app_on_incoming_call: boolean
+  app_on_missed_call: boolean
+  app_on_voicemail: boolean
   // Mention notifications
-  email_on_mention: boolean;
-  app_on_mention: boolean;
+  email_on_mention: boolean
+  app_on_mention: boolean
   // Ticket notifications (legacy)
-  email_on_ticket_assigned: boolean;
-  email_on_ticket_updated: boolean;
-  email_on_ticket_commented: boolean;
-  email_on_sla_breach: boolean;
-  app_on_ticket_assigned: boolean;
-  app_on_ticket_updated: boolean;
-  app_on_ticket_commented: boolean;
-  app_on_sla_breach: boolean;
+  email_on_ticket_assigned: boolean
+  email_on_ticket_updated: boolean
+  email_on_ticket_commented: boolean
+  email_on_sla_breach: boolean
+  app_on_ticket_assigned: boolean
+  app_on_ticket_updated: boolean
+  app_on_ticket_commented: boolean
+  app_on_sla_breach: boolean
   // Desktop (browser) notifications
-  desktop_enabled: boolean;
-  desktop_on_new_email: boolean;
-  desktop_on_chat_message: boolean;
+  desktop_enabled: boolean
+  desktop_on_new_email: boolean
+  desktop_on_chat_message: boolean
   // Digest settings
-  daily_digest_enabled: boolean;
-  weekly_digest_enabled: boolean;
+  daily_digest_enabled: boolean
+  weekly_digest_enabled: boolean
 }
 
 export function useNotificationPreferences() {
-  const { user, profile } = useAuth();
-  const queryClient = useQueryClient();
+  const { user, profile } = useAuth()
+  const queryClient = useQueryClient()
 
   const { data: preferences, isLoading } = useQuery({
-    queryKey: ['notification-preferences', user?.id],
+    queryKey: ["notification-preferences", user?.id],
     queryFn: async () => {
-      if (!user?.id || !profile?.organization_id) return null;
+      if (!user?.id || !profile?.organization_id) return null
 
       const { data, error } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('organization_id', profile.organization_id)
-        .maybeSingle();
+        .from("notification_preferences")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("organization_id", profile.organization_id)
+        .maybeSingle()
 
-      if (error) throw error;
+      if (error) throw error
 
       // If no preferences exist, create defaults
       if (!data) {
         const { data: newPrefs, error: createError } = await supabase
-          .from('notification_preferences')
+          .from("notification_preferences")
           .insert({
             user_id: user.id,
             organization_id: profile.organization_id,
@@ -100,51 +100,51 @@ export function useNotificationPreferences() {
             weekly_digest_enabled: true,
           })
           .select()
-          .single();
+          .single()
 
-        if (createError) throw createError;
-        return newPrefs as NotificationPreferences;
+        if (createError) throw createError
+        return newPrefs as NotificationPreferences
       }
 
-      return data as NotificationPreferences;
+      return data as NotificationPreferences
     },
     enabled: !!user?.id && !!profile?.organization_id,
-  });
+  })
 
   const updatePreferences = useMutation({
     mutationFn: async (updates: Partial<NotificationPreferences>) => {
-      if (!preferences?.id) throw new Error('No preferences found');
+      if (!preferences?.id) throw new Error("No preferences found")
 
       const { data, error } = await supabase
-        .from('notification_preferences')
+        .from("notification_preferences")
         .update(updates)
-        .eq('id', preferences.id)
+        .eq("id", preferences.id)
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
-      return data;
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-preferences', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["notification-preferences", user?.id] })
       toast({
-        title: 'Preferences saved',
-        description: 'Your notification preferences have been updated.',
-      });
+        title: "Preferences saved",
+        description: "Your notification preferences have been updated.",
+      })
     },
     onError: () => {
       toast({
-        title: 'Error',
-        description: 'Failed to save preferences. Please try again.',
-        variant: 'destructive',
-      });
+        title: "Error",
+        description: "Failed to save preferences. Please try again.",
+        variant: "destructive",
+      })
     },
-  });
+  })
 
   return {
     preferences,
     isLoading,
     updatePreferences: updatePreferences.mutate,
     isUpdating: updatePreferences.isPending,
-  };
+  }
 }

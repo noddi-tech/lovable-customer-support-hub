@@ -1,48 +1,59 @@
-import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Pencil, Plus, Star, Trash2 } from "lucide-react"
+import { useState } from "react"
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
-  useScoringBaselines,
-  useDeleteScoringBaseline,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   type ScoringBaseline,
-} from '@/hooks/recruitment/useScoringBaselines';
-import { ScoringBaselineDialog } from './ScoringBaselineDialog';
+  useDeleteScoringBaseline,
+  useScoringBaselines,
+} from "@/hooks/recruitment/useScoringBaselines"
+import { useToast } from "@/hooks/use-toast"
+import { ScoringBaselineDialog } from "./ScoringBaselineDialog"
 
 export function ScoringBaselinesTab() {
-  const { data, isLoading } = useScoringBaselines();
-  const del = useDeleteScoringBaseline();
-  const { toast } = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<ScoringBaseline | null>(null);
+  const { data, isLoading } = useScoringBaselines()
+  const del = useDeleteScoringBaseline()
+  const { toast } = useToast()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<ScoringBaseline | null>(null)
 
   const openNew = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
+    setEditing(null)
+    setDialogOpen(true)
+  }
   const openEdit = (b: ScoringBaseline) => {
-    setEditing(b);
-    setDialogOpen(true);
-  };
+    setEditing(b)
+    setDialogOpen(true)
+  }
   const handleDelete = async (id: string) => {
     try {
-      await del.mutateAsync(id);
-      toast({ title: 'Baseline fjernet' });
+      await del.mutateAsync(id)
+      toast({ title: "Baseline fjernet" })
     } catch (e: any) {
-      toast({ title: 'Sletting feilet', description: e?.message, variant: 'destructive' });
+      toast({ title: "Sletting feilet", description: e?.message, variant: "destructive" })
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -82,8 +93,8 @@ export function ScoringBaselinesTab() {
                 </TableHeader>
                 <TableBody>
                   {(data ?? []).map((b) => {
-                    const criteria = b.rubric?.criteria ?? [];
-                    const total = criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0);
+                    const criteria = b.rubric?.criteria ?? []
+                    const total = criteria.reduce((a, c) => a + (Number(c.weight) || 0), 0)
                     return (
                       <TableRow key={b.id}>
                         <TableCell className="font-medium">
@@ -98,12 +109,10 @@ export function ScoringBaselinesTab() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {criteria.length === 0
-                            ? '—'
-                            : criteria.map((c) => c.name).join(', ')}
+                          {criteria.length === 0 ? "—" : criteria.map((c) => c.name).join(", ")}
                         </TableCell>
                         <TableCell className="text-xs">
-                          <Badge variant={total === 100 ? 'secondary' : 'destructive'}>
+                          <Badge variant={total === 100 ? "secondary" : "destructive"}>
                             Sum {total}/100
                           </Badge>
                         </TableCell>
@@ -143,7 +152,7 @@ export function ScoringBaselinesTab() {
                           </AlertDialog>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })}
                 </TableBody>
               </Table>
@@ -152,11 +161,7 @@ export function ScoringBaselinesTab() {
         </CardContent>
       </Card>
 
-      <ScoringBaselineDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        baseline={editing}
-      />
+      <ScoringBaselineDialog open={dialogOpen} onOpenChange={setDialogOpen} baseline={editing} />
     </div>
-  );
+  )
 }
