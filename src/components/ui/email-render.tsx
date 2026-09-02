@@ -753,7 +753,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
               {content}
             </pre>
           </CollapsibleSection>
-          <OriginalEmailDialog content={content} isHTML={isHTML} />
+          <OriginalEmailDialog content={content} isHTML={isHTML} attachments={attachments} />
         </div>
       )}
 
