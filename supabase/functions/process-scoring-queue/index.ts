@@ -3,7 +3,7 @@ import { type ScoringInput, type ScoringRubric, scoreApplicant } from "../_share
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-app-version, x-supabase-api-version",
 }
 
 const BATCH_SIZE = 3 // small to avoid edge runtime walltime risk for slow gpt-5 calls
