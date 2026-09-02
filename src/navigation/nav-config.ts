@@ -18,7 +18,8 @@ import {
   FileLock2,
   Timer,
   UserRound,
-  FunctionSquare
+  FunctionSquare,
+  BookOpen
 } from "lucide-react";
 
 export type NavItem = {
