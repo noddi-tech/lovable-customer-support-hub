@@ -17,7 +17,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-slack-signature, x-slack-request-timestamp",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-supabase-api-version, x-app-version, x-requested-with, accept, accept-profile, content-profile, prefer, range, x-region, x-slack-signature, x-slack-request-timestamp",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 }
 
 const POSITIVE_REACTIONS = new Set(["+1", "thumbsup", "thumbsup_all"])
