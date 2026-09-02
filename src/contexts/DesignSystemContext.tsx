@@ -135,26 +135,27 @@ interface DesignSystem {
 // Default design system values
 const defaultDesignSystem: DesignSystem = {
   colors: {
-    primary: '252 75% 60%', // Brand purple #6656D9 in HSL
-    primaryForeground: '0 0% 100%', // Pure white in HSL
-    secondary: '220 14% 96%', // Muted #F1F3F7 in HSL
-    secondaryForeground: '215 25% 27%', // Dark gray in HSL
-    accent: '252 75% 98%', // Very light purple in HSL
-    accentForeground: '252 75% 60%', // Brand purple in HSL
-    background: '0 0% 100%', // Pure white #FFFFFF
-    foreground: '224 71% 4%', // Keep existing HSL
-    muted: '220 14% 96%', // #F1F3F7 in HSL
-    mutedForeground: '215 16% 47%', // Medium gray in HSL
-    card: '0 0% 100%', // Pure white #FFFFFF in HSL
-    cardForeground: '224 71% 4%', // Keep existing HSL
-    border: '220 13% 91%', // #E6E8EE in HSL
-    ring: '252 75% 60%', // Brand purple #6656D9 in HSL
-    success: '142 76% 36%', // Green in HSL
-    successForeground: '0 0% 100%', // White in HSL
-    warning: '32 95% 44%', // Orange in HSL
-    warningForeground: '0 0% 100%', // White in HSL
-    destructive: '0 84% 60%', // Red in HSL
-    destructiveForeground: '0 0% 100%', // White in HSL
+    // Noddi design language (storybook.noddi.co) — darkPurple brand
+    primary: '268 62% 22%', // darkPurple #35155a
+    primaryForeground: '0 0% 100%',
+    secondary: '255 29% 97%', // darkPurpleGrey #f7f6fa
+    secondaryForeground: '268 62% 22%',
+    accent: '264 45% 96%', // purpleBg #f3eff9
+    accentForeground: '268 62% 22%',
+    background: '0 0% 100%',
+    foreground: '0 0% 4%', // #0a0a0a
+    muted: '255 29% 97%', // #f7f6fa
+    mutedForeground: '270 1% 49%', // grey #7c7b7d
+    card: '0 0% 100%',
+    cardForeground: '0 0% 4%',
+    border: '210 6% 93%', // outlineStroke #edeeef
+    ring: '268 62% 22%',
+    success: '164 76% 30%', // #128667
+    successForeground: '0 0% 100%',
+    warning: '40 99% 42%', // #d78e01
+    warningForeground: '0 0% 100%',
+    destructive: '4 79% 60%', // #ea5147
+    destructiveForeground: '0 0% 100%',
   },
   typography: {
     fontFamily: 'Inter, system-ui, sans-serif',
