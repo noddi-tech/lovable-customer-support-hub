@@ -43,7 +43,13 @@ export function initObservability(): void {
         trackOutgoingLinks: true,
         // Ship real events unless explicitly disabled (VITE_APP_OPENPANEL_STUB=1).
         stub: env.VITE_APP_OPENPANEL_STUB === "1",
-        sessionReplay: { enabled: true, sampleRate: 0.1 },
+        sessionReplay: {
+          enabled: true,
+          sampleRate: 0.1,
+          // Keep text readable in replays (inputs stay masked).
+          maskAllText: false,
+          maskAllInputs: true,
+        },
       }),
     )
   }
