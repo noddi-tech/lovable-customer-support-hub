@@ -135,26 +135,27 @@ interface DesignSystem {
 // Default design system values
 const defaultDesignSystem: DesignSystem = {
   colors: {
-    primary: '252 75% 60%', // Brand purple #6656D9 in HSL
-    primaryForeground: '0 0% 100%', // Pure white in HSL
-    secondary: '220 14% 96%', // Muted #F1F3F7 in HSL
-    secondaryForeground: '215 25% 27%', // Dark gray in HSL
-    accent: '252 75% 98%', // Very light purple in HSL
-    accentForeground: '252 75% 60%', // Brand purple in HSL
-    background: '0 0% 100%', // Pure white #FFFFFF
-    foreground: '224 71% 4%', // Keep existing HSL
-    muted: '220 14% 96%', // #F1F3F7 in HSL
-    mutedForeground: '215 16% 47%', // Medium gray in HSL
-    card: '0 0% 100%', // Pure white #FFFFFF in HSL
-    cardForeground: '224 71% 4%', // Keep existing HSL
-    border: '220 13% 91%', // #E6E8EE in HSL
-    ring: '252 75% 60%', // Brand purple #6656D9 in HSL
-    success: '142 76% 36%', // Green in HSL
-    successForeground: '0 0% 100%', // White in HSL
-    warning: '32 95% 44%', // Orange in HSL
-    warningForeground: '0 0% 100%', // White in HSL
-    destructive: '0 84% 60%', // Red in HSL
-    destructiveForeground: '0 0% 100%', // White in HSL
+    // Noddi design language (storybook.noddi.co) — darkPurple brand
+    primary: '268 62% 22%', // darkPurple #35155a
+    primaryForeground: '0 0% 100%',
+    secondary: '255 29% 97%', // darkPurpleGrey #f7f6fa
+    secondaryForeground: '268 62% 22%',
+    accent: '264 45% 96%', // purpleBg #f3eff9
+    accentForeground: '268 62% 22%',
+    background: '0 0% 100%',
+    foreground: '0 0% 4%', // #0a0a0a
+    muted: '255 29% 97%', // #f7f6fa
+    mutedForeground: '270 1% 49%', // grey #7c7b7d
+    card: '0 0% 100%',
+    cardForeground: '0 0% 4%',
+    border: '210 6% 93%', // outlineStroke #edeeef
+    ring: '268 62% 22%',
+    success: '164 76% 30%', // #128667
+    successForeground: '0 0% 100%',
+    warning: '40 99% 42%', // #d78e01
+    warningForeground: '0 0% 100%',
+    destructive: '4 79% 60%', // #ea5147
+    destructiveForeground: '0 0% 100%',
   },
   typography: {
     fontFamily: 'Inter, system-ui, sans-serif',
@@ -196,13 +197,13 @@ const defaultDesignSystem: DesignSystem = {
   },
   shadows: {
     sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-    glow: '0 0 0 3px hsl(217 91% 60% / 0.1)',
+    md: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
+    lg: '0 8px 24px -12px rgb(53 21 90 / 0.25)',
+    glow: '0 0 0 3px hsl(268 62% 22% / 0.1)',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))',
-    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%))',
+    primary: 'linear-gradient(135deg, hsl(268 62% 22%), hsl(263 44% 57%))',
+    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(255 29% 97%))',
   },
   components: {
     buttons: {
@@ -215,7 +216,7 @@ const defaultDesignSystem: DesignSystem = {
     cards: {
       defaultVariant: 'default',
       borderRadius: '0.75rem',
-      shadow: 'md',
+      shadow: 'sm',
       backgroundColor: 'card',
       borderColor: 'border',
     },
