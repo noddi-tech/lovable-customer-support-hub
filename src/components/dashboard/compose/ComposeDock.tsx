@@ -13,7 +13,7 @@ export const ComposeDock: React.FC = () => {
   if (openWindows.length === 0) return null
 
   return (
-    <div className="fixed bottom-0 right-0 z-[60] flex items-end gap-3 p-0 pr-4 pointer-events-none">
+    <div className="fixed bottom-0 right-0 z-40 flex items-end gap-3 p-0 pr-4 pointer-events-none">
       {openWindows.map((draft) => (
         <div key={draft.id} className="pointer-events-auto">
           <ComposeWindow draft={draft} />
