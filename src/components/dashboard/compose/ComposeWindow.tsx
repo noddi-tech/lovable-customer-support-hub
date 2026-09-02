@@ -265,20 +265,28 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     }
     setIsLoadingAi(true)
     try {
-      const { data, error } = await supabase.functions.invoke("ai-email-reply", {
+      const { data, error } = await supabase.functions.invoke("suggest-replies", {
         body: {
-          customerMessage: draft.subject,
-          conversationContext: `Creating new conversation about: ${draft.subject}`,
+          customerMessage: `The agent is composing a NEW outbound email to a customer. Subject: ${draft.subject}${
+            draft.body.trim() ? `\n\nDraft so far:\n${draft.body}` : ""
+          }`,
+          organizationId: orgId,
+          ...(draft.to?.trim() ? { customerIdentifier: draft.to.trim() } : {}),
         },
       })
       if (error) throw error
-      if (data?.suggestions) {
-        setAiSuggestions(data.suggestions)
-        toast.success("AI suggestions generated")
+      const suggestions: string[] = (data?.suggestions || [])
+        .map((s: any) => (typeof s === "string" ? s : s?.reply))
+        .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
+      if (suggestions.length === 0) {
+        toast.error("No AI suggestions returned — try a more descriptive subject")
+        return
       }
-    } catch (error) {
+      setAiSuggestions(suggestions)
+      toast.success("AI suggestions generated")
+    } catch (error: any) {
       console.error("Error getting AI suggestions:", error)
-      toast.error("Failed to get AI suggestions")
+      toast.error(`Failed to get AI suggestions: ${error?.message ?? "unknown error"}`)
     } finally {
       setIsLoadingAi(false)
     }
@@ -288,11 +296,11 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     if (!selectedSuggestion) return
     setIsRefining(true)
     try {
-      const { data, error } = await supabase.functions.invoke("ai-email-reply", {
+      const { data, error } = await supabase.functions.invoke("refine-suggestion", {
         body: {
-          customerMessage: draft.subject,
-          conversationContext: `Refine this message: ${selectedSuggestion}`,
+          originalSuggestion: selectedSuggestion,
           refinementInstructions: instructions,
+          customerMessage: draft.subject,
         },
       })
       if (error) throw error
