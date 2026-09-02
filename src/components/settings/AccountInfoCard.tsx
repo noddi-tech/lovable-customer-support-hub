@@ -37,6 +37,20 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
   </div>
 );
 
+const Section: React.FC<{ title: string; hint?: string; children: React.ReactNode }> = ({
+  title,
+  hint,
+  children,
+}) => (
+  <section className="space-y-2">
+    <div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+    {children}
+  </section>
+);
+
 export const AccountInfoCard: React.FC = () => {
   const {
     user,
