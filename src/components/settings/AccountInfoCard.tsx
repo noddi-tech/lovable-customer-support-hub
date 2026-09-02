@@ -17,6 +17,19 @@ const PROVIDER_LABELS: Record<ProviderKey, string> = {
   'custom:navio': 'Navio (product IdP)',
 };
 
+const PROVIDER_CAPABILITIES: Record<ProviderKey, string> = {
+  google: 'Workspace sign-in. Verifies identity and email only — no roles or organizations.',
+  'custom:navio': 'Product IdP. Supplies roles, organizations and service departments as token claims.',
+};
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  super_admin: 'Full platform access across every organization, including admin portal and system settings.',
+  admin: 'Manage users, inboxes, settings and all conversations within your organizations.',
+  agent: 'Handle conversations, calls and customers in the inboxes you have access to.',
+  user: 'Read-only or limited access to the inboxes you are a member of.',
+};
+
+
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="grid grid-cols-[140px_1fr] gap-3 py-1.5 text-sm">
     <span className="text-muted-foreground">{label}</span>
