@@ -27,6 +27,7 @@ export const SLA_AT_RISK_WINDOW_MS = 60 * 60 * 1000
  * hour, grouped per inbox — used to flag inboxes that need attention now.
  */
 export function useSlaRiskByInbox(enabled = true) {
+  const now = useMemo(() => new Date().toISOString(), [])
   const horizon = useMemo(() => new Date(Date.now() + SLA_AT_RISK_WINDOW_MS).toISOString(), [])
 
   const query = useQuery({
@@ -40,7 +41,12 @@ export function useSlaRiskByInbox(enabled = true) {
         .select("id, inbox_id, channel, subject, sla_breach_at")
         .not("sla_breach_at", "is", null)
         .lte("sla_breach_at", horizon)
-        .not("status", "in", '("closed","resolved")')
+        // Match the inbox open-count semantics (get_all_counts): only conversations
+        // that actually show as open count toward the SLA badge. Previously this used
+        // `status NOT IN (closed, resolved)` with no snooze filter, so pending or
+        // snoozed threads inflated the breach count even when open_count was 0.
+        .eq("status", "open")
+        .or(`snooze_until.is.null,snooze_until.lte.${now}`)
         // Soft-deleted / archived threads are not in the inbox list, so they
         // must not be counted as SLA breaches either.
         .is("deleted_at", null)
