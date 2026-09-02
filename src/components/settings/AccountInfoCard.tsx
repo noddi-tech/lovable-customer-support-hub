@@ -37,6 +37,20 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
   </div>
 );
 
+const Section: React.FC<{ title: string; hint?: string; children: React.ReactNode }> = ({
+  title,
+  hint,
+  children,
+}) => (
+  <section className="space-y-2">
+    <div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+    {children}
+  </section>
+);
+
 export const AccountInfoCard: React.FC = () => {
   const {
     user,
@@ -103,77 +117,60 @@ export const AccountInfoCard: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My account</CardTitle>
-        <CardDescription>Account information, sign-in method and access for this session.</CardDescription>
+        <CardTitle>Account & access</CardTitle>
+        <CardDescription>Sign-in methods and the permissions this account has in Support Hub.</CardDescription>
       </CardHeader>
-      <CardContent>
-        <section>
-          <h3 className="text-sm font-semibold mb-1">Account</h3>
-          <Row label="Name">{profile?.full_name || (user?.user_metadata as any)?.full_name || '—'}</Row>
-          <Row label="Email">{user?.email || '—'}</Row>
-          <Row label="User type">
-            <Badge variant="secondary" className="font-mono text-[11px]">{userType}</Badge>
-          </Row>
-          <Row label="User ID">
-            <span className="font-mono text-xs">{user?.id || '—'}</span>
-          </Row>
-          <Row label="Last sign-in">
-            {user?.last_sign_in_at ? dateTime(new Date(user.last_sign_in_at)) : '—'}
-          </Row>
-        </section>
+      <CardContent className="space-y-4">
+        <Section title="Session">
+          <div>
+            <Row label="User type">
+              <Badge variant="secondary" className="font-mono text-[11px]">{userType}</Badge>
+            </Row>
+            <Row label="User ID">
+              <span className="font-mono text-xs">{user?.id || '—'}</span>
+            </Row>
+            <Row label="Last sign-in">
+              {user?.last_sign_in_at ? dateTime(new Date(user.last_sign_in_at)) : '—'}
+            </Row>
+          </div>
+        </Section>
 
-        <Separator className="my-4" />
+        <Separator />
 
-        <section>
-          <h3 className="text-sm font-semibold">Sign-in (IdP)</h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            The identity providers that can authenticate this account, and what each one supplies.
-          </p>
-          {identities.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No external identity providers on this session.</p>
-          ) : (
-            <div className="space-y-2">
-              {identities.map((i) => (
-                <div key={i.id} className="rounded-md border border-border px-3 py-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {PROVIDER_LABELS[i.provider as ProviderKey] || i.provider}
-                    </span>
-                    <Badge variant="outline" className="font-mono text-[10px]">{i.provider}</Badge>
-                    {i.provider === currentProvider && <Badge className="text-[10px]">Used this session</Badge>}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground break-words">
-                    {(i.identity_data?.email as string) || user?.email || '—'}
-                    {' · '}
-                    {PROVIDER_CAPABILITIES[i.provider as ProviderKey] || 'Authentication only.'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-
-        <Separator className="my-4" />
-
-        <section>
-          <h3 className="text-sm font-semibold">Linked sign-ins</h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            Connect several sign-in methods to the same account, so both Google and Navio give access to the same user.
-          </p>
+        <Section
+          title="Sign-in methods"
+          hint="Connect several identity providers to the same account. Each one can sign you in, but only Navio supplies roles and organizations."
+        >
           <div className="space-y-2">
             {(Object.keys(PROVIDER_LABELS) as ProviderKey[]).map((provider) => {
-              const isConnected = connectedProviders.has(provider);
+              const identity = identities.find((i) => i.provider === provider);
+              const isConnected = !!identity;
               const isBusy = busyProvider === provider;
               const isOnlyIdentity = isConnected && identities.length <= 1;
               return (
                 <div
                   key={provider}
-                  className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+                  className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{PROVIDER_LABELS[provider]}</p>
-                    <p className="text-xs text-muted-foreground">{isConnected ? 'Connected' : 'Not connected'}</p>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">{PROVIDER_LABELS[provider]}</span>
+                      {isConnected ? (
+                        <Badge variant="secondary" className="text-[10px]">Connected</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">Not connected</Badge>
+                      )}
+                      {provider === currentProvider && <Badge className="text-[10px]">Used this session</Badge>}
+                    </div>
+                    <p className="break-words text-xs text-muted-foreground">
+                      {isConnected && (
+                        <>
+                          {(identity?.identity_data?.email as string) || user?.email || '—'}
+                          {' · '}
+                        </>
+                      )}
+                      {PROVIDER_CAPABILITIES[provider]}
+                    </p>
                   </div>
                   <Button
                     size="sm"
@@ -189,15 +186,14 @@ export const AccountInfoCard: React.FC = () => {
               );
             })}
           </div>
-        </section>
+        </Section>
 
-        <Separator className="my-4" />
+        <Separator />
 
-        <section>
-          <h3 className="text-sm font-semibold">Access from IdP</h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            Roles and scope delivered in the sign-in token, before Support Hub applies its own rules.
-          </p>
+        <Section
+          title="Access from IdP"
+          hint="Roles and scope delivered in the sign-in token, before Support Hub applies its own rules."
+        >
           {claimRoles.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No organization claims from external sign-in. Sign in with Navio to pull roles and departments from the IdP.
@@ -209,28 +205,24 @@ export const AccountInfoCard: React.FC = () => {
               ))}
             </div>
           )}
-        </section>
+        </Section>
 
-        <Separator className="my-4" />
+        <Separator />
 
-        <section>
-          <h3 className="text-sm font-semibold">Access in Support Hub</h3>
-          <p className="text-xs text-muted-foreground mb-2">
-            Effective permissions for this account in this product.
-          </p>
-          <div className="flex flex-wrap gap-2 mb-2">
+        <Section title="Access in Support Hub" hint="Effective permissions for this account in this product.">
+          <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="font-mono text-[11px]">{role}</Badge>
             {effectiveScope?.isSuperuser && <Badge>All organizations</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
             {ROLE_DESCRIPTIONS[role as string] || 'Access is limited to the inboxes and organizations you are a member of.'}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {accessibleOrganizations?.length ?? 0} organization(s) · {accessibleServiceDepartments?.length ?? 0} department(s) visible
             {memberships?.length ? ` via ${memberships.length} membership(s).` : '.'}
           </p>
           {(accessibleOrganizations?.length ?? 0) > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {accessibleOrganizations.slice(0, 12).map((o) => (
                 <Badge key={o.navioId ?? o.localId ?? o.name} variant="outline" className="text-[11px]">
                   {o.name}
@@ -244,7 +236,7 @@ export const AccountInfoCard: React.FC = () => {
             </div>
           )}
           {(accessibleServiceDepartments?.length ?? 0) > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {accessibleServiceDepartments.slice(0, 12).map((d) => (
                 <Badge key={d.navioId ?? d.localId ?? d.name} variant="secondary" className="text-[11px]">
                   {d.name}
@@ -257,8 +249,7 @@ export const AccountInfoCard: React.FC = () => {
               )}
             </div>
           )}
-        </section>
-
+        </Section>
       </CardContent>
     </Card>
   );
