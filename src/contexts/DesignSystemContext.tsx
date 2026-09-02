@@ -216,7 +216,7 @@ const defaultDesignSystem: DesignSystem = {
     cards: {
       defaultVariant: 'default',
       borderRadius: '0.75rem',
-      shadow: 'md',
+      shadow: 'sm',
       backgroundColor: 'card',
       borderColor: 'border',
     },
