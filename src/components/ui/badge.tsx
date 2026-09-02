@@ -3,18 +3,25 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// Noddi design language: soft pill badges — tinted surface + brand-coloured text.
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "border-transparent bg-primary-muted text-primary hover:bg-accent",
+        solid:
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary-hover",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          "border-transparent bg-destructive-muted text-destructive hover:bg-destructive-muted/80",
+        success:
+          "border-transparent bg-success-muted text-success hover:bg-success-muted/80",
+        warning:
+          "border-transparent bg-warning-muted text-warning hover:bg-warning-muted/80",
+        outline: "border-border text-foreground",
       },
     },
     defaultVariants: {

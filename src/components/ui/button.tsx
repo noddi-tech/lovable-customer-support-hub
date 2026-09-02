@@ -4,28 +4,32 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// Noddi design language (storybook.noddi.co / NoddiButton):
+// medium weight, 0.5rem radius, h-9 default, subtle hover, soft purple secondary.
 const buttonVariants = cva(
-  "inline-flex !flex-row !items-center justify-center gap-1.5 !whitespace-nowrap shrink-0 min-w-fit min-h-0 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0 leading-none",
+  "inline-flex !flex-row !items-center justify-center gap-1.5 !whitespace-nowrap shrink-0 min-w-fit min-h-0 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 leading-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 rounded-[var(--button-border-radius,0.5rem)]",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover rounded-[var(--button-border-radius,0.5rem)]",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-[var(--button-border-radius,0.5rem)]",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-[var(--button-border-radius,0.5rem)]",
+          "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground rounded-[var(--button-border-radius,0.5rem)]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-[var(--button-border-radius,0.5rem)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary-hover rounded-[var(--button-border-radius,0.5rem)]",
+        soft:
+          "bg-primary-muted text-primary hover:bg-accent rounded-[var(--button-border-radius,0.5rem)]",
         ghost: "hover:bg-accent hover:text-accent-foreground rounded-[var(--button-border-radius,0.5rem)]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        xxs: "h-7 px-3 text-[10px]",
-        xs: "h-6 px-2 text-[11px]",
-        sm: "h-7 px-2.5",
+        default: "h-9 px-4 py-2",
+        xxs: "h-7 px-3 text-[10px] [&_svg]:size-3.5",
+        xs: "h-6 px-2 text-[11px] [&_svg]:size-3.5",
+        sm: "h-8 gap-1.5 px-3 text-xs [&_svg]:size-3.5",
         lg: "h-11 px-8",
-        icon: "h-10 w-10",
+        icon: "h-9 w-9 px-0",
       },
     },
     defaultVariants: {
