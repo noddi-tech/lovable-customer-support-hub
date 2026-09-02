@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
-import { aircallPhone } from '@/lib/aircall-phone';
+import { aircallPhone } from '@/integrations/aircall';
 import { detectBrowser, getBrowserInstructions, getChromeDownloadUrl, type BrowserInfo } from '@/lib/browser-detection';
 import { getCookieEnableInstructions } from '@/lib/cookie-detection';
 

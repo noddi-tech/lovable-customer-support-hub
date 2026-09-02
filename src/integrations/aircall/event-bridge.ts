@@ -5,7 +5,7 @@
  * Handles deduplication to prevent double event processing
  */
 
-import type { AircallCall, AircallPhoneEvent } from './aircall-phone';
+import type { AircallCall, AircallPhoneEvent } from './phone';
 
 interface WebhookEvent {
   id: string;
