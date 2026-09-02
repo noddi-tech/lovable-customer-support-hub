@@ -51,3 +51,4 @@ What becomes easier, what becomes harder, what we now have to live with.
 | [0015](./0015-immutable-admin-audit-log.md) | Immutable admin audit log | Accepted |
 | [0016](./0016-uptime-first-no-speculative-refactors-on-hot-paths.md) | Uptime first: no speculative refactors on hot paths | Accepted |
 | [0017](./0017-documentation-is-rendered-inside-the-app-at--docs.md) | Documentation is rendered inside the app at /docs | Accepted |
+| [0018](./0018-api-endpoints-are-documented-with-a-generated-openapi-spec.md) | API endpoints are documented with a generated OpenAPI spec rendered by Scalar | Accepted |
