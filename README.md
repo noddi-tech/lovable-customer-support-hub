@@ -97,4 +97,4 @@ Run UI guardrail tests to ensure tabs handle long labels properly:
 npx vitest --run --reporter=verbose -t "long-labels"
 ```
 
-See `docs/ui-tabs-checklist.md` for detailed QA guidelines.
+See [`docs/`](./docs/README.md) for guides and [`docs/adr/`](./docs/adr/README.md) for architecture decision records. The same documentation is rendered in the app at `/docs` for signed-in users.
