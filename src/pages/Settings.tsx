@@ -113,10 +113,10 @@ export default function Settings() {
       
       case '/settings/profile':
         return (
-          <div className="space-y-6 max-w-4xl">
+          <div className="space-y-4 max-w-4xl">
             <UserProfileSettings />
             <AccountInfoCard />
-            <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="6">
+            <ResponsiveGrid cols={{ sm: '1', lg: '2' }} gap="4">
               <LayoutItem>
                 <LanguageSettings />
               </LayoutItem>
