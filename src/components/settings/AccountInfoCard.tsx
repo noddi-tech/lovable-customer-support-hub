@@ -54,6 +54,8 @@ export const AccountInfoCard: React.FC = () => {
 
   const identities = (user?.identities || []) as Array<{ id: string; provider: string; identity_data?: Record<string, any> }>;
   const connectedProviders = useMemo(() => new Set(identities.map((i) => i.provider)), [identities]);
+  const currentProvider = (user?.app_metadata as any)?.provider as string | undefined;
+
   const claimRoles = useMemo(() => getActiveRoles(navioClaims as any) || [], [navioClaims]);
 
   const userType =
