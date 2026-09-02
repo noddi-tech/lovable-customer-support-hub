@@ -441,24 +441,32 @@ const MessageCardComponent = ({
                 )}
                 
                 {/* Author name — primary identity, always first */}
-                {!isInternalNote && (
-                  <span className={cn(
-                    "font-semibold text-foreground truncate",
-                    effectiveCollapsed ? "text-xs leading-none max-w-[180px]" : "text-sm max-w-[260px]"
-                  )}>
-                    {isAiDraft
-                      ? 'AI Draft'
-                      : shortName(message.from.name) || message.from.email?.split('@')[0] || (isAgent ? 'Agent' : 'Customer')}
-                  </span>
-                )}
+                {!isInternalNote && (() => {
+                  const nameEl = (
+                    <span className={cn(
+                      "font-semibold text-foreground truncate",
+                      isAiDraft && "cursor-help decoration-dotted underline-offset-4 hover:underline",
+                      effectiveCollapsed ? "text-xs leading-none max-w-[180px]" : "text-sm max-w-[260px]"
+                    )}>
+                      {isAiDraft
+                        ? 'AI Draft'
+                        : shortName(message.from.name) || message.from.email?.split('@')[0] || (isAgent ? 'Agent' : 'Customer')}
+                    </span>
+                  );
+                  return isAiDraft ? <AiDraftHint>{nameEl}</AiDraftHint> : nameEl;
+                })()}
 
                 {/* Role badge — secondary, compact */}
-                {!isInternalNote && messageStyle && !effectiveCollapsed && (
-                  <Badge className={cn("text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1 font-medium", messageStyle.labelBadge)}>
-                    {isAiDraft && <Bot className="w-3 h-3" />}
-                    {messageStyle.label}
-                  </Badge>
-                )}
+                {!isInternalNote && messageStyle && !effectiveCollapsed && (() => {
+                  const badgeEl = (
+                    <Badge className={cn("text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1 font-medium", isAiDraft && "cursor-help", messageStyle.labelBadge)}>
+                      {isAiDraft && <Bot className="w-3 h-3" />}
+                      {messageStyle.label}
+                    </Badge>
+                  );
+                  return isAiDraft ? <AiDraftHint>{badgeEl}</AiDraftHint> : badgeEl;
+                })()}
+
 
                 {/* Recipient — muted, truncated */}
                 {!isInternalNote && !effectiveCollapsed && (() => {
