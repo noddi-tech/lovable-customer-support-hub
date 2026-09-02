@@ -364,11 +364,13 @@ export const ConversationViewProvider = ({
   }, [conversationId, user?.id, queryClient, user])
 
   // Auto-mark as read when conversation is opened and unread
+  const autoMarkAsReadRef = useRef<((convId: string) => void) | null>(null)
+
   useEffect(() => {
     if (conversation && conversation.is_read === false && conversationId) {
-      autoMarkAsReadMutation.mutate(conversationId)
+      autoMarkAsReadRef.current?.(conversationId)
     }
-  }, [conversation?.is_read, conversationId, conversation, autoMarkAsReadMutation.mutate])
+  }, [conversation?.is_read, conversationId, conversation])
 
   // Fetch users for assignment
   const { data: assignUsers = [] } = useQuery({

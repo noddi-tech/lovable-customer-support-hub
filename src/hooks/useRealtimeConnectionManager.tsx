@@ -118,7 +118,7 @@ export const useRealtimeConnectionManager = () => {
 
       reconnectionTimeoutRef.current = setTimeout(() => {
         console.log("🔄 Executing reconnection attempt...")
-        reconnectAllSubscriptions()
+        reconnectAllSubscriptionsRef.current?.()
       }, delay)
 
       return {
@@ -126,7 +126,7 @@ export const useRealtimeConnectionManager = () => {
         connectionAttempts: prev.connectionAttempts + 1,
       }
     })
-  }, [toast, reconnectAllSubscriptions, calculateBackoffDelay])
+  }, [toast, calculateBackoffDelay])
 
   const reconnectAllSubscriptions = useCallback(() => {
     console.log("🔄 Reconnecting all subscriptions...")
