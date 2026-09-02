@@ -19,7 +19,8 @@ import {
   Timer,
   UserRound,
   FunctionSquare,
-  BookOpen
+  BookOpen,
+  Plug
 } from "lucide-react";
 
 export type NavItem = {
@@ -199,6 +200,14 @@ export const NAV_ITEMS: NavItem[] = [
     description: "Architecture decision records and operating guides, rendered from the repository.",
     to: "/docs",
     icon: BookOpen,
+    group: "settings"
+  },
+  {
+    id: "api-docs",
+    label: "API reference",
+    description: "Interactive OpenAPI reference for every endpoint this service exposes.",
+    to: "/api-docs",
+    icon: Plug,
     group: "settings"
   },
 
