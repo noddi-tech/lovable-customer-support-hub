@@ -45,6 +45,32 @@ import { noteDebug } from "@/utils/noteInteractionDebug";
 import { supabase } from "@/integrations/supabase/client";
 import { InlineNoteEditor } from "./InlineNoteEditor";
 import { useNoteMutations } from "@/hooks/useNoteMutations";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+/** Explains the AI draft feature on hover over the "AI Draft" badge. */
+function AiDraftHint({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="max-w-xs space-y-2 text-xs leading-relaxed">
+        <p className="font-semibold">AI Draft — a suggested reply, not a sent message</p>
+        <p>
+          When a customer email lands in this inbox, the assistant writes a proposed answer using the
+          conversation history, the customer's Noddi account and your knowledge base.
+        </p>
+        <p>
+          It is internal only: the customer never sees it and nothing is sent automatically. You can Send it
+          as-is, edit it first, or discard it — and every choice trains the assistant on your tone.
+        </p>
+        <p className="text-muted-foreground">
+          Turn it on or off per inbox under Settings → Inboxes → “AI draft replies”. Tone, knowledge sources
+          and autonomy thresholds live under Knowledge.
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 
 // --- Helpers ---
 type Addr = { name?: string; email?: string };
@@ -415,24 +441,32 @@ const MessageCardComponent = ({
                 )}
                 
                 {/* Author name — primary identity, always first */}
-                {!isInternalNote && (
-                  <span className={cn(
-                    "font-semibold text-foreground truncate",
-                    effectiveCollapsed ? "text-xs leading-none max-w-[180px]" : "text-sm max-w-[260px]"
-                  )}>
-                    {isAiDraft
-                      ? 'AI Draft'
-                      : shortName(message.from.name) || message.from.email?.split('@')[0] || (isAgent ? 'Agent' : 'Customer')}
-                  </span>
-                )}
+                {!isInternalNote && (() => {
+                  const nameEl = (
+                    <span className={cn(
+                      "font-semibold text-foreground truncate",
+                      isAiDraft && "cursor-help decoration-dotted underline-offset-4 hover:underline",
+                      effectiveCollapsed ? "text-xs leading-none max-w-[180px]" : "text-sm max-w-[260px]"
+                    )}>
+                      {isAiDraft
+                        ? 'AI Draft'
+                        : shortName(message.from.name) || message.from.email?.split('@')[0] || (isAgent ? 'Agent' : 'Customer')}
+                    </span>
+                  );
+                  return isAiDraft ? <AiDraftHint>{nameEl}</AiDraftHint> : nameEl;
+                })()}
 
                 {/* Role badge — secondary, compact */}
-                {!isInternalNote && messageStyle && !effectiveCollapsed && (
-                  <Badge className={cn("text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1 font-medium", messageStyle.labelBadge)}>
-                    {isAiDraft && <Bot className="w-3 h-3" />}
-                    {messageStyle.label}
-                  </Badge>
-                )}
+                {!isInternalNote && messageStyle && !effectiveCollapsed && (() => {
+                  const badgeEl = (
+                    <Badge className={cn("text-[10px] px-1.5 py-0 h-4 shrink-0 gap-1 font-medium", isAiDraft && "cursor-help", messageStyle.labelBadge)}>
+                      {isAiDraft && <Bot className="w-3 h-3" />}
+                      {messageStyle.label}
+                    </Badge>
+                  );
+                  return isAiDraft ? <AiDraftHint>{badgeEl}</AiDraftHint> : badgeEl;
+                })()}
+
 
                 {/* Recipient — muted, truncated */}
                 {!isInternalNote && !effectiveCollapsed && (() => {
