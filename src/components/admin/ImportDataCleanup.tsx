@@ -30,10 +30,6 @@ export const ImportDataCleanup = () => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [inboxToDelete, setInboxToDelete] = useState<string>("")
 
-  useEffect(() => {
-    fetchInboxes()
-  }, [fetchInboxes])
-
   const fetchInboxes = async () => {
     const { data: orgId } = await supabase.rpc("get_user_organization_id")
     if (!orgId) return
@@ -63,6 +59,11 @@ export const ImportDataCleanup = () => {
       setInboxes(inboxesWithCounts)
     }
   }
+
+  useEffect(() => {
+    fetchInboxes()
+  }, [fetchInboxes])
+
 
   const handleMoveConversations = async () => {
     if (!sourceInboxId || !targetInboxId) {

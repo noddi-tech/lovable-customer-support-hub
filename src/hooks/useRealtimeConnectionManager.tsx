@@ -59,6 +59,7 @@ export const useRealtimeConnectionManager = () => {
   }, [])
 
   const reconnectionTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectAllSubscriptionsRef = useRef<(() => void) | null>(null)
   const reconnectionConfigRef = useRef<ReconnectionConfig>(DEFAULT_CONFIG)
   const hasShownDisconnectToast = useRef(false)
   const pendingSubscriptions = useRef<Array<() => any>>([])
@@ -118,7 +119,7 @@ export const useRealtimeConnectionManager = () => {
 
       reconnectionTimeoutRef.current = setTimeout(() => {
         console.log("🔄 Executing reconnection attempt...")
-        reconnectAllSubscriptions()
+        reconnectAllSubscriptionsRef.current?.()
       }, delay)
 
       return {
@@ -126,7 +127,7 @@ export const useRealtimeConnectionManager = () => {
         connectionAttempts: prev.connectionAttempts + 1,
       }
     })
-  }, [toast, reconnectAllSubscriptions, calculateBackoffDelay])
+  }, [toast, calculateBackoffDelay])
 
   const reconnectAllSubscriptions = useCallback(() => {
     console.log("🔄 Reconnecting all subscriptions...")
@@ -153,6 +154,8 @@ export const useRealtimeConnectionManager = () => {
       }
     })
   }, [])
+
+  reconnectAllSubscriptionsRef.current = reconnectAllSubscriptions
 
   const handleConnectionStatus = useCallback(
     (status: string, channelName: string) => {

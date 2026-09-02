@@ -33,11 +33,13 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
 
   const alreadyVerified = !!localStorage.getItem(VERIFIED_PHONE_KEY)
 
+  const handleVerifyPinRef = useRef<((pinOverride?: string) => void) | null>(null)
+
   useEffect(() => {
     if (pinInput.length === 6 && step === "pin" && !isVerifying) {
-      handleVerifyPin(pinInput)
+      handleVerifyPinRef.current?.(pinInput)
     }
-  }, [pinInput, step, isVerifying, handleVerifyPin])
+  }, [pinInput, step, isVerifying])
 
   if (isUsed || alreadyVerified) {
     const phone = localStorage.getItem(VERIFIED_PHONE_KEY)
@@ -117,6 +119,9 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
     }
     setIsVerifying(false)
   }
+
+  handleVerifyPinRef.current = handleVerifyPin
+
 
   const handleResendCode = async () => {
     setError(null)

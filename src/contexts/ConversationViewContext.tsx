@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createContext, type ReactNode, useContext, useEffect, useReducer } from "react"
+import { createContext, type ReactNode, useContext, useEffect, useReducer, useRef } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
@@ -364,11 +364,13 @@ export const ConversationViewProvider = ({
   }, [conversationId, user?.id, queryClient, user])
 
   // Auto-mark as read when conversation is opened and unread
+  const autoMarkAsReadRef = useRef<((convId: string) => void) | null>(null)
+
   useEffect(() => {
     if (conversation && conversation.is_read === false && conversationId) {
-      autoMarkAsReadMutation.mutate(conversationId)
+      autoMarkAsReadRef.current?.(conversationId)
     }
-  }, [conversation?.is_read, conversationId, conversation, autoMarkAsReadMutation.mutate])
+  }, [conversation?.is_read, conversationId, conversation])
 
   // Fetch users for assignment
   const { data: assignUsers = [] } = useQuery({
@@ -901,6 +903,10 @@ export const ConversationViewProvider = ({
       logger.error("Failed to auto-mark as read", error, "ConversationViewProvider")
     },
   })
+
+  autoMarkAsReadRef.current = (convId: string) => autoMarkAsReadMutation.mutate(convId)
+
+
 
   // Gmail sync mutation for refreshing message data
   const gmailSyncMutation = useMutation({

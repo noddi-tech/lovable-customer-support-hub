@@ -30,10 +30,6 @@ export const PreImportValidation = ({
     { id: "conflicts", label: "No existing import conflicts", status: "checking" },
   ])
 
-  useEffect(() => {
-    runValidation()
-  }, [runValidation])
-
   const runValidation = async () => {
     const newChecks = [...checks]
 
@@ -137,6 +133,11 @@ export const PreImportValidation = ({
     const allPassed = newChecks.every((c) => c.status === "passed" || c.status === "warning")
     onValidationComplete?.(allPassed)
   }
+
+  useEffect(() => {
+    runValidation()
+  }, [runValidation])
+
 
   const updateCheck = (
     checks: ValidationCheck[],

@@ -8,7 +8,6 @@ import {
   setSupportedLocales,
   updateWidgetContext,
 } from "./api"
-// @ts-expect-error - Vite handles this import
 import widgetStyles from "./styles/widget.css?inline"
 import { sanitizeTheme } from "./theme"
 import { sanitizeSupportedLocales } from "./translations"

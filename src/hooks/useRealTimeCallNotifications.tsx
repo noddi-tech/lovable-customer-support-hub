@@ -152,9 +152,6 @@ export const useRealTimeCallNotifications = () => {
     createManagedSubscription,
     queryClient,
     toast,
-    handleNewCallNotification,
-    handleCallStatusChangeNotification,
-    handleCallEventNotification,
   ])
 
   const handleCallEventNotification = async (callEvent: CallEvent, call: Call) => {

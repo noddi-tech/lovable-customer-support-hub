@@ -37,12 +37,6 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
   const [customUnit, setCustomUnit] = useState<"hours" | "days">("hours")
   const [isOpen, setIsOpen] = useState(false)
 
-  // Initialize with default preset on mount
-  React.useEffect(() => {
-    if (defaultPreset !== "all") {
-      handlePresetChange(defaultPreset)
-    }
-  }, [handlePresetChange, defaultPreset])
 
   const handlePresetChange = (presetId: string) => {
     setSelectedPreset(presetId)
@@ -74,6 +68,13 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
 
     onTimeRangeChange(startDate)
   }
+
+  // Initialize with default preset on mount
+  React.useEffect(() => {
+    if (defaultPreset !== "all") {
+      handlePresetChange(defaultPreset)
+    }
+  }, [handlePresetChange, defaultPreset])
 
   const handleCustomApply = () => {
     const value = parseInt(customValue, 10)
