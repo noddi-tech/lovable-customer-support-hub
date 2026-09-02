@@ -29,6 +29,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { queryClient } from "./lib/persistedQueryClient";
+import { initObservability } from "./integrations/observability";
+
+// Boot telemetry (OpenPanel + Faro) before React mounts so early errors are captured.
+initObservability();
 
 // Phase 5: Add global tab visibility logger
 if (import.meta.env.DEV) {

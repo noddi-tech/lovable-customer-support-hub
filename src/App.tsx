@@ -28,6 +28,7 @@ import { AppErrorFallback } from "@/components/error/AppErrorFallback";
 import { PerformanceDebugPanel } from "@/components/debug/PerformanceDebugPanel";
 import { URLSanitizer } from "@/components/routing/URLSanitizer";
 import { ConversationRedirect } from "@/components/routing/ConversationRedirect";
+import { ObservabilityBridge } from "@/components/observability/ObservabilityBridge";
 const DocsPage = React.lazy(() => import("./pages/DocsPage"));
 const ApiDocsPage = React.lazy(() => import("./pages/ApiDocsPage"));
 import React, { useEffect } from "react";
@@ -364,6 +365,7 @@ const App = () => (
                         <I18nWrapper>
                         <ComposeProvider>
                         <EnvBanner />
+                        <ObservabilityBridge />
                         <AppContent />
                         {/* Aircall Workspace Manager - Controls container visibility */}
                         <AircallWorkspaceManager />
