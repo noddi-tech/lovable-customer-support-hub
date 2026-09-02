@@ -126,32 +126,6 @@ export const UserProfileSettings = () => {
     }
   };
 
-  const handleLinkGoogle = async () => {
-    setIsLinkingGoogle(true);
-    try {
-      const { error } = await supabase.auth.linkIdentity({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/settings`,
-        }
-      });
-
-      if (error) {
-        if (error.message.includes('already linked')) {
-          toast.error('This Google account is already linked to another user');
-        } else {
-          toast.error(error.message || 'Failed to link Google account');
-        }
-        return;
-      }
-      // User will be redirected to Google for OAuth
-    } catch (error) {
-      console.error('Link Google error:', error);
-      toast.error('Failed to link Google account');
-    } finally {
-      setIsLinkingGoogle(false);
-    }
-  };
 
   const getInitials = (name: string) => {
     return name
