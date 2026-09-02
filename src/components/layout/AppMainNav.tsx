@@ -164,6 +164,10 @@ export const AppMainNav = () => {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-2 py-2 space-y-2">
+        {!isCollapsed && (
+          <h2 className="px-2 text-lg font-semibold text-foreground">Support Hub</h2>
+        )}
+
         {/* Collapse toggle */}
         <div
           className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between")}
@@ -189,9 +193,6 @@ export const AppMainNav = () => {
           </Button>
         </div>
 
-        {!isCollapsed && (
-          <h2 className="px-2 text-lg font-semibold text-foreground">Support Hub</h2>
-        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <NavHint
