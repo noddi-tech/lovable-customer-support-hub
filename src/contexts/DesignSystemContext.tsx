@@ -197,13 +197,13 @@ const defaultDesignSystem: DesignSystem = {
   },
   shadows: {
     sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-    glow: '0 0 0 3px hsl(217 91% 60% / 0.1)',
+    md: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
+    lg: '0 8px 24px -12px rgb(53 21 90 / 0.25)',
+    glow: '0 0 0 3px hsl(268 62% 22% / 0.1)',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))',
-    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%))',
+    primary: 'linear-gradient(135deg, hsl(268 62% 22%), hsl(263 44% 57%))',
+    surface: 'linear-gradient(135deg, hsl(0 0% 100%), hsl(255 29% 97%))',
   },
   components: {
     buttons: {
