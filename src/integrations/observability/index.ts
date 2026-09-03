@@ -6,11 +6,16 @@
  *
  * Error monitoring / tracing / session replay live in `src/instrument.ts` (Sentry).
  *
+ * Faro auth uses the non-secret `x-api-key` app key (`alloy_faro_app_key` in GSM)
+ * via the Alloy/ztrapi auth proxy; CORS on `support.noddi.co` (and related noddi
+ * hosts) is the real origin gate.
+ *
  * Env (all browser-safe, non-secret):
  *   VITE_APP_OPENPANEL_CLIENT_ID  per-app OpenPanel project key
  *   VITE_APP_OPENPANEL_API_URL    first-party ingestion host, e.g. https://analytics.noddi.co/api
- *   VITE_APP_FARO_URL             Alloy Faro receiver endpoint (optional)
- *   VITE_APP_FARO_API_KEY         Faro x-api-key (optional)
+ *   VITE_APP_OPENPANEL_STUB       set to 1 to log OpenPanel events instead of shipping
+ *   VITE_APP_FARO_URL             Alloy Faro receiver (default https://telemetry.noddi.co)
+ *   VITE_APP_FARO_API_KEY         Faro x-api-key from GSM `alloy_faro_app_key`
  *   VITE_SENTRY_DSN               Sentry browser DSN (optional; empty disables Sentry)
  */
 
@@ -25,6 +30,14 @@ export const APP_NAME = "support-hub"
 const env = import.meta.env
 const isProd = env.MODE === "production"
 
+const OPENPANEL_CLIENT_ID = env.VITE_APP_OPENPANEL_CLIENT_ID as string | undefined
+const OPENPANEL_API_URL =
+  (env.VITE_APP_OPENPANEL_API_URL as string | undefined) || "https://analytics.noddi.co/api"
+
+/** First-party Faro collector (same-site for support.noddi.co — ad-blocker friendly). */
+const FARO_URL = (env.VITE_APP_FARO_URL as string | undefined) || "https://telemetry.noddi.co"
+const FARO_API_KEY = env.VITE_APP_FARO_API_KEY as string | undefined
+
 let initialized = false
 
 export function initObservability(): void {
@@ -36,12 +49,11 @@ export function initObservability(): void {
   })
 
   // --- OpenPanel (product analytics + session replay) -----------------------
-  const clientId = env.VITE_APP_OPENPANEL_CLIENT_ID as string | undefined
-  if (clientId) {
+  if (OPENPANEL_CLIENT_ID) {
     tracking.registerShipper(
       new OpenPanelShipper({
-        clientId,
-        apiUrl: (env.VITE_APP_OPENPANEL_API_URL as string) || "https://analytics.noddi.co/api",
+        clientId: OPENPANEL_CLIENT_ID,
+        apiUrl: OPENPANEL_API_URL,
         trackScreenViews: true,
         trackOutgoingLinks: true,
         // Ship real events unless explicitly disabled (VITE_APP_OPENPANEL_STUB=1).
@@ -58,12 +70,13 @@ export function initObservability(): void {
   }
 
   // --- Grafana Faro (RUM: errors, web vitals, traces) ----------------------
-  const faroUrl = env.VITE_APP_FARO_URL as string | undefined
-  if (faroUrl) {
+  // Requires the Alloy Faro app key (x-api-key). URL defaults to the first-party
+  // collector so support.noddi.co stays same-site for ad blockers.
+  if (FARO_API_KEY) {
     initFaro({
       appName: APP_NAME,
-      url: faroUrl,
-      apiKey: env.VITE_APP_FARO_API_KEY as string | undefined,
+      url: FARO_URL,
+      apiKey: FARO_API_KEY,
       version: typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : undefined,
       environment: env.MODE,
       enabled: isProd,
