@@ -123,7 +123,6 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
 </style></head><body>${body}</body></html>`
   }, [open, content, isHTML, cidMap])
 
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -163,7 +162,6 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
                 ? `${unresolvedCids} inline (cid:) image${unresolvedCids === 1 ? "" : "s"} could not be resolved — see the attachment list.`
                 : "Inline (cid:) attachment images are embedded; links open in a new tab."}
           </div>
-
         </div>
       </DialogContent>
     </Dialog>

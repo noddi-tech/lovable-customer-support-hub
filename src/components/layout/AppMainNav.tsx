@@ -157,7 +157,6 @@ export const AppMainNav = () => {
     }
   }
 
-
   if (showLoadingShell) {
     return (
       <Sidebar collapsible="offcanvas">
