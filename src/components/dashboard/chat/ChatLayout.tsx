@@ -14,6 +14,8 @@ import { useIsMobile } from "@/hooks/use-responsive"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import { useNavigate, useParams, useSearchParams } from "@/router/compat"
+import { AiConversationView } from "./AiConversationView"
+import { AiEscalationInfoPopover } from "./AiEscalationInfoPopover"
 import { ChatConversationList } from "./ChatConversationList"
 import { ChatEmptyState } from "./ChatEmptyState"
 import { ChatFilters, type ChatFilterType } from "./ChatFilters"
@@ -34,20 +36,23 @@ export const ChatLayout: React.FC = () => {
   const [metricsOpen, setMetricsOpen] = useState(false)
 
   const widgetSettingsButton = (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          aria-label="Live chat service levels"
-          onClick={() => setSlaOpen(true)}
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>Live chat SLA &amp; performance</TooltipContent>
-    </Tooltip>
+    <>
+      <AiEscalationInfoPopover />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label="Live chat service levels"
+            onClick={() => setSlaOpen(true)}
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Live chat SLA &amp; performance</TooltipContent>
+      </Tooltip>
+    </>
   )
 
   // Map URL filter to our filter type
@@ -66,8 +71,16 @@ export const ChatLayout: React.FC = () => {
     queryFn: async () => {
       if (!organizationId) return { active: 0, waiting: 0, ended: 0, all: 0 }
 
-      // Count widget conversations by status
-      const [activeResult, endedResult, allResult] = await Promise.all([
+      // Count live-chat (widget conversations) + AI conversations by status.
+      const [
+        activeResult,
+        endedResult,
+        allResult,
+        aiActiveResult,
+        aiEndedResult,
+        aiEscalatedResult,
+        aiAllResult,
+      ] = await Promise.all([
         supabase
           .from("conversations")
           .select("id", { count: "exact", head: true })
@@ -88,24 +101,67 @@ export const ChatLayout: React.FC = () => {
           .eq("organization_id", organizationId)
           .eq("channel", "widget")
           .is("deleted_at", null),
+        supabase
+          .from("widget_ai_conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .in("status", ["active", "escalated", "assigned"]),
+        supabase
+          .from("widget_ai_conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .in("status", ["resolved", "ended"]),
+        supabase
+          .from("widget_ai_conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .eq("status", "escalated"),
+        supabase
+          .from("widget_ai_conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId),
       ])
 
-      // Count waiting sessions
+      // Count waiting live-chat sessions
       const { count: waitingCount } = await supabase
         .from("widget_chat_sessions")
         .select("id", { count: "exact", head: true })
         .eq("status", "waiting")
 
       return {
-        active: activeResult.count || 0,
-        waiting: waitingCount || 0,
-        ended: endedResult.count || 0,
-        all: allResult.count || 0,
+        active: (activeResult.count || 0) + (aiActiveResult.count || 0),
+        waiting: (waitingCount || 0) + (aiEscalatedResult.count || 0),
+        ended: (endedResult.count || 0) + (aiEndedResult.count || 0),
+        all: (allResult.count || 0) + (aiAllResult.count || 0),
       }
     },
     enabled: !!organizationId,
     refetchInterval: 10000,
   })
+
+  // A selected id may belong to the AI table (widget_ai_conversations) instead
+  // of the live-chat conversations table — pick the right detail view.
+  const { data: isAiConversation } = useQuery({
+    queryKey: ["selected-is-ai-conversation", selectedConversationId],
+    enabled: !!selectedConversationId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (!selectedConversationId) return false
+      const { data } = await supabase
+        .from("widget_ai_conversations")
+        .select("id")
+        .eq("id", selectedConversationId)
+        .maybeSingle()
+      return !!data
+    },
+  })
+
+  const renderDetail = (id: string) =>
+    isAiConversation ? (
+      <AiConversationView conversationId={id} />
+    ) : (
+      <ConversationView conversationId={id} showSidePanel={false} />
+    )
 
   const handleFilterChange = (filter: ChatFilterType) => {
     // Navigate to filter list view (no conversation in path)
@@ -125,7 +181,7 @@ export const ChatLayout: React.FC = () => {
     if (selectedConversationId) {
       return (
         <div className="flex flex-col h-full bg-card overflow-hidden">
-          <ConversationView conversationId={selectedConversationId} showSidePanel={false} />
+          {renderDetail(selectedConversationId)}
         </div>
       )
     }
@@ -199,11 +255,7 @@ export const ChatLayout: React.FC = () => {
 
         {/* Right panel: Selected Chat View (customer history lives in Customer Details) */}
         <ResizablePanel defaultSize={65}>
-          {selectedConversationId ? (
-            <ConversationView conversationId={selectedConversationId} showSidePanel={false} />
-          ) : (
-            <ChatEmptyState />
-          )}
+          {selectedConversationId ? renderDetail(selectedConversationId) : <ChatEmptyState />}
         </ResizablePanel>
       </ResizablePanelGroup>
 

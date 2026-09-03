@@ -1116,6 +1116,29 @@
   color: #374151;
 }
 
+/* "Finding a person" / "agent joined" banner */
+.noddi-ai-escalation-banner {
+  border-top: 1px solid #f3f4f6;
+  background: #f8fafc;
+  padding: 10px 14px;
+}
+
+.noddi-ai-escalation-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.noddi-ai-escalation-banner-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
 /* AI message formatting */
 .noddi-chat-message-bubble ul {
   list-style: disc;

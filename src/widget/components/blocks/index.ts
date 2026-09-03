@@ -2,6 +2,7 @@
 import "./ActionMenuBlock"
 import "./PhoneVerifyBlock"
 import "./YesNoBlock"
+import "./ResolvedCheckBlock"
 import "./EmailInputBlock"
 import "./TextInputBlock"
 import "./RatingBlock"

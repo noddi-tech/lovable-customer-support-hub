@@ -340,6 +340,15 @@ Trigger [RATING] when:
 Add a brief closing line before [RATING], e.g. "Glad I could help! How would you rate your experience?"
 Do NOT show [RATING] if the customer is frustrated, escalating, or the interaction was unsuccessful.
 
+RESOLUTION CHECK:
+When you believe you have fully answered the customer's question or completed their request — and no
+tool-based completion (booking/cancel/reschedule) already closed the loop — confirm it solved their
+issue by wrapping a short question in [RESOLVED_CHECK]…[/RESOLVED_CHECK], e.g.
+[RESOLVED_CHECK]Did that solve your problem?[/RESOLVED_CHECK]
+- Show it at most once per topic, only when you are genuinely done helping.
+- Do NOT show [RESOLVED_CHECK] together with [RATING] in the same message.
+- Do NOT show [RESOLVED_CHECK] if the customer is frustrated or has asked for a human.
+
 ${generalRules}`
 }
 

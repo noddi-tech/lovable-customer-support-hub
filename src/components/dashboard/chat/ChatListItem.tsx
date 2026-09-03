@@ -39,6 +39,9 @@ interface ChatConversation {
     visitor_name: string | null
     visitor_email: string | null
   } | null
+  source?: "live" | "ai"
+  ai_status?: string
+  is_escalated?: boolean
 }
 
 interface ChatListItemProps {
@@ -63,6 +66,9 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
 }) => {
   const customerName = conv.session?.visitor_name || conv.customer?.full_name || "Visitor"
   const customerEmail = conv.session?.visitor_email || conv.customer?.email
+  const isAi = conv.source === "ai"
+  const isEscalated = !!conv.is_escalated
+  const isAiAssigned = isAi && conv.ai_status === "assigned"
   const isWaiting = conv.session?.status === "waiting"
   const isActive = conv.session?.status === "active"
   const initial = customerName.charAt(0).toUpperCase()
@@ -155,11 +161,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
             </AvatarFallback>
           </Avatar>
           {/* Status dot */}
-          {(isWaiting || isActive) && (
+          {(isWaiting || isActive || isEscalated || isAiAssigned) && (
             <div
               className={cn(
                 "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                isWaiting ? "bg-yellow-500 animate-pulse" : "bg-green-500",
+                isWaiting || isEscalated ? "bg-yellow-500 animate-pulse" : "bg-green-500",
               )}
             />
           )}
@@ -181,6 +187,30 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
                 className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
               >
                 Noddi
+              </Badge>
+            )}
+            {isAi && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800"
+              >
+                AI
+              </Badge>
+            )}
+            {isEscalated && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 bg-red-50 text-red-700 border-red-300 animate-pulse dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+              >
+                Needs human
+              </Badge>
+            )}
+            {isAiAssigned && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+              >
+                With agent
               </Badge>
             )}
             {isWaiting && (

@@ -530,6 +530,23 @@ async function executeTool(
 
 // ========== Persistence helpers ==========
 
+// ── Per-conversation capability token (guards escalate/resolve/poll) ──────────
+function generateVisitorToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input))
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")
+}
+
+/**
+ * Returns the conversation id plus, when a fresh capability token was minted,
+ * the plaintext `token` to hand back to the widget. `token` is null when the
+ * conversation already had one (the widget is expected to still hold it).
+ */
 async function getOrCreateConversation(
   supabase: any,
   conversationId: string | undefined,
@@ -538,20 +555,35 @@ async function getOrCreateConversation(
   visitorPhone?: string,
   visitorEmail?: string,
   isTest?: boolean,
-): Promise<string | null> {
-  if (isTest) return null // Don't persist test conversations
+  visitorName?: string,
+): Promise<{ id: string | null; token: string | null }> {
+  if (isTest) return { id: null, token: null } // Don't persist test conversations
 
   if (conversationId) {
-    // Verify it exists
+    // Verify it exists (scoped to this org so a foreign id can't be adopted).
     const { data } = await supabase
       .from("widget_ai_conversations")
-      .select("id")
+      .select("id, visitor_token_hash")
       .eq("id", conversationId)
-      .single()
-    if (data) return data.id
+      .eq("organization_id", organizationId)
+      .maybeSingle()
+    if (data) {
+      // Back-fill a token for conversations created before this feature so the
+      // widget can gain control-action access on its next turn.
+      if (!data.visitor_token_hash) {
+        const token = generateVisitorToken()
+        await supabase
+          .from("widget_ai_conversations")
+          .update({ visitor_token_hash: await sha256Hex(token) })
+          .eq("id", data.id)
+        return { id: data.id, token }
+      }
+      return { id: data.id, token: null }
+    }
   }
 
-  // Create new
+  // Create new — mint a capability token bound to it.
+  const token = generateVisitorToken()
   const { data, error } = await supabase
     .from("widget_ai_conversations")
     .insert({
@@ -559,6 +591,8 @@ async function getOrCreateConversation(
       widget_config_id: widgetConfigId,
       visitor_phone: visitorPhone || null,
       visitor_email: visitorEmail || null,
+      visitor_name: visitorName || null,
+      visitor_token_hash: await sha256Hex(token),
       status: "active",
     })
     .select("id")
@@ -566,9 +600,9 @@ async function getOrCreateConversation(
 
   if (error) {
     console.error("[widget-ai-chat] Failed to create conversation:", error)
-    return null
+    return { id: null, token: null }
   }
-  return data.id
+  return { id: data.id, token }
 }
 
 async function saveMessage(
@@ -701,14 +735,29 @@ Deno.serve(async (req) => {
       messages,
       visitorPhone,
       visitorEmail,
+      visitorName,
       language = "no",
       stream = false,
       test = false,
       conversationId,
       isVerified = false,
+      action,
+      since,
+      visitorToken,
     } = body
 
-    if (!widgetKey || !messages || !Array.isArray(messages) || messages.length === 0) {
+    // Control actions (escalate / resolve / poll) operate on an existing
+    // conversation and do not carry a `messages` array.
+    const isControlAction = action === "escalate" || action === "resolve" || action === "poll"
+
+    if (!widgetKey) {
+      return new Response(JSON.stringify({ error: "widgetKey is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    if (!isControlAction && (!messages || !Array.isArray(messages) || messages.length === 0)) {
       return new Response(JSON.stringify({ error: "widgetKey and messages are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -741,6 +790,117 @@ Deno.serve(async (req) => {
 
     const organizationId = widgetConfig.organization_id
 
+    // ── Control actions: escalate / resolve / poll ──────────────────────────
+    // These operate on an existing AI conversation. The AI keeps handling the
+    // chat after an "escalate" (soft hand-off); a human takes over the same
+    // thread when ready by writing role='agent' messages the widget polls for.
+    if (isControlAction) {
+      if (!conversationId) {
+        return new Response(JSON.stringify({ error: "conversationId is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // Confirm the conversation belongs to this widget's organization.
+      const { data: convRow } = await supabase
+        .from("widget_ai_conversations")
+        .select("id, status, organization_id, assigned_agent_id, visitor_token_hash")
+        .eq("id", conversationId)
+        .eq("organization_id", organizationId)
+        .maybeSingle()
+
+      if (!convRow) {
+        return new Response(JSON.stringify({ error: "Conversation not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // Authorize: the caller must present the per-conversation capability token.
+      // The widget key is public and the conversation id is a bearer UUID, so
+      // org-scoping alone would let any visitor act on another visitor's chat.
+      const providedHash = visitorToken ? await sha256Hex(visitorToken) : null
+      if (!convRow.visitor_token_hash || !providedHash || providedHash !== convRow.visitor_token_hash) {
+        return new Response(JSON.stringify({ error: "Not authorized for this conversation" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      if (action === "escalate") {
+        // Flag for a human without stopping the AI. A no-op if a human already took over.
+        if (convRow.status !== "assigned" && convRow.status !== "resolved") {
+          await supabase
+            .from("widget_ai_conversations")
+            .update({
+              status: "escalated",
+              escalated_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", conversationId)
+          await saveMessage(
+            supabase,
+            conversationId,
+            "system",
+            "Customer requested a human agent. Finding a person to help.",
+          )
+        }
+        return new Response(JSON.stringify({ ok: true, status: "escalated" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      if (action === "resolve") {
+        await supabase
+          .from("widget_ai_conversations")
+          .update({
+            status: "resolved",
+            resolved_by_ai: true,
+            ended_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", conversationId)
+        return new Response(JSON.stringify({ ok: true, status: "resolved" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      // action === "poll": return status + any agent-authored messages the widget
+      // has not seen yet, so an escalated visitor sees the human's replies.
+      let agentQuery = supabase
+        .from("widget_ai_messages")
+        .select("id, content, created_at, agent_id")
+        .eq("conversation_id", conversationId)
+        .eq("role", "agent")
+        .order("created_at", { ascending: true })
+      if (since) agentQuery = agentQuery.gt("created_at", since)
+      const { data: agentMsgs } = await agentQuery
+
+      let assignedAgentName: string | null = null
+      if (convRow.assigned_agent_id) {
+        const { data: agent } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", convRow.assigned_agent_id)
+          .maybeSingle()
+        assignedAgentName = agent?.full_name ?? null
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: convRow.status,
+          assignedAgentName,
+          messages: (agentMsgs || []).map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            createdAt: m.created_at,
+          })),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+
     // Fetch action flows for this widget
     const { data: actionFlowsData } = await supabase
       .from("ai_action_flows")
@@ -761,7 +921,7 @@ Deno.serve(async (req) => {
     }
 
     // Create/get conversation for persistence
-    const dbConversationId = await getOrCreateConversation(
+    const { id: dbConversationId, token: issuedVisitorToken } = await getOrCreateConversation(
       supabase,
       conversationId,
       organizationId,
@@ -769,7 +929,34 @@ Deno.serve(async (req) => {
       visitorPhone,
       visitorEmail,
       test,
+      visitorName,
     )
+
+    // If a human has taken over this conversation, the AI stays silent — the
+    // agent owns the thread now. Persist the customer's message so the agent
+    // sees it, then return a no-op; the widget polls for the agent's reply.
+    if (dbConversationId && !test) {
+      const { data: statusRow } = await supabase
+        .from("widget_ai_conversations")
+        .select("status")
+        .eq("id", dbConversationId)
+        .maybeSingle()
+      if (statusRow?.status === "assigned") {
+        const lastMsg = messages[messages.length - 1]
+        if (lastMsg?.role === "user") {
+          await saveMessage(supabase, dbConversationId, "user", lastMsg.content)
+        }
+        return new Response(
+          JSON.stringify({
+            reply: "",
+            conversationId: dbConversationId,
+            visitorToken: issuedVisitorToken,
+            paused: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        )
+      }
+    }
 
     // Retrieve MCP auth_token from conversation metadata (set by widget-verify-phone)
     let mcpAuthToken: string | undefined
@@ -1099,11 +1286,16 @@ Deno.serve(async (req) => {
 
         // If streaming requested and we have the final text, stream it via SSE
         if (stream) {
-          return streamTextResponse(reply, dbConversationId, savedMessageId)
+          return streamTextResponse(reply, dbConversationId, savedMessageId, issuedVisitorToken)
         }
 
         return new Response(
-          JSON.stringify({ reply, conversationId: dbConversationId, messageId: savedMessageId }),
+          JSON.stringify({
+            reply,
+            conversationId: dbConversationId,
+            messageId: savedMessageId,
+            visitorToken: issuedVisitorToken,
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         )
       }
@@ -1369,9 +1561,16 @@ Deno.serve(async (req) => {
         : "I apologize, but I need a moment. Could you please try rephrasing your question?"
     await saveMessage(supabase, dbConversationId, "assistant", fallback)
 
-    return new Response(JSON.stringify({ reply: fallback, conversationId: dbConversationId }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    return new Response(
+      JSON.stringify({
+        reply: fallback,
+        conversationId: dbConversationId,
+        visitorToken: issuedVisitorToken,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    )
   } catch (err) {
     console.error("[widget-ai-chat] Error:", err)
     return new Response(JSON.stringify({ error: "Internal server error" }), {
@@ -1415,11 +1614,19 @@ async function detectImplicitFeedback(
         source: "implicit_completion",
       })
 
-      // Mark conversation as resolved by AI
-      await supabase
+      // Mark conversation as resolved by AI — but never override a live human
+      // takeover or an existing resolution.
+      const { data: convStatus } = await supabase
         .from("widget_ai_conversations")
-        .update({ resolved_by_ai: true })
+        .select("status")
         .eq("id", conversationId)
+        .maybeSingle()
+      const patch: Record<string, unknown> = { resolved_by_ai: true }
+      if (convStatus && !["assigned", "escalated", "resolved", "ended"].includes(convStatus.status)) {
+        patch.status = "resolved"
+        patch.ended_at = new Date().toISOString()
+      }
+      await supabase.from("widget_ai_conversations").update(patch).eq("id", conversationId)
 
       console.log(`[widget-ai-chat] Implicit positive feedback: ${completionTool}`)
       return
@@ -1759,12 +1966,13 @@ function streamTextResponse(
   text: string,
   conversationId: string | null,
   messageId: string | null,
+  visitorToken: string | null = null,
 ): Response {
   const encoder = new TextEncoder()
 
   // Fix 5: Detect pure-marker responses and send immediately (no typing delay)
   const markerPattern =
-    /^\s*\[(?:ADDRESS_SEARCH|TIME_SLOT|LICENSE_PLATE|PHONE_VERIFY|SERVICE_SELECT|ACTION_MENU|BOOKING_SUMMARY|BOOKING_EDIT|BOOKING_CONFIRMED|BOOKING_INFO|BOOKING_SELECT|GROUP_SELECT|YES_NO|CONFIRM)\]/
+    /^\s*\[(?:ADDRESS_SEARCH|TIME_SLOT|LICENSE_PLATE|PHONE_VERIFY|SERVICE_SELECT|ACTION_MENU|BOOKING_SUMMARY|BOOKING_EDIT|BOOKING_CONFIRMED|BOOKING_INFO|BOOKING_SELECT|GROUP_SELECT|YES_NO|CONFIRM|RESOLVED_CHECK)\]/
   const isMarkerOnly = markerPattern.test(text.trim())
 
   const stream = new ReadableStream({
@@ -1772,7 +1980,7 @@ function streamTextResponse(
       if (conversationId || messageId) {
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "meta", conversationId, messageId })}\n\n`,
+            `data: ${JSON.stringify({ type: "meta", conversationId, messageId, visitorToken })}\n\n`,
           ),
         )
       }

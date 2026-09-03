@@ -41,6 +41,20 @@ interface ChatConversation {
     visitor_name: string | null
     visitor_email: string | null
   } | null
+  /** "live" = human live chat (conversations table); "ai" = AI chat (widget_ai_conversations). */
+  source?: "live" | "ai"
+  /** Raw AI conversation status: active | escalated | assigned | resolved | ended. */
+  ai_status?: string
+  /** True when an AI chat asked for a human and no agent has taken over yet. */
+  is_escalated?: boolean
+}
+
+/** Which AI conversation statuses belong to each inbox filter tab. */
+const AI_STATUS_BY_FILTER: Record<ChatFilterType, string[] | null> = {
+  active: ["active", "escalated", "assigned"],
+  ended: ["resolved", "ended"],
+  waiting: ["escalated"],
+  all: null, // no status constraint
 }
 
 interface ChatConversationListProps {
@@ -114,17 +128,63 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 
       const sessionMap = new Map((sessions || []).map((s) => [s.conversation_id, s]))
 
-      let result = (data || []).map((conv) => ({
+      let liveResult: ChatConversation[] = (data || []).map((conv) => ({
         ...conv,
+        source: "live" as const,
         session: sessionMap.get(conv.id) || null,
       }))
 
       // Filter by session status for 'waiting'
       if (filter === "waiting") {
-        result = result.filter((c) => c.session?.status === "waiting")
+        liveResult = liveResult.filter((c) => c.session?.status === "waiting")
       }
 
-      return result
+      // ── AI conversations (widget_ai_conversations) ──────────────────────────
+      // These live in a separate table but belong in the same inbox. Every AI
+      // chat shows here; escalated ones are flagged so a human can take over.
+      let aiQuery = supabase
+        .from("widget_ai_conversations")
+        .select(
+          "id, status, summary, updated_at, visitor_name, visitor_email, escalated_at, metadata",
+        )
+        .eq("organization_id", organizationId)
+        .order("updated_at", { ascending: false })
+        .limit(100)
+
+      const aiStatuses = AI_STATUS_BY_FILTER[filter]
+      if (aiStatuses) aiQuery = aiQuery.in("status", aiStatuses)
+
+      const { data: aiData, error: aiError } = await aiQuery
+      if (aiError) console.error("[ChatConversationList] AI fetch error:", aiError)
+
+      const aiResult: ChatConversation[] = (aiData || []).map((c) => {
+        const resolved = c.status === "resolved" || c.status === "ended"
+        return {
+          id: c.id,
+          subject: null,
+          preview_text: c.summary || "AI conversation",
+          // Map onto a conversation-style status so shared UI (SLA, styling) behaves.
+          status: resolved ? "resolved" : "open",
+          updated_at: c.updated_at,
+          is_read: true,
+          metadata: c.metadata,
+          sla_breach_at: null,
+          customer: {
+            id: c.id,
+            full_name: c.visitor_name || null,
+            email: c.visitor_email || null,
+          },
+          session: null,
+          source: "ai" as const,
+          ai_status: c.status,
+          is_escalated: c.status === "escalated",
+        }
+      })
+
+      // Merge both sources, newest first, cap at 100.
+      return [...liveResult, ...aiResult]
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 100)
     },
     enabled: !!organizationId,
     refetchInterval: 5000, // Poll every 5 seconds for real-time updates

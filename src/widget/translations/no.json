@@ -88,5 +88,8 @@
   "markResolved": "Marker som løst",
   "resolvedQuestion": "Ble problemet ditt løst?",
   "resolvedYes": "Ja, det ble løst",
-  "resolvedNo": "Nei, ikke løst"
+  "resolvedNo": "Nei, ikke løst",
+  "findingHuman": "Finner en person som kan hjelpe deg …",
+  "findingHumanHint": "Du kan fortsette å chatte med AI-en i mellomtiden – en person hopper inn så snart noen er ledig.",
+  "agentJoined": "En kundebehandler har blitt med i chatten"
 }

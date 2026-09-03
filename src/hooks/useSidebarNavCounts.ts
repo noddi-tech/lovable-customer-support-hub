@@ -36,7 +36,7 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     // so the badges don't flash off and back on.
     placeholderData: (previous: SidebarNavCounts | undefined) => previous as never,
     queryFn: async (): Promise<SidebarNavCounts> => {
-      const [allCountsRes, chatRes] = await Promise.all([
+      const [allCountsRes, chatRes, aiChatRes] = await Promise.all([
         // Same RPC the inbox list uses, so the badge matches "All inboxes"
         (supabase.rpc as any)("get_all_counts"),
         (() => {
@@ -48,11 +48,19 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
           if (organizationId) q = q.eq("organization_id", organizationId)
           return q
         })(),
+        (() => {
+          // AI chats that are live (bot handling, escalated, or human-assigned)
+          let q = (supabase.from("widget_ai_conversations") as any)
+            .select("id", { count: "exact", head: true })
+            .in("status", ["active", "escalated", "assigned"])
+          if (organizationId) q = q.eq("organization_id", organizationId)
+          return q
+        })(),
       ])
 
       const row = allCountsRes?.data?.[0]
       const textOpen = Number(row?.conversations_open) || 0
-      const chatActive = chatRes?.count ?? 0
+      const chatActive = (chatRes?.count ?? 0) + (aiChatRes?.count ?? 0)
 
       return {
         // Inbox badge must match the "All inboxes" open count exactly (live chats included)
@@ -81,6 +89,11 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "widget_chat_sessions" },
+        invalidate,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "widget_ai_conversations" },
         invalidate,
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "cases" }, () => {

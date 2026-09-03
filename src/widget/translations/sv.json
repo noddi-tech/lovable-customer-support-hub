@@ -75,5 +75,8 @@
   "markResolved": "Markera som löst",
   "resolvedQuestion": "Blev ditt problem löst?",
   "resolvedYes": "Ja, det löstes",
-  "resolvedNo": "Nej, inte löst"
+  "resolvedNo": "Nej, inte löst",
+  "findingHuman": "Letar efter en person som kan hjälpa dig …",
+  "findingHumanHint": "Du kan fortsätta chatta med AI:n under tiden – en person hoppar in så snart någon är ledig.",
+  "agentJoined": "En handläggare har anslutit till chatten"
 }

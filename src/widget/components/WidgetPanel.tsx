@@ -221,25 +221,6 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
     setView("home")
   }
 
-  // Escalation: start live chat from AI, carrying the AI transcript over so the
-  // agent does not ask the visitor to repeat themselves.
-  const handleTalkToHuman = useCallback(
-    async (transcript?: string) => {
-      if (!config.enableChat || !config.agentsOnline) return
-      const escalation: ChatEscalation | undefined = transcript
-        ? { from: "ai", transcript }
-        : undefined
-      if (isIdentified()) {
-        await beginChat(undefined, escalation)
-      } else {
-        setPendingEscalation(escalation ?? null)
-        setChatError(null)
-        setView("prechat")
-      }
-    },
-    [config.enableChat, config.agentsOnline, beginChat],
-  )
-
   const [pendingEscalation, setPendingEscalation] = useState<ChatEscalation | null>(null)
 
   // Escalation: email conversation transcript from AI
@@ -564,10 +545,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
             widgetKey={config.widgetKey}
             primaryColor={config.primaryColor}
             language={currentLanguage}
-            agentsOnline={config.agentsOnline}
             enableChat={config.enableChat}
             enableContactForm={config.enableContactForm}
-            onTalkToHuman={handleTalkToHuman}
             onEmailConversation={handleEmailConversation}
             onBack={() => setView("home")}
           />

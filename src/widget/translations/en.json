@@ -88,5 +88,8 @@
   "markResolved": "Mark as resolved",
   "resolvedQuestion": "Was your problem solved?",
   "resolvedYes": "Yes, solved",
-  "resolvedNo": "No, not solved"
+  "resolvedNo": "No, not solved",
+  "findingHuman": "Finding a person to help you…",
+  "findingHumanHint": "You can keep chatting with the AI in the meantime — a human will jump in as soon as one is free.",
+  "agentJoined": "A human agent has joined the chat"
 }

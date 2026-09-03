@@ -7640,6 +7640,9 @@ export type Database = {
       }
       widget_ai_conversations: {
         Row: {
+          agent_typing: boolean
+          assigned_agent_id: string | null
+          assigned_at: string | null
           created_at: string
           ended_at: string | null
           error_details: string | null
@@ -7659,10 +7662,15 @@ export type Database = {
           updated_at: string
           visitor_email: string | null
           visitor_id: string | null
+          visitor_name: string | null
           visitor_phone: string | null
+          visitor_token_hash: string | null
           widget_config_id: string | null
         }
         Insert: {
+          agent_typing?: boolean
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
           created_at?: string
           ended_at?: string | null
           error_details?: string | null
@@ -7682,10 +7690,15 @@ export type Database = {
           updated_at?: string
           visitor_email?: string | null
           visitor_id?: string | null
+          visitor_name?: string | null
           visitor_phone?: string | null
+          visitor_token_hash?: string | null
           widget_config_id?: string | null
         }
         Update: {
+          agent_typing?: boolean
+          assigned_agent_id?: string | null
+          assigned_at?: string | null
           created_at?: string
           ended_at?: string | null
           error_details?: string | null
@@ -7705,7 +7718,9 @@ export type Database = {
           updated_at?: string
           visitor_email?: string | null
           visitor_id?: string | null
+          visitor_name?: string | null
           visitor_phone?: string | null
+          visitor_token_hash?: string | null
           widget_config_id?: string | null
         }
         Relationships: [
@@ -7782,6 +7797,7 @@ export type Database = {
       }
       widget_ai_messages: {
         Row: {
+          agent_id: string | null
           confidence_breakdown: Json | null
           confidence_score: number | null
           content: string
@@ -7796,6 +7812,7 @@ export type Database = {
           tools_used: string[] | null
         }
         Insert: {
+          agent_id?: string | null
           confidence_breakdown?: Json | null
           confidence_score?: number | null
           content: string
@@ -7810,6 +7827,7 @@ export type Database = {
           tools_used?: string[] | null
         }
         Update: {
+          agent_id?: string | null
           confidence_breakdown?: Json | null
           confidence_score?: number | null
           content?: string

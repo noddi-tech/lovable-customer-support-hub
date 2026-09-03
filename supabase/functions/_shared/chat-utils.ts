@@ -47,11 +47,29 @@ export interface RequestBody {
   messages: AiMessage[]
   visitorPhone?: string
   visitorEmail?: string
+  visitorName?: string
   language?: string
   test?: boolean
   stream?: boolean
   conversationId?: string
   isVerified?: boolean
+  /**
+   * Control actions that operate on an existing AI conversation instead of
+   * generating an AI reply:
+   *   "escalate" — flag the conversation for a human (AI keeps answering)
+   *   "resolve"  — mark the conversation resolved
+   *   "poll"     — fetch agent-authored messages + status for the widget
+   * Omitted for a normal chat turn.
+   */
+  action?: "escalate" | "resolve" | "poll"
+  /** For action "poll": only return agent messages created after this ISO timestamp. */
+  since?: string
+  /**
+   * Per-conversation capability secret. Minted server-side when a conversation
+   * is created and returned to the widget; required to authorize control
+   * actions (escalate/resolve/poll) so a visitor can only act on their own chat.
+   */
+  visitorToken?: string
 }
 
 // Simple in-memory rate limiter (per widget key, resets on cold start)

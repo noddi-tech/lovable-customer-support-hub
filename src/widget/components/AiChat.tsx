@@ -1,7 +1,14 @@
 import DOMPurify from "dompurify"
 import type React from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { getApiUrl, sendAiMessage, streamAiMessage } from "../api"
+import {
+  escalateAiChat,
+  getApiUrl,
+  pollAiChat,
+  resolveAiChat,
+  sendAiMessage,
+  streamAiMessage,
+} from "../api"
 import { getWidgetTranslations } from "../translations"
 import { type MessageBlock, parseMessageBlocks } from "../utils/parseMessageBlocks"
 import { AiFeedback } from "./AiFeedback"
@@ -14,16 +21,21 @@ interface AiChatMessage {
   content: string
   timestamp: Date
   hidden?: boolean
+  /** True when this message was written by a human agent who took over the chat. */
+  fromAgent?: boolean
+  senderName?: string
 }
+
+type EscalationStatus = "none" | "escalated" | "assigned" | "resolved"
+
+const ESCALATION_KEY = "noddi_ai_escalation_status"
 
 interface AiChatProps {
   widgetKey: string
   primaryColor: string
   language: string
-  agentsOnline: boolean
   enableChat: boolean
   enableContactForm: boolean
-  onTalkToHuman: (transcript?: string) => void
   onEmailConversation: (transcript: string) => void
   onBack: () => void
   onLogEvent?: (
@@ -36,6 +48,7 @@ interface AiChatProps {
 const STORAGE_KEY = "noddi_ai_chat_messages"
 const CONVERSATION_ID_KEY = "noddi_ai_conversation_id"
 const VERIFIED_PHONE_KEY = "noddi_ai_verified_phone"
+const VISITOR_TOKEN_KEY = "noddi_ai_visitor_token"
 
 function loadMessages(): AiChatMessage[] {
   try {
@@ -154,10 +167,8 @@ export const AiChat: React.FC<AiChatProps> = ({
   widgetKey,
   primaryColor,
   language,
-  agentsOnline,
   enableChat,
   enableContactForm,
-  onTalkToHuman,
   onEmailConversation,
   onBack,
   onLogEvent,
@@ -169,11 +180,30 @@ export const AiChat: React.FC<AiChatProps> = ({
   const [conversationId, setConversationId] = useState<string | null>(() =>
     localStorage.getItem(CONVERSATION_ID_KEY),
   )
+  // Per-conversation capability token minted by the backend; required to
+  // escalate/resolve/poll so a visitor can only act on their own chat.
+  const visitorTokenRef = useRef<string | null>(localStorage.getItem(VISITOR_TOKEN_KEY))
+  const captureVisitorToken = useCallback((token?: string) => {
+    if (token && token !== visitorTokenRef.current) {
+      visitorTokenRef.current = token
+      try {
+        localStorage.setItem(VISITOR_TOKEN_KEY, token)
+      } catch {
+        /* storage unavailable */
+      }
+    }
+  }, [])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [usedBlocks, setUsedBlocks] = useState<Set<string>>(new Set())
   const [verifiedPhone, setVerifiedPhone] = useState(
     () => localStorage.getItem(VERIFIED_PHONE_KEY) || "",
   )
+  const [escalationStatus, setEscalationStatus] = useState<EscalationStatus>(
+    () => (localStorage.getItem(ESCALATION_KEY) as EscalationStatus) || "none",
+  )
+  const [assignedAgentName, setAssignedAgentName] = useState<string | null>(null)
+  // ISO timestamp of the newest human-agent message already shown.
+  const lastAgentSeenRef = useRef<string | undefined>(undefined)
 
   const t = getWidgetTranslations(language)
 
@@ -188,6 +218,66 @@ export const AiChat: React.FC<AiChatProps> = ({
   useEffect(() => {
     if (conversationId) localStorage.setItem(CONVERSATION_ID_KEY, conversationId)
   }, [conversationId])
+
+  useEffect(() => {
+    localStorage.setItem(ESCALATION_KEY, escalationStatus)
+  }, [escalationStatus])
+
+  // Flag the conversation for a human. The AI keeps answering; a human takes
+  // over the same thread when ready (we learn that via polling below).
+  const startEscalation = useCallback(async () => {
+    if (!conversationId || !visitorTokenRef.current) return
+    setEscalationStatus((prev) => (prev === "assigned" || prev === "resolved" ? prev : "escalated"))
+    await escalateAiChat(widgetKey, conversationId, visitorTokenRef.current)
+    onLogEvent?.("Escalated to human", "Customer requested a human agent", "info")
+  }, [conversationId, widgetKey, onLogEvent])
+
+  // While escalated or handed off, poll for the human agent's status + replies.
+  useEffect(() => {
+    if (!conversationId) return
+    if (escalationStatus !== "escalated" && escalationStatus !== "assigned") return
+
+    if (!visitorTokenRef.current) return
+
+    let cancelled = false
+    const tick = async () => {
+      const token = visitorTokenRef.current
+      if (!token) return
+      const result = await pollAiChat(widgetKey, conversationId, token, lastAgentSeenRef.current)
+      if (cancelled || !result) return
+
+      setAssignedAgentName(result.assignedAgentName)
+      if (result.status === "assigned") setEscalationStatus("assigned")
+      else if (result.status === "resolved" || result.status === "ended")
+        setEscalationStatus("resolved")
+
+      if (result.messages.length > 0) {
+        lastAgentSeenRef.current = result.messages[result.messages.length - 1].createdAt
+        setMessages((prev) => {
+          const seen = new Set(prev.map((m) => m.serverId).filter(Boolean))
+          const fresh = result.messages
+            .filter((m) => !seen.has(m.id))
+            .map((m) => ({
+              id: `agent_${m.id}`,
+              serverId: m.id,
+              role: "assistant" as const,
+              content: m.content,
+              timestamp: new Date(m.createdAt),
+              fromAgent: true,
+              senderName: result.assignedAgentName || undefined,
+            }))
+          return fresh.length > 0 ? [...prev, ...fresh] : prev
+        })
+      }
+    }
+
+    void tick()
+    const interval = setInterval(() => void tick(), 4000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [conversationId, widgetKey, escalationStatus])
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -244,6 +334,7 @@ export const AiChat: React.FC<AiChatProps> = ({
             (meta) => {
               if (meta.conversationId) setConversationId(meta.conversationId)
               if (meta.messageId) serverMessageId = meta.messageId
+              captureVisitorToken(meta.visitorToken)
             },
             effectiveVerified,
           )
@@ -259,6 +350,7 @@ export const AiChat: React.FC<AiChatProps> = ({
             fullReply = typeof result === "string" ? result : result.reply
             if (result.conversationId) setConversationId(result.conversationId)
             if (result.messageId) serverMessageId = result.messageId
+            captureVisitorToken(result.visitorToken)
           }
           onLogEvent?.("AI stream fallback", "Used non-streaming endpoint", "info")
         }
@@ -290,7 +382,17 @@ export const AiChat: React.FC<AiChatProps> = ({
       setStreamingContent("")
       setIsLoading(false)
     },
-    [isLoading, messages, widgetKey, verifiedPhone, language, conversationId, t, onLogEvent],
+    [
+      isLoading,
+      messages,
+      widgetKey,
+      verifiedPhone,
+      language,
+      conversationId,
+      t,
+      onLogEvent,
+      captureVisitorToken,
+    ],
   )
 
   const handleSend = useCallback(async () => {
@@ -311,6 +413,20 @@ export const AiChat: React.FC<AiChatProps> = ({
     (option: string, blockKey: string) => {
       localStorage.setItem(`noddi_action_${blockKey}`, option)
       setUsedBlocks((prev) => new Set(prev).add(blockKey))
+
+      // Resolution-check sentinels: update local state only — the block already
+      // told the backend to resolve/escalate, and we never send these to the AI.
+      if (option === "__RESOLVED__") {
+        setEscalationStatus("resolved")
+        if (conversationId && visitorTokenRef.current)
+          void resolveAiChat(widgetKey, conversationId, visitorTokenRef.current)
+        return
+      }
+      if (option === "__ESCALATE__") {
+        void startEscalation()
+        onLogEvent?.("Escalated to human", "Customer chose to talk to a human", "info")
+        return
+      }
 
       // Save star ratings to feedback DB
       const ratingMatch = option.match(/^Rating: (\d)\/5$/)
@@ -340,7 +456,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       // Always send as hidden — the block's inline badge provides visual feedback
       void sendMessage(option, undefined, { hidden: true })
     },
-    [sendMessage, conversationId, messages, widgetKey],
+    [sendMessage, conversationId, messages, widgetKey, onLogEvent, startEscalation],
   )
 
   const handlePhoneVerified = useCallback(
@@ -361,8 +477,6 @@ export const AiChat: React.FC<AiChatProps> = ({
       .join("\n\n")
   }
 
-  const canEscalate = (agentsOnline && enableChat) || enableContactForm
-
   const handleNewConversation = useCallback(() => {
     setMessages([
       { id: "greeting", role: "assistant", content: t.aiGreeting, timestamp: new Date() },
@@ -372,9 +486,15 @@ export const AiChat: React.FC<AiChatProps> = ({
     setInputValue("")
     setUsedBlocks(new Set())
     setVerifiedPhone("")
+    setEscalationStatus("none")
+    setAssignedAgentName(null)
+    lastAgentSeenRef.current = undefined
+    visitorTokenRef.current = null
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(CONVERSATION_ID_KEY)
     localStorage.removeItem(VERIFIED_PHONE_KEY)
+    localStorage.removeItem(ESCALATION_KEY)
+    localStorage.removeItem(VISITOR_TOKEN_KEY)
   }, [t])
 
   return (
@@ -435,7 +555,9 @@ export const AiChat: React.FC<AiChatProps> = ({
                 className={`noddi-chat-message ${message.role === "user" ? "noddi-chat-message-customer" : "noddi-chat-message-agent"}`}
               >
                 {message.role === "assistant" && (
-                  <span className="noddi-chat-message-sender">{t.aiAssistant}</span>
+                  <span className="noddi-chat-message-sender">
+                    {message.fromAgent ? message.senderName || t.chattingWith : t.aiAssistant}
+                  </span>
                 )}
                 <div
                   className="noddi-chat-message-bubble"
@@ -498,13 +620,38 @@ export const AiChat: React.FC<AiChatProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {canEscalate && messages.length > 2 && (
+      {/* "Finding a person" banner while waiting for a human to take over. */}
+      {escalationStatus === "escalated" && (
+        <div className="noddi-ai-escalation-banner" role="status">
+          <div className="noddi-ai-escalation-banner-title">
+            <span className="noddi-chat-typing" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            {t.findingHuman}
+          </div>
+          <p className="noddi-ai-escalation-banner-hint">{t.findingHumanHint}</p>
+        </div>
+      )}
+
+      {/* A human has joined and is now handling the chat. */}
+      {escalationStatus === "assigned" && (
+        <div className="noddi-ai-escalation-banner" role="status">
+          <div className="noddi-ai-escalation-banner-title">
+            {assignedAgentName ? `${t.chattingWith} ${assignedAgentName}` : t.agentJoined}
+          </div>
+        </div>
+      )}
+
+      {/* Talk-to-a-human entry point (soft escalation — the AI keeps answering). */}
+      {escalationStatus === "none" && messages.length > 2 && (
         <div className="noddi-ai-escalation">
-          {agentsOnline && enableChat ? (
+          {enableChat && conversationId ? (
             <button
               type="button"
               className="noddi-ai-escalation-btn"
-              onClick={() => onTalkToHuman(buildTranscript())}
+              onClick={() => void startEscalation()}
             >
               <svg
                 width="16"

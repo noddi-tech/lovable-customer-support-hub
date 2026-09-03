@@ -529,12 +529,19 @@ export async function sendAiMessage(
   visitorPhone?: string,
   visitorEmail?: string,
   language?: string,
-): Promise<{ reply: string; conversationId?: string; messageId?: string }> {
+): Promise<{ reply: string; conversationId?: string; messageId?: string; visitorToken?: string }> {
   try {
     const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ widgetKey, messages, visitorPhone, visitorEmail, language }),
+      body: JSON.stringify({
+        widgetKey,
+        messages,
+        visitorPhone,
+        visitorEmail,
+        language,
+        visitorName: getIdentity().name || undefined,
+      }),
     })
 
     if (!response.ok) {
@@ -550,6 +557,7 @@ export async function sendAiMessage(
       reply: data.reply || "Sorry, I could not generate a response.",
       conversationId: data.conversationId,
       messageId: data.messageId,
+      visitorToken: data.visitorToken,
     }
   } catch (error) {
     console.error("[Noddi Widget] Error in AI chat:", error)
@@ -565,7 +573,7 @@ export async function streamAiMessage(
   language?: string,
   conversationId?: string,
   onToken?: (token: string) => void,
-  onMeta?: (meta: { conversationId?: string; messageId?: string }) => void,
+  onMeta?: (meta: { conversationId?: string; messageId?: string; visitorToken?: string }) => void,
   isVerified?: boolean,
 ): Promise<void> {
   const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
@@ -580,6 +588,7 @@ export async function streamAiMessage(
       stream: true,
       conversationId,
       isVerified,
+      visitorName: getIdentity().name || undefined,
     }),
   })
 
@@ -597,7 +606,8 @@ export async function streamAiMessage(
   if (!contentType.includes("text/event-stream")) {
     const data = await response.json()
     if (data.reply && onToken) onToken(data.reply)
-    if (data.conversationId && onMeta) onMeta({ conversationId: data.conversationId })
+    if (data.conversationId && onMeta)
+      onMeta({ conversationId: data.conversationId, visitorToken: data.visitorToken })
     return
   }
 
@@ -624,7 +634,11 @@ export async function streamAiMessage(
         if (data.type === "token" && onToken) {
           onToken(data.content)
         } else if (data.type === "meta" && onMeta) {
-          onMeta({ conversationId: data.conversationId, messageId: data.messageId })
+          onMeta({
+            conversationId: data.conversationId,
+            messageId: data.messageId,
+            visitorToken: data.visitorToken,
+          })
         } else if (data.type === "done") {
           return
         }
@@ -632,6 +646,79 @@ export async function streamAiMessage(
         /* skip invalid JSON */
       }
     }
+  }
+}
+
+/** A reply written into the AI thread by a human agent who took over. */
+export interface AiAgentMessage {
+  id: string
+  content: string
+  createdAt: string
+}
+
+export interface AiPollResult {
+  /** active | escalated | assigned | resolved | ended */
+  status: string
+  assignedAgentName: string | null
+  messages: AiAgentMessage[]
+}
+
+/**
+ * Ask for a human on the current AI conversation. The AI keeps answering; the
+ * conversation is flagged for the support team, who take over when ready.
+ */
+export async function escalateAiChat(
+  widgetKey: string,
+  conversationId: string,
+  visitorToken: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ widgetKey, action: "escalate", conversationId, visitorToken }),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/** Mark the current AI conversation resolved (customer confirmed it was solved). */
+export async function resolveAiChat(
+  widgetKey: string,
+  conversationId: string,
+  visitorToken: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ widgetKey, action: "resolve", conversationId, visitorToken }),
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+/** Poll for status + any human-agent replies on an escalated/assigned AI chat. */
+export async function pollAiChat(
+  widgetKey: string,
+  conversationId: string,
+  visitorToken: string,
+  since?: string,
+): Promise<AiPollResult | null> {
+  try {
+    const response = await fetch(`${apiBaseUrl}/widget-ai-chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ widgetKey, action: "poll", conversationId, since, visitorToken }),
+    })
+    if (!response.ok) return null
+    return await response.json()
+  } catch {
+    return null
   }
 }
 

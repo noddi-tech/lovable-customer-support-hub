@@ -107,6 +107,62 @@ export function useNewChatAlerts() {
           })()
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "widget_ai_conversations" },
+        (payload) => {
+          const conv = payload.new as {
+            id: string
+            status: string
+            organization_id: string
+            visitor_name: string | null
+            visitor_email: string | null
+            escalated_at: string | null
+          }
+          const prev = payload.old as { status?: string } | undefined
+
+          // Only fire when a chat *becomes* escalated, once per conversation.
+          if (conv.status !== "escalated") return
+          if (prev?.status === "escalated") return
+          if (conv.organization_id !== organizationId) return
+          const alertKey = `ai-escalation-${conv.id}`
+          if (seenRef.current.has(alertKey)) return
+          seenRef.current.add(alertKey)
+
+          const visitorName = conv.visitor_name || conv.visitor_email || "A visitor"
+          setAlerts((prev2) => [
+            {
+              sessionId: alertKey,
+              visitorName,
+              startedAt: conv.escalated_at || new Date().toISOString(),
+            },
+            ...prev2.filter((a) => a.sessionId !== alertKey),
+          ])
+
+          playNotificationSound()
+          void queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
+          void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+          void queryClient.invalidateQueries({ queryKey: ["chat-counts"] })
+
+          if (permission === "granted" && desktopChatEnabled) {
+            void showNotification({
+              title: "🙋 Customer wants a human",
+              body: `${visitorName} asked to talk to a person`,
+              tag: alertKey,
+              requireInteraction: true,
+              data: { sessionId: alertKey },
+            }).then((notification) => {
+              if (notification) {
+                notification.onclick = () => {
+                  window.focus()
+                  window.location.href = "/interactions/chat/active"
+                  notification.close()
+                }
+              }
+            })
+          }
+        },
+      )
       .subscribe()
 
     return () => {
