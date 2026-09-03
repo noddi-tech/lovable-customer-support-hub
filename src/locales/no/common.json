@@ -373,5 +373,15 @@
   "recruitment": "Rekruttering",
   "serviceTicketsComingSoon": "Servicebillett-funksjoner kommer snart",
   "doormanComingSoon": "Dørvakt-funksjoner kommer snart",
-  "recruitmentComingSoon": "Rekrutteringsfunksjoner kommer snart"
+  "recruitmentComingSoon": "Rekrutteringsfunksjoner kommer snart",
+  "navigation": {
+    "notifications": "Varsler",
+    "support": "Kundeservice",
+    "interactions": "Henvendelser",
+    "marketing": "Markedsføring",
+    "operations": "Drift",
+    "settings": "Innstillinger",
+    "admin": "Administrasjon",
+    "superAdmin": "Superadmin"
+  }
 }
