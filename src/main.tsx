@@ -55,6 +55,9 @@ window.addEventListener("error", (event) => {
   }
 })
 
+// Boot telemetry (OpenPanel + Faro) before React mounts so early errors are captured.
+initObservability()
+
 
 // Phase 5: Add global tab visibility logger
 if (import.meta.env.DEV) {
