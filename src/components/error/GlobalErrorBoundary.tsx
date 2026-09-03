@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react"
 import type React from "react"
 import { Component, type ReactNode } from "react"
+import { isChunkLoadError, reloadOnceForChunkError } from "@/utils/chunkReload"
 import { logger } from "@/utils/logger"
 
 interface Props {
@@ -21,12 +22,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Only show error UI for critical errors, not analytics/iframe errors
-    const shouldShowError = !GlobalErrorBoundary.shouldSuppressError(error)
-    return { hasError: shouldShowError, error }
+    // Always render a visible fallback — suppression only controls reporting,
+    // never leaves an empty #root behind.
+    return { hasError: true, error }
   }
 
   static shouldSuppressError(error: Error): boolean {
+    // Chunk/module load errors are recoverable by reloading — never suppress.
+    if (isChunkLoadError(error)) return false
+
     const message = error.message?.toLowerCase() || ""
     const stack = error.stack?.toLowerCase() || ""
 
@@ -50,10 +54,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       return true
     }
 
-    // Suppress network errors that are handled elsewhere
+    // Narrow network suppression: only genuine transport failures, not any
+    // message that happens to contain the word "fetch".
     if (
-      message.includes("network") ||
-      message.includes("fetch") ||
+      message.includes("failed to fetch") ||
+      message.includes("networkerror") ||
+      message.includes("network request failed") ||
       message.includes("cors") ||
       message.includes("edge function")
     ) {
@@ -64,8 +70,20 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Stale code-split chunk after a redeploy → recover with one reload.
+    if (isChunkLoadError(error)) {
+      logger.warn(
+        "Stale chunk error caught by boundary",
+        { error: error.message },
+        "GlobalErrorBoundary",
+      )
+      reloadOnceForChunkError("GlobalErrorBoundary")
+      return
+    }
+
     if (GlobalErrorBoundary.shouldSuppressError(error)) {
-      // Log suppressed errors for debugging but don't show UI
+      // Log suppressed errors for debugging; still show the fallback so the
+      // app never renders an empty root.
       logger.debug(
         "Suppressed error",
         {
@@ -75,9 +93,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         },
         "GlobalErrorBoundary",
       )
-
-      // Reset error state for suppressed errors
-      this.setState({ hasError: false, error: undefined })
       return
     }
 
@@ -101,6 +116,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     // Handle unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason
+      if (isChunkLoadError(error)) {
+        event.preventDefault()
+        reloadOnceForChunkError("GlobalErrorBoundary:unhandledrejection")
+        return
+      }
       if (error && GlobalErrorBoundary.shouldSuppressError(error)) {
         event.preventDefault()
         logger.debug("Suppressed promise rejection", { error }, "GlobalErrorBoundary")
@@ -128,28 +148,41 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    // For suppressed errors or no errors, render children normally
     if (!this.state.hasError) {
       return this.props.children
     }
 
-    // Only show error UI for critical errors
+    // C. Always a visible fallback — never an empty #root.
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center max-w-md p-6">
           <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
-          <p className="text-muted-foreground mb-4">Please refresh the page to continue.</p>
-          <button
-            type="button"
-            onClick={() => {
-              console.log("🔄 [GlobalErrorBoundary] Attempting recovery without reload")
-              this.setState({ hasError: false, error: undefined })
-              window.dispatchEvent(new CustomEvent("global-error-reset"))
-            }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Try to Recover
-          </button>
+          <p className="text-muted-foreground mb-4">
+            {this.state.error?.message
+              ? "The page failed to load. Reload to get the latest version."
+              : "Please refresh the page to continue."}
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.reload()
+              }}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Reload
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: undefined })
+                window.dispatchEvent(new CustomEvent("global-error-reset"))
+              }}
+              className="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+            >
+              Try to Recover
+            </button>
+          </div>
         </div>
       </div>
     )

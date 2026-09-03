@@ -33,6 +33,27 @@ import App from "./App.tsx"
 import "./index.css"
 import { initObservability } from "./integrations/observability"
 import { queryClient } from "./lib/persistedQueryClient"
+import { isChunkLoadError, reloadOnceForChunkError } from "./utils/chunkReload"
+
+// A. Vite fires this when a lazy chunk (purged by a redeploy) fails to load.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault()
+  reloadOnceForChunkError("vite:preloadError")
+})
+
+// D. Backstop: unhandled rejections from import() that bypass the boundary.
+window.addEventListener("unhandledrejection", (event) => {
+  if (isChunkLoadError(event.reason)) {
+    event.preventDefault()
+    reloadOnceForChunkError("unhandledrejection")
+  }
+})
+
+window.addEventListener("error", (event) => {
+  if (isChunkLoadError(event.error ?? event.message)) {
+    reloadOnceForChunkError("window.error")
+  }
+})
 
 // Boot telemetry (OpenPanel + Faro) before React mounts so early errors are captured.
 initObservability()
