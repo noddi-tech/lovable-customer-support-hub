@@ -1314,6 +1314,9 @@ Optimized for accessibility with WCAG AA compliance.
     min-height: 44px; 
     font-size: 16px; /* avoid iOS zoom on focus */
   }
+}
+
+
 
 /* Responsive panel management - legacy compatibility */
 @media (max-width: 1400px) {
