@@ -26,6 +26,7 @@ VITE_PORT ?= 8080
 	e2e e2e-ui \
 	docs-api generate generate-openapi generate-edge-functions sync-noddi-schema \
 	supabase-start supabase-stop supabase-status supabase-reset supabase-functions \
+	supabase-link supabase-db-push supabase-deploy-functions supabase-deploy-function supabase-deploy \
 	check ci clean
 
 help: ## Show available targets
@@ -258,6 +259,33 @@ supabase-reset: ## Reset local DB (re-apply migrations)
 
 supabase-functions: ## Serve edge functions locally
 	supabase functions serve
+
+# ---------------------------------------------------------------------------
+# Supabase (remote deploy)
+# Bypasses Lovable's publisher — deploy edge functions + DB migrations
+# straight to the linked project from your terminal.
+# Requires: supabase CLI installed + `supabase login` done once.
+# ---------------------------------------------------------------------------
+
+SUPABASE_PROJECT_REF ?= qgfaycwsangsqzpveoup
+
+supabase-link: ## Link local repo to the remote Supabase project (run once)
+	supabase link --project-ref $(SUPABASE_PROJECT_REF)
+
+supabase-db-push: ## Push local migrations to the remote database
+	supabase db push
+
+supabase-deploy-functions: ## Deploy ALL edge functions to the remote project
+	supabase functions deploy --project-ref $(SUPABASE_PROJECT_REF)
+
+supabase-deploy-function: ## Deploy ONE edge function: make supabase-deploy-function FUNCTION=send-email
+	@if [ -z "$(FUNCTION)" ]; then \
+		echo "× Set FUNCTION=<name>, e.g. make supabase-deploy-function FUNCTION=send-email" >&2; \
+		exit 1; \
+	fi
+	supabase functions deploy $(FUNCTION) --project-ref $(SUPABASE_PROJECT_REF)
+
+supabase-deploy: supabase-db-push supabase-deploy-functions ## Deploy migrations + all edge functions to remote
 
 # ---------------------------------------------------------------------------
 # Aggregate / cleanup

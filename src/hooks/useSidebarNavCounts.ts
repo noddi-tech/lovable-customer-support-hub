@@ -83,8 +83,12 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
       }, 2000)
     }
 
+    // Unique topic per mount: Supabase caches channels by topic name, so a
+    // shared name collides when the hook mounts in >1 component (or under
+    // StrictMode double-mount), yielding "cannot add postgres_changes
+    // callbacks ... after subscribe()".
     const channel = supabase
-      .channel("sidebar-nav-counts")
+      .channel(`sidebar-nav-counts-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, invalidate)
       .on(
         "postgres_changes",
