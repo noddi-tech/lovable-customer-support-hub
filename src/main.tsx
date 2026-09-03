@@ -34,6 +34,11 @@ import "./index.css"
 import { initObservability } from "./integrations/observability"
 import { queryClient } from "./lib/persistedQueryClient"
 import { isChunkLoadError, reloadOnceForChunkError } from "./utils/chunkReload"
+import { startPointerEventsWatchdog } from "./utils/pointerEventsWatchdog"
+
+// Recover from Radix leaving `pointer-events: none` on <body> (page looks fine
+// but nothing is clickable).
+startPointerEventsWatchdog()
 
 // A. Vite fires this when a lazy chunk (purged by a redeploy) fails to load.
 window.addEventListener("vite:preloadError", (event) => {
