@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useAgentAvailability } from "@/hooks/useAgentAvailability"
 import { useAuth } from "@/hooks/useAuth"
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications"
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences"
 import { useNotificationSound } from "@/hooks/useNotificationSound"
 import { supabase } from "@/integrations/supabase/client"
 
@@ -21,6 +22,7 @@ export function useNewChatAlerts() {
   const { user, profile } = useAuth()
   const { status } = useAgentAvailability()
   const { showNotification, permission } = useBrowserNotifications()
+  const { preferences } = useNotificationPreferences()
   const { playNotificationSound } = useNotificationSound()
   const queryClient = useQueryClient()
 
@@ -28,6 +30,8 @@ export function useNewChatAlerts() {
   const seenRef = useRef<Set<string>>(new Set())
   const organizationId = profile?.organization_id
   const isOnline = status === "online"
+  const desktopChatEnabled =
+    (preferences?.desktop_enabled ?? true) && (preferences?.desktop_on_chat_message ?? true)
 
   const dismiss = useCallback((sessionId: string) => {
     setAlerts((prev) => prev.filter((a) => a.sessionId !== sessionId))
@@ -83,7 +87,7 @@ export function useNewChatAlerts() {
           queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
           queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
 
-          if (permission === "granted") {
+          if (permission === "granted" && desktopChatEnabled) {
             const notification = await showNotification({
               title: "💬 New live chat",
               body: `${visitorName} is waiting for a reply`,
@@ -111,6 +115,7 @@ export function useNewChatAlerts() {
     organizationId,
     isOnline,
     permission,
+    desktopChatEnabled,
     showNotification,
     playNotificationSound,
     queryClient,

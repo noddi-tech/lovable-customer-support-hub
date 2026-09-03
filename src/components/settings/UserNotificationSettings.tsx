@@ -1,4 +1,4 @@
-import { Bell, Calendar, Loader2, Mail, MonitorSmartphone } from "lucide-react"
+import { Bell, Loader2, Mail, MonitorSmartphone } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
@@ -31,33 +31,26 @@ const GROUPS: EventGroup[] = [
     rows: [
       {
         label: "New customer email",
-        description: "An email arrives in an inbox you can access",
-        app: "app_on_new_email",
-        email: "email_on_new_email",
+        description: "Desktop OS popup when an email arrives in an inbox you can access",
         desktop: "desktop_on_new_email",
       },
       {
         label: "New chat message",
-        description: "A live-chat visitor sends a message",
+        description: "Desktop OS popup when a live-chat visitor sends a message",
         desktop: "desktop_on_chat_message",
-      },
-      {
-        label: "Customer reply",
-        description: "A customer replies in a conversation you are involved with",
-        app: "app_on_customer_reply",
-        email: "email_on_customer_reply",
       },
       {
         label: "Conversation assigned to me",
         description: "Someone assigns a conversation to you",
         app: "app_on_conversation_assigned",
-        email: "email_on_conversation_assigned",
+        desktop: "desktop_on_assignment",
       },
       {
         label: "Mentions",
         description: "Someone @mentions you in a note or comment",
         app: "app_on_mention",
         email: "email_on_mention",
+        desktop: "desktop_on_mention",
       },
     ],
   },
@@ -68,18 +61,19 @@ const GROUPS: EventGroup[] = [
         label: "Incoming call",
         description: "A call is ringing for your team",
         app: "app_on_incoming_call",
+        desktop: "desktop_on_incoming_call",
       },
       {
         label: "Missed call",
         description: "A call was not answered",
         app: "app_on_missed_call",
-        email: "email_on_missed_call",
+        desktop: "desktop_on_missed_call",
       },
       {
         label: "Voicemail",
         description: "A caller left a voicemail",
         app: "app_on_voicemail",
-        email: "email_on_voicemail",
+        desktop: "desktop_on_voicemail",
       },
     ],
   },
@@ -87,7 +81,7 @@ const GROUPS: EventGroup[] = [
     title: "Tickets & SLA",
     rows: [
       {
-        label: "Ticket assigned to me",
+        label: "Ticket assigned",
         description: "A ticket is assigned to you",
         app: "app_on_ticket_assigned",
         email: "email_on_ticket_assigned",
@@ -106,9 +100,10 @@ const GROUPS: EventGroup[] = [
       },
       {
         label: "SLA breach warning",
-        description: "An SLA is about to breach",
+        description: "An SLA is about to breach or has breached",
         app: "app_on_sla_breach",
         email: "email_on_sla_breach",
+        desktop: "desktop_on_sla_breach",
       },
     ],
   },
@@ -259,52 +254,6 @@ export function UserNotificationSettings() {
               ))}
             </div>
           ))}
-        </CardContent>
-      </Card>
-
-      {/* Digest Emails */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">Digest Emails</CardTitle>
-          </div>
-          <CardDescription>Receive periodic summaries of activity</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="daily_digest_enabled" className="text-sm font-medium cursor-pointer">
-                Daily digest
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Receive a daily summary of activity every morning
-              </p>
-            </div>
-            <Switch
-              id="daily_digest_enabled"
-              checked={preferences.daily_digest_enabled ?? false}
-              onCheckedChange={handleToggle("daily_digest_enabled")}
-              disabled={isUpdating}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between py-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="weekly_digest_enabled" className="text-sm font-medium cursor-pointer">
-                Weekly digest
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Receive a weekly summary every Monday morning
-              </p>
-            </div>
-            <Switch
-              id="weekly_digest_enabled"
-              checked={preferences.weekly_digest_enabled ?? true}
-              onCheckedChange={handleToggle("weekly_digest_enabled")}
-              disabled={isUpdating}
-            />
-          </div>
         </CardContent>
       </Card>
     </div>

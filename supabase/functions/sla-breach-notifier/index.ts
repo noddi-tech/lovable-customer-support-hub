@@ -113,6 +113,18 @@ Deno.serve(async (req: Request) => {
       for (const conv of approachingBreach) {
         if (!conv.assigned_to_id) continue
 
+        const { data: warnPrefs } = await supabase
+          .from("notification_preferences")
+          .select("app_on_sla_breach")
+          .eq("user_id", conv.assigned_to_id)
+          .eq("organization_id", conv.organization_id)
+          .maybeSingle()
+
+        if (warnPrefs?.app_on_sla_breach === false) {
+          console.log(`⏭️ SLA warning skipped — app_on_sla_breach off for ${conv.assigned_to_id}`)
+          continue
+        }
+
         // Check if warning already sent for this conversation
         const { data: existingNotif } = await supabase
           .from("notifications")
@@ -204,7 +216,23 @@ Deno.serve(async (req: Request) => {
         const inboxName = (conv.inbox as any)?.name || "Inbox"
         let slackSentForThisConversation = false
 
+        const { data: breachPrefsRows } = await supabase
+          .from("notification_preferences")
+          .select("user_id, app_on_sla_breach")
+          .eq("organization_id", conv.organization_id)
+          .in("user_id", userIdsToNotify)
+
+        const breachAppByUser = new Map<string, boolean>()
+        for (const row of breachPrefsRows || []) {
+          breachAppByUser.set(row.user_id, row.app_on_sla_breach !== false)
+        }
+
         for (const userId of userIdsToNotify) {
+          if (!(breachAppByUser.get(userId) ?? true)) {
+            console.log(`⏭️ SLA breach skipped — app_on_sla_breach off for ${userId}`)
+            continue
+          }
+
           // Check if breach notification already sent today for this conversation
           const { data: existingNotif } = await supabase
             .from("notifications")

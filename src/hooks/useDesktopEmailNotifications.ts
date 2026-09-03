@@ -46,16 +46,38 @@ export function useDesktopEmailNotificationsSetting() {
   return { enabled, setEnabled, isUpdating, preferences }
 }
 
+type NotificationRow = {
+  id: string
+  user_id: string
+  type: string
+  title: string
+  message: string
+  data: Record<string, unknown> | null
+}
+
+function conversationIdFromData(data: Record<string, unknown> | null): string | null {
+  if (!data) return null
+  const id = data.conversation_id
+  return typeof id === "string" ? id : null
+}
+
+function isViewingConversation(conversationId: string | null): boolean {
+  if (!conversationId) return false
+  return document.visibilityState === "visible" && window.location.pathname.includes(conversationId)
+}
+
 /**
  * Global listener: shows a browser (desktop) notification whenever a new
- * inbound customer email arrives in an inbox the current user can access.
+ * inbound customer email/chat message arrives, or when a personal notification
+ * row is inserted for events with desktop_on_* prefs.
  * Mounted once in the app layout.
  */
 export function useDesktopEmailNotifications() {
   const { user } = useAuth()
   const { showNotification, permission } = useBrowserNotifications()
   const { preferences, isLoading, updatePreferences } = useNotificationPreferences()
-  const seenRef = useRef<Set<string>>(new Set())
+  const seenMessagesRef = useRef<Set<string>>(new Set())
+  const seenNotifsRef = useRef<Set<string>>(new Set())
   const migratedRef = useRef(false)
 
   // Prefs win when loaded; while loading, allow notifications if browser permission is granted.
@@ -63,6 +85,12 @@ export function useDesktopEmailNotifications() {
     preferences != null ? preferences.desktop_enabled : isLoading && permission === "granted"
   const emailEnabled = preferences?.desktop_on_new_email ?? true
   const chatEnabled = preferences?.desktop_on_chat_message ?? true
+  const assignmentEnabled = preferences?.desktop_on_assignment ?? true
+  const mentionEnabled = preferences?.desktop_on_mention ?? true
+  const incomingCallEnabled = preferences?.desktop_on_incoming_call ?? true
+  const missedCallEnabled = preferences?.desktop_on_missed_call ?? true
+  const voicemailEnabled = preferences?.desktop_on_voicemail ?? true
+  const slaEnabled = preferences?.desktop_on_sla_breach ?? true
 
   // Persist localStorage opt-in to server so the auto-permission prompt enables desktop prefs
   // without requiring a visit to Settings.
@@ -96,14 +124,10 @@ export function useDesktopEmailNotifications() {
 
           // Only inbound customer messages, never our own replies or internal notes
           if (message.sender_type !== "customer" || message.is_internal) return
-          if (seenRef.current.has(message.id)) return
-          seenRef.current.add(message.id)
+          if (seenMessagesRef.current.has(message.id)) return
+          seenMessagesRef.current.add(message.id)
 
-          // Don't notify for the conversation the user is actively reading
-          const isViewingConversation =
-            document.visibilityState === "visible" &&
-            window.location.pathname.includes(message.conversation_id)
-          if (isViewingConversation) return
+          if (isViewingConversation(message.conversation_id)) return
 
           // RLS scopes this: no row means the user can't access the inbox
           const { data: conversation } = await supabase
@@ -113,9 +137,9 @@ export function useDesktopEmailNotifications() {
             .maybeSingle()
 
           if (!conversation) return
-          const channel: string = conversation.channel || "email"
-          const isChat = ["chat", "live_chat", "widget"].includes(channel)
-          if (!isChat && channel !== "email") return
+          const channelName: string = conversation.channel || "email"
+          const isChat = ["chat", "live_chat", "widget"].includes(channelName)
+          if (!isChat && channelName !== "email") return
           if (isChat ? !chatEnabled : !emailEnabled) return
 
           const customer = conversation.customer as {
@@ -154,4 +178,100 @@ export function useDesktopEmailNotifications() {
       supabase.removeChannel(channel)
     }
   }, [user, enabled, emailEnabled, chatEnabled, permission, showNotification])
+
+  useEffect(() => {
+    if (!user || !enabled || permission !== "granted") return
+
+    const anyPersonalDesktop =
+      assignmentEnabled ||
+      mentionEnabled ||
+      incomingCallEnabled ||
+      missedCallEnabled ||
+      voicemailEnabled ||
+      slaEnabled
+    if (!anyPersonalDesktop) return
+
+    const channel = supabase
+      .channel("desktop-personal-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const row = payload.new as NotificationRow
+          if (seenNotifsRef.current.has(row.id)) return
+          seenNotifsRef.current.add(row.id)
+
+          const data = (row.data || {}) as Record<string, unknown>
+          const conversationId = conversationIdFromData(data)
+          if (isViewingConversation(conversationId)) return
+
+          const eventType = typeof data.event_type === "string" ? data.event_type : null
+          let allowed = false
+          let href: string | null = conversationId ? `/c/${conversationId}` : null
+
+          if (row.type === "assignment") {
+            allowed = assignmentEnabled
+          } else if (row.type === "mention") {
+            allowed = mentionEnabled
+            if (!href && typeof data.ticket_id === "string") {
+              href = `/service-tickets?ticket=${data.ticket_id}`
+            }
+          } else if (eventType === "call_started") {
+            allowed = incomingCallEnabled
+          } else if (eventType === "call_missed") {
+            allowed = missedCallEnabled
+          } else if (eventType === "voicemail_received") {
+            allowed = voicemailEnabled
+          } else if (row.type === "sla_breach" || row.type === "sla_warning") {
+            allowed = slaEnabled
+          } else {
+            return
+          }
+
+          if (!allowed) return
+
+          const notification = await showNotification({
+            title: row.title,
+            body: row.message,
+            tag: `notification-${row.id}`,
+            requireInteraction: row.type === "mention" || eventType === "call_started",
+            data: { notificationId: row.id, conversationId },
+          })
+
+          if (notification && href) {
+            notification.onclick = () => {
+              window.focus()
+              window.location.href = href!
+              notification.close()
+            }
+          } else if (notification) {
+            notification.onclick = () => {
+              window.focus()
+              notification.close()
+            }
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [
+    user,
+    enabled,
+    permission,
+    showNotification,
+    assignmentEnabled,
+    mentionEnabled,
+    incomingCallEnabled,
+    missedCallEnabled,
+    voicemailEnabled,
+    slaEnabled,
+  ])
 }

@@ -3985,8 +3985,14 @@ export type Database = {
           created_at: string
           daily_digest_enabled: boolean | null
           desktop_enabled: boolean
+          desktop_on_assignment: boolean
           desktop_on_chat_message: boolean
+          desktop_on_incoming_call: boolean
+          desktop_on_mention: boolean
+          desktop_on_missed_call: boolean
           desktop_on_new_email: boolean
+          desktop_on_sla_breach: boolean
+          desktop_on_voicemail: boolean
           email_on_conversation_assigned: boolean | null
           email_on_customer_reply: boolean | null
           email_on_mention: boolean | null
@@ -4018,8 +4024,14 @@ export type Database = {
           created_at?: string
           daily_digest_enabled?: boolean | null
           desktop_enabled?: boolean
+          desktop_on_assignment?: boolean
           desktop_on_chat_message?: boolean
+          desktop_on_incoming_call?: boolean
+          desktop_on_mention?: boolean
+          desktop_on_missed_call?: boolean
           desktop_on_new_email?: boolean
+          desktop_on_sla_breach?: boolean
+          desktop_on_voicemail?: boolean
           email_on_conversation_assigned?: boolean | null
           email_on_customer_reply?: boolean | null
           email_on_mention?: boolean | null
@@ -4051,8 +4063,14 @@ export type Database = {
           created_at?: string
           daily_digest_enabled?: boolean | null
           desktop_enabled?: boolean
+          desktop_on_assignment?: boolean
           desktop_on_chat_message?: boolean
+          desktop_on_incoming_call?: boolean
+          desktop_on_mention?: boolean
+          desktop_on_missed_call?: boolean
           desktop_on_new_email?: boolean
+          desktop_on_sla_breach?: boolean
+          desktop_on_voicemail?: boolean
           email_on_conversation_assigned?: boolean | null
           email_on_customer_reply?: boolean | null
           email_on_mention?: boolean | null

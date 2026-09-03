@@ -15,6 +15,22 @@ interface NotificationRequest {
   additionalData?: Record<string, any>
 }
 
+function prefKeysForEvent(eventType: NotificationRequest["eventType"]): {
+  app: "app_on_ticket_assigned" | "app_on_ticket_commented" | "app_on_ticket_updated"
+  email: "email_on_ticket_assigned" | "email_on_ticket_commented" | "email_on_ticket_updated"
+} {
+  switch (eventType) {
+    case "assigned":
+      return { app: "app_on_ticket_assigned", email: "email_on_ticket_assigned" }
+    case "commented":
+      return { app: "app_on_ticket_commented", email: "email_on_ticket_commented" }
+    case "created":
+    case "status_changed":
+    case "overdue":
+      return { app: "app_on_ticket_updated", email: "email_on_ticket_updated" }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders })
@@ -34,6 +50,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } },
     )
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    )
 
     const {
       data: { user },
@@ -49,7 +69,6 @@ Deno.serve(async (req) => {
     const body: NotificationRequest = await req.json()
     const { ticketId, eventType, recipientUserId, recipientEmail, additionalData } = body
 
-    // Fetch ticket details
     const { data: ticket, error: ticketError } = await supabaseClient
       .from("service_tickets")
       .select(`
@@ -62,11 +81,10 @@ Deno.serve(async (req) => {
 
     if (ticketError) throw ticketError
 
-    // Determine recipient
     let recipientData: { userId?: string; email?: string; name?: string } = {}
 
     if (recipientUserId) {
-      const { data: profile } = await supabaseClient
+      const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("email, full_name")
         .eq("user_id", recipientUserId)
@@ -87,38 +105,30 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check notification preferences
+    const { app: appPrefKey, email: emailPrefKey } = prefKeysForEvent(eventType)
+    let appEnabled = true
+    let emailEnabled = true
+
     if (recipientData.userId) {
-      const { data: prefs } = await supabaseClient
+      const { data: prefs } = await supabaseAdmin
         .from("notification_preferences")
-        .select("*")
+        .select(`${appPrefKey}, ${emailPrefKey}`)
         .eq("user_id", recipientData.userId)
-        .single()
+        .eq("organization_id", ticket.organization_id)
+        .maybeSingle()
 
-      if (prefs && !prefs.email_enabled) {
-        console.log("Email notifications disabled for user")
-        return new Response(JSON.stringify({ message: "Notifications disabled" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        })
-      }
-
-      // Check if it's quiet hours
-      if (prefs?.quiet_hours_start && prefs?.quiet_hours_end) {
-        const now = new Date()
-        const currentHour = now.getHours()
-        const startHour = parseInt(prefs.quiet_hours_start.split(":")[0], 10)
-        const endHour = parseInt(prefs.quiet_hours_end.split(":")[0], 10)
-
-        if (currentHour >= startHour || currentHour < endHour) {
-          console.log("Within quiet hours, skipping notification")
-          return new Response(JSON.stringify({ message: "Quiet hours active" }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          })
-        }
+      if (prefs) {
+        appEnabled = (prefs as Record<string, unknown>)[appPrefKey] !== false
+        emailEnabled = (prefs as Record<string, unknown>)[emailPrefKey] !== false
       }
     }
 
-    // Build email content based on event type
+    if (!appEnabled && !emailEnabled) {
+      return new Response(JSON.stringify({ message: "Notifications disabled for this event" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
     let subject = ""
     let emailBody = ""
 
@@ -149,18 +159,21 @@ Deno.serve(async (req) => {
         break
     }
 
-    // TODO: Integrate with actual email service (SendGrid, AWS SES, etc.)
-    console.log("Would send email notification:", {
-      to: recipientData.email,
-      subject,
-      emailBody,
-      ticketId,
-      eventType,
-    })
+    if (emailEnabled && recipientData.email) {
+      // TODO: Integrate with actual email service (SendGrid, AWS SES, etc.)
+      console.log("Would send email notification:", {
+        to: recipientData.email,
+        subject,
+        emailBody,
+        ticketId,
+        eventType,
+      })
+    } else if (!emailEnabled) {
+      console.log("Email notifications disabled for this ticket event")
+    }
 
-    // Create in-app notification
-    if (recipientData.userId) {
-      await supabaseClient.from("notifications").insert({
+    if (appEnabled && recipientData.userId) {
+      await supabaseAdmin.from("notifications").insert({
         user_id: recipientData.userId,
         type: "service_ticket",
         title: subject,
@@ -178,6 +191,8 @@ Deno.serve(async (req) => {
         success: true,
         message: "Notification sent",
         recipient: recipientData.email,
+        appEnabled,
+        emailEnabled,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     )
