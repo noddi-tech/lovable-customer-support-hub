@@ -61,6 +61,23 @@ function escapeStrayAngles(html: string): string {
   return String(html ?? "").replace(/<(?![a-zA-Z/!?])/g, "&lt;")
 }
 
+/**
+ * Encode non-ASCII characters as numeric HTML entities.
+ *
+ * Gmail can show "[Message clipped] View entire message" for short emails when
+ * the HTML contains raw UTF-8 (Norwegian letters, ©, etc.). SendGrid documents
+ * this; entities keep the visible text identical while staying ASCII-safe.
+ *
+ * Safe to run on a full HTML document: tags, attributes, and existing &...;
+ * entities are already ASCII so they are left unchanged.
+ */
+export function encodeNonAsciiAsHtmlEntities(html: string): string {
+  return String(html ?? "").replace(/[\u0080-\uFFFF]/g, (ch) => {
+    const code = ch.codePointAt(0)
+    return code === undefined ? ch : `&#${code};`
+  })
+}
+
 /** Converts a plain-text message body into safe HTML with line breaks preserved. */
 export function plainTextToHtml(text: string): string {
   return escapeHtml(String(text ?? ""))
@@ -125,7 +142,9 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
 
   const footer = `<tr><td class="email-footer" bgcolor="${footerBg}" style="background:${footerBg};background-color:${footerBg};color:${footerText};padding:24px 32px;border-top:1px solid ${FOOTER_THEME.border};font-family:${FONT_STACK};font-size:12px;line-height:1.7;text-align:center;">${footerInner}</td></tr>`
 
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="color-scheme" content="light only" /><meta name="supported-color-schemes" content="light only" /><title></title><style type="text/css">body{margin:0;padding:0;width:100%!important;background-color:${FALLBACK.pageBg};-webkit-text-size-adjust:100%;}img{border:0;outline:none;text-decoration:none;max-width:100%;height:auto;}a{color:${theme.accent};}table{border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;}.email-footer a{color:${FOOTER_THEME.link}!important;text-decoration:underline;}@media only screen and (max-width:620px){.email-card{width:100%!important;border-radius:0!important;}.email-pad{padding-left:18px!important;padding-right:18px!important;}}</style></head><body style="margin:0;padding:0;background-color:${FALLBACK.pageBg};">${preheader}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${FALLBACK.pageBg}" style="background-color:${FALLBACK.pageBg};padding:32px 12px;"><tr><td align="center"><table role="presentation" class="email-card" width="600" cellpadding="0" cellspacing="0" bgcolor="${bodyBg}" style="width:600px;max-width:600px;background-color:${bodyBg};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">${header}<tr><td class="email-pad" bgcolor="${bodyBg}" style="background-color:${bodyBg};padding:32px 32px 24px 32px;font-family:${FONT_STACK};font-size:15px;line-height:1.65;color:${bodyText};word-break:break-word;">${escapeStrayAngles(
+  const documentHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="color-scheme" content="light only" /><meta name="supported-color-schemes" content="light only" /><title></title><style type="text/css">body{margin:0;padding:0;width:100%!important;background-color:${FALLBACK.pageBg};-webkit-text-size-adjust:100%;}img{border:0;outline:none;text-decoration:none;max-width:100%;height:auto;}a{color:${theme.accent};}table{border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;}.email-footer a{color:${FOOTER_THEME.link}!important;text-decoration:underline;}@media only screen and (max-width:620px){.email-card{width:100%!important;border-radius:0!important;}.email-pad{padding-left:18px!important;padding-right:18px!important;}}</style></head><body style="margin:0;padding:0;background-color:${FALLBACK.pageBg};">${preheader}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${FALLBACK.pageBg}" style="background-color:${FALLBACK.pageBg};padding:32px 12px;"><tr><td align="center"><table role="presentation" class="email-card" width="600" cellpadding="0" cellspacing="0" bgcolor="${bodyBg}" style="width:600px;max-width:600px;background-color:${bodyBg};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">${header}<tr><td class="email-pad" bgcolor="${bodyBg}" style="background-color:${bodyBg};padding:32px 32px 24px 32px;font-family:${FONT_STACK};font-size:15px;line-height:1.65;color:${bodyText};word-break:break-word;">${escapeStrayAngles(
     options.bodyHtml,
   )}</td></tr>${signature}${footer}</table></td></tr></table></body></html>`
+
+  return encodeNonAsciiAsHtmlEntities(documentHtml)
 }

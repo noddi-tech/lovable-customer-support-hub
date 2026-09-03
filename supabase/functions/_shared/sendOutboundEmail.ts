@@ -3,6 +3,8 @@
 // Keeping support and recruitment paths separate avoids regressions to the
 // 99.9%-uptime customer support pipeline.
 
+import { encodeNonAsciiAsHtmlEntities } from "./email-layout.ts"
+
 interface SendOutboundEmailArgs {
   toEmail: string
   toName?: string | null
@@ -47,7 +49,8 @@ export async function sendOutboundEmail(
     content: [
       // Memory rule: never include "; charset=utf-8" in content[].type — SendGrid 400.
       { type: "text/plain", value: args.text || stripHtml(args.html) },
-      { type: "text/html", value: args.html },
+      // Entity-encode non-ASCII to avoid Gmail false "[Message clipped]" on UTF-8 HTML.
+      { type: "text/html", value: encodeNonAsciiAsHtmlEntities(args.html) },
     ],
     headers: { ...(args.headers || {}), "Message-ID": messageIdHeader },
   }

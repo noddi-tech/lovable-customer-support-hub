@@ -1,7 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
 import { resolveBrandTheme } from "../_shared/brand-theme.ts"
 import { getCompanyInfo, renderCompanyFooterHtml } from "../_shared/email-company-info.ts"
-import { htmlToPlainText, plainTextToHtml, renderEmailLayout } from "../_shared/email-layout.ts"
+import {
+  encodeNonAsciiAsHtmlEntities,
+  htmlToPlainText,
+  plainTextToHtml,
+  renderEmailLayout,
+} from "../_shared/email-layout.ts"
 import { buildPriorityHeaders } from "../_shared/email-priority.ts"
 import {
   buildBodyToken,
@@ -291,6 +296,7 @@ const handler = async (req: Request): Promise<Response> => {
         body_text_color: "#1F1F1F",
         signature_content: "Best regards,<br>{{agent_name}}<br>Support Team",
         include_agent_name: true,
+        include_signature_on_replies: false,
       } as any)
 
     // If include_agent_name is off and senderDisplayName came from agent's name, reset it
@@ -357,11 +363,13 @@ const handler = async (req: Request): Promise<Response> => {
       signature = signature.replace("{{agent_name}}", "").replace(/(<br\s*\/?>){2,}/g, "<br>")
     }
 
+    // Reply vs brand-new outbound: replies drop branded header/footer and send
+    // plain text; new emails use the brand/inbox template chrome.
+    const isReply = (previousMessageCount ?? 0) > 1
+    const includeSignatureOnReply = templateSettings.include_signature_on_replies === true
+
     // Only add "Re:" prefix if there are previous messages (this is a reply)
-    const subject =
-      previousMessageCount && previousMessageCount > 1
-        ? `Re: ${message.conversation.subject}`
-        : message.conversation.subject
+    const subject = isReply ? `Re: ${message.conversation.subject}` : message.conversation.subject
     const fromEmailFinal = (fromEmail || (emailAccount?.email_address as string)) as string
     let toEmail = customer.email as string
 
@@ -411,71 +419,94 @@ const handler = async (req: Request): Promise<Response> => {
       brandName = inboxNameForBrand || brandName
     }
 
-    // Brand theme mirrored from noddi-frontend design tokens (Noddi / Dekkfix).
-    const brandTheme = resolveBrandTheme(inboxNameForBrand, brandName, fromEmail, senderDisplayName)
-
-    // Neutral/white header colors stored on the template count as "unset" so the
-    // brand colors apply; explicit brand colors still win.
-    const isNeutralColor = (c?: string | null) => {
-      const v = String(c || "")
-        .trim()
-        .toLowerCase()
-      return !v || v === "#fff" || v === "#ffffff" || v === "white" || v === "transparent"
-    }
-    const headerBackgroundColor = isNeutralColor(templateSettings.header_background_color)
-      ? brandTheme.headerBg
-      : templateSettings.header_background_color
-    const headerTextColor = isNeutralColor(templateSettings.header_background_color)
-      ? brandTheme.headerText
-      : templateSettings.header_text_color
-
-    // Build HTML content using the shared, reusable email layout
     const rawContent = String(message.content || "")
     const isHtmlBody = /<\/?[a-z][\s\S]*>/i.test(rawContent)
     const bodyHtml = isHtmlBody ? rawContent : plainTextToHtml(rawContent)
+    let plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent
+    let emailHTML: string
 
-    // Informative footer (legal name, address, org. number, contact details)
-    // resolved from the Noddi backend and cached for 6 hours.
-    const companyInfo = await getCompanyInfo(brandTheme.id)
-    // Legacy marketing taglines are dropped in favour of the company block.
-    const LEGACY_FOOTERS = [/bilen st[åa]r parkert/i, /profesjonell dekkservice/i]
-    const templateFooter = String(templateSettings.footer_content || "").trim()
-    const keepTemplateFooter =
-      templateFooter && !LEGACY_FOOTERS.some((re) => re.test(templateFooter))
-    const footerContent = [
-      keepTemplateFooter ? `<div style="margin-bottom:14px;">${templateFooter}</div>` : "",
-      renderCompanyFooterHtml(companyInfo, brandTheme, brandName),
-    ]
-      .filter(Boolean)
-      .join("")
+    if (isReply) {
+      // Replies: plain text only — no branded header, footer, or layout chrome.
+      console.log(
+        "Reply email: sending plain text without branded header/footer",
+        includeSignatureOnReply ? "(signature on)" : "(signature off)",
+      )
+      if (includeSignatureOnReply && signature.trim()) {
+        const signaturePlain = htmlToPlainText(signature)
+        if (signaturePlain) {
+          plainTextBody = `${plainTextBody}\n\n${signaturePlain}`
+        }
+        // Minimal HTML twin of the plain body (no layout); keeps MIME multipart happy.
+        emailHTML = `${bodyHtml}<br><br>${signature}`
+      } else {
+        emailHTML = bodyHtml
+      }
+    } else {
+      // New outbound: brand/inbox template header + company footer.
+      const brandTheme = resolveBrandTheme(
+        inboxNameForBrand,
+        brandName,
+        fromEmail,
+        senderDisplayName,
+      )
 
-    const emailHTML = renderEmailLayout({
-      bodyHtml,
-      signatureHtml: signature,
-      headerContent: templateSettings.header_content,
-      footerContent,
+      // Neutral/white header colors stored on the template count as "unset" so the
+      // brand colors apply; explicit brand colors still win.
+      const isNeutralColor = (c?: string | null) => {
+        const v = String(c || "")
+          .trim()
+          .toLowerCase()
+        return !v || v === "#fff" || v === "#ffffff" || v === "white" || v === "transparent"
+      }
+      const headerBackgroundColor = isNeutralColor(templateSettings.header_background_color)
+        ? brandTheme.headerBg
+        : templateSettings.header_background_color
+      const headerTextColor = isNeutralColor(templateSettings.header_background_color)
+        ? brandTheme.headerText
+        : templateSettings.header_text_color
 
-      headerBackgroundColor,
-      headerTextColor,
-      bodyBackgroundColor: templateSettings.body_background_color,
-      bodyTextColor: templateSettings.body_text_color,
-      brandName,
-      brandTheme,
-      preheader: htmlToPlainText(bodyHtml).slice(0, 140),
-    })
+      const companyInfo = await getCompanyInfo(brandTheme.id)
+      // Legacy marketing taglines are dropped in favour of the company block.
+      const LEGACY_FOOTERS = [/bilen st[åa]r parkert/i, /profesjonell dekkservice/i]
+      const templateFooter = String(templateSettings.footer_content || "").trim()
+      const keepTemplateFooter =
+        templateFooter && !LEGACY_FOOTERS.some((re) => re.test(templateFooter))
+      const footerContent = [
+        keepTemplateFooter ? `<div style="margin-bottom:14px;">${templateFooter}</div>` : "",
+        renderCompanyFooterHtml(companyInfo, brandTheme, brandName),
+      ]
+        .filter(Boolean)
+        .join("")
 
-    const plainTextBody = isHtmlBody ? htmlToPlainText(rawContent) : rawContent
+      emailHTML = renderEmailLayout({
+        bodyHtml,
+        signatureHtml: signature,
+        headerContent: templateSettings.header_content,
+        footerContent,
+        headerBackgroundColor,
+        headerTextColor,
+        bodyBackgroundColor: templateSettings.body_background_color,
+        bodyTextColor: templateSettings.body_text_color,
+        brandName,
+        brandTheme,
+        preheader: htmlToPlainText(bodyHtml).slice(0, 140),
+      })
+    }
 
     // Preview mode: render the exact customer-facing email without sending anything.
     if (previewOnly) {
+      const previewHtml = isReply
+        ? `<!DOCTYPE html><html><head><meta charset="UTF-8" /></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#1F1F1F;padding:24px;">${emailHTML}</body></html>`
+        : emailHTML
       return new Response(
         JSON.stringify({
           preview: true,
-          html: emailHTML,
+          html: previewHtml,
           subject,
           to: toEmail,
           from: fromEmailFinal,
           fromName: senderDisplayName || brandName || null,
+          plainText: isReply,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       )
@@ -483,22 +514,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Hidden thread token: survives quoted replies even when headers and
     // subject are stripped, so inbound matching can still find this thread.
-    const threadTokenHtml = buildHtmlToken(message.conversation_id)
-    const htmlWithToken = /<\/body>/i.test(emailHTML)
-      ? emailHTML.replace(/<\/body>/i, `${threadTokenHtml}</body>`)
-      : `${emailHTML}${threadTokenHtml}`
     const plainText = `${plainTextBody}\n\n${buildBodyToken(message.conversation_id)}`
+    const threadTokenHtml = buildHtmlToken(message.conversation_id)
+    // Entity-encode non-ASCII so Gmail does not false-clip short UTF-8 HTML
+    // (e.g. Norwegian address "Høvik", copyright, agent names with diacritics).
+    const htmlWithToken = isReply
+      ? "" // Replies are plain-text only; threading uses headers + body token.
+      : encodeNonAsciiAsHtmlEntities(
+          /<\/body>/i.test(emailHTML)
+            ? emailHTML.replace(/<\/body>/i, `${threadTokenHtml}</body>`)
+            : `${emailHTML}${threadTokenHtml}`,
+        )
 
-    // Monitor email size to prevent Gmail clipping (102KB limit)
+    // Monitor email size to prevent Gmail clipping (102KB HTML limit)
     const estimatedSize = htmlWithToken.length + plainText.length + 2000 // +2KB for headers
     console.log(
-      `📧 Email size: ${(estimatedSize / 1024).toFixed(1)}KB (HTML: ${(emailHTML.length / 1024).toFixed(1)}KB, Plain: ${(plainText.length / 1024).toFixed(1)}KB)`,
+      `📧 Email size: ${(estimatedSize / 1024).toFixed(1)}KB (HTML: ${((htmlWithToken.length || emailHTML.length) / 1024).toFixed(1)}KB, Plain: ${(plainText.length / 1024).toFixed(1)}KB)${isReply ? " [plain-text reply]" : ""}`,
     )
 
-    if (estimatedSize > 90000) {
-      // Warn at 90KB (before 102KB limit)
+    if (htmlWithToken.length > 90000) {
+      // Warn at 90KB (before Gmail's ~102KB HTML clip limit)
       console.warn(
-        `⚠️ Email approaching Gmail clip threshold: ${(estimatedSize / 1024).toFixed(1)}KB - consider simplifying content`,
+        `⚠️ Email approaching Gmail clip threshold: ${(htmlWithToken.length / 1024).toFixed(1)}KB HTML - consider simplifying content`,
       )
     }
 
@@ -580,10 +617,12 @@ const handler = async (req: Request): Promise<Response> => {
       from: { email: fromEmailFinal, name: senderDisplayName },
       reply_to: { email: fromEmailFinal },
       subject,
-      content: [
-        { type: "text/plain", value: plainText },
-        { type: "text/html", value: htmlWithToken },
-      ],
+      content: isReply
+        ? [{ type: "text/plain", value: plainText }]
+        : [
+            { type: "text/plain", value: plainText },
+            { type: "text/html", value: htmlWithToken },
+          ],
       headers,
       ...(sgAttachments.length > 0 ? { attachments: sgAttachments } : {}),
     } as any

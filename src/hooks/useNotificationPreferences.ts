@@ -92,7 +92,7 @@ export function useNotificationPreferences() {
             app_on_ticket_commented: true,
             app_on_sla_breach: true,
             // Desktop defaults
-            desktop_enabled: false,
+            desktop_enabled: true,
             desktop_on_new_email: true,
             desktop_on_chat_message: true,
             // Digest defaults

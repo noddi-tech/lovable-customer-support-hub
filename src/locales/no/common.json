@@ -43,6 +43,8 @@
     "body": "Kropp",
     "signature": "Signatur",
     "includeAgentName": "Inkluder Agent Navn",
+    "includeSignatureOnReplies": "Inkluder signatur på svar i samtaler",
+    "replyPlainTextNote": "Svar i samtaler sendes som ren tekst uten merkevareoverskrift eller bunntekst. Nye utgående e-poster bruker fortsatt den fulle merkevaremalen.",
     "signatureContent": "Signatur Innhold"
   },
   "admin": {

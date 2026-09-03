@@ -23,7 +23,7 @@ export function useDesktopEmailNotificationsSetting() {
   const { preferences, updatePreferences, isUpdating } = useNotificationPreferences()
   const migratedRef = useRef(false)
 
-  const enabled = preferences?.desktop_enabled ?? false
+  const enabled = preferences?.desktop_enabled ?? true
 
   // One-time migration: local opt-in wins until it has been persisted server-side.
   useEffect(() => {
@@ -53,12 +53,26 @@ export function useDesktopEmailNotificationsSetting() {
 export function useDesktopEmailNotifications() {
   const { user } = useAuth()
   const { showNotification, permission } = useBrowserNotifications()
-  const { preferences } = useNotificationPreferences()
+  const { preferences, isLoading, updatePreferences } = useNotificationPreferences()
   const seenRef = useRef<Set<string>>(new Set())
+  const migratedRef = useRef(false)
 
-  const enabled = preferences?.desktop_enabled ?? false
+  // Prefs win when loaded; while loading, allow notifications if browser permission is granted.
+  const enabled =
+    preferences != null ? preferences.desktop_enabled : isLoading && permission === "granted"
   const emailEnabled = preferences?.desktop_on_new_email ?? true
   const chatEnabled = preferences?.desktop_on_chat_message ?? true
+
+  // Persist localStorage opt-in to server so the auto-permission prompt enables desktop prefs
+  // without requiring a visit to Settings.
+  useEffect(() => {
+    if (!preferences || migratedRef.current) return
+    if (permission !== "granted") return
+    migratedRef.current = true
+    if (!preferences.desktop_enabled && isDesktopEmailNotificationsEnabled()) {
+      updatePreferences({ desktop_enabled: true })
+    }
+  }, [preferences, permission, updatePreferences])
 
   useEffect(() => {
     if (!user || !enabled || permission !== "granted") return

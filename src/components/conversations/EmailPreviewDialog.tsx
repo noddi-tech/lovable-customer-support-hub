@@ -24,8 +24,9 @@ interface EmailPreviewResult {
 }
 
 /**
- * Shows the outgoing reply exactly as the customer received it — the shared
- * email layout (branded header, body, signature, footer) rendered server-side.
+ * Shows the outgoing message exactly as the customer received it.
+ * Conversation replies are plain text (optional signature); new outbound
+ * emails use the branded layout (header, body, signature, footer) server-side.
  */
 export function EmailPreviewDialog({ messageId, open, onOpenChange }: EmailPreviewDialogProps) {
   const { data, isLoading, error } = useQuery({

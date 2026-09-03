@@ -2409,6 +2409,7 @@ export type Database = {
           id: string
           inbox_id: string | null
           include_agent_name: boolean | null
+          include_signature_on_replies: boolean
           is_default: boolean | null
           name: string
           organization_id: string
@@ -2431,6 +2432,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           include_agent_name?: boolean | null
+          include_signature_on_replies?: boolean
           is_default?: boolean | null
           name?: string
           organization_id: string
@@ -2453,6 +2455,7 @@ export type Database = {
           id?: string
           inbox_id?: string | null
           include_agent_name?: boolean | null
+          include_signature_on_replies?: boolean
           is_default?: boolean | null
           name?: string
           organization_id?: string

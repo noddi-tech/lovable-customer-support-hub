@@ -51,6 +51,8 @@
     "body": "Body",
     "signature": "Signature",
     "includeAgentName": "Include Agent Name",
+    "includeSignatureOnReplies": "Include signature on conversation replies",
+    "replyPlainTextNote": "Conversation replies are sent as plain text without the branded header or footer. New outbound emails still use the full branded template.",
     "signatureContent": "Signature Content"
   },
   "dashboard": {

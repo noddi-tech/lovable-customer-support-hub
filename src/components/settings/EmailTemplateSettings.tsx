@@ -33,6 +33,7 @@ interface EmailTemplate {
   body_text_color: string
   signature_content: string
   include_agent_name: boolean
+  include_signature_on_replies: boolean
   inbox_id?: string | null
 }
 
@@ -48,6 +49,7 @@ const defaultTemplate: EmailTemplate = {
   body_text_color: "#374151",
   signature_content: "Best regards,<br>{{agent_name}}<br>Support Team",
   include_agent_name: true,
+  include_signature_on_replies: false,
 }
 
 export function EmailTemplateSettings() {
@@ -99,7 +101,11 @@ export function EmailTemplateSettings() {
   // Update template state when data is loaded or inbox changes
   useEffect(() => {
     if (existingTemplate) {
-      setTemplate(existingTemplate)
+      setTemplate({
+        ...defaultTemplate,
+        ...existingTemplate,
+        include_signature_on_replies: existingTemplate.include_signature_on_replies ?? false,
+      })
     } else {
       setTemplate({
         ...defaultTemplate,
@@ -405,6 +411,9 @@ export function EmailTemplateSettings() {
               {/* Signature Settings */}
               <div className="space-y-4">
                 <h4 className="font-medium">{t("emailTemplate.signature")}</h4>
+                <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded">
+                  {t("emailTemplate.replyPlainTextNote")}
+                </p>
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="include-agent"
@@ -420,6 +429,18 @@ export function EmailTemplateSettings() {
                     placeholder will be removed from the signature.
                   </p>
                 )}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="include-signature-on-replies"
+                    checked={template.include_signature_on_replies}
+                    onCheckedChange={(checked) =>
+                      updateTemplate("include_signature_on_replies", checked)
+                    }
+                  />
+                  <Label htmlFor="include-signature-on-replies">
+                    {t("emailTemplate.includeSignatureOnReplies")}
+                  </Label>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signature">{t("emailTemplate.signatureContent")}</Label>
                   <Textarea
