@@ -23,7 +23,7 @@ export function useFocusManagement() {
     )
 
     if (focusableElements.length > 0) {
-      ;(focusableElements[0]).focus()
+      focusableElements[0].focus()
     }
   }
 
