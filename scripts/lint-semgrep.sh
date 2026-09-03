@@ -28,7 +28,11 @@ if command -v semgrep >/dev/null 2>&1; then
   exit 0
 fi
 
-if command -v docker >/dev/null 2>&1; then
+# Docker fallback is opt-in only. Pulling/running returntocorp/semgrep can take
+# minutes and hangs indefinitely when the Docker daemon is slow or unresponsive,
+# which would block every commit/push. CI sets SEMGREP_ALLOW_DOCKER=1; local
+# hooks skip to keep them fast. Install a local binary for real local coverage.
+if [ "${SEMGREP_ALLOW_DOCKER:-0}" = "1" ] && command -v docker >/dev/null 2>&1; then
   echo "→ semgrep via docker"
   docker run --rm \
     -v "$ROOT:/src" \
@@ -38,6 +42,6 @@ if command -v docker >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "⚠️  semgrep not installed (and docker unavailable) — skipping"
-echo "   Install: brew install semgrep   OR   pipx install semgrep"
+echo "⚠️  semgrep binary not installed — skipping (CI runs it via docker)"
+echo "   For local coverage: brew install semgrep   OR   pipx install semgrep"
 exit 0

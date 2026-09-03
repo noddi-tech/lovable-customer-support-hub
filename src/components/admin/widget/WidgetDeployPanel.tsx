@@ -4,15 +4,15 @@ import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  fetchLiveBuild as fetchLiveBuildCached,
+  type LiveBuild,
+  refreshLiveBuild,
+  setLiveBuildCache,
+} from "@/lib/widgetBuild"
 
 const SUPABASE_URL = "https://qgfaycwsangsqzpveoup.supabase.co"
 const WIDGET_SCRIPT_URL = `${SUPABASE_URL}/storage/v1/object/public/widget/widget.js`
-
-interface LiveBuild {
-  publishedAt: string
-  commit: string
-  size?: number
-}
 
 interface WidgetDeployPanelProps {
   /** 'banner' = compact always-visible call to action, 'full' = includes detailed guidance */
@@ -27,15 +27,11 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
   const appCommit = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown"
 
   const fetchLiveBuild = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
-      )
-      if (!res.ok) return
-      setLiveBuild(await res.json())
-    } catch {
-      // manifest not published yet
-    }
+    setLiveBuild(await fetchLiveBuildCached())
+  }, [])
+
+  const handleRefresh = useCallback(async () => {
+    setLiveBuild(await refreshLiveBuild())
   }, [])
 
   useEffect(() => {
@@ -56,9 +52,15 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
       const result = await response.json()
       setLastDeploy({ size: result.size ?? null, at: new Date().toLocaleString() })
       if (result.publishedAt) {
-        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size })
+        const build = {
+          publishedAt: result.publishedAt,
+          commit: result.commit,
+          size: result.size,
+        }
+        setLiveBuildCache(build)
+        setLiveBuild(build)
       } else {
-        void fetchLiveBuild()
+        void handleRefresh()
       }
       toast.success("Widget deployed to production!", {
         description: `Size: ${result.size || "unknown"} — hard-refresh host apps to pick it up`,
@@ -103,7 +105,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
             <Button
               variant="ghost"
               size="icon"
-              onClick={fetchLiveBuild}
+              onClick={handleRefresh}
               title="Refresh status"
               className="text-muted-foreground"
             >

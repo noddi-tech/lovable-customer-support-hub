@@ -93,7 +93,11 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
 
     return () => {
       localListeners.delete(handleLocalEvent)
-      void channel.unsubscribe()
+      // removeChannel (not unsubscribe) so the topic is dropped from the client
+      // registry. Otherwise a remount reuses the stale, already-subscribed
+      // channel and adding the postgres_changes callback throws
+      // "cannot add ... callbacks after subscribe()".
+      void supabase.removeChannel(channel)
     }
   }, [conversationId, handleLocalEvent])
 

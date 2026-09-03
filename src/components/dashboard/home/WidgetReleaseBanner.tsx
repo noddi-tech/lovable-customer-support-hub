@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
 import { cn } from "@/lib/utils"
+import {
+  fetchLiveBuild as fetchLiveBuildCached,
+  type LiveBuild,
+  refreshLiveBuild,
+  setLiveBuildCache,
+} from "@/lib/widgetBuild"
 
 const SUPABASE_URL = "https://qgfaycwsangsqzpveoup.supabase.co"
-
-interface LiveBuild {
-  publishedAt: string
-  commit: string
-  size?: number
-}
 
 /**
  * Home-page call to action shown when the published widget bundle is behind the
@@ -32,16 +32,8 @@ export const WidgetReleaseBanner: React.FC = () => {
   const appCommit = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown"
 
   const fetchLiveBuild = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
-      )
-      if (res.ok) setLiveBuild(await res.json())
-    } catch {
-      // manifest not published yet
-    } finally {
-      setLoaded(true)
-    }
+    setLiveBuild(await fetchLiveBuildCached())
+    setLoaded(true)
   }, [])
 
   useEffect(() => {
@@ -59,9 +51,15 @@ export const WidgetReleaseBanner: React.FC = () => {
       if (!response.ok) throw new Error("Deploy failed")
       const result = await response.json()
       if (result.publishedAt) {
-        setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size })
+        const build = {
+          publishedAt: result.publishedAt,
+          commit: result.commit,
+          size: result.size,
+        }
+        setLiveBuildCache(build)
+        setLiveBuild(build)
       } else {
-        void fetchLiveBuild()
+        setLiveBuild(await refreshLiveBuild())
       }
       toast.success("Widget released to production!", {
         description: "Host sites pick it up on their next load (CDN cache up to ~1 hour).",

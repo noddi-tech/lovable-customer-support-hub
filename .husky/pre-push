@@ -1,1 +1,5 @@
-sh scripts/quality-gate.sh --fix-and-check
+#!/usr/bin/env sh
+# Per-push gate: verify (no writes) + the full heavy lint suite
+# (knip, depcruise, jscpd, semgrep, audit). semgrep skips docker locally.
+sh scripts/quality-gate.sh --check-only
+bun run lint

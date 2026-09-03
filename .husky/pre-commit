@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Full pre-commit: staged autofix → quality gate → strict lint suite
+# Fast per-commit gate: staged autofix → format/lint/UI-guards.
+# The heavy suite (knip, depcruise, jscpd, semgrep, audit) runs on pre-push,
+# not on every commit, so commits stay quick.
 bunx lint-staged
 QUALITY_GATE_RESTAGE=1 sh scripts/quality-gate.sh --fix-and-check
-bun run lint
