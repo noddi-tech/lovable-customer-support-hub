@@ -268,5 +268,17 @@ export function useDesktopEmailNotifications() {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [user, enabled, permission, showNotification])
+    // biome-ignore lint/correctness/useExhaustiveDependencies: preference flags are read inside the realtime handler
+  }, [
+    user,
+    enabled,
+    permission,
+    showNotification,
+    assignmentEnabled,
+    mentionEnabled,
+    incomingCallEnabled,
+    missedCallEnabled,
+    voicemailEnabled,
+    slaEnabled,
+  ])
 }
