@@ -2,6 +2,8 @@ import React, { forwardRef, useCallback, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
+const SCROLLABLE_LIST_CLASS = "overflow-x-auto scrollbar-thin"
+
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T }
 
 // Legacy props for backward compatibility
@@ -305,7 +307,7 @@ const StandardResponsiveTabs: React.FC<StandardResponsiveTabsProps> = (props) =>
               spacingClass,
               justifyClass,
               variantClasses.list,
-              scrollable && "overflow-x-auto scrollbar-thin",
+              scrollable && SCROLLABLE_LIST_CLASS,
               (child.props as ResponsiveTabsListProps).className,
             ),
             equalWidth,
