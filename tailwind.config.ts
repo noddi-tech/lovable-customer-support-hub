@@ -109,6 +109,26 @@ export default {
         xl: "var(--space-xl)",
         "2xl": "var(--space-2xl)",
       },
+      // The `spacing` keys above (sm, md, lg, ...) would otherwise leak into the
+      // max-w-* / min-w-* scales and shrink `max-w-sm` to a few pixels.
+      // Restore Tailwind's default container widths explicitly.
+      maxWidth: {
+        xs: "20rem",
+        sm: "24rem",
+        md: "28rem",
+        lg: "32rem",
+        xl: "36rem",
+        "2xl": "42rem",
+      },
+      minWidth: {
+        xs: "20rem",
+        sm: "24rem",
+        md: "28rem",
+        lg: "32rem",
+        xl: "36rem",
+        "2xl": "42rem",
+      },
+
       transitionDuration: {
         fast: "var(--transition-fast)",
         normal: "var(--transition-normal)",
