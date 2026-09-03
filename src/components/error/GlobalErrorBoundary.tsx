@@ -146,30 +146,44 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    // For suppressed errors or no errors, render children normally
     if (!this.state.hasError) {
       return this.props.children
     }
 
-    // Only show error UI for critical errors
+    // C. Always a visible fallback — never an empty #root.
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center max-w-md p-6">
           <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
-          <p className="text-muted-foreground mb-4">Please refresh the page to continue.</p>
-          <button
-            type="button"
-            onClick={() => {
-              console.log("🔄 [GlobalErrorBoundary] Attempting recovery without reload")
-              this.setState({ hasError: false, error: undefined })
-              window.dispatchEvent(new CustomEvent("global-error-reset"))
-            }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Try to Recover
-          </button>
+          <p className="text-muted-foreground mb-4">
+            {this.state.error?.message
+              ? "The page failed to load. Reload to get the latest version."
+              : "Please refresh the page to continue."}
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.reload()
+              }}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Reload
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: undefined })
+                window.dispatchEvent(new CustomEvent("global-error-reset"))
+              }}
+              className="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted transition-colors"
+            >
+              Try to Recover
+            </button>
+          </div>
         </div>
       </div>
     )
+
   }
 }
