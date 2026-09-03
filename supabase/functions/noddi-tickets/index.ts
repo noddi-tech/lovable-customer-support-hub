@@ -273,6 +273,9 @@ Deno.serve(async (req) => {
         if (!Number.isInteger(departmentId) || departmentId <= 0) {
           return json({ error: "service_department_id is required" }, 400)
         }
+        if (!canAccessNavioDepartment(departmentId, scope)) {
+          return json({ error: "Forbidden: department is outside your organization" }, 403)
+        }
         const category = String(payload.category || "CUSTOMER_ISSUE").toUpperCase()
         const priority = String(payload.priority || "NORMAL").toUpperCase()
         const type = String(payload.type || "TASK").toUpperCase()
