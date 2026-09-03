@@ -1,4 +1,5 @@
 import { ExternalLink, MonitorSmartphone, RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -17,29 +18,72 @@ export function DesktopEmailNotificationSettings() {
   const { permission, isSupported, requestPermission, refreshPermission } =
     useBrowserNotifications()
   const { enabled, setEnabled, isUpdating } = useDesktopEmailNotificationsSetting()
+  const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null)
+  const [isRequesting, setIsRequesting] = useState(false)
 
-  const handleToggle = async (checked: boolean) => {
-    if (!checked) {
-      setEnabled(false)
+  const serverChecked = enabled && permission === "granted"
+  const checked = optimisticEnabled ?? serverChecked
+
+  useEffect(() => {
+    if (optimisticEnabled === null) return
+    if (optimisticEnabled === serverChecked) {
+      setOptimisticEnabled(null)
+    }
+  }, [optimisticEnabled, serverChecked])
+
+  const handleToggle = async (next: boolean) => {
+    if (!next) {
+      setOptimisticEnabled(false)
+      try {
+        await setEnabled(false)
+      } catch (error) {
+        setOptimisticEnabled(null)
+        const message = error instanceof Error ? error.message : "Failed to update preferences"
+        toast.error(message)
+      }
       return
     }
 
-    if (permission !== "granted") {
-      const result = await requestPermission()
-      if (result !== "granted") {
-        toast.error("Browser notifications are blocked. Allow them in your browser settings.")
-        return
+    setOptimisticEnabled(true)
+    setIsRequesting(true)
+    try {
+      let nextPermission = permission
+      if (nextPermission !== "granted") {
+        nextPermission = await requestPermission()
+        if (nextPermission !== "granted") {
+          setOptimisticEnabled(null)
+          if (nextPermission === "denied") {
+            toast.error("Browser notifications are blocked. Allow them in your browser settings.")
+          } else {
+            toast.info("Permission was not granted. Flip the toggle again to ask the browser.")
+          }
+          return
+        }
       }
+
+      await setEnabled(true)
+      toast.success("Desktop notifications enabled on this account")
+    } catch (error) {
+      setOptimisticEnabled(null)
+      const message = error instanceof Error ? error.message : "Failed to update preferences"
+      toast.error(message)
+    } finally {
+      setIsRequesting(false)
     }
-    setEnabled(true)
-    toast.success("Desktop notifications enabled on this account")
   }
 
-  const handleRecheck = () => {
+  const handleRecheck = async () => {
     const current = refreshPermission()
     if (current === "granted") {
-      setEnabled(true)
-      toast.success("Desktop notifications enabled on this account")
+      setOptimisticEnabled(true)
+      try {
+        await setEnabled(true)
+        toast.success("Desktop notifications enabled on this account")
+      } catch (error) {
+        setOptimisticEnabled(null)
+        const message = error instanceof Error ? error.message : "Failed to update preferences"
+        toast.error(message)
+      }
     } else if (current === "denied") {
       toast.error("Still blocked — allow notifications in your browser site settings, then reload.")
     } else {
@@ -55,6 +99,13 @@ export function DesktopEmailNotificationSettings() {
     )
   }
 
+  const helperText =
+    permission === "denied"
+      ? "Blocked for this site — you have to re-allow them in the browser itself."
+      : permission === "default"
+        ? "Click the toggle to allow browser notifications, then we’ll turn Desktop on for your account."
+        : "OS-level popups that reach you even when Support Hub is in a background tab. Required for the Desktop column below."
+
   return (
     <div className="space-y-3 rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-4">
@@ -67,11 +118,7 @@ export function DesktopEmailNotificationSettings() {
             >
               Desktop notifications
             </Label>
-            <p className="text-xs text-muted-foreground">
-              {permission === "denied"
-                ? "Blocked for this site — you have to re-allow them in the browser itself."
-                : "OS-level popups that reach you even when Support Hub is in a background tab. Required for the Desktop column below."}
-            </p>
+            <p className="text-xs text-muted-foreground">{helperText}</p>
           </div>
         </div>
         {permission === "denied" ? (
@@ -82,9 +129,9 @@ export function DesktopEmailNotificationSettings() {
         ) : (
           <Switch
             id="desktop-email-notifications"
-            checked={enabled && permission === "granted"}
+            checked={checked}
             onCheckedChange={handleToggle}
-            disabled={isUpdating}
+            disabled={isUpdating || isRequesting}
           />
         )}
       </div>

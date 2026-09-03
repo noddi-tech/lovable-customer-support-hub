@@ -52,20 +52,47 @@ export const useBrowserNotifications = () => {
   }, [isSupported])
 
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
-    if (!isSupported) {
+    // Read support from the live window — do not rely on React state (starts false).
+    if (!("Notification" in window)) {
       console.warn("Browser notifications are not supported")
       return "denied"
     }
 
     try {
-      const result = await Notification.requestPermission()
-      setPermission(result as NotificationPermission)
-      return result as NotificationPermission
+      // Safari / older browsers may use the callback form and not return a Promise.
+      const result = await new Promise<NotificationPermission>((resolve, reject) => {
+        let settled = false
+        const finish = (permission: NotificationPermission) => {
+          if (settled) return
+          settled = true
+          resolve(permission)
+        }
+
+        try {
+          const maybePromise = Notification.requestPermission((permission) => {
+            finish(permission as NotificationPermission)
+          })
+          if (
+            maybePromise != null &&
+            typeof (maybePromise as PromiseLike<NotificationPermission>).then === "function"
+          ) {
+            Promise.resolve(maybePromise).then(
+              (permission) => finish(permission as NotificationPermission),
+              reject,
+            )
+          }
+        } catch (error) {
+          reject(error)
+        }
+      })
+
+      setPermission(result)
+      return result
     } catch (error) {
       console.error("Error requesting notification permission:", error)
       return "denied"
     }
-  }, [isSupported])
+  }, [])
 
   const showNotification = useCallback(
     async (options: BrowserNotificationOptions): Promise<Notification | null> => {

@@ -140,8 +140,7 @@ function buildListQuery(payload: Record<string, unknown>, allowedDeptIds: number
   // Org scoping: non-superusers can only ever list tickets from their own
   // service departments, regardless of what the client asked for.
   const requestedDepts = asIntList(payload.service_department_ids)
-  for (const id of allowedDeptIds ?? requestedDepts)
-    qs.append("service_department_ids", String(id))
+  for (const id of allowedDeptIds ?? requestedDepts) qs.append("service_department_ids", String(id))
   for (const id of asIntList(payload.user_group_ids)) qs.append("user_group_ids", String(id))
   for (const id of asIntList(payload.booking_ids)) qs.append("booking_ids", String(id))
   for (const id of asIntList(payload.tag_ids)) qs.append("tag_ids", String(id))
@@ -177,10 +176,7 @@ function ticketDepartmentId(ticket: Record<string, unknown> | null): number | nu
  * own service departments — otherwise ticket ids from other tenants would be
  * reachable simply by guessing a number.
  */
-async function assertTicketInScope(
-  id: number,
-  scope: ScopeResult,
-): Promise<Response | null> {
+async function assertTicketInScope(id: number, scope: ScopeResult): Promise<Response | null> {
   if (scope.isSuperuser) return null
   const ticket = await fetchTicket(id)
   if (!ticket) return json({ error: "Ticket not found" }, 404)

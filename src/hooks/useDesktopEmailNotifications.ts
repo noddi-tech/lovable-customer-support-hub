@@ -20,7 +20,8 @@ export function setDesktopEmailNotificationsEnabled(enabled: boolean) {
 }
 
 export function useDesktopEmailNotificationsSetting() {
-  const { preferences, updatePreferences, isUpdating } = useNotificationPreferences()
+  const { preferences, updatePreferences, updatePreferencesAsync, isUpdating } =
+    useNotificationPreferences()
   const migratedRef = useRef(false)
 
   const enabled = preferences?.desktop_enabled ?? true
@@ -35,11 +36,11 @@ export function useDesktopEmailNotificationsSetting() {
   }, [preferences, updatePreferences])
 
   const setEnabled = useCallback(
-    (v: boolean) => {
+    async (v: boolean) => {
       setDesktopEmailNotificationsEnabled(v)
-      updatePreferences({ desktop_enabled: v })
+      await updatePreferencesAsync({ desktop_enabled: v })
     },
-    [updatePreferences],
+    [updatePreferencesAsync],
   )
 
   return { enabled, setEnabled, isUpdating, preferences }

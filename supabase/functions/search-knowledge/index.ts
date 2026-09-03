@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
     const guard = await requireOrgMember(req, String(organizationId))
     if ("response" in guard) return guard.response
 
-
     // Create embedding for the customer message
     const embeddingResp = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",

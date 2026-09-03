@@ -132,10 +132,12 @@ export function useNotificationPreferences() {
         description: "Your notification preferences have been updated.",
       })
     },
-    onError: () => {
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to save preferences. Please try again."
       toast({
         title: "Error",
-        description: "Failed to save preferences. Please try again.",
+        description: message,
         variant: "destructive",
       })
     },
@@ -145,6 +147,7 @@ export function useNotificationPreferences() {
     preferences,
     isLoading,
     updatePreferences: updatePreferences.mutate,
+    updatePreferencesAsync: updatePreferences.mutateAsync,
     isUpdating: updatePreferences.isPending,
   }
 }
