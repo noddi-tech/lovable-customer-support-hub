@@ -275,6 +275,15 @@ interface DesignSystemContextType {
 
 const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined)
 
+const fallbackDesignSystemContext: DesignSystemContextType = {
+  designSystem: defaultDesignSystem,
+  updateDesignSystem: () => {},
+  saveDesignSystem: async () => {},
+  isLoading: false,
+  applyToDocument: () => {},
+  organizationId: null,
+}
+
 /**
  * Design system access. Outside a DesignSystemProvider (error fallbacks,
  * portals rendered above the provider) this returns inert defaults instead of
