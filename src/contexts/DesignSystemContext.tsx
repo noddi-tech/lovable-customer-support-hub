@@ -275,12 +275,14 @@ interface DesignSystemContextType {
 
 const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined)
 
+/**
+ * Design system access. Outside a DesignSystemProvider (error fallbacks,
+ * portals rendered above the provider) this returns inert defaults instead of
+ * throwing — a missing theme context must never blank the app.
+ */
 export const useDesignSystem = () => {
   const context = useContext(DesignSystemContext)
-  if (context === undefined) {
-    throw new Error("useDesignSystem must be used within a DesignSystemProvider")
-  }
-  return context
+  return context ?? fallbackDesignSystemContext
 }
 
 /** Returns undefined when used outside DesignSystemProvider (no throw). */
