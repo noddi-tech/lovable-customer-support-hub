@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import {
+  type ChannelSlaPolicyRow,
   SLA_PRIORITIES,
   type SlaPriority,
   useChannelSlaPolicies,
@@ -23,6 +24,9 @@ import { formatMinutes, formatPct, useInboxSupportMetrics } from "@/hooks/useInb
 
 const CHANNEL = "widget"
 const RANGES = [7, 30, 90] as const
+// Stable reference: a fresh `[]` default on every render would retrigger the
+// memo/effect chain below and loop the component.
+const EMPTY_POLICIES: ChannelSlaPolicyRow[] = []
 
 const PRIORITY_LABELS: Record<SlaPriority, string> = {
   urgent: "Urgent",
@@ -55,7 +59,10 @@ export function LiveChatSlaDialog({ open, onOpenChange, canEdit = false }: LiveC
     open,
     CHANNEL,
   )
-  const { data: policies = [], isLoading: policiesLoading } = useChannelSlaPolicies(CHANNEL, open)
+  const { data: policies = EMPTY_POLICIES, isLoading: policiesLoading } = useChannelSlaPolicies(
+    CHANNEL,
+    open,
+  )
   const { save, reset } = useSaveChannelSla(CHANNEL)
   const [rows, setRows] = useState<Record<SlaPriority, RowState>>(
     {} as Record<SlaPriority, RowState>,
