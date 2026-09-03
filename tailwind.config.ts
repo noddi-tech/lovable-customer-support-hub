@@ -112,8 +112,6 @@ export default {
       // NOTE: the spacing keys above leak into the max-w-*/min-w-* scales;
       // src/index.css restores the standard container widths.
 
-
-
       transitionDuration: {
         fast: "var(--transition-fast)",
         normal: "var(--transition-normal)",
