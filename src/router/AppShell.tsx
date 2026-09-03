@@ -1,5 +1,6 @@
 import { Outlet } from "@tanstack/react-router"
 import { useEffect } from "react"
+import { ObservabilityBridge } from "@/components/observability/ObservabilityBridge"
 import { URLSanitizer } from "@/components/routing/URLSanitizer"
 import { useNavigate } from "@/router/compat"
 
@@ -66,6 +67,8 @@ export function AppShell() {
 
   return (
     <URLSanitizer>
+      {/* Must sit under RouterProvider so useLocation / page-view tracking work. */}
+      <ObservabilityBridge />
       <Outlet />
     </URLSanitizer>
   )

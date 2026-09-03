@@ -10,7 +10,6 @@ import { AppErrorFallback } from "@/components/error/AppErrorFallback"
 import { ErrorBoundary } from "@/components/error/ErrorBoundary"
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary"
 import { I18nWrapper } from "@/components/i18n/I18nWrapper"
-import { ObservabilityBridge } from "@/components/observability/ObservabilityBridge"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -110,7 +109,6 @@ const App = () => (
                         <I18nWrapper>
                           <ComposeProvider>
                             <EnvBanner />
-                            <ObservabilityBridge />
                             <RouterProvider router={router} />
                             <AircallWorkspaceManager />
                             <ComposeDock />
