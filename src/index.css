@@ -1308,11 +1308,6 @@ Optimized for accessibility with WCAG AA compliance.
     background: hsl(var(--primary));
     border-radius: 1px;
   }
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
-    background: hsl(var(--card)); 
-    border-top: 1px solid hsl(var(--border));
-    z-index: 30;
-  }
 
   .bottom-tabs button { 
     min-height: 44px; 
