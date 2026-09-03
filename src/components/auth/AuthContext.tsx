@@ -2,7 +2,7 @@ import { getNavioAuthContext, type NavioClaims } from "@navio/nidp"
 import type { Session, User } from "@supabase/supabase-js"
 import { useQueryClient } from "@tanstack/react-query"
 import type React from "react"
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import {
   asNidpUser,
@@ -43,6 +43,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true)
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false)
   const [navioClaims, setNavioClaims] = useState<Partial<NavioClaims>>({})
+  const userRef = useRef<User | null>(null)
+  const sessionRef = useRef<Session | null>(null)
+  const isProcessingOAuthRef = useRef(false)
   const queryClient = useQueryClient()
 
   const hydrateNavioClaims = useCallback((sessionUser: User | null | undefined) => {
@@ -80,6 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (err) {
             logger.error("Sign out after rejected Navio login failed", err, "Auth")
           }
+          sessionRef.current = null
+          userRef.current = null
           setSession(null)
           setUser(null)
           window.dispatchEvent(
@@ -120,11 +125,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } = await supabase.auth.refreshSession()
       if (error) throw error
 
+      sessionRef.current = session
+      userRef.current = session?.user ?? null
       setSession(session)
       setUser(session?.user ?? null)
       return session
     } catch (error) {
       logger.error("Session refresh failed", error, "Auth")
+      sessionRef.current = null
+      userRef.current = null
       setSession(null)
       setUser(null)
       return null
@@ -133,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const validateSession = useCallback(
     async (retryCount = 0): Promise<boolean> => {
-      if (!session) {
+      if (!sessionRef.current) {
         logger.debug("No session to validate", undefined, "Auth")
         return false
       }
@@ -190,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false
       }
     },
-    [session, refreshSession],
+    [refreshSession],
   )
 
   useEffect(() => {
@@ -201,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const hash = window.location.hash
       if (hash?.includes("access_token")) {
         const startTime = Date.now()
+        isProcessingOAuthRef.current = true
         setIsProcessingOAuth(true)
         logger.info(
           "OAuth callback detected",
@@ -238,6 +248,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Product IdP: profile + membership sync from navio SO/SD claims.
           await runAccessBootstrap(session.user)
 
+          sessionRef.current = session
+          userRef.current = session.user
           setSession(session)
           setUser(session.user)
 
@@ -264,6 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           )
         }
         setLoading(false)
+        isProcessingOAuthRef.current = false
         setIsProcessingOAuth(false)
         return true
       }
@@ -279,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return
       }
 
-      const previousUser = user
+      const previousUser = userRef.current
       const newUser = session?.user ?? null
 
       logger.info(
@@ -292,11 +305,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sessionExpiry: session?.expires_at
             ? new Date(session.expires_at * 1000).toISOString()
             : null,
-          isProcessingOAuth,
+          isProcessingOAuth: isProcessingOAuthRef.current,
         },
         "Auth",
       )
 
+      sessionRef.current = session
+      userRef.current = newUser
       setSession(session)
       setUser(newUser)
       setLoading(false)
@@ -368,6 +383,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         )
 
         if (mounted) {
+          sessionRef.current = session
+          userRef.current = session?.user ?? null
           setSession(session)
           setUser(session?.user ?? null)
           setLoading(false)
@@ -404,14 +421,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false
       subscription.unsubscribe()
     }
-  }, [
-    user,
-    isProcessingOAuth,
-    validateSession,
-    queryClient,
-    runAccessBootstrap,
-    hydrateNavioClaims,
-  ])
+  }, [validateSession, queryClient, runAccessBootstrap, hydrateNavioClaims])
 
   const signOut = async () => {
     try {
