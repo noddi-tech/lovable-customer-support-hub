@@ -1,6 +1,7 @@
 import { Clock, Inbox, Mail, MailOpen, Settings2, UserCheck } from "lucide-react"
 import { useMemo, useState } from "react"
 import { InboxCard } from "@/components/dashboard/home/InboxCard"
+import { WidgetReleaseBanner } from "@/components/dashboard/home/WidgetReleaseBanner"
 import { InboxMetricsDialog } from "@/components/dashboard/InboxMetricsDialog"
 import { SupportOverviewSection } from "@/components/dashboard/SupportOverviewSection"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
@@ -64,6 +65,9 @@ export default function HomePage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{dateTime(new Date())}</p>
         </div>
+
+        {/* Prompt admins to publish the widget when the live bundle is behind */}
+        <WidgetReleaseBanner />
 
         {/* Channel overview + gamified leaderboard */}
         <SupportOverviewSection />
