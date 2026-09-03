@@ -93,6 +93,7 @@ export const WidgetReleaseBanner: React.FC = () => {
     <Card
       className={cn(
         "flex flex-col gap-3 border-amber-300 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between",
+        "dark:bg-amber-950/20 dark:text-amber-100",
         "dark:border-amber-900/50 dark:bg-amber-950/20",
       )}
     >
