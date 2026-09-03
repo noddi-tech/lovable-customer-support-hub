@@ -109,6 +109,9 @@ export default {
         xl: "var(--space-xl)",
         "2xl": "var(--space-2xl)",
       },
+      // NOTE: the spacing keys above leak into the max-w-*/min-w-* scales;
+      // src/index.css restores the standard container widths.
+
       transitionDuration: {
         fast: "var(--transition-fast)",
         normal: "var(--transition-normal)",
