@@ -12,14 +12,14 @@ export function brokeredPreviewStorage() {
     "gpt-eng.com",
     "gptengineer.run",
   ]
-  const onPreviewZone = PREVIEW_ZONES.some((z) => host === z || host.endsWith("." + z))
+  const onPreviewZone = PREVIEW_ZONES.some((z) => host === z || host.endsWith(`.${z}`))
   // Read the id only from non-user-controlled host positions, so a user-named
   // preview--<name> host can't smuggle another project's id.
   const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
   const projectId = onPreviewZone
     ? (host.match(
-        new RegExp("^(?:id-preview(?:-[a-z0-9]+)?|project)--(" + UUID + ")(?:-dev)?(?=\\.|$)", "i"),
-      )?.[1] ?? host.match(new RegExp("^(" + UUID + ")(?=[.-])", "i"))?.[1])
+        new RegExp(`^(?:id-preview(?:-[a-z0-9]+)?|project)--(${UUID})(?:-dev)?(?=\\.|$)`, "i"),
+      )?.[1] ?? host.match(new RegExp(`^(${UUID})(?=[.-])`, "i"))?.[1])
     : undefined
   const framed = window.parent && window.parent !== window
   if (!projectId || !framed) return localStorage
@@ -31,8 +31,7 @@ export function brokeredPreviewStorage() {
     ? /^https:\/\/([a-z0-9-]+\.)*(lovable\.dev|gptengineer\.app)$|^http:\/\/localhost:3000$/
     : /^https:\/\/([a-z0-9-]+\.)*(lovable\.dev|gptengineer\.app)$/
   const ancestor =
-    (location.ancestorOrigins && location.ancestorOrigins[0]) ||
-    (document.referrer ? new URL(document.referrer).origin : "")
+    location.ancestorOrigins?.[0] || (document.referrer ? new URL(document.referrer).origin : "")
   const editorOrigins =
     ancestor && EDITOR.test(ancestor)
       ? [ancestor]
@@ -86,7 +85,7 @@ export function brokeredPreviewStorage() {
       firstGet = false
       // '' is the logout tombstone: clear the local copy too so it can't resurrect if
       // the broker later goes silent. A null reply means never-synced -> keep local.
-      if (res && res.ok && typeof res.value === "string") {
+      if (res?.ok && typeof res.value === "string") {
         if (res.value === "") {
           localStorage.removeItem(key)
           return null
