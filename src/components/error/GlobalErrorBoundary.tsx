@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react"
 import type React from "react"
 import { Component, type ReactNode } from "react"
+import { isChunkLoadError, reloadOnceForChunkError } from "@/utils/chunkReload"
 import { logger } from "@/utils/logger"
 
 interface Props {
@@ -21,12 +22,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Only show error UI for critical errors, not analytics/iframe errors
-    const shouldShowError = !GlobalErrorBoundary.shouldSuppressError(error)
-    return { hasError: shouldShowError, error }
+    // Always render a visible fallback — suppression only controls reporting,
+    // never leaves an empty #root behind.
+    return { hasError: true, error }
   }
 
   static shouldSuppressError(error: Error): boolean {
+    // Chunk/module load errors are recoverable by reloading — never suppress.
+    if (isChunkLoadError(error)) return false
+
     const message = error.message?.toLowerCase() || ""
     const stack = error.stack?.toLowerCase() || ""
 
@@ -50,10 +54,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       return true
     }
 
-    // Suppress network errors that are handled elsewhere
+    // Narrow network suppression: only genuine transport failures, not any
+    // message that happens to contain the word "fetch".
     if (
-      message.includes("network") ||
-      message.includes("fetch") ||
+      message.includes("failed to fetch") ||
+      message.includes("networkerror") ||
+      message.includes("network request failed") ||
       message.includes("cors") ||
       message.includes("edge function")
     ) {
@@ -62,6 +68,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
     return false
   }
+
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (GlobalErrorBoundary.shouldSuppressError(error)) {
