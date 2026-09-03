@@ -69,27 +69,27 @@ export const useButtonStyles = (variant: "primary" | "secondary" = "primary") =>
   }
 }
 
+/**
+ * Card surface styling. Colors are intentionally NOT returned here — they must
+ * come from the `bg-card` / `text-card-foreground` tokens so dark mode works.
+ * Inline colors on the element would beat the `.dark` stylesheet rules.
+ */
 export const useCardStyles = () => {
   const context = useOptionalDesignSystem()
 
-  // Fallback styles when design system context is not available
   if (!context) {
     return {
-      backgroundColor: "hsl(0 0% 100%)",
-      color: "hsl(224 71% 4%)",
       borderRadius: "0.75rem",
       boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
     }
   }
 
   const { designSystem } = context
-  const colors = designSystem.colors
   const components = designSystem.components
 
   return {
-    backgroundColor: `hsl(${colors[components.cards.backgroundColor]})`,
-    color: `hsl(${colors.cardForeground})`,
     borderRadius: components.cards.borderRadius,
     boxShadow: designSystem.shadows[components.cards.shadow as keyof typeof designSystem.shadows],
   }
 }
+
