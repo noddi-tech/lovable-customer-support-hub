@@ -1452,14 +1452,25 @@ Deno.serve(async (req: Request) => {
         })
       }
 
-      // Publish a machine-readable build manifest alongside the bundle
-      await supabase.storage
+      // Publish a machine-readable build manifest alongside the bundle.
+      // The `widget` bucket only allows JavaScript mime types, so the manifest
+      // is stored as text/javascript — `fetch(...).json()` parses it regardless
+      // of the content type, and this keeps the upload from being rejected.
+      const { error: manifestError } = await supabase.storage
         .from("widget")
         .upload("widget-build.json", JSON.stringify({ ...meta, size: bundle.length }, null, 2), {
-          contentType: "application/json",
+          contentType: "text/javascript",
           upsert: true,
           cacheControl: "60",
         })
+
+      if (manifestError) {
+        console.error("Manifest upload error:", manifestError)
+        return new Response(
+          JSON.stringify({ error: `Widget uploaded but manifest failed: ${manifestError.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        )
+      }
 
       // Get public URL
       const { data: publicUrl } = supabase.storage.from("widget").getPublicUrl("widget.js")
