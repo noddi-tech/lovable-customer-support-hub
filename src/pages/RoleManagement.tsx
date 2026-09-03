@@ -230,6 +230,7 @@ export default function RoleManagement() {
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                   <Skeleton key={i} className="h-20 w-full" />
                 ))}
               </div>

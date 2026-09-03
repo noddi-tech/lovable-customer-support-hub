@@ -52,7 +52,7 @@ const BookingConfirmedBlock: React.FC<BlockComponentProps> = ({ data }) => {
       <div style={{ padding: "12px" }}>
         {rows.map((r, i) => (
           <div
-            key={i}
+            key={r.label}
             style={{
               display: "flex",
               justifyContent: "space-between",

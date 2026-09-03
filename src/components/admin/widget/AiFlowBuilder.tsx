@@ -406,14 +406,11 @@ function swapWithParent(nodes: FlowNode[], nodeId: string): FlowNode[] {
       // Check children
       const childIdx = (parent.children || []).findIndex((c) => c.id === nodeId)
       if (childIdx !== -1) {
-        const child = parent.children![childIdx]
+        const child = parent.children[childIdx]
         // Swap: child takes parent's place, parent becomes child's child
         const newParent = {
           ...parent,
-          children: [
-            ...parent.children!.slice(0, childIdx),
-            ...parent.children!.slice(childIdx + 1),
-          ],
+          children: [...parent.children.slice(0, childIdx), ...parent.children.slice(childIdx + 1)],
         }
         const newChild = { ...child, children: [...(child.children || []), newParent] }
         const newArr = [...arr]
@@ -755,7 +752,10 @@ const AddStepButton: React.FC<{ onAdd: (type: NodeType) => void; compact?: boole
       {!compact && <VerticalConnector />}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="h-5 w-5 rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-primary hover:bg-primary/10 flex items-center justify-center transition-colors">
+          <button
+            type="button"
+            className="h-5 w-5 rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-primary hover:bg-primary/10 flex items-center justify-center transition-colors"
+          >
             <Plus className="h-3 w-3 text-muted-foreground" />
           </button>
         </PopoverTrigger>
@@ -763,6 +763,7 @@ const AddStepButton: React.FC<{ onAdd: (type: NodeType) => void; compact?: boole
           <div className="space-y-0.5">
             {NODE_TYPES.map((t) => (
               <button
+                type="button"
                 key={t.value}
                 onClick={() => {
                   onAdd(t.value)
@@ -815,10 +816,20 @@ const NodeCard: React.FC<NodeCardProps> = ({
   if (node.type === "goto") {
     const targetNode = node.goto_target ? findNodeInTree(allNodes, node.goto_target) : null
     return (
+      // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
       <div
+        role="button"
+        tabIndex={0}
         onClick={(e) => {
           e.stopPropagation()
           onClick()
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            e.stopPropagation()
+            onClick()
+          }
         }}
         className={`
           cursor-pointer group transition-all duration-150 w-[160px]
@@ -841,10 +852,20 @@ const NodeCard: React.FC<NodeCardProps> = ({
   const isDecision = node.type === "decision"
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
     <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          e.stopPropagation()
+          onClick()
+        }
       }}
       className={`
         relative cursor-pointer group transition-all duration-150
@@ -857,6 +878,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
       {(onMoveUp || onMoveDown) && (
         <div className="absolute -right-1 top-1 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <button
+            type="button"
             disabled={!canMoveUp}
             onClick={(e) => {
               e.stopPropagation()
@@ -867,6 +889,7 @@ const NodeCard: React.FC<NodeCardProps> = ({
             <ChevronUp className="h-3 w-3" />
           </button>
           <button
+            type="button"
             disabled={!canMoveDown}
             onClick={(e) => {
               e.stopPropagation()
@@ -1000,6 +1023,7 @@ const ActionMenuFork: React.FC<{ columns: number }> = ({ columns }) => {
         {Array.from({ length: columns }).map((_, i) => {
           const colCenter = i * (colWidth + gap) + colWidth / 2
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list placeholders
             <g key={i}>
               <path
                 d={`M ${center} 0 L ${center} 12 Q ${center} 22 ${colCenter > center ? center + 10 : colCenter < center ? center - 10 : center} 22 L ${colCenter > center ? colCenter - 10 : colCenter < center ? colCenter + 10 : colCenter} 22 Q ${colCenter} 22 ${colCenter} 32 L ${colCenter} 44`}
@@ -1039,6 +1063,7 @@ const ActionMenuMerge: React.FC<{ columns: number }> = ({ columns }) => {
           const colCenter = i * (colWidth + gap) + colWidth / 2
           return (
             <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: static list placeholders
               key={i}
               d={`M ${colCenter} 0 L ${colCenter} 8 Q ${colCenter} 16 ${colCenter > center ? colCenter - 10 : colCenter < center ? colCenter + 10 : colCenter} 16 L ${colCenter > center ? center + 10 : colCenter < center ? center - 10 : center} 16 Q ${center} 16 ${center} 24 L ${center} 36`}
               stroke="currentColor"
@@ -1456,6 +1481,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
               <Label className="text-xs text-muted-foreground font-medium">Decision Mode</Label>
               <div className="flex rounded-lg border overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => onUpdate(node.id, { decision_mode: "ask_customer" })}
                   className={`flex-1 text-xs py-1.5 px-2 font-medium transition-colors ${
                     (node.decision_mode || "ask_customer") === "ask_customer"
@@ -1466,6 +1492,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   Ask Customer
                 </button>
                 <button
+                  type="button"
                   onClick={() => onUpdate(node.id, { decision_mode: "auto_evaluate" })}
                   className={`flex-1 text-xs py-1.5 px-2 font-medium transition-colors ${
                     node.decision_mode === "auto_evaluate"
@@ -1635,7 +1662,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                         {getAllBlocks()
                           .filter((b) => b.flowMeta.applicableFieldTypes?.length)
                           .flatMap((b) =>
-                            b.flowMeta.applicableFieldTypes!.map((ft) => (
+                            b.flowMeta.applicableFieldTypes.map((ft) => (
                               <SelectItem key={ft} value={ft}>
                                 {b.flowMeta.icon} {ft.charAt(0).toUpperCase() + ft.slice(1)}
                               </SelectItem>
@@ -1761,6 +1788,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             <SelectContent>
               {branchTargets.map((t, i) => (
                 <SelectItem
+                  // biome-ignore lint/suspicious/noArrayIndexKey: branch target value is index-based
                   key={`${t.parentId}-${t.branch}-${t.actionId || ""}-${i}`}
                   value={String(i)}
                 >

@@ -58,13 +58,22 @@ export const getNotificationColumns = ({
     cell: ({ row }) => {
       const n = row.original
       return (
+        // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
         <div
+          role="button"
+          tabIndex={0}
           className={cn(
             "py-1 cursor-pointer",
             priorityStyles[n.priority],
             n.priority !== "normal" && n.priority !== "low" && "pl-3",
           )}
           onClick={() => onNavigate(n)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              onNavigate(n)
+            }
+          }}
         >
           <p className={cn("text-sm truncate", !n.is_read && "font-semibold")}>{n.title}</p>
           <p className="text-xs text-muted-foreground line-clamp-1">{n.message}</p>

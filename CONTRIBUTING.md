@@ -114,11 +114,13 @@ That gate:
 1. **Autofix** — Biome write + ESLint `--fix` + Prettier Markdown (`npm run fix`)
 2. **Verify** — `format:check` + `lint` + `ui:guards`
 
-Husky runs the same script:
+Husky:
 
-- **pre-commit** — `QUALITY_GATE_RESTAGE=1 scripts/quality-gate.sh --fix-and-check`
-  (re-stages autofixed files that were already staged)
+- **pre-commit** — `lint-staged` → `quality-gate --fix-and-check` → `npm run lint:strict`
+  (Biome, ESLint, tabs/pane, Knip, dependency-cruiser, secrets, jscpd, Semgrep, audit)
 - **pre-push** — `scripts/quality-gate.sh --fix-and-check`
+
+See [`docs/dev/linting.md`](./docs/dev/linting.md) (`make lint-strict`).
 
 Coding agents must run the gate themselves even when hooks might be skipped
 (Lovable remote commits, `--no-verify`, sandboxes without Husky). See

@@ -13,11 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { AdvancedFilters, PriorityFilter } from "@/types/interactions"
+import type { AdvancedFilters as AdvancedFiltersState, PriorityFilter } from "@/types/interactions"
 
 interface AdvancedFiltersProps {
-  filters: AdvancedFilters
-  onFiltersChange: (filters: AdvancedFilters) => void
+  filters: AdvancedFiltersState
+  onFiltersChange: (filters: AdvancedFiltersState) => void
   agents: Array<{ id: string; name: string }>
 }
 

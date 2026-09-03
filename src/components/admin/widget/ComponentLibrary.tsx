@@ -609,7 +609,11 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
               <p className="text-xs font-medium text-muted-foreground mb-2">API Endpoints</p>
               <div className="space-y-2">
                 {block.apiConfig.endpoints.map((ep, i) => (
-                  <EndpointDetail key={i} endpoint={ep} index={i} />
+                  <EndpointDetail
+                    key={`${ep.method}-${ep.name}-${ep.url ?? ""}`}
+                    endpoint={ep}
+                    index={i}
+                  />
                 ))}
               </div>
             </div>
@@ -1004,6 +1008,7 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
         {step === 2 && form.requiresApi && (
           <div className="space-y-4 py-2">
             {form.endpoints.map((ep, epIdx) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: editable endpoint list lacks stable ids
               <div key={epIdx} className="rounded-md border p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium">Endpoint {epIdx + 1}</p>
@@ -1071,6 +1076,7 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                     </Button>
                   </div>
                   {ep.bodyFields.map((bf, bfIdx) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: editable body fields lack stable ids
                     <div key={bfIdx} className="flex items-center gap-2 mb-1.5">
                       <Input
                         placeholder="key"
@@ -1164,7 +1170,10 @@ const CreateComponentDialog: React.FC<{ onSaved: () => void }> = ({ onSaved }) =
                   {form.endpoints
                     .filter((e) => e.name)
                     .map((ep, i) => (
-                      <div key={i} className="text-xs flex items-center gap-2">
+                      <div
+                        key={`${ep.method}-${ep.name}`}
+                        className="text-xs flex items-center gap-2"
+                      >
                         <Badge variant="outline" className="text-[9px]">
                           {ep.method}
                         </Badge>
@@ -1248,7 +1257,7 @@ export const ComponentLibrary: React.FC = () => {
       const { data, error } = await supabase
         .from("widget_block_configs")
         .select("*")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
       if (error) throw error
       return (data || []) as unknown as CustomBlockRow[]
     },

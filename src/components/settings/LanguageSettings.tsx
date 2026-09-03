@@ -71,9 +71,11 @@ export function LanguageSettings() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t("settings.language.label")}</label>
+          <label htmlFor="settings-language" className="text-sm font-medium">
+            {t("settings.language.label")}
+          </label>
           <Select value={i18n.language} onValueChange={handleLanguageChange} disabled={isUpdating}>
-            <SelectTrigger>
+            <SelectTrigger id="settings-language">
               <SelectValue placeholder={t("settings.language.placeholder")} />
             </SelectTrigger>
             <SelectContent>

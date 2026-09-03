@@ -61,7 +61,7 @@ window.addEventListener("voice-error-reset", () => {
 
 // Only render React if we're not redirecting to fix malformed URL
 if (!__REDIRECTING__) {
-  createRoot(document.getElementById("root")!).render(
+  createRoot(document.getElementById("root")).render(
     import.meta.env.DEV ? (
       <StrictMode>
         <App />

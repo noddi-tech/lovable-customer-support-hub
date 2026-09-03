@@ -101,7 +101,7 @@ export function useAiAnalytics({ organizationId, days = 30 }: UseAiAnalyticsProp
       // Tool usage
       const toolCounts: Record<string, number> = {}
       convos.forEach((c) => {
-        const tools = c.tools_used as string[] | null
+        const tools = c.tools_used
         tools?.forEach((t) => {
           toolCounts[t] = (toolCounts[t] || 0) + 1
         })

@@ -53,7 +53,7 @@ const ImportDoneStep: React.FC<Props> = ({ result, onRestart }) => {
             <CollapsibleContent className="mt-2">
               <div className="rounded-md border max-h-64 overflow-auto divide-y">
                 {result.errors.map((e, i) => (
-                  <div key={i} className="px-3 py-2 text-sm">
+                  <div key={`${e.row}-${e.reason}`} className="px-3 py-2 text-sm">
                     <span className="font-medium">Rad {e.row}:</span>{" "}
                     <span className="text-muted-foreground">{e.reason}</span>
                   </div>

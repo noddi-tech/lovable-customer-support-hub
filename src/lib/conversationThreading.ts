@@ -67,7 +67,7 @@ export function groupConversationsByThread<T extends ThreadableConversation>(
       threadMap.set(threadKey, [])
     }
 
-    threadMap.get(threadKey)!.push(conv)
+    threadMap.get(threadKey).push(conv)
   }
 
   // For each thread, select the most recent conversation as representative

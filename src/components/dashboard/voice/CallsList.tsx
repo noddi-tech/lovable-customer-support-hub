@@ -81,19 +81,8 @@ export const CallsList = ({
   const { getIntegrationByProvider } = useVoiceIntegrations()
   const aircallIntegration = getIntegrationByProvider("aircall")
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-600">Error Loading Calls</CardTitle>
-          <CardDescription>Failed to load calls. Please try again.</CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-
   // Filter calls based on all filters including advanced search
-  const filteredCalls = calls.filter((call) => {
+  const filteredCalls = (calls ?? []).filter((call) => {
     // Search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
@@ -452,6 +441,7 @@ export const CallsList = ({
     return (
       <div className="space-y-2">
         <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md"
         >
@@ -475,6 +465,17 @@ export const CallsList = ({
   const openCallDetails = (call: any) => {
     setSelectedCall(call)
     setIsDetailsOpen(true)
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-red-600">Error Loading Calls</CardTitle>
+          <CardDescription>Failed to load calls. Please try again.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   return (
@@ -566,6 +567,7 @@ export const CallsList = ({
       {isLoading ? (
         <div className="space-y-1">
           {[...Array(5)].map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Card key={i}>
               <CardContent className="px-2 py-1">
                 <div className="animate-pulse">

@@ -25,7 +25,7 @@ interface Props {
 }
 
 function plateOf(ticket: NoddiTicket): string | null {
-  const raw = ticket.user_group_car?.license_plate as unknown
+  const raw = ticket.user_group_car?.license_plate
   if (!raw) return null
   if (typeof raw === "string") return raw
   if (typeof raw === "object") {
@@ -104,6 +104,7 @@ export function CustomerNoddiTicketsCard({ userGroupIds, licensePlate }: Props) 
               const plate = plateOf(ticket)
               return (
                 <button
+                  type="button"
                   key={ticket.id}
                   onClick={() => setSelectedTicketId(ticket.id)}
                   className="w-full rounded-md border border-border p-2 text-left transition-colors hover:bg-muted/50"

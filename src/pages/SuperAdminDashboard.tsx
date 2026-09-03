@@ -387,9 +387,10 @@ export default function SuperAdminDashboard() {
             <CardContent>
               <div className="space-y-3">
                 {recentOrgs.map((org) => (
-                  <div
+                  <button
+                    type="button"
                     key={org.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer appearance-none bg-transparent text-left"
                     onClick={() => navigate(`/super-admin/organizations/${org.id}`)}
                   >
                     <div className="flex items-center gap-3">
@@ -404,7 +405,7 @@ export default function SuperAdminDashboard() {
                     <div className="text-sm text-muted-foreground">
                       {new Date(org.created_at).toLocaleDateString()}
                     </div>
-                  </div>
+                  </button>
                 ))}
                 {recentOrgs.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">No organizations yet</p>

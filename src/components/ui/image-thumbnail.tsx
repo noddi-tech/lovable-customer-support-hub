@@ -55,10 +55,7 @@ export const ImageThumbnail = ({ attachment, messageId, onClick }: ImageThumbnai
   }
 
   return (
-    <div
-      className="relative aspect-square w-full max-w-[120px] rounded-lg overflow-hidden border bg-muted cursor-pointer group"
-      onClick={onClick}
-    >
+    <div className="relative aspect-square w-full max-w-[120px] rounded-lg overflow-hidden border bg-muted cursor-pointer group">
       <img
         src={imageUrl}
         alt={attachment.filename || "Attachment"}
@@ -68,6 +65,7 @@ export const ImageThumbnail = ({ attachment, messageId, onClick }: ImageThumbnai
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
         <button
+          type="button"
           onClick={onClick}
           className="p-2 rounded-full bg-background/90 hover:bg-background transition-colors"
           title="View full size"
@@ -75,6 +73,7 @@ export const ImageThumbnail = ({ attachment, messageId, onClick }: ImageThumbnai
           <Eye className="h-4 w-4" />
         </button>
         <button
+          type="button"
           onClick={handleDownload}
           className="p-2 rounded-full bg-background/90 hover:bg-background transition-colors"
           title="Download"

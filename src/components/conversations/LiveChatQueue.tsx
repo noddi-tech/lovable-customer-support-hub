@@ -150,10 +150,19 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({ className, compact
         {activeSessions
           .filter((s) => s.assignedAgentId === profile?.user_id)
           .map((session) => (
+            // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
             <div
               key={session.id}
+              role="button"
+              tabIndex={0}
               className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors"
               onClick={() => handleOpenConversation(session.conversationId)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  handleOpenConversation(session.conversationId)
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center relative">

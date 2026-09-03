@@ -29,8 +29,17 @@ const BookingCard: React.FC<{
   else if (b.license_plate) rows.push({ label: "🚗 Bil", value: b.license_plate })
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
     <div
+      role="button"
+      tabIndex={isUsed ? -1 : 0}
       onClick={() => onToggle(b.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onToggle(b.id)
+        }
+      }}
       style={{
         width: fullWidth ? "100%" : undefined,
         border: isSelected ? `2.5px solid ${primaryColor}` : "1.5px solid #93c5fd",
@@ -111,7 +120,7 @@ const BookingCard: React.FC<{
       <div style={{ padding: "10px 12px" }}>
         {rows.map((r, i) => (
           <div
-            key={i}
+            key={r.label}
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -185,6 +194,7 @@ const BookingSelectBlock: React.FC<BlockComponentProps> = ({
       {/* Continue button */}
       {!isUsed && (
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={selected.size === 0}
           style={{

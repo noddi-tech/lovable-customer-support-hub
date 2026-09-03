@@ -141,7 +141,10 @@ const ImportMappingStep: React.FC<Props> = ({
               {preview.map((p, i) => {
                 const invalid = !isValidEmail(p.email)
                 return (
-                  <TableRow key={i} className={invalid ? "bg-destructive/10" : ""}>
+                  <TableRow
+                    key={`${p.email}-${p.first_name}-${p.last_name}`}
+                    className={invalid ? "bg-destructive/10" : ""}
+                  >
                     <TableCell>{p.first_name || "—"}</TableCell>
                     <TableCell>{p.last_name || "—"}</TableCell>
                     <TableCell className={invalid ? "text-destructive" : ""}>

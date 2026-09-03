@@ -93,7 +93,7 @@ export const WithoutPreview: Story = {
 }
 
 export const InteractiveDemo: Story = {
-  render: () => {
+  render: function InteractiveDemoStory() {
     const [selected, setSelected] = useState<string | null>(null)
 
     const conversations = [

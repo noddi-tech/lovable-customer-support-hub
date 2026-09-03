@@ -26,7 +26,7 @@ export function useStageProgressionValidation() {
         body: input,
       })
       if (error) throw error
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data as StageProgressionResult
     },
   })

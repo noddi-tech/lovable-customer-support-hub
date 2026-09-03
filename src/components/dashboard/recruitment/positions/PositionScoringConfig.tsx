@@ -82,7 +82,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
     if (!config) return
     setBaselineId(config.scoring_global_baseline_id)
     setOverrideRubric(!!config.scoring_rubric)
-    setRubric((config.scoring_rubric as ScoringRubric) ?? emptyRubric())
+    setRubric(config.scoring_rubric ?? emptyRubric())
     setDirty(false)
   }, [config])
 
@@ -243,7 +243,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
             onCheckedChange={(v) => {
               setOverrideRubric(v)
               if (v && (!rubric.criteria || rubric.criteria.length === 0)) {
-                setRubric(baseline ? (baseline.rubric as ScoringRubric) : emptyRubric())
+                setRubric(baseline ? baseline.rubric : emptyRubric())
               }
               markDirty()
             }}

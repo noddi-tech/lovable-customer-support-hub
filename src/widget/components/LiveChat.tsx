@@ -185,7 +185,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   return (
     <div className="noddi-widget-chat">
       {/* Back button */}
-      <button className="noddi-widget-back" onClick={onBack}>
+      <button type="button" className="noddi-widget-back" onClick={onBack}>
         <svg
           width="16"
           height="16"
@@ -226,10 +226,10 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         </div>
         {!isEnded && (
           <div className="noddi-chat-status-actions">
-            <button className="noddi-chat-resolve-button" onClick={handleResolveChat}>
+            <button type="button" className="noddi-chat-resolve-button" onClick={handleResolveChat}>
               {t.markResolved || "Mark as resolved"}
             </button>
-            <button className="noddi-chat-end-button" onClick={handleEndChat}>
+            <button type="button" className="noddi-chat-end-button" onClick={handleEndChat}>
               {t.endChat}
             </button>
           </div>
@@ -261,7 +261,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
                 <div className="noddi-chat-attachments">
                   {message.attachments.map((attachment, index) => (
                     <a
-                      key={`${message.id}-${index}`}
+                      key={attachment.url}
                       href={attachment.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -354,6 +354,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
             disabled={isSending}
           />
           <button
+            type="button"
             className="noddi-chat-send"
             onClick={handleSend}
             disabled={!inputValue.trim() || isSending}

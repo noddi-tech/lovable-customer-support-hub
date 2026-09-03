@@ -261,6 +261,7 @@ export default function CasesPage() {
           {isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                 <Skeleton key={i} className="h-20 w-full" />
               ))}
             </div>
@@ -344,6 +345,7 @@ export default function CasesPage() {
                       aria-label={`Select case ${c.case_number}`}
                     />
                     <button
+                      type="button"
                       onClick={() => navigate(`/operations/cases/${c.id}`)}
                       className="min-w-0 flex-1 p-3 pl-1 text-left"
                     >

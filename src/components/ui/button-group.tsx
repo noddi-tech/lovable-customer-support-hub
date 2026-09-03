@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 
 const ButtonGroup = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
+    // biome-ignore lint/a11y/useSemanticElements: shadcn primitive
     <div
       ref={ref}
       role="group"
@@ -24,6 +25,8 @@ const ButtonGroupSeparator = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { orientation?: "horizontal" | "vertical" }
 >(({ className, orientation = "vertical", ...props }, ref) => (
+  // biome-ignore lint/a11y/useFocusableInteractive: shadcn primitive
+  // biome-ignore lint/a11y/useSemanticElements: shadcn primitive
   <div
     ref={ref}
     role="separator"

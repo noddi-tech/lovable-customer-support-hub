@@ -60,6 +60,7 @@ function sanitize(s: unknown): string {
       // pdf-lib's WinAnsi-encoded standard fonts can't render most non-Latin-1
       // glyphs. Strip them to avoid encode errors. Norwegian æøåÆØÅ are within
       // WinAnsi so they survive.
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip in sanitizer
       .replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF]/g, "?")
       .slice(0, 5000)
   )

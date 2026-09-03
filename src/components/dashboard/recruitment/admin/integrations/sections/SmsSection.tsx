@@ -42,7 +42,7 @@ export function SmsSection() {
       const { data, error } = await supabase
         .from("inboxes")
         .select("id, name, sms_enabled, sms_provider, sms_provider_phone_number")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("purpose", "recruitment")
         .eq("is_active", true)
         .order("name")
@@ -112,7 +112,7 @@ export function SmsSection() {
         <div className="text-sm text-muted-foreground">Ingen rekrutteringsinnbokser funnet.</div>
       ) : (
         <div className="space-y-3">
-          {inboxes!.map((ibox) => (
+          {inboxes.map((ibox) => (
             <InboxSmsCard
               key={ibox.id}
               inbox={ibox}

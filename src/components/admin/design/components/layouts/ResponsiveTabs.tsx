@@ -49,144 +49,141 @@ function isLegacyProps(props: ResponsiveTabsProps): props is LegacyResponsiveTab
   return "items" in props
 }
 
-export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) => {
-  // Handle legacy API
-  if (isLegacyProps(props)) {
-    const {
-      items,
-      defaultValue,
-      value,
-      onValueChange,
-      className,
-      orientation = "responsive",
-      breakpoint = "md",
-      variant = "default",
-      spacing = "1",
-      fullWidth = true, // Default to true for legacy API to fix uneven widths
-    } = props
+const LegacyResponsiveTabs: React.FC<LegacyResponsiveTabsProps> = (props) => {
+  const {
+    items,
+    defaultValue,
+    value,
+    onValueChange,
+    className,
+    orientation = "responsive",
+    breakpoint = "md",
+    variant = "default",
+    spacing = "1",
+    fullWidth = true, // Default to true for legacy API to fix uneven widths
+  } = props
 
-    // Mobile-first responsive orientation
-    const orientationClass = useMemo(
-      () =>
-        orientation === "responsive"
-          ? `flex-col md:flex-row` // Always mobile-first
-          : orientation === "vertical"
-            ? "flex-col"
-            : "flex-row",
-      [orientation],
-    )
+  // Mobile-first responsive orientation
+  const orientationClass = useMemo(
+    () =>
+      orientation === "responsive"
+        ? `flex-col md:flex-row` // Always mobile-first
+        : orientation === "vertical"
+          ? "flex-col"
+          : "flex-row",
+    [orientation],
+  )
 
-    const spacingClass = useMemo(
-      () =>
-        typeof spacing === "string"
-          ? `gap-${spacing}`
-          : cn(
-              spacing.sm && `sm:gap-${spacing.sm}`,
-              spacing.md && `md:gap-${spacing.md}`,
-              spacing.lg && `lg:gap-${spacing.lg}`,
-              spacing.xl && `xl:gap-${spacing.xl}`,
-            ),
-      [spacing],
-    )
+  const spacingClass = useMemo(
+    () =>
+      typeof spacing === "string"
+        ? `gap-${spacing}`
+        : cn(
+            spacing.sm && `sm:gap-${spacing.sm}`,
+            spacing.md && `md:gap-${spacing.md}`,
+            spacing.lg && `lg:gap-${spacing.lg}`,
+            spacing.xl && `xl:gap-${spacing.xl}`,
+          ),
+    [spacing],
+  )
 
-    const variantClasses = useMemo(() => {
-      switch (variant) {
-        case "pills":
-          return {
-            list: "bg-muted p-1 rounded-lg",
-            trigger: "rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm",
-          }
-        case "underline":
-          return {
-            list: "border-b bg-transparent",
-            trigger:
-              "border-b-2 border-transparent data-[state=active]:border-primary rounded-none",
-          }
-        case "borderless":
-          return {
-            list: "bg-transparent",
-            trigger:
-              "data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md",
-          }
-        case "compact":
-          return {
-            list: "bg-muted/50 p-0.5 rounded",
-            trigger: "text-xs h-6 px-2 rounded-sm data-[state=active]:bg-background",
-          }
-        default:
-          return {
-            list: "bg-muted rounded-md",
-            trigger:
-              "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-          }
-      }
-    }, [variant])
+  const variantClasses = useMemo(() => {
+    switch (variant) {
+      case "pills":
+        return {
+          list: "bg-muted p-1 rounded-lg",
+          trigger: "rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm",
+        }
+      case "underline":
+        return {
+          list: "border-b bg-transparent",
+          trigger: "border-b-2 border-transparent data-[state=active]:border-primary rounded-none",
+        }
+      case "borderless":
+        return {
+          list: "bg-transparent",
+          trigger:
+            "data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-md",
+        }
+      case "compact":
+        return {
+          list: "bg-muted/50 p-0.5 rounded",
+          trigger: "text-xs h-6 px-2 rounded-sm data-[state=active]:bg-background",
+        }
+      default:
+        return {
+          list: "bg-muted rounded-md",
+          trigger:
+            "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+        }
+    }
+  }, [variant])
 
-    // Override shadcn's inline-flex with flex for full-width layouts
-    const tabsListClass = useMemo(
-      () =>
-        cn(
-          "flex flex-wrap w-full", // Override inline-flex, add flex-wrap for mobile overflow
-          orientationClass,
-          spacingClass,
-          variantClasses.list,
-        ),
-      [orientationClass, spacingClass, variantClasses.list],
-    )
+  // Override shadcn's inline-flex with flex for full-width layouts
+  const tabsListClass = useMemo(
+    () =>
+      cn(
+        "flex flex-wrap w-full", // Override inline-flex, add flex-wrap for mobile overflow
+        orientationClass,
+        spacingClass,
+        variantClasses.list,
+      ),
+    [orientationClass, spacingClass, variantClasses.list],
+  )
 
-    const tabsTriggerClass = useMemo(
-      () =>
-        cn(
-          fullWidth && "flex-1 min-w-0", // min-w-0 prevents text overflow
-          variantClasses.trigger,
-        ),
-      [fullWidth, variantClasses.trigger],
-    )
+  const tabsTriggerClass = useMemo(
+    () =>
+      cn(
+        fullWidth && "flex-1 min-w-0", // min-w-0 prevents text overflow
+        variantClasses.trigger,
+      ),
+    [fullWidth, variantClasses.trigger],
+  )
 
-    const tabsClassName = useMemo(() => cn("w-full", className), [className])
-    const tabsOrientation = useMemo(
-      () => (orientation === "vertical" ? "vertical" : "horizontal"),
-      [orientation],
-    )
+  const tabsClassName = useMemo(() => cn("w-full", className), [className])
+  const tabsOrientation = useMemo(
+    () => (orientation === "vertical" ? "vertical" : "horizontal"),
+    [orientation],
+  )
 
-    const memoizedOnValueChange = useCallback(
-      (newValue: string) => {
-        onValueChange?.(newValue)
-      },
-      [onValueChange],
-    )
+  const memoizedOnValueChange = useCallback(
+    (newValue: string) => {
+      onValueChange?.(newValue)
+    },
+    [onValueChange],
+  )
 
-    return (
-      <Tabs
-        defaultValue={defaultValue}
-        value={value}
-        onValueChange={memoizedOnValueChange}
-        className={tabsClassName}
-        orientation={tabsOrientation}
-      >
-        <TabsList className={tabsListClass}>
-          {items.map((item) => (
-            <TabsTrigger key={item.value} value={item.value} className={tabsTriggerClass}>
-              {item.icon && <item.icon className="w-4 h-4 mr-2 flex-shrink-0" />}
-              <span className="truncate">{item.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
+  return (
+    <Tabs
+      defaultValue={defaultValue}
+      value={value}
+      onValueChange={memoizedOnValueChange}
+      className={tabsClassName}
+      orientation={tabsOrientation}
+    >
+      <TabsList className={tabsListClass}>
         {items.map((item) => (
-          <TabsContent
-            key={item.value}
-            value={item.value}
-            className="mt-4 focus-visible:outline-none"
-          >
-            {item.content}
-          </TabsContent>
+          <TabsTrigger key={item.value} value={item.value} className={tabsTriggerClass}>
+            {item.icon && <item.icon className="w-4 h-4 mr-2 flex-shrink-0" />}
+            <span className="truncate">{item.label}</span>
+          </TabsTrigger>
         ))}
-      </Tabs>
-    )
-  }
+      </TabsList>
 
-  // Handle new standard API
+      {items.map((item) => (
+        <TabsContent
+          key={item.value}
+          value={item.value}
+          className="mt-4 focus-visible:outline-none"
+        >
+          {item.content}
+        </TabsContent>
+      ))}
+    </Tabs>
+  )
+}
+
+const StandardResponsiveTabs: React.FC<StandardResponsiveTabsProps> = (props) => {
   const {
     children,
     defaultValue,
@@ -321,6 +318,13 @@ export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) 
       })}
     </Tabs>
   )
+}
+
+export const ResponsiveTabs: React.FC<ResponsiveTabsProps> = React.memo((props) => {
+  if (isLegacyProps(props)) {
+    return <LegacyResponsiveTabs {...props} />
+  }
+  return <StandardResponsiveTabs {...props} />
 })
 
 // ResponsiveTabsList component

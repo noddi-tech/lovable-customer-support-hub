@@ -582,6 +582,7 @@ export default function SuperAdminEmailTemplates() {
           <h4 className="font-medium mb-3">Preview</h4>
           <div className="border rounded bg-background p-4">
             <div
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeTemplateHTML
               dangerouslySetInnerHTML={{
                 __html: sanitizeTemplateHTML(
                   (template.html_content || "")

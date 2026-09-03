@@ -20,6 +20,6 @@ export function getConversationBackPath(pathname: string): string {
  * bookmark, Slack) — navigate(-1) would leave the app.
  */
 export function canGoBackInApp(): boolean {
-  const idx = (window.history.state as any)?.idx
+  const idx = window.history.state?.idx
   return typeof idx === "number" && idx > 0
 }

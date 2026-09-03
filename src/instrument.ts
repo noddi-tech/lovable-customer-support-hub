@@ -11,9 +11,9 @@
  */
 import * as Sentry from "@sentry/react"
 
-const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined
+const dsn = import.meta.env.VITE_SENTRY_DSN
 const isProd = import.meta.env.PROD
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? ""
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? ""
 
 Sentry.init({
   dsn,

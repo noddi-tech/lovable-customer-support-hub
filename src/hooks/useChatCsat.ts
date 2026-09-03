@@ -21,7 +21,7 @@ export const useChatCsat = (conversationId?: string) => {
       const { data, error } = await supabase
         .from("widget_chat_sessions")
         .select("metadata, updated_at")
-        .eq("conversation_id", conversationId as string)
+        .eq("conversation_id", conversationId)
         .order("updated_at", { ascending: false })
         .limit(1)
 

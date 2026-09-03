@@ -16,9 +16,8 @@ import {
 import InlineEditableRow from "./inline/InlineEditableRow"
 import type { ApplicantProfileData } from "./useApplicantProfile"
 
-const SOURCE_LABELS: Record<string, string> = SOURCE_OPTIONS.reduce(
-  (acc, o) => ({ ...acc, [o.value]: o.label }),
-  {} as Record<string, string>,
+const SOURCE_LABELS: Record<string, string> = Object.fromEntries(
+  SOURCE_OPTIONS.map((o) => [o.value, o.label]),
 )
 
 interface Props {

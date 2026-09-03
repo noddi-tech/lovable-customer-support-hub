@@ -110,6 +110,7 @@ export const WidgetTranslationEditor: React.FC<WidgetTranslationEditorProps> = (
 
           return (
             <button
+              type="button"
               key={lang.code}
               onClick={() => setSelectedLang(lang.code)}
               className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 ${

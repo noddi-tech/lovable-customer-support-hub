@@ -15,7 +15,7 @@ import { Link } from "@/router/compat"
  */
 export default function ApiDocsPage() {
   const content = useMemo(() => {
-    const base = import.meta.env.VITE_SUPABASE_URL as string | undefined
+    const base = import.meta.env.VITE_SUPABASE_URL
     const doc = structuredClone(spec) as Record<string, any>
     if (base) {
       doc.servers = [{ url: base, description: "This project" }]

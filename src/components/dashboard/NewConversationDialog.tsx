@@ -14,7 +14,8 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
   const { openCompose } = useCompose()
 
   return (
-    <span
+    <button
+      type="button"
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -23,6 +24,6 @@ export const NewConversationDialog: React.FC<NewConversationDialogProps> = ({ ch
       className="contents"
     >
       {children}
-    </span>
+    </button>
   )
 }

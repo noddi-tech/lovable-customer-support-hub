@@ -38,7 +38,7 @@ export function useTags(opts: { includeArchived?: boolean } = {}) {
       let q = supabase
         .from("recruitment_tags")
         .select("*")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .order("display_order", { ascending: true })
         .order("created_at", { ascending: true })
       if (!opts.includeArchived) q = q.is("archived_at", null)

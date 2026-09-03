@@ -16,7 +16,7 @@ export const ConversationRedirect = () => {
       const { data, error } = await supabase
         .from("conversations")
         .select("id, status, inbox_id, channel")
-        .eq("id", conversationId!)
+        .eq("id", conversationId)
         .maybeSingle()
 
       if (error) throw error

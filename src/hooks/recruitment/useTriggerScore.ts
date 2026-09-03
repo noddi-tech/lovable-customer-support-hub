@@ -14,7 +14,7 @@ export function useTriggerScore() {
         },
       })
       if (error) throw error
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data as { queued: boolean; queue_id: string; already_pending?: boolean }
     },
     onSuccess: (_d, vars) => {

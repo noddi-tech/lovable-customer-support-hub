@@ -42,7 +42,7 @@ export function useScoringBaselines() {
       const { data, error } = await supabase
         .from("org_scoring_baselines" as any)
         .select("*")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .is("soft_deleted_at", null)
         .order("is_default", { ascending: false })
         .order("created_at", { ascending: true })

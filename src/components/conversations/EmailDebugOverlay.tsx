@@ -116,9 +116,15 @@ export const EmailDebugOverlay = ({ messageId }: { messageId: string }) => {
     // Cleanup on unmount
     return () => {
       emailContainer.style.outline = ""
-      paragraphs.forEach((p) => ((p as HTMLElement).style.outline = ""))
-      links.forEach((a) => ((a as HTMLElement).style.outline = ""))
-      blockquotes.forEach((bq) => ((bq as HTMLElement).style.outline = ""))
+      paragraphs.forEach((p) => {
+        ;(p as HTMLElement).style.outline = ""
+      })
+      links.forEach((a) => {
+        ;(a as HTMLElement).style.outline = ""
+      })
+      blockquotes.forEach((bq) => {
+        ;(bq as HTMLElement).style.outline = ""
+      })
     }
   }, [messageId])
 

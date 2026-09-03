@@ -205,6 +205,7 @@ const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
           <div style={{ display: "grid", gap: "4px", gridTemplateColumns: "1fr" }}>
             {catItems.map((item) => (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 disabled={isUsed}

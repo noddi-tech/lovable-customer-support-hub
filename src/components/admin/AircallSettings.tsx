@@ -820,7 +820,7 @@ export const AircallSettings = () => {
                         {contactSync.lastResult.errors?.length ? (
                           <ul className="mt-2 ml-4 list-disc">
                             {contactSync.lastResult.errors.map((err, i) => (
-                              <li key={i}>{err}</li>
+                              <li key={err}>{err}</li>
                             ))}
                           </ul>
                         ) : null}

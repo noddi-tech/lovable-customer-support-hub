@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns"
 import { Activity, CheckCircle2, Clock, History, Loader2, RefreshCw, XCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,7 +50,7 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
   const { toast } = useToast()
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     const { data, error } = await supabase
       .from("import_jobs")
       .select("*")
@@ -62,7 +62,7 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
       setLastUpdated(new Date())
     }
     setIsLoading(false)
-  }
+  }, [])
 
   // Initial fetch
   useEffect(() => {

@@ -601,6 +601,7 @@ export default function AllUsersManagement() {
                         </SelectTrigger>
                         <SelectContent>
                           {users?.map((user) => (
+                            // eslint-disable-next-line no-restricted-syntax -- memberships/auth FK: user_id is correct
                             <SelectItem key={user.user_id} value={user.user_id}>
                               {user.full_name || user.email} ({user.email})
                             </SelectItem>
@@ -678,6 +679,7 @@ export default function AllUsersManagement() {
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                   <div key={i} className="p-3 rounded-lg border">
                     <Skeleton className="h-10 w-full" />
                   </div>

@@ -71,7 +71,9 @@ export const StageFieldRequirementsTab: React.FC<Props> = ({ positionId = null }
 
   const reqsByStage: Record<string, StageFieldRequirement[]> = {}
   for (const r of requirements ?? []) {
-    ;(reqsByStage[r.stage_id] ??= []).push(r)
+    const list = reqsByStage[r.stage_id]
+    if (list) list.push(r)
+    else reqsByStage[r.stage_id] = [r]
   }
 
   const handleAdd = async (stageId: string, fieldId: string, requirement_type: RequirementType) => {
@@ -241,11 +243,13 @@ const StageRequirementCard: React.FC<StageCardProps> = ({
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <label
+                      htmlFor={`stage-req-block-${r.id}`}
                       className="flex items-center gap-1.5 text-xs text-muted-foreground"
                       title="Hvis på, blokkerer manglende svar at søkeren flyttes til dette trinnet."
                     >
                       <span>Blokker</span>
                       <Switch
+                        id={`stage-req-block-${r.id}`}
                         checked={r.block_stage_progression}
                         onCheckedChange={(v) => onToggleBlock(r, v)}
                         disabled={busy || inherited}

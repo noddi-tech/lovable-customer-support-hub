@@ -201,7 +201,7 @@ export default function OperationsAnalyticsDashboard() {
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {data.channelDistribution.map((entry, idx) => (
                       <Cell
-                        key={idx}
+                        key={entry.channel}
                         fill={CHANNEL_COLORS[entry.channel] || "hsl(var(--primary))"}
                       />
                     ))}
@@ -239,7 +239,7 @@ export default function OperationsAnalyticsDashboard() {
                       nameKey="status"
                     >
                       {data.statusDistribution.map((entry, idx) => (
-                        <Cell key={idx} fill={STATUS_COLORS[entry.status] || "#6b7280"} />
+                        <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#6b7280"} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -315,7 +315,10 @@ export default function OperationsAnalyticsDashboard() {
                         .sort((a, b) => b.count - a.count)
                         .slice(0, 5)
                         .map((theme, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-sm">
+                          <div
+                            key={theme.topic}
+                            className="flex items-center justify-between text-sm"
+                          >
                             <div className="flex items-center gap-2">
                               <span
                                 className="w-2 h-2 rounded-full shrink-0"
@@ -372,7 +375,7 @@ export default function OperationsAnalyticsDashboard() {
               {data?.aiInsights?.themes ? (
                 <div className="space-y-3">
                   {data.aiInsights.themes.map((theme, idx) => (
-                    <div key={idx} className="flex items-center justify-between">
+                    <div key={theme.topic} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-foreground">{theme.topic}</span>
                         <Badge
@@ -411,7 +414,7 @@ export default function OperationsAnalyticsDashboard() {
               {data?.aiInsights?.commonQuestions ? (
                 <ul className="space-y-2">
                   {data.aiInsights.commonQuestions.map((q, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
+                    <li key={q} className="flex items-start gap-2 text-sm">
                       <span className="text-primary font-medium mt-0.5">{idx + 1}.</span>
                       <span className="text-foreground">{q}</span>
                     </li>

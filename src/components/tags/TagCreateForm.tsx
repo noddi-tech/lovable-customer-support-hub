@@ -39,8 +39,8 @@ export const TagCreateForm: React.FC<TagCreateFormProps> = ({
   }
 
   return (
-    <div
-      className="w-64 space-y-3 p-3"
+    <fieldset
+      className="w-64 space-y-3 p-3 border-0 m-0 min-w-0"
       onKeyDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -79,6 +79,6 @@ export const TagCreateForm: React.FC<TagCreateFormProps> = ({
           Create
         </Button>
       </div>
-    </div>
+    </fieldset>
   )
 }

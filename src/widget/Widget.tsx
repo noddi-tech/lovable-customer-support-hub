@@ -113,15 +113,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
     }
 
     loadConfig()
-  }, [
-    options.widgetKey,
-    options.apiUrl,
-    options.identity.phone,
-    options.identity.email,
-    options.brand,
-    options.identity.name,
-    options,
-  ])
+  }, [options])
 
   // Don't render anything while loading or on error
   if (isLoading || error || !config) {

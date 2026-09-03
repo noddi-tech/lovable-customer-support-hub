@@ -185,7 +185,11 @@ export function useConversationMessagesList(conversationId?: string, ctx?: Norma
   const flat = q.data?.pages.flatMap((p) => p.messages) ?? []
   // one global pass
   const seen = new Set<string>()
-  const deduped = flat.filter((m) => (seen.has(m.dedupKey) ? false : (seen.add(m.dedupKey), true)))
+  const deduped = flat.filter((m) => {
+    if (seen.has(m.dedupKey)) return false
+    seen.add(m.dedupKey)
+    return true
+  })
 
   // After flattening and cross-page deduplication, just sort - no segmentation
   const messages = deduped.sort(

@@ -26,9 +26,7 @@ export const useFocusManagement = (isOpen: boolean, options: FocusManagementOpti
       '[contenteditable="true"]',
     ].join(", ")
 
-    const elements = Array.from(
-      containerRef.current.querySelectorAll(focusableSelectors),
-    ) as HTMLElement[]
+    const elements = Array.from(containerRef.current.querySelectorAll(focusableSelectors))
 
     return elements.filter(
       (element) => element.offsetWidth > 0 && element.offsetHeight > 0 && !element.hidden,

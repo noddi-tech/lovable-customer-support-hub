@@ -31,6 +31,7 @@ export const ChatFilters: React.FC<ChatFiltersProps> = ({
     <div className="flex items-center gap-1 px-2 py-2 border-b overflow-x-auto scrollbar-none min-h-[52px]">
       {filters.map((filter) => (
         <button
+          type="button"
           key={filter.key}
           onClick={() => onFilterChange(filter.key)}
           className={cn(

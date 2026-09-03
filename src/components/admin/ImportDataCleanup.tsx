@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,7 +30,7 @@ export const ImportDataCleanup = () => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [inboxToDelete, setInboxToDelete] = useState<string>("")
 
-  const fetchInboxes = async () => {
+  const fetchInboxes = useCallback(async () => {
     const { data: orgId } = await supabase.rpc("get_user_organization_id")
     if (!orgId) return
 
@@ -58,7 +58,7 @@ export const ImportDataCleanup = () => {
 
       setInboxes(inboxesWithCounts)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchInboxes()
@@ -190,9 +190,11 @@ export const ImportDataCleanup = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium">From Inbox</label>
+              <label htmlFor="cleanup-from-inbox" className="text-sm font-medium">
+                From Inbox
+              </label>
               <Select value={sourceInboxId} onValueChange={setSourceInboxId}>
-                <SelectTrigger>
+                <SelectTrigger id="cleanup-from-inbox">
                   <SelectValue placeholder="Select source inbox" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,9 +214,11 @@ export const ImportDataCleanup = () => {
             </div>
 
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium">To Inbox</label>
+              <label htmlFor="cleanup-to-inbox" className="text-sm font-medium">
+                To Inbox
+              </label>
               <Select value={targetInboxId} onValueChange={setTargetInboxId}>
-                <SelectTrigger>
+                <SelectTrigger id="cleanup-to-inbox">
                   <SelectValue placeholder="Select target inbox" />
                 </SelectTrigger>
                 <SelectContent>
@@ -269,9 +273,11 @@ export const ImportDataCleanup = () => {
           </Alert>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select Inbox to Delete</label>
+            <label htmlFor="cleanup-delete-inbox" className="text-sm font-medium">
+              Select Inbox to Delete
+            </label>
             <Select value={inboxToDelete} onValueChange={setInboxToDelete}>
-              <SelectTrigger>
+              <SelectTrigger id="cleanup-delete-inbox">
                 <SelectValue placeholder="Select inbox to delete" />
               </SelectTrigger>
               <SelectContent>

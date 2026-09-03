@@ -18,6 +18,7 @@ export const BadgeGuide: React.FC = () => {
     <Card className="border-primary/20 bg-primary/5">
       <CardContent className="p-3">
         <button
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center justify-between w-full text-left"
         >

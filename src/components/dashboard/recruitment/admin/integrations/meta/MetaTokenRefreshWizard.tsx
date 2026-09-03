@@ -100,8 +100,8 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
           },
         },
       )
-      if (invokeErr || (data as any)?.error) {
-        setError((data as any)?.error ?? invokeErr?.message ?? "Ukjent feil.")
+      if (invokeErr || data?.error) {
+        setError(data?.error ?? invokeErr?.message ?? "Ukjent feil.")
         return
       }
       setResult(data as ExchangeResult)
@@ -128,8 +128,8 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
         "meta-token-paste-system-user",
         { body: { integration_id: integration.id, system_user_token: systemUserToken } },
       )
-      if (invokeErr || (data as any)?.error) {
-        setError((data as any)?.error ?? invokeErr?.message ?? "Ukjent feil.")
+      if (invokeErr || data?.error) {
+        setError(data?.error ?? invokeErr?.message ?? "Ukjent feil.")
         return
       }
       setResult(data as ExchangeResult)

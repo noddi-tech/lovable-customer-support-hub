@@ -50,7 +50,9 @@ export function useEntityTags(entityType: TaggableEntity) {
       list.push(tag)
       map.set(link.entity_id, list)
     })
-    map.forEach((list) => list.sort((a, b) => a.name.localeCompare(b.name)))
+    map.forEach((list) => {
+      list.sort((a, b) => a.name.localeCompare(b.name))
+    })
     return map
   }, [links, tagsById])
 

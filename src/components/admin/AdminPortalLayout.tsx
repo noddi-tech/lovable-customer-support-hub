@@ -387,7 +387,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
           </header>
 
           {/* Content area with proper pane scrolling */}
-          <PaneColumn className="flex-1 min-h-0">
+          <PaneColumn className="flex-1 min-h-0 min-w-0">
             {location.pathname === "/admin/ai-chatbot" ? (
               <div className="h-full overflow-hidden">
                 <LayoutContent>{children}</LayoutContent>

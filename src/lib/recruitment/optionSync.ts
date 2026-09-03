@@ -60,11 +60,11 @@ export function extractMetaOptions(
   const out: Array<{ value: string; label: string }> = []
   const seen = new Set<string>()
   for (const rawAny of question.options as unknown[]) {
-    const raw = rawAny as unknown
+    const raw = rawAny
     let value = ""
     let label = ""
     if (typeof raw === "string") {
-      value = (raw as string).trim()
+      value = raw.trim()
       label = value
     } else if (raw && typeof raw === "object") {
       const o = raw as Record<string, unknown>

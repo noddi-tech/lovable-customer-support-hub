@@ -219,7 +219,9 @@ export const getGroupedNavItems = (isAdmin: boolean = false, isSuperAdmin: boole
   }).reduce(
     (groups, item) => {
       const group = groups[item.group] || []
-      return { ...groups, [item.group]: [...group, item] }
+      group.push(item)
+      groups[item.group] = group
+      return groups
     },
     {} as Record<string, NavItem[]>,
   )

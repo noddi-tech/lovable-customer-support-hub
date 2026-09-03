@@ -333,7 +333,7 @@ export default function OrganizationDetails() {
                           <Badge variant={member.status === "active" ? "default" : "outline"}>
                             {member.status}
                           </Badge>
-                          <MemberActionMenu member={member} organizationId={id!} />
+                          <MemberActionMenu member={member} organizationId={id} />
                         </div>
                       </div>
                     )
@@ -354,7 +354,7 @@ export default function OrganizationDetails() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium">Primary Color</label>
+                  <div className="text-sm font-medium">Primary Color</div>
                   <div className="flex items-center gap-3 mt-2">
                     <div
                       className="h-10 w-10 rounded border"
@@ -367,7 +367,7 @@ export default function OrganizationDetails() {
                 </div>
                 {organization.sender_display_name && (
                   <div>
-                    <label className="text-sm font-medium">Sender Display Name</label>
+                    <div className="text-sm font-medium">Sender Display Name</div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {organization.sender_display_name}
                     </p>
@@ -402,7 +402,7 @@ export default function OrganizationDetails() {
           <AddMemberDialog
             open={showAddMemberDialog}
             onOpenChange={setShowAddMemberDialog}
-            organizationId={id!}
+            organizationId={id}
             existingMemberIds={members.map((m: any) => m.user_id)}
           />
 
@@ -410,7 +410,7 @@ export default function OrganizationDetails() {
             open={showDeleteDialog}
             onOpenChange={setShowDeleteDialog}
             onConfirm={() => {
-              deleteOrganization(id!, {
+              deleteOrganization(id, {
                 onSuccess: () => {
                   navigate("/super-admin/organizations")
                 },

@@ -55,6 +55,7 @@ async function featureTestCookies(): Promise<boolean> {
     const testValue = Date.now().toString()
 
     // Set cookie with SameSite=None and Secure (required for third-party)
+    // biome-ignore lint/suspicious/noDocumentCookie: intentional cookie feature-detection helper
     document.cookie = `${testKey}=${testValue}; SameSite=None; Secure; path=/`
 
     // Try to read it back
@@ -62,6 +63,7 @@ async function featureTestCookies(): Promise<boolean> {
     const found = cookies.some((c) => c.startsWith(`${testKey}=`))
 
     // Clean up
+    // biome-ignore lint/suspicious/noDocumentCookie: intentional cookie feature-detection helper
     document.cookie = `${testKey}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure; path=/`
 
     return found

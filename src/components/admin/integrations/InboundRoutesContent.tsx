@@ -153,7 +153,10 @@ export const InboundRoutesContent = () => {
       {/* How it works explanation */}
       <Collapsible open={howItWorksOpen} onOpenChange={setHowItWorksOpen}>
         <CollapsibleTrigger asChild>
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left">
+          <button
+            type="button"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-left"
+          >
             <Info className="w-4 h-4" />
             <span>How email channels work</span>
             <ChevronDown

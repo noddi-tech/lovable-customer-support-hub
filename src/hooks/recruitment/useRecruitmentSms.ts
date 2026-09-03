@@ -24,7 +24,7 @@ export function useApplicantSmsConversations(applicantId: string | undefined) {
         .select(
           "id, status, updated_at, received_at, inbox_id, preview_text, last_message_sender_type",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .eq("channel", "sms")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
@@ -57,7 +57,7 @@ export function useApplicantSmsMessages(conversationId: string | undefined) {
         .select(
           "id, content, sender_type, created_at, sms_status, sms_segments, sms_provider, sms_provider_message_id",
         )
-        .eq("conversation_id", conversationId!)
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
       if (error) throw error
       return (data ?? []) as SmsMessageRow[]
@@ -88,7 +88,7 @@ export function useApplicantScheduledSms(applicantId: string | undefined) {
         .select(
           "id, body, to_phone, scheduled_for, status, applicant_id, conversation_id, error_message, created_at",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .in("status", ["pending", "processing", "failed"])
         .order("scheduled_for", { ascending: true })
       if (error) throw error
@@ -109,7 +109,7 @@ export function useSmsRecruitmentInboxes() {
         .select(
           "id, name, color, is_default, purpose, sms_provider, sms_provider_phone_number, sms_enabled",
         )
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("is_active", true)
         .eq("purpose", "recruitment")
         .eq("sms_enabled", true)
@@ -139,8 +139,8 @@ export function useSendRecruitmentSms() {
         body: input,
       })
       if (error) throw new Error(error.message || "send-recruitment-sms feilet")
-      if ((data as any)?.error) {
-        const d = data as any
+      if (data?.error) {
+        const d = data
         throw new Error(d.details ? `${d.error}: ${d.details}` : d.error)
       }
       return data as { sent?: boolean; scheduled?: boolean; conversation_id?: string; id?: string }
@@ -186,7 +186,7 @@ export function useSmsTemplates() {
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("id, name, body, description, is_active")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("type", "sms")
         .eq("is_active", true)
         .is("soft_deleted_at", null)

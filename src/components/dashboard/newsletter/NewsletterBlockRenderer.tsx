@@ -17,6 +17,7 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
         const TextTag = block.content.tag || "p"
         // SECURITY: Sanitize newsletter HTML to prevent XSS
         const sanitizedText = sanitizeNewsletterHTML(block.content.text)
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeNewsletterHTML
         return <TextTag style={block.styles} dangerouslySetInnerHTML={{ __html: sanitizedText }} />
       }
 
@@ -81,13 +82,17 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
               const sanitizedColumnContent = sanitizeNewsletterHTML(column.content)
               return (
                 <div
+                  // biome-ignore lint/suspicious/noArrayIndexKey: column order is positional
                   key={index}
                   style={{
                     width: column.width,
                     flex: column.width === "50%" ? "1" : "none",
                   }}
                 >
-                  <div dangerouslySetInnerHTML={{ __html: sanitizedColumnContent }} />
+                  <div
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeNewsletterHTML
+                    dangerouslySetInnerHTML={{ __html: sanitizedColumnContent }}
+                  />
                 </div>
               )
             })}
@@ -100,7 +105,7 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
               {block.content.links.map((link: any, index: number) => (
                 <a
-                  key={index}
+                  key={link.url}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -178,7 +183,7 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
               <div>
                 {block.content.tickets.map((ticket: any, index: number) => (
                   <div
-                    key={index}
+                    key={ticket.id}
                     style={{
                       marginBottom: "8px",
                       padding: "8px",
@@ -200,6 +205,7 @@ export const NewsletterBlockRenderer: React.FC<NewsletterBlockRendererProps> = (
       case "html": {
         // SECURITY: Sanitize custom HTML blocks
         const sanitizedHTML = sanitizeNewsletterHTML(block.content.html)
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeNewsletterHTML
         return <div style={block.styles} dangerouslySetInnerHTML={{ __html: sanitizedHTML }} />
       }
 

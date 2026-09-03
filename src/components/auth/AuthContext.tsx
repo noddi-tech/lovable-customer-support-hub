@@ -2,7 +2,7 @@ import { getNavioAuthContext, type NavioClaims } from "@navio/nidp"
 import type { Session, User } from "@supabase/supabase-js"
 import { useQueryClient } from "@tanstack/react-query"
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { supabase } from "@/integrations/supabase/client"
 import {
   asNidpUser,
@@ -45,69 +45,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [navioClaims, setNavioClaims] = useState<Partial<NavioClaims>>({})
   const queryClient = useQueryClient()
 
-  const hydrateNavioClaims = (sessionUser: User | null | undefined) => {
+  const hydrateNavioClaims = useCallback((sessionUser: User | null | undefined) => {
     if (!sessionUser) {
       setNavioClaims({})
       return
     }
     const ctx = getNavioAuthContext(asNidpUser(sessionUser))
     setNavioClaims(ctx.claims)
-  }
+  }, [])
 
-  const runAccessBootstrap = async (sessionUser: User, opts?: { reconcile?: boolean }) => {
-    // Navio: membership-scoped. Google (Noddi employees only): super_admin.
-    if (!isNavioCoreOidcUser(sessionUser) && !isGoogleAuthUser(sessionUser)) {
-      hydrateNavioClaims(sessionUser)
-      return
-    }
-    // Navio logins require supporthub.access (or admin) on the token.
-    // Google employee sessions bypass this gate entirely (always allowed).
-    if (isNavioCoreOidcUser(sessionUser) && !isGoogleSignedInSession(sessionUser)) {
-      const { claims } = getNavioAuthContext(asNidpUser(sessionUser))
-      if (!hasSupportHubNavioAccess(claims)) {
-        logger.warn(
-          "Navio sign-in rejected: missing supporthub.access",
-          {
-            userId: sessionUser.id,
-            email: sessionUser.email,
-          },
-          "Auth",
-        )
-        setNavioClaims({})
-        try {
-          await supabase.auth.signOut({ scope: "global" })
-        } catch (err) {
-          logger.error("Sign out after rejected Navio login failed", err, "Auth")
-        }
-        setSession(null)
-        setUser(null)
-        window.dispatchEvent(
-          new CustomEvent("auth-navigate", { detail: { path: "/auth?error=no_supporthub_role" } }),
-        )
+  const runAccessBootstrap = useCallback(
+    async (sessionUser: User, opts?: { reconcile?: boolean }) => {
+      // Navio: membership-scoped. Google (Noddi employees only): super_admin.
+      if (!isNavioCoreOidcUser(sessionUser) && !isGoogleAuthUser(sessionUser)) {
+        hydrateNavioClaims(sessionUser)
         return
       }
-    }
-    try {
-      // On a fresh sign-in, collapse any other auth.users sharing this email
-      // (Google ↔ Navio) into the current account BEFORE provisioning, so the
-      // session inherits the duplicate's profile/roles/data.
-      if (opts?.reconcile) {
-        await reconcileDuplicateAccounts()
+      // Navio logins require supporthub.access (or admin) on the token.
+      // Google employee sessions bypass this gate entirely (always allowed).
+      if (isNavioCoreOidcUser(sessionUser) && !isGoogleSignedInSession(sessionUser)) {
+        const { claims } = getNavioAuthContext(asNidpUser(sessionUser))
+        if (!hasSupportHubNavioAccess(claims)) {
+          logger.warn(
+            "Navio sign-in rejected: missing supporthub.access",
+            {
+              userId: sessionUser.id,
+              email: sessionUser.email,
+            },
+            "Auth",
+          )
+          setNavioClaims({})
+          try {
+            await supabase.auth.signOut({ scope: "global" })
+          } catch (err) {
+            logger.error("Sign out after rejected Navio login failed", err, "Auth")
+          }
+          setSession(null)
+          setUser(null)
+          window.dispatchEvent(
+            new CustomEvent("auth-navigate", {
+              detail: { path: "/auth?error=no_supporthub_role" },
+            }),
+          )
+          return
+        }
       }
-      const { claims } = await bootstrapSupportHubAccess(sessionUser)
-      setNavioClaims(claims)
-      queryClient.removeQueries({ queryKey: ["profile"] })
-      queryClient.removeQueries({ queryKey: ["user-roles"] })
-      queryClient.removeQueries({ queryKey: ["organization-memberships"] })
-      queryClient.removeQueries({ queryKey: ["organizations"] })
-      queryClient.removeQueries({ queryKey: ["organizations-for-switcher"] })
-    } catch (provisionErr) {
-      logger.error("Support Hub auto-provision failed", provisionErr, "Auth")
-      hydrateNavioClaims(sessionUser)
-    }
-  }
+      try {
+        // On a fresh sign-in, collapse any other auth.users sharing this email
+        // (Google ↔ Navio) into the current account BEFORE provisioning, so the
+        // session inherits the duplicate's profile/roles/data.
+        if (opts?.reconcile) {
+          await reconcileDuplicateAccounts()
+        }
+        const { claims } = await bootstrapSupportHubAccess(sessionUser)
+        setNavioClaims(claims)
+        queryClient.removeQueries({ queryKey: ["profile"] })
+        queryClient.removeQueries({ queryKey: ["user-roles"] })
+        queryClient.removeQueries({ queryKey: ["organization-memberships"] })
+        queryClient.removeQueries({ queryKey: ["organizations"] })
+        queryClient.removeQueries({ queryKey: ["organizations-for-switcher"] })
+      } catch (provisionErr) {
+        logger.error("Support Hub auto-provision failed", provisionErr, "Auth")
+        hydrateNavioClaims(sessionUser)
+      }
+    },
+    [hydrateNavioClaims, queryClient],
+  )
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     try {
       const {
         data: { session },
@@ -124,66 +129,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null)
       return null
     }
-  }
+  }, [])
 
-  const validateSession = async (retryCount = 0) => {
-    if (!session) {
-      logger.debug("No session to validate", undefined, "Auth")
-      return false
-    }
-
-    try {
-      // Test if the session is valid by making a simple query that requires auth
-      const { error } = await supabase.rpc("get_user_organization_id")
-
-      if (error) {
-        logger.debug(
-          "Session validation failed",
-          { code: error.code, message: error.message },
-          "Auth",
-        )
-
-        // Handle specific auth error codes
-        if (
-          error.code === "PGRST301" ||
-          error.message?.includes("JWT expired") ||
-          error.message?.includes("refresh_token_not_found") ||
-          error.code === "PGRST116"
-        ) {
-          logger.info("Session invalid, attempting refresh", undefined, "Auth")
-          const newSession = await refreshSession()
-
-          if (newSession && retryCount < 2) {
-            // Retry validation once with the new session
-            await new Promise((resolve) => setTimeout(resolve, 500)) // Brief delay
-            return await validateSession(retryCount + 1)
-          }
-
-          return !!newSession
-        }
-
-        // Other errors might not be auth-related
+  const validateSession = useCallback(
+    async (retryCount = 0): Promise<boolean> => {
+      if (!session) {
+        logger.debug("No session to validate", undefined, "Auth")
         return false
       }
 
-      logger.debug("Session validation successful", undefined, "Auth")
-      return true
-    } catch (error) {
-      logger.error("Session validation failed", error, "Auth")
+      try {
+        // Test if the session is valid by making a simple query that requires auth
+        const { error } = await supabase.rpc("get_user_organization_id")
 
-      // If we haven't tried refreshing yet, attempt it
-      if (retryCount === 0) {
-        logger.info("Attempting session refresh due to validation error", undefined, "Auth")
-        const newSession = await refreshSession()
-        if (newSession) {
-          await new Promise((resolve) => setTimeout(resolve, 500))
-          return await validateSession(1)
+        if (error) {
+          logger.debug(
+            "Session validation failed",
+            { code: error.code, message: error.message },
+            "Auth",
+          )
+
+          // Handle specific auth error codes
+          if (
+            error.code === "PGRST301" ||
+            error.message?.includes("JWT expired") ||
+            error.message?.includes("refresh_token_not_found") ||
+            error.code === "PGRST116"
+          ) {
+            logger.info("Session invalid, attempting refresh", undefined, "Auth")
+            const newSession = await refreshSession()
+
+            if (newSession && retryCount < 2) {
+              // Retry validation once with the new session
+              await new Promise((resolve) => setTimeout(resolve, 500)) // Brief delay
+              return await validateSession(retryCount + 1)
+            }
+
+            return !!newSession
+          }
+
+          // Other errors might not be auth-related
+          return false
         }
-      }
 
-      return false
-    }
-  }
+        logger.debug("Session validation successful", undefined, "Auth")
+        return true
+      } catch (error) {
+        logger.error("Session validation failed", error, "Auth")
+
+        // If we haven't tried refreshing yet, attempt it
+        if (retryCount === 0) {
+          logger.info("Attempting session refresh due to validation error", undefined, "Auth")
+          const newSession = await refreshSession()
+          if (newSession) {
+            await new Promise((resolve) => setTimeout(resolve, 500))
+            return await validateSession(1)
+          }
+        }
+
+        return false
+      }
+    },
+    [session, refreshSession],
+  )
 
   useEffect(() => {
     let mounted = true
@@ -398,7 +406,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     isProcessingOAuth,
     validateSession,
-    queryClient.removeQueries,
+    queryClient,
     runAccessBootstrap,
     hydrateNavioClaims,
   ])
@@ -421,7 +429,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       logger.debug("Removing Supabase auth keys", { count: keysToRemove.length }, "Auth")
-      keysToRemove.forEach((key) => localStorage.removeItem(key))
+      keysToRemove.forEach((key) => {
+        localStorage.removeItem(key)
+      })
 
       // Verify Aircall keys are still present
       const aircallKeys = Object.keys(localStorage).filter((k) =>

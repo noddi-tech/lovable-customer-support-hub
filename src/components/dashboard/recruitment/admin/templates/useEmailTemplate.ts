@@ -33,7 +33,7 @@ export function useCreateTemplate() {
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .insert({
-          organization_id: orgId!,
+          organization_id: orgId,
           name: values.name,
           description: values.description || null,
           subject: values.subject,

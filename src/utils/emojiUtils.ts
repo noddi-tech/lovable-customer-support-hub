@@ -446,7 +446,7 @@ const buildFullShortcodeMap = (): Record<string, string> => {
   try {
     const emojis: any = (data as any).emojis || (data as any)
     const entries: [string, any][] = Array.isArray(emojis)
-      ? (emojis as any[]).map((e: any, i: number) => [String(i), e])
+      ? emojis.map((e: any, i: number) => [String(i), e])
       : Object.entries(emojis)
 
     for (const [, e] of entries) {
@@ -456,7 +456,9 @@ const buildFullShortcodeMap = (): Record<string, string> => {
       if (e.id) aliases.push(e.id)
       if (e.slug) aliases.push(e.slug)
       if (typeof e.shortcodes === "string") {
-        e.shortcodes.split("|").forEach((s: string) => aliases.push(s))
+        e.shortcodes.split("|").forEach((s: string) => {
+          aliases.push(s)
+        })
       } else if (Array.isArray(e.shortcodes)) {
         aliases.push(...e.shortcodes)
       }

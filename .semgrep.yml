@@ -1,0 +1,25 @@
+rules:
+  - id: no-eval
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: Avoid eval. Use safer parsing APIs.
+    pattern: eval(...)
+
+  - id: no-service-role-env-in-browser
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: Do not read the Supabase service-role key from the browser bundle.
+    paths:
+      include:
+        - "src"
+    pattern-either:
+      - pattern: process.env.SUPABASE_SERVICE_ROLE_KEY
+      - pattern: process.env["SUPABASE_SERVICE_ROLE_KEY"]
+      - pattern: import.meta.env.SUPABASE_SERVICE_ROLE_KEY
+
+  - id: dangerously-set-inner-html
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: dangerouslySetInnerHTML detected. Ensure HTML is sanitized.
+    patterns:
+      - pattern: dangerouslySetInnerHTML={{ __html: $X }}

@@ -45,7 +45,7 @@ function actionIcon(actionType: string) {
 }
 
 function describeAction(rule: MatchedRule): string {
-  const cfg = (rule.action_config ?? {}) as Record<string, unknown>
+  const cfg = rule.action_config ?? {}
   switch (rule.action_type) {
     case "send_email":
       return rule.template_name ? `Send e-post: '${rule.template_name}'` : "Send e-post"

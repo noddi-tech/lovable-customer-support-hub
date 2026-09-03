@@ -226,12 +226,21 @@ export function NotificationDropdown() {
             ) : (
               <div className="divide-y">
                 {notifications.map((notification) => (
+                  // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                   <div
                     key={notification.id}
+                    role="button"
+                    tabIndex={0}
                     className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
                       !notification.is_read ? "bg-primary/5" : ""
                     }`}
                     onClick={() => handleNotificationClick(notification)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleNotificationClick(notification)
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between space-x-2">
                       <div className="flex items-start space-x-3 flex-1 min-w-0">

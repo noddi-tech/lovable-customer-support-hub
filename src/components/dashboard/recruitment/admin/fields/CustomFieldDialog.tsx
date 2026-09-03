@@ -264,6 +264,7 @@ export function CustomFieldDialog({
               ) : (
                 <div className="space-y-2">
                   {options.map((opt, idx) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: editable options lack stable ids
                     <div key={idx} className="flex gap-2">
                       <Input
                         placeholder="Verdi (f.eks. yes)"

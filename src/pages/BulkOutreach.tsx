@@ -172,7 +172,7 @@ export default function BulkOutreach() {
       {/* Step indicator */}
       <div className="flex items-center gap-2">
         {STEPS.map((label, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-2">
             <div
               className={`flex items-center justify-center h-8 w-8 rounded-full text-sm font-medium ${
                 i === step

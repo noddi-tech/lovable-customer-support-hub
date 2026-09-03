@@ -26,7 +26,7 @@ export function useGdprRequests(applicantId: string | undefined) {
     enabled: !!applicantId,
     refetchOnMount: "always",
     refetchInterval: (query) => {
-      const rows = (query.state.data ?? []) as GdprRequestRow[]
+      const rows = query.state.data ?? []
       const inFlight = rows.some((r) => r.status === "processing" || r.status === "requested")
       return inFlight ? 5_000 : false
     },
@@ -34,7 +34,7 @@ export function useGdprRequests(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("gdpr_requests")
         .select("*")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("requested_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as GdprRequestRow[]
@@ -53,7 +53,7 @@ export function useOrgGdprRequests(organizationId: string | undefined) {
       const { data, error } = await supabase
         .from("gdpr_requests")
         .select("*")
-        .eq("organization_id", organizationId!)
+        .eq("organization_id", organizationId)
         .order("requested_at", { ascending: false })
         .limit(500)
       if (error) throw error
@@ -70,7 +70,7 @@ export function useInitiateGdprExport() {
         body: vars,
       })
       if (error) throw new Error(error.message || "Eksport feilet")
-      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error)
+      if (data?.error) throw new Error(data.message || data.error)
       return data as { request_id: string; status: string }
     },
     onSuccess: (_data, vars) => {
@@ -92,7 +92,7 @@ export function useInitiateGdprErasure() {
         body: vars,
       })
       if (error) throw new Error(error.message || "Sletting feilet")
-      if ((data as any)?.error) throw new Error((data as any).message || (data as any).error)
+      if (data?.error) throw new Error(data.message || data.error)
       return data as { request_id: string; status: string }
     },
     onSuccess: (_data, vars) => {

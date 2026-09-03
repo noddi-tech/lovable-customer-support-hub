@@ -13,19 +13,10 @@ interface SearchRequest {
   limit?: number
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders })
-  }
+/** Flip to false after knowledge_entries PII is sanitized. */
+const KNOWLEDGE_SEARCH_DISABLED = true
 
-  // DISABLED: Knowledge search is temporarily disabled to prevent PII exposure.
-  // The knowledge_entries data contains unredacted customer information.
-  // Re-enable only after data has been sanitized.
-  return new Response(JSON.stringify({ results: [] }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  })
-
+async function handleKnowledgeSearch(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -178,4 +169,22 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   }
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  // DISABLED: Knowledge search is temporarily disabled to prevent PII exposure.
+  // The knowledge_entries data contains unredacted customer information.
+  // Re-enable only after data has been sanitized (set KNOWLEDGE_SEARCH_DISABLED = false).
+  if (KNOWLEDGE_SEARCH_DISABLED) {
+    return new Response(JSON.stringify({ results: [] }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+
+  return handleKnowledgeSearch(req)
 })

@@ -107,7 +107,9 @@ function initializeWidget(options: WidgetInitOptions) {
           pendingCommands.length,
           "pending commands",
         )
-        pendingCommands.forEach((cmd) => cmd())
+        pendingCommands.forEach((cmd) => {
+          cmd()
+        })
         pendingCommands = []
         if (initOptions?.onReady) {
           initOptions.onReady()
@@ -134,7 +136,7 @@ function openWidget() {
     widgetAPI.setIsOpen(true)
   } else {
     console.log("[Noddi] Queuing open command (widget not ready yet)")
-    pendingCommands.push(() => widgetAPI!.setIsOpen(true))
+    pendingCommands.push(() => widgetAPI.setIsOpen(true))
   }
 }
 
@@ -144,7 +146,7 @@ function closeWidget() {
     widgetAPI.setIsOpen(false)
   } else {
     console.log("[Noddi] Queuing close command (widget not ready yet)")
-    pendingCommands.push(() => widgetAPI!.setIsOpen(false))
+    pendingCommands.push(() => widgetAPI.setIsOpen(false))
   }
 }
 
@@ -154,7 +156,7 @@ function toggleWidget() {
     widgetAPI.toggle()
   } else {
     console.log("[Noddi] Queuing toggle command (widget not ready yet)")
-    pendingCommands.push(() => widgetAPI!.toggle())
+    pendingCommands.push(() => widgetAPI.toggle())
   }
 }
 

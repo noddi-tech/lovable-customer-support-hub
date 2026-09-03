@@ -424,9 +424,9 @@ export function MetaLeadAdsCard({
         })
         return
       }
-      const alreadySet = (data as any)?.rows_already_set ?? 0
-      const updated = (data as any)?.rows_updated ?? 0
-      const skipped = (data as any)?.rows_skipped ?? 0
+      const alreadySet = data?.rows_already_set ?? 0
+      const updated = data?.rows_updated ?? 0
+      const skipped = data?.rows_skipped ?? 0
       toast({
         title: "Backfill ferdig",
         description: `${alreadySet} mappings allerede oppdatert, ${updated} nye oppdatert, ${skipped} hoppet over (kunne ikke matche).`,

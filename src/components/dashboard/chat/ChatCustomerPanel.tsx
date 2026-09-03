@@ -463,6 +463,7 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
               {/* Tab Navigation */}
               <div className="flex gap-2 mb-3 border-b border-amber-200">
                 <button
+                  type="button"
                   onClick={() => setSearchMode("email")}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
@@ -474,6 +475,7 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
                   Search by Email
                 </button>
                 <button
+                  type="button"
                   onClick={() => setSearchMode("name")}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium transition-colors border-b-2",
@@ -489,11 +491,12 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
               {/* Email Search Tab */}
               {searchMode === "email" && (
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-amber-900">
+                  <label htmlFor="chat-alt-email" className="text-xs font-medium text-amber-900">
                     Alternative email address:
                   </label>
                   <div className="flex gap-2 relative z-10" style={{ pointerEvents: "auto" }}>
                     <Input
+                      id="chat-alt-email"
                       type="email"
                       placeholder="alternative@email.com"
                       value={alternativeEmail}
@@ -521,10 +524,14 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
                 <div className="space-y-3">
                   {/* First Name Field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-amber-900">
+                    <label
+                      htmlFor="chat-search-first-name"
+                      className="text-xs font-medium text-amber-900"
+                    >
                       First name: <span className="text-destructive">*</span>
                     </label>
                     <Input
+                      id="chat-search-first-name"
                       type="text"
                       placeholder="e.g., Joachim"
                       value={searchFirstName}
@@ -538,10 +545,14 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
 
                   {/* Last Name Field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-amber-900">
+                    <label
+                      htmlFor="chat-search-last-name"
+                      className="text-xs font-medium text-amber-900"
+                    >
                       Last name: <span className="text-xs text-muted-foreground">(optional)</span>
                     </label>
                     <Input
+                      id="chat-search-last-name"
                       type="text"
                       placeholder="e.g., Rathke"
                       value={searchLastName}
@@ -571,6 +582,7 @@ export const ChatCustomerPanel: React.FC<ChatCustomerPanelProps> = ({
                       </p>
                       {matchingCustomers.map((matchedCustomer) => (
                         <button
+                          type="button"
                           key={matchedCustomer.id}
                           onClick={() => handleSelectCustomer(matchedCustomer)}
                           disabled={searchLoading}

@@ -52,7 +52,7 @@ export function useCandidateFormTokens(applicantId: string | undefined) {
            creator:profiles!candidate_form_tokens_created_by_fkey(full_name),
            revoker:profiles!candidate_form_tokens_revoked_by_fkey(full_name)`,
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
 
@@ -127,8 +127,8 @@ export function useSendCandidateForm() {
       })
       // Memory: check { error } from invoke directly — doesn't throw on 5xx.
       if (error) throw new Error(error.message || "Kunne ikke sende skjema")
-      if ((data as any)?.error) {
-        throw new Error((data as any).message || (data as any).error)
+      if (data?.error) {
+        throw new Error(data.message || data.error)
       }
       return data as { token: string; url: string; expires_at: string }
     },
@@ -151,7 +151,7 @@ export function useRevokeCandidateForm() {
         body: { token_id: input.token_id },
       })
       if (error) throw new Error(error.message || "Kunne ikke trekke tilbake")
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data
     },
     onSuccess: (_data, vars) => {

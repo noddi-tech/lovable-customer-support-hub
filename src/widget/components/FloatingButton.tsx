@@ -23,6 +23,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   return (
     <div className="noddi-widget-button-wrap" style={positionStyles}>
       <button
+        type="button"
         onClick={onClick}
         className="noddi-widget-button"
         style={{ position: "relative", backgroundColor: primaryColor }}
@@ -58,7 +59,11 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         )}
       </button>
       {showBadge && (
-        <span className="noddi-widget-unread-badge" aria-label={`${unreadCount} unread messages`}>
+        <span
+          role="status"
+          className="noddi-widget-unread-badge"
+          aria-label={`${unreadCount} unread messages`}
+        >
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       )}

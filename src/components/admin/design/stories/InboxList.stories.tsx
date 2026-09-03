@@ -16,7 +16,7 @@ export default meta
 type Story = StoryObj<typeof InboxList>
 
 export const Default: Story = {
-  render: () => {
+  render: function DefaultStory() {
     const [selectedInbox, setSelectedInbox] = useState("all")
 
     return (
@@ -28,7 +28,7 @@ export const Default: Story = {
 }
 
 export const ServiceTickets: Story = {
-  render: () => {
+  render: function ServiceTicketsStory() {
     const [selectedInbox, setSelectedInbox] = useState("open")
 
     const ticketInboxes = [
@@ -76,7 +76,7 @@ export const ServiceTickets: Story = {
 }
 
 export const NewsletterInboxes: Story = {
-  render: () => {
+  render: function NewsletterInboxesStory() {
     const [selectedInbox, setSelectedInbox] = useState("drafts")
 
     const newsletterInboxes = [
@@ -134,7 +134,7 @@ export const NoSelection: Story = {
 }
 
 export const WithoutCounts: Story = {
-  render: () => {
+  render: function WithoutCountsStory() {
     const [selectedInbox, setSelectedInbox] = useState("all")
 
     const inboxesWithoutCounts = [
@@ -157,7 +157,7 @@ export const WithoutCounts: Story = {
 }
 
 export const CustomStyling: Story = {
-  render: () => {
+  render: function CustomStylingStory() {
     const [selectedInbox, setSelectedInbox] = useState("important")
 
     return (
@@ -173,7 +173,7 @@ export const CustomStyling: Story = {
 }
 
 export const MobileView: Story = {
-  render: () => {
+  render: function MobileViewStory() {
     const [selectedInbox, setSelectedInbox] = useState("all")
 
     return (

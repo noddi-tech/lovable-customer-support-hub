@@ -22,6 +22,7 @@ export function NoddiTicketTable({ tickets, isLoading, onSelect }: Props) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>

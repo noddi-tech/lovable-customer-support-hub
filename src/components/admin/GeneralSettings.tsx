@@ -143,7 +143,7 @@ export const GeneralSettings = () => {
         body: { limitConversations: 1000, sinceDays: 365, dryRun: false },
       })
       if (error) throw error
-      const { processed = 0, updated = 0, skipped = 0 } = (data as any) || {}
+      const { processed = 0, updated = 0, skipped = 0 } = data || {}
       toast({
         title: "Backfill completed",
         description: `Processed ${processed}, updated ${updated}, skipped ${skipped}.`,
@@ -182,7 +182,7 @@ export const GeneralSettings = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="org-description">{t("admin.description")}</Label>
+            <Label htmlFor="org-description">{t("admin.descriptionLabel")}</Label>
             <Textarea
               id="org-description"
               placeholder={t("admin.orgDescription")}

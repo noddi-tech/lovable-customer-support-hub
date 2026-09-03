@@ -209,7 +209,7 @@ export const useInteractionsNavigation = () => {
       }
       // For status changes
       if (updates.status !== undefined) {
-        setStatus(updates.status as StatusFilter)
+        setStatus(updates.status)
         return
       }
       // For other param updates

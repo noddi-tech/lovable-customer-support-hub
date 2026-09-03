@@ -78,7 +78,7 @@ export function AiSuggestionsSheet({
           <div className="grid grid-cols-1 gap-3 pb-4">
             {suggestions.map((suggestion, index) => (
               <div
-                key={index}
+                key={suggestion}
                 className={cn(
                   "rounded-lg border border-border bg-card p-4 flex flex-col gap-3 transition-colors",
                   "hover:border-primary/40",

@@ -7,6 +7,7 @@ For **initial setup** (clone, `.env`, quality gate, Make targets), see
 
 ## Available Guides
 
+- [**Linting & code quality**](./linting.md) - Biome, ESLint, Knip, dependency-cruiser, secrets, Semgrep, jscpd
 - [**Debugging Tools**](./debugging.md) - UIProbe, SafeComponents, and diagnostic tools
 - [**Logging System**](./logging.md) - Log levels, smart deduplication, and usage guide
 

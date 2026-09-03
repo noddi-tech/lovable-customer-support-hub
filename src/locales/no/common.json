@@ -50,6 +50,7 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Administrer systeminnstillinger og konfigurasjoner",
+    "descriptionLabel": "Beskrivelse",
     "inboxes": "Innbokser",
     "design": "Design & Merkevare",
     "overview": "Oversikt",

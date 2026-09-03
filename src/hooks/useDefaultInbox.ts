@@ -19,10 +19,10 @@ export function useDefaultInbox() {
       const { data, error } = await supabase
         .from("profiles")
         .select("default_inbox_id")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .maybeSingle()
       if (error) throw error
-      return (data?.default_inbox_id as string | null) ?? null
+      return data?.default_inbox_id ?? null
     },
   })
 
@@ -31,7 +31,7 @@ export function useDefaultInbox() {
       const { error } = await supabase
         .from("profiles")
         .update({ default_inbox_id: inboxId })
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
       if (error) throw error
       return inboxId
     },

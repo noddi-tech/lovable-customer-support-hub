@@ -32,7 +32,7 @@ export function usePositionScoringQueueStatus(positionId: string | null | undefi
         .from("application_scoring_queue")
         .select("id, status, applications!inner(position_id)")
         .in("status", ["pending", "processing"])
-        .eq("applications.position_id", positionId!)
+        .eq("applications.position_id", positionId)
       const { data, error } = await q
       if (error) throw error
       const rows = (data ?? []) as any[] as Array<{ status: string }>

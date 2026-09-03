@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
@@ -127,10 +127,10 @@ export function DepartmentManagement() {
     },
   })
 
-  const startEdit = (department: DepartmentRow) => {
+  const startEdit = useCallback((department: DepartmentRow) => {
     setEditingDepartment(department)
     setFormData({ name: department.name, description: department.description || "" })
-  }
+  }, [])
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault()
@@ -166,7 +166,7 @@ export function DepartmentManagement() {
         isDeleting: deleteMutation.isPending,
         t,
       }),
-    [deleteMutation.isPending, t, startEdit, deleteMutation.mutate],
+    [deleteMutation, t, startEdit],
   )
 
   if (isLoading) {
@@ -264,7 +264,7 @@ export function DepartmentManagement() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-description">{t("admin.description")}</Label>
+              <Label htmlFor="edit-description">{t("admin.descriptionLabel")}</Label>
               <Textarea
                 id="edit-description"
                 value={formData.description}

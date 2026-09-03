@@ -33,22 +33,24 @@ export default function StalledApplicantsList({ items }: Props) {
         ) : (
           <ul className="divide-y">
             {items.slice(0, 8).map((it) => (
-              <li
-                key={it.application_id}
-                onClick={() => navigate(`/operations/recruitment/applicants/${it.applicant_id}`)}
-                className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3"
-              >
-                <span
-                  className="h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: it.stage_color }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{it.applicant_name}</div>
-                  <div className="text-xs text-muted-foreground">{it.stage_name}</div>
-                </div>
-                <Badge variant="outline" className="text-xs whitespace-nowrap">
-                  {formatOver(it.hours_over_sla)}
-                </Badge>
+              <li key={it.application_id} className="list-none">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/operations/recruitment/applicants/${it.applicant_id}`)}
+                  className="w-full px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-left appearance-none bg-transparent border-0"
+                >
+                  <span
+                    className="h-2 w-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: it.stage_color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{it.applicant_name}</div>
+                    <div className="text-xs text-muted-foreground">{it.stage_name}</div>
+                  </div>
+                  <Badge variant="outline" className="text-xs whitespace-nowrap">
+                    {formatOver(it.hours_over_sla)}
+                  </Badge>
+                </button>
               </li>
             ))}
           </ul>

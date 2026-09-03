@@ -103,6 +103,20 @@ const Carousel = React.forwardRef<
     }
   }, [api, onSelect])
 
+  const root = (
+    // biome-ignore lint/a11y/useSemanticElements: shadcn primitive
+    <div
+      ref={ref}
+      onKeyDownCapture={handleKeyDown}
+      className={cn("relative", className)}
+      role="region"
+      aria-roledescription="carousel"
+      {...props}
+    >
+      {children}
+    </div>
+  )
+
   return (
     <CarouselContext.Provider
       value={{
@@ -116,16 +130,7 @@ const Carousel = React.forwardRef<
         canScrollNext,
       }}
     >
-      <div
-        ref={ref}
-        onKeyDownCapture={handleKeyDown}
-        className={cn("relative", className)}
-        role="region"
-        aria-roledescription="carousel"
-        {...props}
-      >
-        {children}
-      </div>
+      {root}
     </CarouselContext.Provider>
   )
 })
@@ -157,6 +162,7 @@ const CarouselItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
     const { orientation } = useCarousel()
 
     return (
+      // biome-ignore lint/a11y/useSemanticElements: shadcn primitive
       <div
         ref={ref}
         role="group"

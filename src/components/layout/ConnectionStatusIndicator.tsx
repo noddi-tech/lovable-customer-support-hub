@@ -15,16 +15,16 @@ export const ConnectionStatusIndicator: React.FC = () => {
         return <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
       case "disconnected":
         return (
-          <div className="relative cursor-pointer" onClick={forceReconnect}>
+          <span className="relative">
             <WifiOff className="h-4 w-4 text-yellow-500" />
-          </div>
+          </span>
         )
       case "error":
         return (
-          <div className="relative cursor-pointer" onClick={forceReconnect}>
+          <span className="relative">
             <WifiOff className="h-4 w-4 text-destructive" />
             <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-          </div>
+          </span>
         )
       default:
         return <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
@@ -105,14 +105,16 @@ export const ConnectionStatusIndicator: React.FC = () => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div
-          className={`flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent/50 transition-colors ${
+        <button
+          type="button"
+          className={`flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent/50 transition-colors appearance-none bg-transparent border-0 p-0 ${
             isClickable ? "cursor-pointer" : "cursor-default"
           }`}
           onClick={isClickable ? forceReconnect : undefined}
+          disabled={!isClickable}
         >
           {getStatusIcon()}
-        </div>
+        </button>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs max-w-[200px]">
         {getStatusText()}

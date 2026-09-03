@@ -239,8 +239,13 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
               <Label>Førerkortklasser</Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {LICENSE_CLASSES.map((cls) => (
-                  <label key={cls} className="flex items-center gap-2 cursor-pointer text-sm">
+                  <label
+                    key={cls}
+                    htmlFor={`create-applicant-license-${cls}`}
+                    className="flex items-center gap-2 cursor-pointer text-sm"
+                  >
                     <Checkbox
+                      id={`create-applicant-license-${cls}`}
                       checked={licenseClasses.has(cls)}
                       onCheckedChange={() => toggleLicense(cls)}
                     />
@@ -308,8 +313,12 @@ const CreateApplicantDialog: React.FC<Props> = ({ open, onOpenChange }) => {
           </div>
 
           <div className="border-t pt-4 space-y-2">
-            <label className="flex items-start gap-2 cursor-pointer text-sm">
+            <label
+              htmlFor="create-applicant-gdpr"
+              className="flex items-start gap-2 cursor-pointer text-sm"
+            >
               <Checkbox
+                id="create-applicant-gdpr"
                 checked={gdpr}
                 onCheckedChange={(c) => setGdpr(c === true)}
                 className="mt-0.5"

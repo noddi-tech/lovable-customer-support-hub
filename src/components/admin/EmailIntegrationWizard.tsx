@@ -394,7 +394,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
       case 4:
         return (
           <SetupSuccessStep
-            setupType={setupType!}
+            setupType={setupType}
             connectedEmail={publicEmail || connectedEmail || undefined}
             forwardingAddress={forwardingAddress || undefined}
             assignmentMode={assignmentMode}

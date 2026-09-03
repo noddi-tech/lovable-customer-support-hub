@@ -6,7 +6,9 @@ type LocalTypingListener = (conversationId: string, userId: string, isTyping: bo
 const localListeners = new Set<LocalTypingListener>()
 
 export function emitLocalTypingEvent(conversationId: string, userId: string, isTyping: boolean) {
-  localListeners.forEach((fn) => fn(conversationId, userId, isTyping))
+  localListeners.forEach((fn) => {
+    fn(conversationId, userId, isTyping)
+  })
 }
 
 /**
@@ -55,7 +57,7 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
         .gte("updated_at", cutoff)
 
       if (data) {
-        setTypingUserIds(new Set(data.map((r) => r.user_id!)))
+        setTypingUserIds(new Set(data.map((r) => r.user_id)))
       }
     }
     fetchTyping()
@@ -79,9 +81,9 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
           setTypingUserIds((prev) => {
             const next = new Set(prev)
             if (row.is_typing) {
-              next.add(row.user_id!)
+              next.add(row.user_id)
             } else {
-              next.delete(row.user_id!)
+              next.delete(row.user_id)
             }
             return next
           })

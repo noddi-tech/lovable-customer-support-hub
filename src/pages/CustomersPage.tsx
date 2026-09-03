@@ -71,7 +71,11 @@ export default function CustomersPage() {
 
   const brandOptions = useMemo(() => {
     const set = new Set<string>()
-    allCustomers.forEach((c) => (c?.brands ?? []).forEach((b) => set.add(b)))
+    allCustomers.forEach((c) => {
+      ;(c?.brands ?? []).forEach((b) => {
+        set.add(b)
+      })
+    })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [allCustomers])
 
@@ -159,6 +163,7 @@ export default function CustomersPage() {
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 6 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>

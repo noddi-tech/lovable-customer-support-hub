@@ -11,7 +11,7 @@ export function useFailureCount() {
       const { count, error } = await supabase
         .from("recruitment_automation_executions")
         .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("overall_status", "failed")
         .eq("is_dry_run", false)
         .is("acknowledged_at", null)

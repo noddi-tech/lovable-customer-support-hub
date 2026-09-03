@@ -63,6 +63,7 @@ const TextInputBlock: React.FC<BlockComponentProps> = ({
         }}
       />
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={!value.trim()}
         style={{

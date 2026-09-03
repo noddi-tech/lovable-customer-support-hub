@@ -430,7 +430,10 @@ export const NoddihKundeData: React.FC<NoddihKundeDataProps> = ({ customer }) =>
                 {lines.length > 0 && (
                   <div className="space-y-1 mb-2">
                     {lines.map((l, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
+                      <div
+                        key={`${l.name}-${l.quantity}`}
+                        className="flex items-center justify-between text-sm"
+                      >
                         <div className="truncate">
                           {l.name}
                           {l.quantity > 1 ? ` × ${l.quantity}` : ""}

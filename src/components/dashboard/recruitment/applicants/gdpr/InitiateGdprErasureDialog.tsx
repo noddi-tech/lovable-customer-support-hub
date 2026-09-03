@@ -110,8 +110,12 @@ const InitiateGdprErasureDialog: React.FC<Props> = ({
             />
           </div>
 
-          <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <label
+            htmlFor="gdpr-erasure-ack"
+            className="flex items-start gap-2 text-sm cursor-pointer"
+          >
             <Checkbox
+              id="gdpr-erasure-ack"
               checked={acknowledged}
               onCheckedChange={(v) => setAcknowledged(v === true)}
               className="mt-0.5"

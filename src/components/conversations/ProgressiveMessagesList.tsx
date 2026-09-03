@@ -209,21 +209,26 @@ export const ProgressiveMessagesList = forwardRef<
 
     // Continuous chat-style thread: keep every loaded turn expanded so the
     // conversation reads as one flow instead of collapsed email cards.
+    // Depend on messageKeys (stable string) rather than messages to avoid
+    // re-expanding when only the messages array reference changes.
+    const messagesRef = useRef(messages)
+    messagesRef.current = messages
     useEffect(() => {
-      if (messages.length > 0) {
-        const allIds = new Set(messages.map((m) => m.dedupKey || m.id))
+      const currentMessages = messagesRef.current
+      if (currentMessages.length > 0) {
+        const allIds = new Set(currentMessages.map((m) => m.dedupKey || m.id))
         setExpandedMessageIds(allIds)
         setAllExpanded(true)
         logger.debug(
           "Initializing expanded state with all messages expanded",
-          { messagesCount: messages.length },
+          { messagesCount: currentMessages.length },
           "ProgressiveMessagesList",
         )
       } else {
         setExpandedMessageIds(new Set())
         setAllExpanded(false)
       }
-    }, [messageKeys])
+    }, [])
 
     // Auto-scroll to bottom when messages change (for new messages)
     useEffect(() => {
@@ -511,6 +516,7 @@ export const ProgressiveMessagesList = forwardRef<
                 {oldestLoadedAt ? new Date(oldestLoadedAt).toLocaleTimeString() : "none"}
               </div>
               <button
+                type="button"
                 onClick={handleForceLoad}
                 disabled={!hasNextPage || isFetchingNextPage}
                 className="mt-2 px-2 py-1 bg-orange-200 hover:bg-orange-300 rounded text-xs disabled:opacity-50"

@@ -54,7 +54,7 @@ export const AiChatbotSettings: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_user_organization_id")
       if (error) throw error
-      return data as string
+      return data
     },
   })
 
@@ -114,6 +114,7 @@ export const AiChatbotSettings: React.FC = () => {
           <CardContent className="space-y-3">
             {widgetConfigs.map((widget) => (
               <button
+                type="button"
                 key={widget.id}
                 onClick={() => setSelectedWidgetId(widget.id)}
                 className={`w-full p-3 rounded-lg border-2 text-left transition-all ${

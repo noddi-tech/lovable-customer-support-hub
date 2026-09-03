@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useInteractionsNavigation } from "@/hooks/useInteractionsNavigation"
+import { sanitizeNewsletterHTML } from "@/utils/htmlSanitizer"
 
 // Mock data for newsletters
 const mockNewsletters = [
@@ -414,7 +415,8 @@ const NewsletterManagementPage: React.FC = () => {
             <div className="bg-muted/50 p-4 rounded-lg max-h-96 overflow-y-auto">
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: newsletter.content }}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeNewsletterHTML
+                dangerouslySetInnerHTML={{ __html: sanitizeNewsletterHTML(newsletter.content) }}
               />
             </div>
           </div>

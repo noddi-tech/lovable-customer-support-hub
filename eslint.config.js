@@ -1,47 +1,84 @@
 /**
  * Hybrid lint setup: Biome owns formatting + most lint rules.
- * ESLint keeps only what Biome shouldn't replace here:
- *   1. eslint-plugin-react-hooks (exhaustive-deps edge cases)
- *   2. eslint-plugin-react-refresh (Vite HMR safety)
- *   3. Project-specific AST rule for SelectItem value={…user_id}
+ * ESLint covers what Biome shouldn't replace here:
+ *   1. react-hooks (exhaustive-deps / rules-of-hooks)
+ *   2. react-refresh (Vite HMR safety)
+ *   3. Domain AST rule for SelectItem value={…user_id}
+ *   4. Type-aware typescript-eslint (curated; warn until backlog cleared)
+ *   5. @eslint-react, import-x, vitest, testing-library, storybook
+ *
+ * Promote type-aware + testing-library rules to error via
+ * `npm run lint:eslint:typed` once the backlog is clean.
  */
 
+import eslintReact from "@eslint-react/eslint-plugin"
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript"
+import importX from "eslint-plugin-import-x"
 import reactHooks from "eslint-plugin-react-hooks"
 import reactRefresh from "eslint-plugin-react-refresh"
+import storybook from "eslint-plugin-storybook"
+import testingLibrary from "eslint-plugin-testing-library"
+import vitest from "eslint-plugin-vitest"
 import globals from "globals"
 import tseslint from "typescript-eslint"
+
+const typedStrict = process.env.ESLINT_TYPED_STRICT === "1"
 
 export default tseslint.config(
   {
     ignores: [
       "dist/**",
       "coverage/**",
+      "storybook-static/**",
+      "playwright-report/**",
+      "test-results/**",
+      ".jscpd-report/**",
       "supabase/migrations/**",
       "supabase/functions/**",
       "src/data/**/*.generated.*",
       "src/integrations/supabase/types.ts",
     ],
   },
+
+  // Base app/source rules (fast path for quality gate)
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: tseslint.parser,
       ecmaVersion: 2020,
       globals: globals.browser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
     },
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      "import-x": importX,
+      "@eslint-react": eslintReact,
+    },
+    settings: {
+      "import-x/resolver-next": [
+        createTypeScriptImportResolver({
+          project: ["tsconfig.json", "tsconfig.app.json", "tsconfig.node.json"],
+          alwaysTryTypes: true,
+        }),
+      ],
     },
     rules: {
-      // Pre-existing hooks debt is warn for now (same posture as Biome
-      // useHookAtTopLevel). Tighten back to error once cleaned up.
-      "react-hooks/rules-of-hooks": "warn",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      // Domain rule: Prefer profiles.id (ProfileId) for assignment FKs.
-      // user_id remains correct for auth tables (user_roles, memberships).
+
+      "import-x/no-duplicates": "error",
+      "import-x/no-useless-path-segments": "error",
+
+      "@eslint-react/no-unstable-default-props": "warn",
+      "@eslint-react/no-nested-component-definitions": "warn",
+      "@eslint-react/dom-no-dangerously-set-innerhtml": "off",
+      "@eslint-react/no-array-index-key": "off",
+
       "no-restricted-syntax": [
         "warn",
         {
@@ -50,6 +87,96 @@ export default tseslint.config(
             "For assignment FKs (assigned_to_id), use profiles.id (ProfileId). For auth tables (user_roles, memberships), user_id is correct.",
         },
       ],
+    },
+  },
+
+  // Type-aware pass for src — warn by default; ESLINT_TYPED_STRICT=1 → error
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/**/*.test.{ts,tsx}", "src/**/__tests__/**", "src/**/*.stories.tsx"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": typedStrict ? "error" : "warn",
+      "@typescript-eslint/no-misused-promises": [
+        typedStrict ? "error" : "warn",
+        { checksVoidReturn: { attributes: false } },
+      ],
+      "@typescript-eslint/await-thenable": typedStrict ? "error" : "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
+      "@typescript-eslint/no-for-in-array": "error",
+      "@typescript-eslint/require-await": "warn",
+    },
+  },
+
+  // Vitest + Testing Library (warn while backlog clears; still visible in CI logs)
+  {
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.{test,spec}.{ts,tsx}", "src/test/**/*.{ts,tsx}"],
+    plugins: {
+      vitest,
+      "testing-library": testingLibrary,
+    },
+    languageOptions: {
+      globals: {
+        ...vitest.environments.env.globals,
+      },
+    },
+    rules: {
+      ...Object.fromEntries(
+        Object.entries(vitest.configs.recommended.rules || {}).map(([k, v]) => [
+          k,
+          typedStrict ? v : v === "error" ? "warn" : v,
+        ]),
+      ),
+      ...Object.fromEntries(
+        Object.entries(testingLibrary.configs["flat/react"].rules || {}).map(([k, v]) => [
+          k,
+          typedStrict
+            ? v
+            : Array.isArray(v) && v[0] === "error"
+              ? ["warn", v[1]]
+              : v === "error"
+                ? "warn"
+                : v,
+        ]),
+      ),
+      "testing-library/render-result-naming-convention": "off",
+      "react-refresh/only-export-components": "off",
+    },
+  },
+
+  // Storybook
+  ...storybook.configs["flat/recommended"].map((cfg) => ({
+    ...cfg,
+    rules: {
+      ...(cfg.rules || {}),
+      // Soften while storybook package imports are cleaned up
+      "storybook/no-renderer-packages": typedStrict ? "error" : "warn",
+      "react-refresh/only-export-components": "off",
+    },
+  })),
+
+  // Co-located non-component exports are intentional for these patterns.
+  {
+    files: [
+      "src/components/ui/**",
+      "src/test/**",
+      "**/__tests__/**",
+      "**/*test-utils*",
+      "src/contexts/**",
+      "**/*Context.tsx",
+      "**/*Provider.tsx",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   },
 )

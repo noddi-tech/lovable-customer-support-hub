@@ -1,5 +1,5 @@
 import debounce from "lodash.debounce"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import { logger } from "@/utils/logger"
 
 interface PerformanceMetrics {
@@ -141,7 +141,13 @@ export const usePerformanceMonitoring = (options: PerformanceMonitoringOptions =
   }, [componentName])
 
   // Debounced memory check to avoid excessive calls
-  const debouncedMemoryCheck = useCallback(debounce(checkMemoryUsage, 1000), [])
+  const debouncedMemoryCheck = useMemo(
+    () =>
+      debounce(() => {
+        checkMemoryUsage()
+      }, 1000),
+    [checkMemoryUsage],
+  )
 
   // Performance observer for paint and layout metrics
   useEffect(() => {

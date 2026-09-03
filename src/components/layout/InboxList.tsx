@@ -397,8 +397,11 @@ export const InboxList: React.FC<InboxListProps> = ({
                     const isChecked = selectedIds.includes(inbox.id)
 
                     return (
+                      // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                       <div
                         key={inbox.id}
+                        role="button"
+                        tabIndex={0}
                         className={cn(
                           "flex items-start gap-2 min-w-0 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-pointer",
                           isChecked && "bg-accent/60",
@@ -411,6 +414,13 @@ export const InboxList: React.FC<InboxListProps> = ({
                           }
                           setSelectOpen(false)
                           handleInboxChange(inbox.id)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            setSelectOpen(false)
+                            handleInboxChange(inbox.id)
+                          }
                         }}
                       >
                         <Checkbox

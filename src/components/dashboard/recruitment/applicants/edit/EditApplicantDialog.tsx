@@ -291,8 +291,13 @@ const EditApplicantDialog: React.FC<Props> = ({ open, onOpenChange, applicant })
                 <Label>Førerkortklasser</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {LICENSE_CLASSES.map((cls) => (
-                    <label key={cls} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <label
+                      key={cls}
+                      htmlFor={`edit-applicant-license-${cls}`}
+                      className="flex items-center gap-2 cursor-pointer text-sm"
+                    >
                       <Checkbox
+                        id={`edit-applicant-license-${cls}`}
                         checked={licenses.includes(cls)}
                         onCheckedChange={() => toggleLicense(cls)}
                       />
@@ -312,12 +317,16 @@ const EditApplicantDialog: React.FC<Props> = ({ open, onOpenChange, applicant })
                   />
                 </div>
                 <div className="space-y-2 flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <label
+                    htmlFor="edit-applicant-own-vehicle"
+                    className="flex items-center gap-2 cursor-pointer text-sm"
+                  >
                     <Controller
                       control={form.control}
                       name="own_vehicle"
                       render={({ field }) => (
                         <Checkbox
+                          id="edit-applicant-own-vehicle"
                           checked={field.value === true}
                           onCheckedChange={(c) => field.onChange(c === true)}
                         />
@@ -389,8 +398,12 @@ const EditApplicantDialog: React.FC<Props> = ({ open, onOpenChange, applicant })
                 control={form.control}
                 name="gdpr_consent"
                 render={({ field }) => (
-                  <label className="flex items-start gap-2 cursor-pointer text-sm">
+                  <label
+                    htmlFor="edit-applicant-gdpr"
+                    className="flex items-start gap-2 cursor-pointer text-sm"
+                  >
                     <Checkbox
+                      id="edit-applicant-gdpr"
                       checked={field.value}
                       onCheckedChange={(c) => field.onChange(c === true)}
                       className="mt-0.5"

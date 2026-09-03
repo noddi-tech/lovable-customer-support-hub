@@ -72,7 +72,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
           if (key?.startsWith("noddi_action_")) {
-            actionKeys.push(key!)
+            actionKeys.push(key)
             if (key !== `noddi_action_${blockKey}`) {
               try {
                 const val = JSON.parse(localStorage.getItem(key) || "")
@@ -288,7 +288,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
         {rows.length > 0 ? (
           rows.map((r, i) => (
             <div
-              key={i}
+              key={r.label}
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -311,6 +311,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
       {/* Action buttons */}
       <div style={{ display: "flex", gap: "8px", padding: "0 12px 12px" }}>
         <button
+          type="button"
           onClick={handleConfirm}
           disabled={isUsed || confirming}
           style={{
@@ -358,6 +359,7 @@ const BookingSummaryBlock: React.FC<BlockComponentProps> = ({
           Bekreft bestilling
         </button>
         <button
+          type="button"
           onClick={handleCancel}
           disabled={isUsed || confirming}
           style={{

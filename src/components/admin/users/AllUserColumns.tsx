@@ -76,7 +76,7 @@ export const allUserColumns: ColumnDef<AllUserRow>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const name = row.getValue("full_name") as string | null
+      const name = row.getValue("full_name")
       const roles = row.original.system_roles ?? []
       return (
         <div className="flex items-center gap-2 flex-wrap">
@@ -190,7 +190,7 @@ export const allUserColumns: ColumnDef<AllUserRow>[] = [
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => new Date(row.getValue("created_at") as string).toLocaleDateString(),
+    cell: ({ row }) => new Date(row.getValue("created_at")).toLocaleDateString(),
   },
   {
     id: "actions",

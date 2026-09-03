@@ -78,6 +78,7 @@ export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
           </span>
           <div className="flex gap-2">
             <button
+              type="button"
               className="px-3 py-1 rounded border disabled:opacity-50"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
@@ -85,6 +86,7 @@ export function AuditTimelinePanel({ organizationId, onRowClick }: Props) {
               Forrige
             </button>
             <button
+              type="button"
               className="px-3 py-1 rounded border disabled:opacity-50"
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}

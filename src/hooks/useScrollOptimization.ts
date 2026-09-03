@@ -1,6 +1,6 @@
 import debounce from "lodash.debounce"
 import throttle from "lodash.throttle"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 
 interface ScrollOptimizationOptions {
   throttleMs?: number
@@ -28,23 +28,25 @@ export const useScrollOptimization = (
   const visibleItemsRef = useRef<Set<string>>(new Set())
 
   // Throttled scroll handler for smooth performance
-  const throttledScrollHandler = useCallback(
-    throttle((event: Event) => {
-      if (onScroll) {
-        onScroll(event)
-      }
-    }, throttleMs),
-    [],
+  const throttledScrollHandler = useMemo(
+    () =>
+      throttle((event: Event) => {
+        if (onScroll) {
+          onScroll(event)
+        }
+      }, throttleMs),
+    [onScroll, throttleMs],
   )
 
   // Debounced scroll end handler
-  const debouncedScrollEndHandler = useCallback(
-    debounce(() => {
-      if (onScrollEnd) {
-        onScrollEnd()
-      }
-    }, debounceMs),
-    [],
+  const debouncedScrollEndHandler = useMemo(
+    () =>
+      debounce(() => {
+        if (onScrollEnd) {
+          onScrollEnd()
+        }
+      }, debounceMs),
+    [onScrollEnd, debounceMs],
   )
 
   // Combined scroll handler

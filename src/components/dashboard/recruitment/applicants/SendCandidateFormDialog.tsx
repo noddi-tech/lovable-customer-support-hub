@@ -136,7 +136,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("id, name, subject, body")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("type", "email")
         .eq("is_active", true)
         .is("soft_deleted_at", null)
@@ -154,7 +154,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
       const { data } = await supabase
         .from("recruitment_email_templates")
         .select("id, name")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("type", "sms")
         .eq("name", SMS_TPL_NAME)
         .is("soft_deleted_at", null)
@@ -272,6 +272,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
               className="space-y-1.5"
             >
               <label
+                htmlFor="send-form-channel-email"
                 className={`flex items-start gap-2 rounded-md border p-2.5 cursor-pointer ${
                   !hasEmail
                     ? "opacity-50 cursor-not-allowed"
@@ -280,7 +281,12 @@ const SendCandidateFormDialog: React.FC<Props> = ({
                       : ""
                 }`}
               >
-                <RadioGroupItem value="email" disabled={!hasEmail} className="mt-0.5" />
+                <RadioGroupItem
+                  id="send-form-channel-email"
+                  value="email"
+                  disabled={!hasEmail}
+                  className="mt-0.5"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 text-sm font-medium">
                     <Mail className="h-3.5 w-3.5" /> E-post
@@ -293,6 +299,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
                 </div>
               </label>
               <label
+                htmlFor="send-form-channel-sms"
                 className={`flex items-start gap-2 rounded-md border p-2.5 cursor-pointer ${
                   !hasPhone || !smsConfigured
                     ? "opacity-50 cursor-not-allowed"
@@ -302,6 +309,7 @@ const SendCandidateFormDialog: React.FC<Props> = ({
                 }`}
               >
                 <RadioGroupItem
+                  id="send-form-channel-sms"
                   value="sms"
                   disabled={!hasPhone || !smsConfigured}
                   className="mt-0.5"

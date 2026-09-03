@@ -22,7 +22,7 @@ export function ApplicantTagsSection({ applicantId }: Props) {
 
   const linkedTagIds = (links ?? [])
     .filter((l) => l.recruitment_tags)
-    .map((l) => l.recruitment_tags!.id)
+    .map((l) => l.recruitment_tags.id)
 
   const handleChange = (next: string[]) => {
     const nextSet = new Set(next)
@@ -52,7 +52,7 @@ export function ApplicantTagsSection({ applicantId }: Props) {
               onRemove={() =>
                 removeMut.mutate({
                   applicant_id: applicantId,
-                  tag_id: l.recruitment_tags!.id,
+                  tag_id: l.recruitment_tags.id,
                 })
               }
             />

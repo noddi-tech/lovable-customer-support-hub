@@ -101,8 +101,8 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
             <div>
               <div className="text-xs font-medium text-green-700 mb-1">Styrker</div>
               <ul className="list-disc list-inside text-xs space-y-0.5 text-foreground">
-                {entry.strengths!.map((s, i) => (
-                  <li key={i}>{s}</li>
+                {entry.strengths.map((s, i) => (
+                  <li key={s}>{s}</li>
                 ))}
               </ul>
             </div>
@@ -111,8 +111,8 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
             <div>
               <div className="text-xs font-medium text-amber-700 mb-1">Bekymringer</div>
               <ul className="list-disc list-inside text-xs space-y-0.5 text-foreground">
-                {entry.concerns!.map((c, i) => (
-                  <li key={i}>{c}</li>
+                {entry.concerns.map((c, i) => (
+                  <li key={c}>{c}</li>
                 ))}
               </ul>
             </div>
@@ -139,7 +139,7 @@ const Entry: React.FC<{ entry: ScoreHistoryEntry; prev?: ScoreHistoryEntry; idx:
                 Tokens: {tokens.input ?? 0} inn / {tokens.output ?? 0} ut
               </span>
             )}
-            {fmtCost(tokens.cost_usd ?? null) && <span>Kostnad: {fmtCost(tokens.cost_usd!)}</span>}
+            {fmtCost(tokens.cost_usd ?? null) && <span>Kostnad: {fmtCost(tokens.cost_usd)}</span>}
           </div>
         </div>
       )}

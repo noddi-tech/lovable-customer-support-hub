@@ -12,14 +12,14 @@ export function formatValue(fieldName: string, value: unknown, ctx?: FormatConte
   // UUID lookups
   if (UUID_FIELDS.has(fieldName)) {
     if (typeof value === "string" && ctx?.userMap?.has(value)) {
-      return ctx.userMap.get(value)!
+      return ctx.userMap.get(value)
     }
     return typeof value === "string" ? `${value.slice(0, 8)}…` : String(value)
   }
 
   if (fieldName === "current_stage_id") {
     if (typeof value === "string" && ctx?.stageMap?.has(value)) {
-      return ctx.stageMap.get(value)!
+      return ctx.stageMap.get(value)
     }
     const stageNames: Record<string, string> = {
       not_reviewed: "Ikke vurdert",

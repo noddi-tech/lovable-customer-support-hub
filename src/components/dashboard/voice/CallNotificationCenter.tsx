@@ -206,12 +206,21 @@ export const CallNotificationCenter: React.FC<CallNotificationCenterProps> = ({
               ) : (
                 <div className="space-y-1">
                   {notifications.map((notification) => (
+                    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                     <div
                       key={notification.id}
+                      role="button"
+                      tabIndex={0}
                       className={`p-3 border-b border-border hover:bg-muted/50 cursor-pointer transition-colors ${
                         !notification.is_read ? "bg-primary/5 border-l-4 border-l-primary" : ""
                       }`}
                       onClick={() => handleNotificationClick(notification)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          handleNotificationClick(notification)
+                        }
+                      }}
                     >
                       <div className="flex items-start gap-3">
                         {/* Icon */}

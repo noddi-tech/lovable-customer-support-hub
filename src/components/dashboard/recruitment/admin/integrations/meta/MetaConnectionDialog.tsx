@@ -36,7 +36,7 @@ interface Props {
   onRequestTokenRefresh?: () => void
 }
 
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) ?? ""
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? ""
 const WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/meta-lead-webhook`
 
 export function MetaConnectionDialog({

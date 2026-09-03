@@ -171,6 +171,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
             />
           </div>
           <button
+            type="button"
             className="noddi-ai-phone-submit"
             onClick={handleSendCode}
             style={{ backgroundColor: primaryColor }}
@@ -224,20 +225,20 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
                   setPinInput(joined)
                   const next =
                     (e.target.nextElementSibling as HTMLInputElement) ||
-                    (e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector(
+                    e.target.parentElement?.nextElementSibling?.nextElementSibling?.querySelector(
                       "input",
-                    ) as HTMLInputElement)
+                    )
                   if (next && val) next.focus()
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Backspace" && !pinInput[i]) {
                     const prev =
                       ((e.target as HTMLElement).previousElementSibling as HTMLInputElement) ||
-                      ((
+                      (
                         e.target as HTMLElement
                       ).parentElement?.previousElementSibling?.previousElementSibling?.querySelector(
                         "input:last-child",
-                      ) as HTMLInputElement)
+                      )
                     if (prev) prev.focus()
                   }
                   if (e.key === "Enter" && pinInput.length >= 4) handleVerifyPin()
@@ -280,11 +281,11 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
                   if (e.key === "Backspace" && !pinInput[i]) {
                     const prev =
                       ((e.target as HTMLElement).previousElementSibling as HTMLInputElement) ||
-                      ((
+                      (
                         e.target as HTMLElement
                       ).parentElement?.previousElementSibling?.previousElementSibling?.querySelector(
                         "input:last-child",
-                      ) as HTMLInputElement)
+                      )
                     if (prev) prev.focus()
                   }
                   if (e.key === "Enter" && pinInput.length >= 4) handleVerifyPin()
@@ -304,6 +305,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
           </div>
         </div>
         <button
+          type="button"
           className="noddi-ai-phone-submit"
           onClick={() => handleVerifyPin()}
           style={{ backgroundColor: primaryColor }}
@@ -328,10 +330,11 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
       </div>
       {error && <p className="noddi-verification-error">{error}</p>}
       <div className="noddi-verification-actions">
-        <button className="noddi-ai-skip-phone" onClick={handleResendCode}>
+        <button type="button" className="noddi-ai-skip-phone" onClick={handleResendCode}>
           {t.resendCode}
         </button>
         <button
+          type="button"
           className="noddi-ai-skip-phone"
           onClick={() => {
             setStep("phone")

@@ -297,7 +297,7 @@ export default function AdminDesignComponents() {
             <ResponsiveTabsContent key={category.id} value={category.id} className="mt-6">
               <ResponsiveGrid cols={{ sm: "1", lg: "2" }} gap="6">
                 {category.components.map((component, index) => (
-                  <LayoutItem key={index}>
+                  <LayoutItem key={component.name}>
                     <Card className="h-full">
                       <CardHeader>
                         <div className="flex items-center justify-between">

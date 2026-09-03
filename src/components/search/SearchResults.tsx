@@ -48,7 +48,10 @@ const HighlightText = ({ text, query }: { text: string; query: string }) => {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 text-foreground rounded px-0.5">
+          <mark
+            key={part}
+            className="bg-yellow-200 dark:bg-yellow-800 text-foreground rounded px-0.5"
+          >
             {part}
           </mark>
         ) : (
@@ -70,6 +73,7 @@ const ConversationResult = memo(
     onSelect?: (id: string) => void
   }) => (
     <button
+      type="button"
       onClick={() => onSelect?.(result.id)}
       className="w-full p-4 text-left hover:bg-accent/50 border-b transition-colors"
     >
@@ -133,6 +137,7 @@ const CustomerResult = memo(
     onSelect?: (id: string) => void
   }) => (
     <button
+      type="button"
       onClick={() => onSelect?.(result.id)}
       className="w-full p-4 text-left hover:bg-accent/50 border-b transition-colors"
     >
@@ -169,6 +174,7 @@ const MessageResult = memo(
     onSelect?: (id: string) => void
   }) => (
     <button
+      type="button"
       onClick={() => onSelect?.(result.conversation_id || result.id)}
       className="w-full p-4 text-left hover:bg-accent/50 border-b transition-colors"
     >
@@ -262,6 +268,8 @@ export const SearchResults = ({
                 onSelect={onSelectConversation}
               />
             )
+          default:
+            return null
         }
       })}
 

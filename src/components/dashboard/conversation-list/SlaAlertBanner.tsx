@@ -49,7 +49,7 @@ export function SlaAlertBanner({ conversations, onSelectConversation }: SlaAlert
     }
 
     const byDeadline = [...breachedList, ...atRiskList].sort(
-      (a, b) => new Date(a.sla_breach_at!).getTime() - new Date(b.sla_breach_at!).getTime(),
+      (a, b) => new Date(a.sla_breach_at).getTime() - new Date(b.sla_breach_at).getTime(),
     )
 
     const counts = new Map<string, number>()
@@ -71,7 +71,7 @@ export function SlaAlertBanner({ conversations, onSelectConversation }: SlaAlert
   if (!mostUrgent) return null
 
   const hasBreached = breached.length > 0
-  const urgentRemaining = new Date(mostUrgent.sla_breach_at!).getTime() - now
+  const urgentRemaining = new Date(mostUrgent.sla_breach_at).getTime() - now
 
   return (
     <div

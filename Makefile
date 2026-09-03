@@ -17,6 +17,7 @@ VITE_PORT ?= 8080
 	dev start serve preview \
 	build build-dev build-widget \
 	lint lint-eslint lint-biome lint-tabs lint-pane lint-all \
+	lint-knip lint-deps lint-secrets lint-dupes lint-semgrep lint-audit lint-strict \
 	format format-check format-md format-md-check fix fix-unsafe \
 	quality-gate quality-gate-check \
 	typecheck \
@@ -124,13 +125,13 @@ build-widget: ## Build embeddable widget bundle
 # domain scripts (tabs/pane).
 # ---------------------------------------------------------------------------
 
-lint: ## Biome (error-level) + thin ESLint
+lint: ## Biome (error-level) + ESLint (hooks/react/type-aware curated)
 	$(NPM) run lint
 
-lint-eslint: ## Thin ESLint only (hooks + domain AST rule)
+lint-eslint: ## ESLint only (hooks, react, import-x, type-aware)
 	$(NPM) run lint:eslint
 
-lint-biome: ## Biome check (error-level; warnings allowed)
+lint-biome: ## Biome check (error-level)
 	$(NPM) run lint:biome
 
 lint-tabs: ## Lint unsafe tab/button overflow patterns
@@ -139,7 +140,29 @@ lint-tabs: ## Lint unsafe tab/button overflow patterns
 lint-pane: ## Lint pane scroll layout anti-patterns
 	$(NPM) run lint:pane
 
-lint-all: lint lint-tabs lint-pane ## Biome + ESLint + domain linters
+lint-all: ## Biome + ESLint + domain linters (tabs/pane)
+	$(NPM) run lint:all
+
+lint-knip: ## Unused files / dependencies (Knip)
+	$(NPM) run lint:knip
+
+lint-deps: ## Architecture boundaries (dependency-cruiser)
+	$(NPM) run lint:deps
+
+lint-secrets: ## Secret scanning (gitleaks or secretlint)
+	$(NPM) run lint:secrets
+
+lint-dupes: ## Copy-paste detection (jscpd)
+	$(NPM) run lint:dupes
+
+lint-semgrep: ## SAST patterns (semgrep; skips if not installed)
+	$(NPM) run lint:semgrep
+
+lint-audit: ## npm audit (high+)
+	$(NPM) run lint:audit
+
+lint-strict: ## Full strict suite (lint:all + knip + deps + secrets + dupes + audit)
+	$(NPM) run lint:strict
 
 format: ## Format JS/TS via Biome + Markdown via Prettier
 	$(NPM) run format
@@ -159,7 +182,7 @@ fix: ## Apply safe autofixes (Biome + ESLint + Prettier Markdown)
 fix-unsafe: ## Apply autofixes including Biome --unsafe rewrites
 	$(NPM) run fix:unsafe
 
-quality-gate: ## Autofix then format-check + lint + ui-guards (pre-commit/push)
+quality-gate: ## Autofix then format-check + lint + ui-guards (pre-push)
 	$(NPM) run quality:gate
 
 quality-gate-check: ## Verify only (no writes): format-check + lint + ui-guards
@@ -239,7 +262,7 @@ supabase-functions: ## Serve edge functions locally
 
 check: lint-all format-check typecheck test ui-guards ## Full local quality gate
 
-ci: lint format-check typecheck ui-guards test build ## Approximate local CI gate
+ci: quality-gate-check typecheck test lint-strict ## Approximate local CI (gate + strict suite)
 
 clean: ## Remove build artifacts and caches
 	rm -rf dist coverage storybook-static playwright-report test-results

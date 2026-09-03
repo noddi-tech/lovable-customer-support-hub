@@ -217,9 +217,14 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
           <CardContent className="space-y-4">
             {/* Status */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Status</label>
+              <label
+                htmlFor="reply-sidebar-status"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Status
+              </label>
               <Select value={status} onValueChange={onStatusChange}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger id="reply-sidebar-status" className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -233,9 +238,14 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
 
             {/* Priority */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Priority</label>
+              <label
+                htmlFor="reply-sidebar-priority"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Priority
+              </label>
               <Select value={priority} onValueChange={onPriorityChange}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger id="reply-sidebar-priority" className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,7 +259,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
 
             {/* Assigned To */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Assigned To</label>
+              <div className="text-xs font-medium text-muted-foreground">Assigned To</div>
               {assignedTo ? (
                 <div className="flex items-center gap-2 p-2 rounded-md border border-border">
                   <Avatar className="h-6 w-6">
@@ -274,7 +284,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
             {/* Tags */}
             {tags.length > 0 && (
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Tags</label>
+                <div className="text-xs font-medium text-muted-foreground">Tags</div>
                 <div className="flex flex-wrap gap-1">
                   {tags.map((tag) => (
                     <Badge

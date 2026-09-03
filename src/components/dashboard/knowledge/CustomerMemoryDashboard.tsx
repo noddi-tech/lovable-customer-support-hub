@@ -224,6 +224,7 @@ export function CustomerMemoryDashboard({ organizationId }: Props) {
             />
             {search && (
               <button
+                type="button"
                 onClick={() => setSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >

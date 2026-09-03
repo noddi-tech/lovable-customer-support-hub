@@ -69,7 +69,7 @@ export function SLABadge({ status, slaBreachAt }: SLABadgeProps) {
     },
   } as const
 
-  const config = configs[effective as keyof typeof configs]
+  const config = configs[effective]
   if (!config) return null
 
   const Icon = config.icon

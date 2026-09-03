@@ -47,9 +47,8 @@ const FILE_TYPES: { value: string; label: string }[] = [
   { value: "other", label: "Annet" },
 ]
 
-const FILE_TYPE_LABEL: Record<string, string> = FILE_TYPES.reduce(
-  (acc, t) => ({ ...acc, [t.value]: t.label }),
-  {} as Record<string, string>,
+const FILE_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  FILE_TYPES.map((t) => [t.value, t.label]),
 )
 
 function formatBytes(n: number | null | undefined): string {
@@ -119,8 +118,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
             </Select>
           </div>
 
-          <div
-            onClick={() => inputRef.current?.click()}
+          <fieldset
             onDragOver={(e) => {
               e.preventDefault()
               setDragOver(true)
@@ -132,20 +130,26 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
               handleFiles(e.dataTransfer.files)
             }}
             className={cn(
-              "border-2 border-dashed rounded-md p-8 text-center cursor-pointer transition-colors",
+              "border-2 border-dashed rounded-md p-8 text-center transition-colors m-0 min-w-0",
               dragOver
                 ? "border-primary bg-primary/5"
                 : "border-muted-foreground/30 hover:border-muted-foreground/50",
             )}
           >
-            {uploadMut.isPending ? (
-              <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin text-muted-foreground" />
-            ) : (
-              <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            )}
-            <p className="text-sm text-muted-foreground">
-              Dra filer hit eller klikk for å laste opp
-            </p>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="w-full cursor-pointer bg-transparent border-0 p-0"
+            >
+              {uploadMut.isPending ? (
+                <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin text-muted-foreground" />
+              ) : (
+                <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+              )}
+              <p className="text-sm text-muted-foreground">
+                Dra filer hit eller klikk for å laste opp
+              </p>
+            </button>
             <input
               ref={inputRef}
               type="file"
@@ -153,7 +157,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
               multiple
               onChange={(e) => handleFiles(e.target.files)}
             />
-          </div>
+          </fieldset>
         </CardContent>
       </Card>
 

@@ -36,7 +36,10 @@ export function IntegrationSection({
       >
         {/* Header */}
         <CollapsibleTrigger asChild>
-          <button className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors rounded-t-lg">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors rounded-t-lg"
+          >
             <div className="flex items-center gap-3">
               <div
                 className={cn(
@@ -57,7 +60,15 @@ export function IntegrationSection({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {action && <div onClick={(e) => e.stopPropagation()}>{action}</div>}
+              {action && (
+                <fieldset
+                  className="border-0 p-0 m-0 min-w-0"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {action}
+                </fieldset>
+              )}
               <ChevronDown
                 className={cn(
                   "h-5 w-5 text-muted-foreground transition-transform duration-200",

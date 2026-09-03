@@ -98,7 +98,19 @@ function FollowupRow({
 }) {
   return (
     <li className="px-4 py-2.5 hover:bg-accent group flex items-center gap-3">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpen}>
+      {/* biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML */}
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex-1 min-w-0 cursor-pointer"
+        onClick={onOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onOpen()
+          }
+        }}
+      >
         <div className="text-sm font-medium truncate flex items-center gap-2">
           {it.applicant_name}
           {badge}

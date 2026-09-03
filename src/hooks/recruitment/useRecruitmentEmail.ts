@@ -31,7 +31,7 @@ export function useApplicantConversations(applicantId: string | undefined) {
         .select(
           "id, subject, status, updated_at, received_at, inbox_id, preview_text, last_message_sender_type",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
       if (error) throw error
@@ -63,7 +63,7 @@ export function useApplicantScheduledEmails(applicantId: string | undefined) {
         .select(
           "id, subject, to_email, scheduled_for, status, applicant_id, conversation_id, error_message, created_at",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .in("status", ["pending", "processing", "failed"])
         .order("scheduled_for", { ascending: true })
       if (error) throw error
@@ -84,7 +84,7 @@ export function useRecruitmentInboxes() {
         .select(
           "id, name, color, is_default, purpose, inbound_routes(group_email, address, sender_display_name, is_active, created_at)",
         )
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("is_active", true)
         .eq("purpose", "recruitment")
         .order("is_default", { ascending: false })
@@ -104,7 +104,7 @@ export function useApplicantFiles(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("applicant_files")
         .select("id, file_name, file_type, storage_path, file_size, created_at")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
       return data ?? []
@@ -132,7 +132,7 @@ export function useSendRecruitmentEmail() {
         body: input,
       })
       if (error) throw new Error(error.message || "send-recruitment-email feilet")
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data as { sent?: boolean; scheduled?: boolean; conversation_id?: string; id?: string }
     },
     onSuccess: (_data, vars) => {
@@ -153,7 +153,7 @@ export function useAttachConversationToApplicant() {
         body: input,
       })
       if (error) throw new Error(error.message || "attach feilet")
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data
     },
     onSuccess: (_d, vars) => {
@@ -176,7 +176,7 @@ export function useDetachConversationFromApplicant() {
         },
       )
       if (error) throw new Error(error.message || "detach feilet")
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data
     },
     onSuccess: () => {
@@ -226,7 +226,7 @@ export function useApplicantConversationMessages(conversationId: string | undefi
           is_internal, attachments, created_at, email_subject, email_headers,
           external_id, email_message_id, email_status
         `)
-        .eq("conversation_id", conversationId!)
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
       if (error) throw error
 

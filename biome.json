@@ -13,6 +13,7 @@
       "!**/storybook-static",
       "!**/playwright-report",
       "!**/test-results",
+      "!**/.jscpd-report",
       "!**/src/data/**/*.generated.*",
       "!**/src/integrations/supabase/types.ts",
       "!**/supabase/migrations",
@@ -48,63 +49,66 @@
         "noUnusedImports": "warn",
         "noUnusedFunctionParameters": "off",
         "noUnusedPrivateClassMembers": "off",
-        "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "warn",
-        "useParseIntRadix": "warn",
-        "noUnreachable": "warn",
-        "noInvalidUseBeforeDeclaration": "warn",
-        "noUnsafeOptionalChaining": "warn",
-        "noEmptyCharacterClassInRegex": "warn",
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error",
+        "useParseIntRadix": "error",
+        "noUnreachable": "error",
+        "noInvalidUseBeforeDeclaration": "error",
+        "noUnsafeOptionalChaining": "error",
+        "noEmptyCharacterClassInRegex": "error",
         "noUnknownTypeSelector": "off",
         "noUnknownPseudoClass": "off"
       },
       "suspicious": {
         "noExplicitAny": "off",
-        "noArrayIndexKey": "warn",
+        "noArrayIndexKey": "error",
         "noImplicitAnyLet": "off",
-        "noDocumentCookie": "warn",
-        "noControlCharactersInRegex": "warn",
-        "noAssignInExpressions": "warn",
-        "useIterableCallbackReturn": "warn",
-        "noGlobalIsNan": "warn",
+        "noDocumentCookie": "error",
+        "noControlCharactersInRegex": "error",
+        "noAssignInExpressions": "error",
+        "useIterableCallbackReturn": "error",
+        "noGlobalIsNan": "error",
         "noUnknownAtRules": "off",
-        "noDuplicateObjectKeys": "warn",
-        "noDuplicateProperties": "warn",
-        "noRedeclare": "warn",
-        "noExportsInTest": "warn"
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateProperties": "error",
+        "noRedeclare": "error",
+        "noExportsInTest": "error"
       },
       "complexity": {
         "noImportantStyles": "off",
-        "useOptionalChain": "warn",
+        "useOptionalChain": "error",
         "useLiteralKeys": "off",
-        "noUselessSwitchCase": "warn",
-        "useDateNow": "warn",
-        "noUselessFragments": "warn",
-        "noUselessTernary": "warn"
+        "noUselessSwitchCase": "error",
+        "useDateNow": "error",
+        "noUselessFragments": "error",
+        "noUselessTernary": "error"
       },
       "style": {
         "noNonNullAssertion": "off",
-        "useTemplate": "warn",
+        "useTemplate": "error",
         "useNodejsImportProtocol": "off",
         "noDescendingSpecificity": "off"
       },
       "a11y": {
         "recommended": false,
-        "useButtonType": "warn",
+        "useButtonType": "error",
         "noSvgWithoutTitle": "off",
-        "noLabelWithoutControl": "warn",
-        "noStaticElementInteractions": "warn",
-        "useKeyWithClickEvents": "warn",
-        "useSemanticElements": "warn",
-        "useAriaPropsSupportedByRole": "warn",
+        "noLabelWithoutControl": "error",
+        "noStaticElementInteractions": "error",
+        "useKeyWithClickEvents": "error",
+        "useSemanticElements": "error",
+        "useAriaPropsSupportedByRole": "error",
         "noAutofocus": "warn",
-        "useFocusableInteractive": "warn"
+        "useFocusableInteractive": "error",
+        "useValidAriaRole": "error",
+        "useValidAriaProps": "error",
+        "noAriaUnsupportedElements": "error"
       },
       "security": {
-        "noDangerouslySetInnerHtml": "warn"
+        "noDangerouslySetInnerHtml": "error"
       },
       "performance": {
-        "noAccumulatingSpread": "warn"
+        "noAccumulatingSpread": "error"
       }
     }
   },

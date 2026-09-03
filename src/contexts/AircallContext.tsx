@@ -344,7 +344,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         const RETRY_DELAY_MS = 100
 
         const tryShow = () => {
-          const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+          const container = document.querySelector("#aircall-workspace-container")
 
           if (!container) {
             attempts++
@@ -411,7 +411,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isHidingWorkspaceRef.current = true
 
     try {
-      const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+      const container = document.querySelector("#aircall-workspace-container")
 
       if (!container) {
         console.warn("[AircallProvider] Cannot hide workspace - container not found")
@@ -746,7 +746,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log("[AircallProvider] ✅ Proceeding with SDK initialization...")
 
         // Container is guaranteed to exist in HTML - direct check
-        let outerContainer = document.querySelector("#aircall-workspace-container") as HTMLElement
+        let outerContainer = document.querySelector("#aircall-workspace-container")
 
         if (!outerContainer) {
           // Fallback: Create outer container imperatively if somehow missing
@@ -757,7 +757,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
 
         // CRITICAL FIX: Create inner workspace div if it doesn't exist
-        let innerWorkspace = outerContainer.querySelector("#aircall-workspace") as HTMLElement
+        let innerWorkspace = outerContainer.querySelector("#aircall-workspace")
         if (!innerWorkspace) {
           console.log("[AircallProvider] Creating inner #aircall-workspace div")
           innerWorkspace = document.createElement("div")
@@ -917,11 +917,8 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log("Iframe in outer div:", !!iframeOuter)
 
         if (iframeInner) {
-          console.log("Iframe src:", (iframeInner as HTMLIFrameElement).src)
-          console.log(
-            "Iframe allow attr:",
-            (iframeInner as HTMLIFrameElement).getAttribute("allow"),
-          )
+          console.log("Iframe src:", iframeInner.src)
+          console.log("Iframe allow attr:", iframeInner.getAttribute("allow"))
           console.log(
             "Iframe display:",
             window.getComputedStyle(iframeInner as HTMLElement).display,
@@ -1100,7 +1097,6 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isConnected,
     isInitialized,
     initializationPhase,
-    diagnosticIssues.includes,
     diagnosticIssues,
   ])
 

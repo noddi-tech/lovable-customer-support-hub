@@ -24,10 +24,13 @@ export const MentionRenderer: React.FC<MentionRendererProps> = ({ content, class
 
   const parts: React.ReactNode[] = []
   let lastIndex = 0
-  let match
   let key = 0
 
-  while ((match = mentionPattern.exec(content)) !== null) {
+  for (
+    let match = mentionPattern.exec(content);
+    match !== null;
+    match = mentionPattern.exec(content)
+  ) {
     if (match.index > lastIndex) {
       parts.push(<span key={`text-${key++}`}>{content.slice(lastIndex, match.index)}</span>)
     }

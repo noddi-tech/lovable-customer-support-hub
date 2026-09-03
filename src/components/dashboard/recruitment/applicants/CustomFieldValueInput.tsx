@@ -163,9 +163,14 @@ export const CustomFieldValueInput: React.FC<Props> = ({
                 return (
                   <label
                     key={o.value}
+                    htmlFor={`custom-field-opt-${o.value}`}
                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
                   >
-                    <Checkbox checked={checked} onCheckedChange={() => toggle(o.value)} />
+                    <Checkbox
+                      id={`custom-field-opt-${o.value}`}
+                      checked={checked}
+                      onCheckedChange={() => toggle(o.value)}
+                    />
                     <span>{o.label_no || o.value}</span>
                   </label>
                 )

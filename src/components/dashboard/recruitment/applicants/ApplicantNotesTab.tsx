@@ -37,9 +37,8 @@ const NOTE_TYPES: { value: string; label: string }[] = [
   { value: "private", label: "Privat" },
 ]
 
-const NOTE_TYPE_LABEL: Record<string, string> = NOTE_TYPES.reduce(
-  (acc, n) => ({ ...acc, [n.value]: n.label }),
-  {} as Record<string, string>,
+const NOTE_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  NOTE_TYPES.map((n) => [n.value, n.label]),
 )
 
 const ApplicantNotesTab: React.FC<Props> = ({ applicantId, applicationId }) => {

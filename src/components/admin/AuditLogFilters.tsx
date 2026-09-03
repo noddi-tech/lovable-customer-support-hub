@@ -172,7 +172,7 @@ export function AuditLogFilters({
       <div className="space-y-3">
         {/* Action Types */}
         <div>
-          <label className="text-sm font-medium mb-2 block">Action Types</label>
+          <div className="text-sm font-medium mb-2 block">Action Types</div>
           <div className="flex flex-wrap gap-2">
             {availableActionTypes.map((type) => (
               <Badge
@@ -189,7 +189,7 @@ export function AuditLogFilters({
 
         {/* Actor Roles */}
         <div>
-          <label className="text-sm font-medium mb-2 block">Actor Roles</label>
+          <div className="text-sm font-medium mb-2 block">Actor Roles</div>
           <div className="flex flex-wrap gap-2">
             {availableActorRoles.map((role) => (
               <Badge

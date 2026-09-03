@@ -1,0 +1,14 @@
+title = "Support Hub gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "False positives and fixtures"
+paths = [
+  '''src/integrations/supabase/types\.ts''',
+  '''src/data/.*\.generated\..*''',
+  '''package-lock\.json''',
+  '''\.secretlintrc\.json''',
+  '''docs/.*''',
+]

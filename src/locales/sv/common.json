@@ -48,6 +48,7 @@
   "admin": {
     "title": "Admin Portal",
     "description": "Hantera systeminställningar och konfigurationer",
+    "descriptionLabel": "Beskrivning",
     "inboxes": "Inkorgar",
     "design": "Design & Varumärke",
     "overview": "Översikt",

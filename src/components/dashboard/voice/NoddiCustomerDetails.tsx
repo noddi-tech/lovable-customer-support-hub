@@ -525,7 +525,11 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                   segmentStyles[seg.segment] || "bg-gray-100 text-gray-700 border-gray-300"
                 const label = segmentLabels[seg.segment] || seg.segment
                 return (
-                  <Badge key={idx} variant="outline" className={`h-4 px-1 text-[10px] ${style}`}>
+                  <Badge
+                    key={seg.segment}
+                    variant="outline"
+                    className={`h-4 px-1 text-[10px] ${style}`}
+                  >
                     {label}
                   </Badge>
                 )
@@ -543,7 +547,10 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
       {/* User Group Selector - show if multiple groups available */}
       {displayedData.data.all_user_groups && displayedData.data.all_user_groups.length > 1 && (
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+          <label
+            htmlFor="noddi-user-group"
+            className="text-xs font-medium text-muted-foreground flex items-center gap-1"
+          >
             <Building2 className="h-3 w-3" />
             Company / Customer Context
           </label>
@@ -555,7 +562,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
               }
             }}
           >
-            <SelectTrigger className="h-9">
+            <SelectTrigger id="noddi-user-group" className="h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -766,7 +773,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                       const IconComponent = style.icon
                       return (
                         <span
-                          key={idx}
+                          key={tag}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full ${style.bg} ${style.text}`}
                         >
                           {IconComponent && <IconComponent className="w-3 h-3" />}
@@ -822,7 +829,10 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                   {/* Line Items */}
                   <div className="space-y-0.5 mb-1">
                     {data.ui_meta.order_lines.map((line: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between text-xs">
+                      <div
+                        key={`${line.name}-${line.quantity}`}
+                        className="flex items-center justify-between text-xs"
+                      >
                         <div className="truncate">
                           {line.name}
                           {line.quantity > 1 ? ` × ${line.quantity}` : ""}
@@ -1068,7 +1078,10 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
 
                         <div className="space-y-0.5 mb-1">
                           {extractLineItems(mostRecentBooking).map((line: any, idx: number) => (
-                            <div key={idx} className="flex items-center justify-between text-xs">
+                            <div
+                              key={`${line.name}-${line.quantity}`}
+                              className="flex items-center justify-between text-xs"
+                            >
                               <div className="truncate">
                                 {line.name}
                                 {line.quantity > 1 ? ` × ${line.quantity}` : ""}
@@ -1299,8 +1312,10 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
           collected.set(key, c)
         }
 
-        ;(userGroup as any)?.cars?.forEach?.(push)
-        userGroup?.tire_quotes?.forEach?.((tq: any) => push(tq?.car))
+        userGroup?.cars?.forEach?.(push)
+        userGroup?.tire_quotes?.forEach?.((tq: any) => {
+          push(tq?.car)
+        })
         const bookingSources = [
           userGroup?.priority_booking,
           userGroup?.upcoming_booking,
@@ -1428,7 +1443,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                       <div className="flex flex-wrap gap-1">
                         {tq.status_events.slice(0, 5).map((evt: any, eidx: number) => (
                           <Badge
-                            key={eidx}
+                            key={`${evt.status}-${evt.created_at}`}
                             variant="outline"
                             className={`h-4 px-1.5 text-[10px] font-normal ${
                               /PROPOSAL|SENT/.test(evt.status)
@@ -1452,7 +1467,10 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                       <span className="text-[10px] text-muted-foreground">Inventory orders:</span>
                       <div className="space-y-0.5">
                         {tq.inventory_orders.map((io: any, iidx: number) => (
-                          <div key={iidx} className="flex items-center gap-1.5 flex-wrap">
+                          <div
+                            key={`${io.order_number}-${io.status}`}
+                            className="flex items-center gap-1.5 flex-wrap"
+                          >
                             <Badge
                               variant="outline"
                               className={`h-4 px-1.5 text-[10px] font-normal ${getInventoryStatusColor(io.status)}`}

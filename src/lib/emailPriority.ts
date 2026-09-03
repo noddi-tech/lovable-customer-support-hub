@@ -58,7 +58,7 @@ export function getMessagePriority(message: unknown): EmailPriority {
   const source = (m.originalMessage ?? m) as { metadata?: unknown; email_headers?: unknown }
 
   const meta = source?.metadata as Record<string, unknown> | null | undefined
-  const stored = typeof meta?.email_priority === "string" ? (meta.email_priority as string) : null
+  const stored = typeof meta?.email_priority === "string" ? meta.email_priority : null
   if (stored === "high" || stored === "low" || stored === "normal") return stored
 
   const headers = source?.email_headers as { raw?: string } | string | null | undefined

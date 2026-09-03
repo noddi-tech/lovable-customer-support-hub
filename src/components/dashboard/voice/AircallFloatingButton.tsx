@@ -125,6 +125,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
     <Tooltip>
       <TooltipTrigger asChild>
         <button
+          type="button"
           onClick={handleClick}
           className={cn(
             "aircall-float-button",
@@ -148,6 +149,7 @@ export const AircallFloatingButton: React.FC<AircallFloatingButtonProps> = ({
           {/* Status indicator dot - only show when floating */}
           {!workspaceVisible && (
             <span
+              role="img"
               className={cn(
                 "absolute top-0 right-0",
                 "w-3 h-3 rounded-full",

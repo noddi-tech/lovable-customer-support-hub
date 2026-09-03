@@ -14,7 +14,9 @@ const globalStateListeners = new Set<(state: any) => void>()
 
 const updateGlobalState = (updater: (prev: any) => any) => {
   globalConnectionState = updater(globalConnectionState)
-  globalStateListeners.forEach((listener) => listener(globalConnectionState))
+  globalStateListeners.forEach((listener) => {
+    listener(globalConnectionState)
+  })
 }
 
 interface ConnectionState {
@@ -80,24 +82,23 @@ export const useRealtimeConnectionManager = () => {
     }
   }, [])
 
-  const calculateBackoffDelay = (attempt: number): number => {
-    const config = reconnectionConfigRef.current
-    const delay = Math.min(
-      config.baseDelay * config.backoffMultiplier ** (attempt - 1),
-      config.maxDelay,
-    )
-
-    // Add jitter to prevent thundering herd
-    const jitter = Math.random() * 0.1 * delay
-    return delay + jitter
-  }
-
   const attemptReconnection = useCallback(() => {
     if (reconnectionTimeoutRef.current) {
       clearTimeout(reconnectionTimeoutRef.current)
     }
 
     const config = reconnectionConfigRef.current
+
+    const calculateBackoffDelay = (attempt: number): number => {
+      const delay = Math.min(
+        config.baseDelay * config.backoffMultiplier ** (attempt - 1),
+        config.maxDelay,
+      )
+
+      // Add jitter to prevent thundering herd
+      const jitter = Math.random() * 0.1 * delay
+      return delay + jitter
+    }
 
     updateGlobalState((prev) => {
       const currentAttempts = prev.connectionAttempts
@@ -127,7 +128,7 @@ export const useRealtimeConnectionManager = () => {
         connectionAttempts: prev.connectionAttempts + 1,
       }
     })
-  }, [toast, calculateBackoffDelay])
+  }, [toast])
 
   const reconnectAllSubscriptions = useCallback(() => {
     console.log("🔄 Reconnecting all subscriptions...")

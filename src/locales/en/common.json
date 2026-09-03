@@ -216,7 +216,7 @@
     "customizeAppearance": "Customize the appearance and branding of your support portal",
     "organizationName": "Organization Name",
     "enterOrgName": "Enter your organization name",
-    "description": "Description",
+    "descriptionLabel": "Description",
     "orgDescription": "Brief description of your organization",
     "saving": "Saving...",
     "saveBranding": "Save Branding",

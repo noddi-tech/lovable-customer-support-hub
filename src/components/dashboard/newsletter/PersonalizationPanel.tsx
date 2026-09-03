@@ -65,9 +65,10 @@ export const PersonalizationPanel: React.FC = () => {
             {MERGE_TAGS.map((item) => {
               const Icon = item.icon
               return (
-                <div
+                <button
+                  type="button"
                   key={item.tag}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex w-full items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors appearance-none bg-transparent text-left"
                   onClick={() => handleCopyTag(item.tag)}
                 >
                   <div className="flex items-center gap-3">
@@ -80,7 +81,7 @@ export const PersonalizationPanel: React.FC = () => {
                     </div>
                   </div>
                   <Copy className="h-4 w-4 text-muted-foreground" />
-                </div>
+                </button>
               )
             })}
           </div>

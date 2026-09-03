@@ -101,7 +101,7 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("id, name, subject, body")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("type", "email") // exclude SMS templates from the email composer
         .eq("is_active", true)
         .is("soft_deleted_at", null)
@@ -316,8 +316,13 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({
               </Label>
               <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
                 {(files ?? []).map((f: any) => (
-                  <label key={f.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <label
+                    key={f.id}
+                    htmlFor={`compose-email-att-${f.id}`}
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                  >
                     <Checkbox
+                      id={`compose-email-att-${f.id}`}
                       checked={attachmentIds.includes(f.id)}
                       onCheckedChange={(c) => {
                         setAttachmentIds((prev) =>
@@ -336,8 +341,12 @@ export const ComposeRecruitmentEmailDialog: React.FC<Props> = ({
           )}
 
           <div className="space-y-2 border-t pt-3">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <label
+              htmlFor="compose-email-schedule"
+              className="flex items-center gap-2 text-sm cursor-pointer"
+            >
               <Checkbox
+                id="compose-email-schedule"
                 checked={scheduleEnabled}
                 onCheckedChange={(c) => setScheduleEnabled(!!c)}
               />

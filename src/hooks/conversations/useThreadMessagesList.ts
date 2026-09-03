@@ -84,8 +84,8 @@ export function useThreadMessagesList(
 ) {
   const q = useThreadMessages(conversationIds)
 
-  // Extract pages for metadata calculations
-  const pages = q.data?.pages ?? []
+  // Stabilize empty-pages default so useMemo deps do not change every render
+  const pages = useMemo(() => q.data?.pages ?? [], [q.data?.pages])
 
   // Memoize expensive processing to prevent re-running on every render
   const messages = useMemo(() => {

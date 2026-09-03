@@ -108,26 +108,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(
         assigneeInitial: conversation.assigned_to?.full_name?.[0]?.toUpperCase(),
         assigneeAvatarUrl: conversation.assigned_to?.avatar_url,
       }
-    }, [
-      conversation.channel,
-      conversation.snooze_until,
-      conversation.customer?.full_name,
-      conversation.customer?.email,
-      conversation.status,
-      conversation.priority,
-      conversation.subject,
-      conversation.updated_at,
-      conversation.preview_text,
-      (conversation as any).metadata,
-      (conversation as any).applicant,
-      t,
-      formatConversationTime,
-      conversation.inbox_id,
-      inboxes,
-      conversation.assigned_to?.full_name?.[0]?.toUpperCase,
-      conversation.assigned_to?.avatar_url,
-      conversation.assigned_to?.full_name,
-    ])
+    }, [conversation, t, formatConversationTime, inboxes])
 
     // Memoize event handlers to prevent unnecessary re-renders
     const handleArchive = useCallback(
@@ -146,20 +127,17 @@ export const ConversationListItem = memo<ConversationListItemProps>(
       [dispatch, conversation.id],
     )
 
-    const handleSelect = useCallback(
-      (e: React.MouseEvent) => {
-        console.log("Click handler called:", conversation.id)
+    const handleSelect = useCallback(() => {
+      console.log("Click handler called:", conversation.id)
 
-        // In bulk selection mode, clicking the card should toggle checkbox selection
-        if (showBulkCheckbox && onBulkSelect) {
-          onBulkSelect(conversation.id, !isBulkSelected)
-        } else {
-          // In normal mode, clicking opens the conversation
-          onSelect(conversation)
-        }
-      },
-      [onSelect, conversation, showBulkCheckbox, onBulkSelect, conversation.id, isBulkSelected],
-    )
+      // In bulk selection mode, clicking the card should toggle checkbox selection
+      if (showBulkCheckbox && onBulkSelect) {
+        onBulkSelect(conversation.id, !isBulkSelected)
+      } else {
+        // In normal mode, clicking opens the conversation
+        onSelect(conversation)
+      }
+    }, [onSelect, conversation, showBulkCheckbox, onBulkSelect, isBulkSelected])
 
     const handleDropdownClick = useCallback((e: React.MouseEvent) => {
       console.log("Dropdown trigger clicked")
@@ -184,7 +162,10 @@ export const ConversationListItem = memo<ConversationListItemProps>(
     )
 
     return (
+      // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
       <div
+        role="button"
+        tabIndex={0}
         className={cn(
           "bg-white border border-border rounded-lg px-3 py-2",
           isVirtualized ? "mb-0" : "mb-1",
@@ -195,6 +176,12 @@ export const ConversationListItem = memo<ConversationListItemProps>(
           !conversation.is_read && !isBulkSelected && "ring-2 ring-primary/20",
         )}
         onClick={handleSelect}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            handleSelect()
+          }
+        }}
       >
         {/* Single horizontal row with all content */}
         <div className="flex items-center gap-2.5">

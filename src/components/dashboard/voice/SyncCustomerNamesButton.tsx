@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -20,7 +20,7 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
   const { currentOrganizationId } = useOrganizationStore()
 
   // Load cached non-customers (phone numbers not found in Noddi)
-  const loadCachedNonCustomers = async () => {
+  const loadCachedNonCustomers = useCallback(async () => {
     const organizationId = currentOrganizationId || calls[0]?.organization_id
     if (!organizationId) return
 
@@ -34,7 +34,7 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
       setCachedNonCustomers(new Set(nonCustomerCache.map((c) => c.phone).filter(Boolean)))
       console.log(`📋 Loaded ${nonCustomerCache.length} cached non-customers`)
     }
-  }
+  }, [currentOrganizationId, calls])
 
   useEffect(() => {
     loadCachedNonCustomers()

@@ -104,7 +104,9 @@ const MessageBlockRenderer: React.FC<MessageBlockRendererProps> = ({
         if (block.type === "text") {
           return (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: block list lacks stable ids
               key={idx}
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via DOMPurify
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(formatAiResponse(block.content)),
               }}
@@ -129,6 +131,7 @@ const MessageBlockRenderer: React.FC<MessageBlockRendererProps> = ({
 
         return (
           <def.component
+            // biome-ignore lint/suspicious/noArrayIndexKey: list lacks stable ids
             key={idx}
             primaryColor={primaryColor}
             messageId={messageId}
@@ -344,14 +347,11 @@ export const AiChat: React.FC<AiChatProps> = ({
     (phone: string, blockKey: string) => {
       setVerifiedPhone(phone)
       setUsedBlocks((prev) => new Set(prev).add(blockKey))
-      // Include the user's last visible message as intent context
-      const lastVisibleUserMsg = messages.filter((m) => m.role === "user" && !m.hidden).pop()
-      const verifyPayload = lastVisibleUserMsg ? `__VERIFIED__` : "__VERIFIED__"
       setTimeout(() => {
-        sendMessage(verifyPayload, phone, { hidden: true })
+        sendMessage("__VERIFIED__", phone, { hidden: true })
       }, 500)
     },
-    [sendMessage, messages.filter],
+    [sendMessage],
   )
 
   const buildTranscript = (): string => {
@@ -380,7 +380,7 @@ export const AiChat: React.FC<AiChatProps> = ({
   return (
     <div className="noddi-widget-chat">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <button className="noddi-widget-back" onClick={onBack}>
+        <button type="button" className="noddi-widget-back" onClick={onBack}>
           <svg
             width="16"
             height="16"
@@ -397,6 +397,7 @@ export const AiChat: React.FC<AiChatProps> = ({
         </button>
         {messages.length > 1 && (
           <button
+            type="button"
             className="noddi-ai-new-conversation-btn"
             onClick={handleNewConversation}
             title={t.startNewConversation}
@@ -476,6 +477,7 @@ export const AiChat: React.FC<AiChatProps> = ({
             <span className="noddi-chat-message-sender">{t.aiAssistant}</span>
             <div
               className="noddi-chat-message-bubble"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via DOMPurify
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(formatAiResponse(streamingContent)),
               }}
@@ -500,6 +502,7 @@ export const AiChat: React.FC<AiChatProps> = ({
         <div className="noddi-ai-escalation">
           {agentsOnline && enableChat ? (
             <button
+              type="button"
               className="noddi-ai-escalation-btn"
               onClick={() => onTalkToHuman(buildTranscript())}
             >
@@ -519,6 +522,7 @@ export const AiChat: React.FC<AiChatProps> = ({
             </button>
           ) : enableContactForm ? (
             <button
+              type="button"
               className="noddi-ai-escalation-btn"
               onClick={() => onEmailConversation(buildTranscript())}
             >
@@ -552,6 +556,7 @@ export const AiChat: React.FC<AiChatProps> = ({
           disabled={isLoading}
         />
         <button
+          type="button"
           className="noddi-chat-send"
           onClick={handleSend}
           disabled={!inputValue.trim() || isLoading}

@@ -17,7 +17,7 @@ export function DnsRecordsDisplay({ dnsRecords, sendgridResult }: DnsRecordsDisp
           <p className="text-sm font-medium">📌 Add this MX record to your DNS:</p>
           {dnsRecords.mx.map((rec: any, i: number) => (
             <div
-              key={i}
+              key={`${rec.host}-${rec.value}-${rec.priority}`}
               className="rounded-md border border-border/50 p-3 text-sm bg-background/50"
             >
               <div className="flex gap-2">

@@ -110,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Retry wrapper for transient DB errors (502, network hiccups)
     async function fetchWithRetry<T>(
-      fn: () => Promise<{ data: T; error: any }> | { then: Function },
+      fn: () => PromiseLike<{ data: T; error: any }>,
       retries = 2,
       delayMs = 1000,
     ): Promise<{ data: T; error: any }> {

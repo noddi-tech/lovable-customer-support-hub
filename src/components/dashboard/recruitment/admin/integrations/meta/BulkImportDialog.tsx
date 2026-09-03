@@ -200,9 +200,11 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                   {mappings.map((m) => (
                     <label
                       key={m.id}
+                      htmlFor={`bulk-import-form-${m.id}`}
                       className="flex items-center gap-2 text-sm py-1 px-1 rounded hover:bg-muted/50 cursor-pointer"
                     >
                       <Checkbox
+                        id={`bulk-import-form-${m.id}`}
                         checked={selectedFormIds.includes(m.id)}
                         onCheckedChange={(v) =>
                           setSelectedFormIds((prev) =>
@@ -340,8 +342,12 @@ export function BulkImportDialog({ open, onOpenChange, integrationId }: Props) {
                       Leads fra disse skjemaene blir importert med kun navn/e-post/telefon — øvrige
                       svar lagres som metadata og kan ikke filtreres på.
                     </p>
-                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <label
+                      htmlFor="bulk-import-confirm-unmapped"
+                      className="flex items-center gap-2 text-xs cursor-pointer"
+                    >
                       <Checkbox
+                        id="bulk-import-confirm-unmapped"
                         checked={confirmedUnmapped}
                         onCheckedChange={(v) => setConfirmedUnmapped(!!v)}
                       />

@@ -45,6 +45,7 @@ export function CustomerHistoryCard({
           <>
             {conversations.slice(0, 5).map((c) => (
               <button
+                type="button"
                 key={c.id}
                 onClick={() => navigate(`/c/${c.id}`)}
                 className="w-full rounded-md border p-2 text-left transition-colors hover:bg-accent/50"

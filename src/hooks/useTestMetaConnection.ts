@@ -14,7 +14,7 @@ export function useTestMetaConnection(integrationId: string | null | undefined) 
         body: { integration_id: integrationId },
       })
       if (error) throw new Error(error.message ?? "Helsesjekk feilet")
-      if ((data as any)?.error) throw new Error((data as any).error)
+      if (data?.error) throw new Error(data.error)
       return data as MetaHealthCheckResult
     },
     onSuccess: () => {
@@ -34,8 +34,8 @@ export function useTestMetaToken() {
         body: input,
       })
       if (error) throw new Error(error.message ?? "Token-validering feilet")
-      if ((data as any)?.error && typeof (data as any).valid !== "boolean") {
-        throw new Error((data as any).error)
+      if (data?.error && typeof data.valid !== "boolean") {
+        throw new Error(data.error)
       }
       return data as MetaTokenTestResult
     },

@@ -122,7 +122,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       const { count, error } = await supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .eq("is_read", false)
         .or("type.ilike.%mention%,type.ilike.%assign%,type.ilike.%call%,type.ilike.%voicemail%")
       if (error) throw error

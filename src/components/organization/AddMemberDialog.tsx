@@ -94,6 +94,7 @@ export function AddMemberDialog({
               </SelectTrigger>
               <SelectContent>
                 {availableUsers.map((user) => (
+                  // eslint-disable-next-line no-restricted-syntax -- memberships/auth FK: user_id is correct
                   <SelectItem key={user.user_id} value={user.user_id}>
                     {user.full_name || user.email}
                   </SelectItem>

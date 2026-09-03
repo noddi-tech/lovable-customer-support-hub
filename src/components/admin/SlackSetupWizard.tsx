@@ -293,7 +293,7 @@ export function SlackSetupWizard({ onComplete }: SlackSetupWizardProps) {
                     type={showToken ? "text" : "password"}
                     value={botToken}
                     onChange={(e) => setBotToken(e.target.value)}
-                    placeholder="xoxb-your-token-here"
+                    placeholder="Paste Bot User OAuth Token"
                     className="pr-10 font-mono"
                   />
                   <Button

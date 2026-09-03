@@ -92,9 +92,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           <CardContent className="space-y-4">
             {/* Status */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Status</label>
+              <label
+                htmlFor="conversation-sidebar-status"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Status
+              </label>
               <Select value={status} onValueChange={onStatusChange}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger id="conversation-sidebar-status" className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -132,9 +137,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
             {/* Priority */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Priority</label>
+              <label
+                htmlFor="conversation-sidebar-priority"
+                className="text-xs font-medium text-muted-foreground"
+              >
+                Priority
+              </label>
               <Select value={priority} onValueChange={onPriorityChange}>
-                <SelectTrigger className="h-8">
+                <SelectTrigger id="conversation-sidebar-priority" className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -172,7 +182,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
             {/* Assigned To */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">Assigned To</label>
+              <div className="text-xs font-medium text-muted-foreground">Assigned To</div>
               {assignedTo ? (
                 <div className="flex items-center gap-2 p-2 rounded-md border border-border">
                   <Avatar className="h-6 w-6">
@@ -197,7 +207,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             {/* Tags */}
             {tags.length > 0 && (
               <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Tags</label>
+                <div className="text-xs font-medium text-muted-foreground">Tags</div>
                 <div className="flex flex-wrap gap-1">
                   {tags.map((tag) => (
                     <Badge

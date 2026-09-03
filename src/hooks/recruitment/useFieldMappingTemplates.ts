@@ -26,7 +26,7 @@ export function useFieldMappingTemplates(scope: "all" | "system" | "org" = "all"
         .select("*")
         .order("name", { ascending: true })
       if (scope === "system") q = q.is("organization_id", null)
-      if (scope === "org") q = q.eq("organization_id", currentOrganizationId!)
+      if (scope === "org") q = q.eq("organization_id", currentOrganizationId)
       const { data, error } = await q
       if (error) throw error
       return (data ?? []) as unknown as FieldMappingTemplate[]
@@ -42,7 +42,7 @@ export function useFieldMappingTemplate(id: string | null) {
       const { data, error } = await supabase
         .from("recruitment_field_mapping_templates")
         .select("*")
-        .eq("id", id!)
+        .eq("id", id)
         .maybeSingle()
       if (error) throw error
       return data as unknown as FieldMappingTemplate | null
@@ -58,7 +58,7 @@ export function useFieldMappingTemplateItems(templateId: string | null) {
       const { data, error } = await supabase
         .from("recruitment_field_mapping_template_items")
         .select("*")
-        .eq("template_id", templateId!)
+        .eq("template_id", templateId)
         .order("display_order", { ascending: true })
       if (error) throw error
       return (data ?? []) as unknown as FieldMappingTemplateItem[]

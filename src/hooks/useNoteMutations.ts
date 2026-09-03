@@ -142,8 +142,7 @@ export const useNoteMutations = () => {
 export const extractMentionNames = (content: string): string[] => {
   const pattern = /@\[([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\]/g
   const names: string[] = []
-  let match
-  while ((match = pattern.exec(content)) !== null) {
+  for (let match = pattern.exec(content); match !== null; match = pattern.exec(content)) {
     names.push(match[1].trim())
   }
   return names

@@ -41,8 +41,11 @@ export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = (
   }
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
     <div
       ref={setNodeRef}
+      role="button"
+      tabIndex={0}
       style={style}
       className={cn(
         "group relative border-2 border-transparent rounded-lg transition-all duration-200 hover:border-primary/20",
@@ -50,6 +53,12 @@ export const SortableNewsletterBlock: React.FC<SortableNewsletterBlockProps> = (
         "mb-2",
       )}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
     >
       {/* Block Controls */}
       <div

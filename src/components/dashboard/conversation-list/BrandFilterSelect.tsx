@@ -39,10 +39,12 @@ export const BrandFilterSelect: React.FC<BrandFilterSelectProps> = ({
   // Show the full Noddi brand catalog, plus any brand present on loaded rows.
   const mergedOptions = React.useMemo(() => {
     const map = new Map<string, BrandFilterOption>()
-    brands.forEach((b) =>
-      map.set(b.name.toLowerCase(), { key: b.name.toLowerCase(), label: b.name }),
-    )
-    options.forEach((o) => map.set(o.key, o))
+    brands.forEach((b) => {
+      map.set(b.name.toLowerCase(), { key: b.name.toLowerCase(), label: b.name })
+    })
+    options.forEach((o) => {
+      map.set(o.key, o)
+    })
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label))
   }, [brands, options])
 

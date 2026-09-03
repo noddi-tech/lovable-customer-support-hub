@@ -45,9 +45,9 @@ export function RuleEditor({ state, onClose }: Props) {
       description: r.description ?? "",
       is_active: r.is_active,
       trigger_type: (r.trigger_type as TriggerType) ?? "stage_entered",
-      trigger_config: (r.trigger_config as Record<string, unknown>) ?? {},
+      trigger_config: r.trigger_config ?? {},
       action_type: (r.action_type as ActionType) ?? "send_email",
-      action_config: (r.action_config as Record<string, unknown>) ?? {},
+      action_config: r.action_config ?? {},
     }
   }, [state])
 

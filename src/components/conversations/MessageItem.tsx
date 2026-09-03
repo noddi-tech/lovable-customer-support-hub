@@ -48,8 +48,8 @@ export const MessageItem = ({ message, conversation, onEdit, onDelete }: Message
 
   const hasQuoted = !!message.quotedBlocks && message.quotedBlocks.length > 0
   const quotedHtml = hasQuoted
-    ? message
-        .quotedBlocks!.map((b) => b.raw || "")
+    ? message.quotedBlocks
+        .map((b) => b.raw || "")
         .filter(Boolean)
         .join("\n<hr/>\n")
     : ""

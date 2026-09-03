@@ -183,6 +183,7 @@ const ConversationListContent = ({
           ))}
           {activeFilters.length > 1 && (
             <button
+              type="button"
               className="text-[10px] text-muted-foreground hover:text-foreground ml-1"
               onClick={() => {
                 dispatch({ type: "SET_STATUS_FILTER", payload: "all" })
@@ -196,7 +197,7 @@ const ConversationListContent = ({
       )}
 
       {/* Conversation List - Table layout */}
-      <div className="pane flex-1 flex flex-col overflow-hidden min-h-0 h-full bg-card">
+      <div className="pane flex-1 flex flex-col overflow-hidden min-h-0 min-w-0 h-full bg-card">
         {shouldUseVirtualization ? (
           <VirtualizedConversationTable
             onSelectConversation={onSelectConversation}

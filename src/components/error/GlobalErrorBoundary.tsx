@@ -140,6 +140,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
           <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
           <p className="text-muted-foreground mb-4">Please refresh the page to continue.</p>
           <button
+            type="button"
             onClick={() => {
               console.log("🔄 [GlobalErrorBoundary] Attempting recovery without reload")
               this.setState({ hasError: false, error: undefined })

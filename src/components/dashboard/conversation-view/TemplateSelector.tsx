@@ -56,6 +56,7 @@ export const TemplateSelector = ({ onSelectTemplate, isMobile }: TemplateSelecto
               <div className="space-y-2">
                 {templates.map((template) => (
                   <button
+                    type="button"
                     key={template.id}
                     onClick={() => onSelectTemplate(template.content, template.id)}
                     className="w-full text-left p-3 rounded-md border border-border hover:bg-accent hover:border-accent-foreground/20 transition-colors group"

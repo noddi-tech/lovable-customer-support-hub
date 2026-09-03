@@ -68,11 +68,15 @@ export const AccountInfoCard: React.FC = () => {
   const { toast } = useToast()
   const [busyProvider, setBusyProvider] = useState<string | null>(null)
 
-  const identities = (user?.identities || []) as Array<{
-    id: string
-    provider: string
-    identity_data?: Record<string, any>
-  }>
+  const identities = useMemo(
+    () =>
+      (user?.identities || []) as Array<{
+        id: string
+        provider: string
+        identity_data?: Record<string, any>
+      }>,
+    [user?.identities],
+  )
   const connectedProviders = useMemo(() => new Set(identities.map((i) => i.provider)), [identities])
   const currentProvider = (user?.app_metadata as any)?.provider as string | undefined
 

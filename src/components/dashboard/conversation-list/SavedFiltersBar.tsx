@@ -53,6 +53,7 @@ export function SavedFiltersBar({
           >
             {preset.name}
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 onPresetDelete(preset.id)

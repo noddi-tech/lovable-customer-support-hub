@@ -233,20 +233,25 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Name *</label>
+              <label htmlFor="category-create-name" className="text-sm font-medium mb-2 block">
+                Name *
+              </label>
               <Input
+                id="category-create-name"
                 placeholder="e.g., Technical Support"
                 value={newCategory.name}
                 onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Color</label>
+              <label htmlFor="category-create-color" className="text-sm font-medium mb-2 block">
+                Color
+              </label>
               <Select
                 value={newCategory.color}
                 onValueChange={(value) => setNewCategory({ ...newCategory, color: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="category-create-color">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-4 h-4 rounded-full"
@@ -271,8 +276,14 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Description</label>
+              <label
+                htmlFor="category-create-description"
+                className="text-sm font-medium mb-2 block"
+              >
+                Description
+              </label>
               <Textarea
+                id="category-create-description"
                 placeholder="Brief description of this category..."
                 value={newCategory.description}
                 onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
@@ -305,21 +316,26 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Name *</label>
+                <label htmlFor="category-edit-name" className="text-sm font-medium mb-2 block">
+                  Name *
+                </label>
                 <Input
+                  id="category-edit-name"
                   value={editingCategory.name}
                   onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Color</label>
+                <label htmlFor="category-edit-color" className="text-sm font-medium mb-2 block">
+                  Color
+                </label>
                 <Select
                   value={editingCategory.color}
                   onValueChange={(value) =>
                     setEditingCategory({ ...editingCategory, color: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category-edit-color">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full"
@@ -344,8 +360,14 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Description</label>
+                <label
+                  htmlFor="category-edit-description"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Description
+                </label>
                 <Textarea
+                  id="category-edit-description"
                   value={editingCategory.description || ""}
                   onChange={(e) =>
                     setEditingCategory({ ...editingCategory, description: e.target.value })

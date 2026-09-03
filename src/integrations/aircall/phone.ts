@@ -202,12 +202,12 @@ class AircallPhoneManager {
     // Look for iframe in the inner workspace div where SDK injects it
     const workspace = document.querySelector("#aircall-workspace")
     if (workspace) {
-      const iframe = workspace.querySelector("iframe") as HTMLIFrameElement | null
+      const iframe = workspace.querySelector("iframe")
       if (iframe) return iframe
     }
     // Fallback: search in outer container as well
     const container = document.querySelector("#aircall-workspace-container")
-    return container?.querySelector("iframe") as HTMLIFrameElement | null
+    return container?.querySelector("iframe")
   }
 
   /**
@@ -688,7 +688,7 @@ class AircallPhoneManager {
       this.eventHandlers.set(event, new Set())
     }
 
-    this.eventHandlers.get(event)!.add(handler)
+    this.eventHandlers.get(event).add(handler)
     console.log(`[AircallWorkspace] Registered handler for ${event}`)
 
     // Return cleanup function
@@ -796,7 +796,7 @@ class AircallPhoneManager {
 
     return new Promise((resolve, reject) => {
       console.log("[AircallWorkspace] 📱 Dialing:", phoneNumber)
-      this.workspace!.send("dial_number", { phone_number: phoneNumber }, (success, response) => {
+      this.workspace.send("dial_number", { phone_number: phoneNumber }, (success, response) => {
         if (success) {
           console.log("[AircallWorkspace] ✅ Dial successful")
           resolve()
@@ -876,9 +876,7 @@ class AircallPhoneManager {
       const startTime = Date.now()
 
       const checkReady = () => {
-        const iframe = document.querySelector(
-          "#aircall-workspace-container iframe",
-        ) as HTMLIFrameElement
+        const iframe = document.querySelector("#aircall-workspace-container iframe")
 
         if (iframe?.contentWindow) {
           console.log("[AircallWorkspace] ✅ Workspace iframe ready")
@@ -989,8 +987,8 @@ class AircallPhoneManager {
     }
 
     // Find the Aircall workspace iframe
-    const container = document.querySelector("#aircall-workspace-container") as HTMLElement
-    const iframe = container?.querySelector("iframe") as HTMLIFrameElement
+    const container = document.querySelector("#aircall-workspace-container")
+    const iframe = container?.querySelector("iframe")
 
     if (!iframe) {
       console.warn("[AircallWorkspace] ⚠️ Cannot reload - iframe not found")
@@ -1043,7 +1041,7 @@ class AircallPhoneManager {
         const handlers = this.eventHandlers.get(event)
         if (handlers) {
           handlers.forEach((handler) => {
-            this.workspace!.removeListener(event, handler)
+            this.workspace.removeListener(event, handler)
           })
         }
       })

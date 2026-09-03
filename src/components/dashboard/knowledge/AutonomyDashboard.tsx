@@ -372,7 +372,7 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
                   />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {histogramData.map((entry, idx) => (
-                      <Cell key={idx} fill={getBucketColor(entry.bucket)} />
+                      <Cell key={entry.bucket} fill={getBucketColor(entry.bucket)} />
                     ))}
                   </Bar>
                 </BarChart>

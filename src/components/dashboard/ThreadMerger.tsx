@@ -89,7 +89,9 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
           if (threadInfo.inReplyTo) {
             references.add(threadInfo.inReplyTo)
           }
-          threadInfo.references.forEach((ref) => references.add(ref))
+          threadInfo.references.forEach((ref) => {
+            references.add(ref)
+          })
         })
 
         // Use external_id as fallback Message-ID if it looks like one
@@ -138,7 +140,9 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
           if (!emailThreadGroups.has(threadRoot)) {
             emailThreadGroups.set(threadRoot, new Set())
           }
-          relatedConvs.forEach((id) => emailThreadGroups.get(threadRoot)!.add(id))
+          relatedConvs.forEach((id) => {
+            emailThreadGroups.get(threadRoot).add(id)
+          })
         }
       })
 
@@ -178,7 +182,7 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
             })
           }
 
-          const group = threadGroups.get(threadId)!
+          const group = threadGroups.get(threadId)
           group.conversationIds.push(conv.id)
           group.messageCount += conv.messages?.length || 0
         }
@@ -202,7 +206,7 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
           if (!subjectGroups.has(key)) {
             subjectGroups.set(key, [])
           }
-          subjectGroups.get(key)!.push(conv)
+          subjectGroups.get(key).push(conv)
         }
       })
 
@@ -447,14 +451,23 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
         {/* Thread List */}
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {splitThreads.map((thread) => (
+            // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
             <div
               key={thread.threadId}
+              role="button"
+              tabIndex={0}
               className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                 selectedThreads.has(thread.threadId)
                   ? "border-primary bg-primary/5"
                   : "border-border hover:bg-accent"
               }`}
               onClick={() => handleToggleThread(thread.threadId)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  handleToggleThread(thread.threadId)
+                }
+              }}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">

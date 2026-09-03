@@ -76,7 +76,7 @@ export function useAircallContactSync(enabled: boolean) {
   return {
     preview: preview.data,
     isLoadingPreview: preview.isLoading,
-    previewError: preview.error as Error | null,
+    previewError: preview.error,
     refetchPreview: preview.refetch,
     syncNow: syncMutation.mutate,
     lastResult: syncMutation.data,

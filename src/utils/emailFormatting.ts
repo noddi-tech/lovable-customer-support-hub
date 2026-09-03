@@ -40,7 +40,9 @@ function wrapHtmlSignature(html: string): string {
   const sigDiv = document.createElement("div")
   sigDiv.className = "email-signature"
   const elemsToWrap = children.slice(signatureStartIndex)
-  elemsToWrap.forEach((el) => sigDiv.appendChild(el))
+  elemsToWrap.forEach((el) => {
+    sigDiv.appendChild(el)
+  })
   temp.appendChild(sigDiv)
   return temp.innerHTML
 }
@@ -501,7 +503,6 @@ export const sanitizeEmailHTML = (
         )
         // CID images without data: hide instead of showing placeholder
         return `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none" data-cid-miss="true"`
-        return `src="${createPlaceholder("data-missing")}" data-attachment="true" class="email-attachment-image${inlineClass}"`
       }
 
       // Use storageKey for Supabase Storage - must use actual Supabase URL, not app origin
@@ -613,7 +614,7 @@ export const sanitizeEmailHTML = (
       }
       const proxied = buildEmailImageProxyUrl(src)
       return `${imgTag
-        .replace(srcMatch![0], ` src="${proxied}"`)
+        .replace(srcMatch[0], ` src="${proxied}"`)
         // srcset would bypass the proxy, so drop it.
         .replace(/\ssrcset=["'][^"']*["']/gi, "")}`
     })
@@ -684,7 +685,9 @@ export const extractTextFromHTML = (htmlContent: string): string => {
 
   // Remove script and style elements
   const scripts = temp.querySelectorAll("script, style")
-  scripts.forEach((el) => el.remove())
+  scripts.forEach((el) => {
+    el.remove()
+  })
 
   // Get text content with some formatting preservation
   let text = temp.textContent || temp.innerText || ""
@@ -701,7 +704,7 @@ export const extractTextFromHTML = (htmlContent: string): string => {
     // Remove quoted sections (lines starting with >)
     .replace(/^>.*$/gm, "")
     // Remove email signatures (text after "Best regards", "Sincerely", etc.)
-    .replace(/(\n|^)(Best regards|Sincerely|Thank you|Thanks|Cheers|BR|--)[^]*$/i, "")
+    .replace(/(\n|^)(Best regards|Sincerely|Thank you|Thanks|Cheers|BR|--)[\s\S]*$/i, "")
     .trim()
 
   return text
@@ -908,7 +911,11 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
       "#OLKSrcBody",
       ".reply-border",
     ]
-    selectors.forEach((sel) => container.querySelectorAll(sel).forEach((el) => el.remove()))
+    selectors.forEach((sel) => {
+      container.querySelectorAll(sel).forEach((el) => {
+        el.remove()
+      })
+    })
 
     // Remove elements that contain typical quote headers like "On ... wrote:" or "Original Message"
     const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+)/i
@@ -922,7 +929,9 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
         if (parent) toRemove.push(parent)
       }
     }
-    toRemove.forEach((el) => el.remove())
+    toRemove.forEach((el) => {
+      el.remove()
+    })
 
     return container.innerHTML
   } catch {

@@ -41,13 +41,17 @@ const StageFieldsSection: React.FC<Props> = ({
 
   const fieldsByid = useMemo(() => {
     const m = new Map<string, CustomFieldWithType>()
-    ;(fields ?? []).forEach((f) => m.set(f.id, f))
+    ;(fields ?? []).forEach((f) => {
+      m.set(f.id, f)
+    })
     return m
   }, [fields])
 
   const valuesByFieldId = useMemo(() => {
     const m = new Map<string, any>()
-    ;(values ?? []).forEach((v) => m.set(v.field_id, v))
+    ;(values ?? []).forEach((v) => {
+      m.set(v.field_id, v)
+    })
     return m
   }, [values])
 
@@ -186,7 +190,7 @@ const StageFieldsSection: React.FC<Props> = ({
                         {isEmpty ? (
                           <span className="italic text-xs">— ikke fylt ut —</span>
                         ) : (
-                          formatFieldValue(v as any)
+                          formatFieldValue(v)
                         )}
                       </div>
                     )}

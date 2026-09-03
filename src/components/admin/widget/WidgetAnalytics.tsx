@@ -186,11 +186,8 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
                     outerRadius={70}
                     label={({ status, count }) => `${status}: ${count}`}
                   >
-                    {analytics.chatsByStatus.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={CHART_COLORS[index % CHART_COLORS.length]}
-                      />
+                    {analytics.chatsByStatus.map((entry, index) => (
+                      <Cell key={entry.status} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -209,7 +206,7 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
             <CardContent>
               <div className="space-y-3">
                 {analytics.topPageUrls.map((page, index) => (
-                  <div key={index} className="flex items-center justify-between">
+                  <div key={page.url} className="flex items-center justify-between">
                     <span className="text-sm font-mono truncate max-w-[200px]" title={page.url}>
                       {page.url}
                     </span>

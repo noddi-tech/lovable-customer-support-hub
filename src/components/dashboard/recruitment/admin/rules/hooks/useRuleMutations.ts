@@ -19,7 +19,7 @@ export function useRuleMutations() {
       const { data, error } = await supabase
         .from("recruitment_automation_rules")
         .insert({
-          organization_id: orgId!,
+          organization_id: orgId,
           name: values.name,
           description: values.description || null,
           trigger_type: values.trigger_type,
@@ -98,7 +98,7 @@ export function useRuleMutations() {
       const { data, error } = await supabase
         .from("recruitment_automation_rules")
         .insert({
-          organization_id: orgId!,
+          organization_id: orgId,
           name: `${rule.name} (kopi)`,
           description: rule.description ?? null,
           trigger_type: rule.trigger_type,
@@ -137,7 +137,7 @@ export function useRuleMutations() {
       qc.setQueryData<AutomationRule[]>([KEY, orgId], (old) => {
         if (!old) return old
         return [...old]
-          .map((r) => (orderMap.has(r.id) ? { ...r, execution_order: orderMap.get(r.id)! } : r))
+          .map((r) => (orderMap.has(r.id) ? { ...r, execution_order: orderMap.get(r.id) } : r))
           .sort((a, b) => a.execution_order - b.execution_order)
       })
       return { prev }

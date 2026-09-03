@@ -38,7 +38,7 @@ export function useStageFieldRequirements(
       let q = supabase
         .from("pipeline_stage_field_requirements" as any)
         .select("*")
-        .eq("pipeline_id", pipelineId!)
+        .eq("pipeline_id", pipelineId)
       if (positionId === undefined || positionId === null) {
         q = q.is("position_id", null)
       } else {

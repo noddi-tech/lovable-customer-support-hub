@@ -24,7 +24,7 @@ export function useExecutions(options: UseExecutionsOptions) {
       const baseQuery = supabase
         .from("recruitment_automation_executions")
         .select("*", { count: "exact" })
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .range(options.offset, options.offset + options.limit - 1)
 

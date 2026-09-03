@@ -1,6 +1,6 @@
 import { Loader2, RefreshCw, Rocket } from "lucide-react"
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,7 +26,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
 
   const appCommit = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown"
 
-  const fetchLiveBuild = async () => {
+  const fetchLiveBuild = useCallback(async () => {
     try {
       const res = await fetch(
         `${SUPABASE_URL}/storage/v1/object/public/widget/widget-build.json?t=${Date.now()}`,
@@ -36,7 +36,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
     } catch {
       // manifest not published yet
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchLiveBuild()

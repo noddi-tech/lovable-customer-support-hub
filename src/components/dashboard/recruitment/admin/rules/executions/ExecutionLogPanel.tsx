@@ -19,7 +19,7 @@ export function ExecutionLogPanel() {
   })
   const { acknowledgeExecution } = useExecutionMutations()
 
-  const executions = data?.data ?? []
+  const executions = useMemo(() => data?.data ?? [], [data?.data])
   const totalCount = data?.totalCount ?? 0
 
   const selectedExecutionFromList = useMemo(

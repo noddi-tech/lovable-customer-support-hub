@@ -233,11 +233,15 @@ export const useMemoryLeakPrevention = (
   // Cleanup all resources
   const cleanup = useCallback(() => {
     // Clear timeouts
-    timeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+    timeoutsRef.current.forEach((timeout) => {
+      clearTimeout(timeout)
+    })
     timeoutsRef.current.clear()
 
     // Clear intervals
-    intervalsRef.current.forEach((interval) => clearInterval(interval))
+    intervalsRef.current.forEach((interval) => {
+      clearInterval(interval)
+    })
     intervalsRef.current.clear()
 
     // Remove event listeners

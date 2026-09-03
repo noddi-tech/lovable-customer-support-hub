@@ -41,7 +41,7 @@ export function InboxMetricsDialog({
       days={days}
       onDaysChange={setDays}
       isLoading={isLoading}
-      error={(error as Error) ?? null}
+      error={error ?? null}
     >
       {data && (
         <div className="space-y-5">

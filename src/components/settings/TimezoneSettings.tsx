@@ -214,13 +214,15 @@ export function TimezoneSettings() {
 
         {/* Timezone Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t("settings.timezone.label")}</label>
+          <label htmlFor="settings-timezone" className="text-sm font-medium">
+            {t("settings.timezone.label")}
+          </label>
           <Select
             value={currentTimezone}
             onValueChange={handleTimezoneChange}
             disabled={isUpdating}
           >
-            <SelectTrigger>
+            <SelectTrigger id="settings-timezone">
               <SelectValue placeholder={t("settings.timezone.placeholder")} />
             </SelectTrigger>
             <SelectContent className="max-h-80">
@@ -248,13 +250,15 @@ export function TimezoneSettings() {
 
         {/* Time Format Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t("settings.timezone.timeFormat")}</label>
+          <label htmlFor="settings-time-format" className="text-sm font-medium">
+            {t("settings.timezone.timeFormat")}
+          </label>
           <Select
             value={currentTimeFormat}
             onValueChange={handleTimeFormatChange}
             disabled={isUpdating}
           >
-            <SelectTrigger>
+            <SelectTrigger id="settings-time-format">
               <SelectValue placeholder="Select time format" />
             </SelectTrigger>
             <SelectContent>

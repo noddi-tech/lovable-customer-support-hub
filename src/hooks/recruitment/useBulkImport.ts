@@ -38,7 +38,7 @@ export function useBulkImportStart() {
         body: input,
       })
       if (error) throw new Error(error.message ?? "Klarte ikke å starte import")
-      if ((data as any)?.error && !(data as any).bulk_import_id) {
+      if (data?.error && !data.bulk_import_id) {
         return data as BulkImportStartResult
       }
       return data as BulkImportStartResult
@@ -74,7 +74,7 @@ export function useBulkImportStatus(bulkImportId: string | null, enabled = true)
     queryKey: ["recruitment-bulk-import-status", bulkImportId],
     enabled: !!bulkImportId && enabled,
     refetchInterval: (query) => {
-      const data = query.state.data as BulkImportStatus | undefined
+      const data = query.state.data
       if (!data) return 2000
       const status = data.import.status
       return status === "running" || status === "pending" ? 2000 : false
@@ -99,7 +99,7 @@ export function useBulkImportsList() {
       const { data, error } = await supabase
         .from("recruitment_bulk_imports")
         .select("*")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .order("created_at", { ascending: false })
         .limit(20)
       if (error) throw error

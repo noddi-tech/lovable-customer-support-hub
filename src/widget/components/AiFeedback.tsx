@@ -43,6 +43,7 @@ export const AiFeedback: React.FC<AiFeedbackProps> = ({
   return (
     <div className="noddi-ai-feedback">
       <button
+        type="button"
         className={`noddi-ai-feedback-btn ${rating === "positive" ? "active" : ""}`}
         onClick={() => handleFeedback("positive")}
         disabled={submitted}
@@ -63,6 +64,7 @@ export const AiFeedback: React.FC<AiFeedbackProps> = ({
         </svg>
       </button>
       <button
+        type="button"
         className={`noddi-ai-feedback-btn ${rating === "negative" ? "active" : ""}`}
         onClick={() => handleFeedback("negative")}
         disabled={submitted}

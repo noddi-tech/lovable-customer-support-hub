@@ -30,7 +30,7 @@ export function useFocusManagement() {
   const trapFocus = (container: HTMLElement) => {
     const focusableElements = container.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    ) as NodeListOf<HTMLElement>
+    )
 
     if (focusableElements.length === 0) return
 

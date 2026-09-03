@@ -32,6 +32,9 @@ jobs:
     - name: Biome lint (error-level)
       run: npx biome check --diagnostic-level=error .
 
+    - name: ESLint
+      run: npx eslint .
+
     - name: Run tabs/buttons overflow linting
       run: npx tsx scripts/lint-tabs-overflow.ts
       

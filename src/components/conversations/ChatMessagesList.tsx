@@ -108,7 +108,7 @@ export const ChatMessagesList = ({
   let previousLocale: string | null = null
   for (const message of sortedMessages) {
     if (message.authorType !== "customer" || message.isInternalNote) continue
-    const locale = normalizeLocale((message.originalMessage as any)?.metadata?.locale)
+    const locale = normalizeLocale(message.originalMessage?.metadata?.locale)
     if (!locale) continue
     if (locale !== previousLocale) {
       languageMarkers.set(message.id, { from: previousLocale, to: locale })
@@ -176,7 +176,7 @@ export const ChatMessagesList = ({
           if (isImage) {
             return (
               <a
-                key={index}
+                key={attachment.url}
                 href={attachment.url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -193,7 +193,7 @@ export const ChatMessagesList = ({
 
           return (
             <a
-              key={index}
+              key={attachment.url}
               href={attachment.url}
               target="_blank"
               rel="noopener noreferrer"

@@ -84,16 +84,15 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         )}
       </Button>
       {!isCollapsed && (
-        <div
+        <section
           id={id}
           className="email-render__collapsible-content"
-          role="region"
           aria-labelledby={`${id}-toggle`}
         >
           <Suspense fallback={<div className="text-muted-foreground text-xs">Loading...</div>}>
             {children}
           </Suspense>
-        </div>
+        </section>
       )}
     </div>
   )
@@ -536,6 +535,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
         <div
           ref={htmlContentRef}
           className={`email-render__html-content${isRichDesign ? " email-render--rich" : ""} prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t`}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted email-render path; HTML sanitized via sanitizeEmailHTML
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
       )
@@ -558,6 +558,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       return (
         <div
           className="email-render__plain-content prose prose-sm dark:prose-invert max-w-none overflow-x-auto [&_table]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_.email-signature]:text-xs [&_.email-signature]:text-muted-foreground [&_.email-signature]:mt-4 [&_.email-signature]:pt-3 [&_.email-signature]:border-t"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted email-render path; plain text converted via formatPlainTextEmail
           dangerouslySetInnerHTML={{ __html: formattedHtml }}
         />
       )
@@ -738,9 +739,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       )}
 
       {/* Email Content */}
-      <div className="email-render__content overflow-x-auto max-w-full" role="main">
-        {renderContent()}
-      </div>
+      <main className="email-render__content overflow-x-auto max-w-full">{renderContent()}</main>
 
       {/* Cleaned quote/signature — original stays available, not in the main flow */}
       {cleanedBody.cleaned && (
@@ -770,7 +769,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
           return true
         })
         return downloadableAttachments.length > 0 ? (
-          <div className="email-render__attachments" role="region" aria-label="Email attachments">
+          <section className="email-render__attachments" aria-label="Email attachments">
             <h4 className="email-render__attachments-title" id="attachments-heading">
               Attachments ({downloadableAttachments.length})
             </h4>
@@ -779,7 +778,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                 const isImage = attachment.mimeType?.startsWith("image/")
                 return (
                   <AttachmentPreviewCard
-                    key={index}
+                    key={attachment.url}
                     attachment={attachment}
                     messageId={messageId}
                     onImageClick={
@@ -799,7 +798,7 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                 )
               })}
             </div>
-          </div>
+          </section>
         ) : null
       })()}
 

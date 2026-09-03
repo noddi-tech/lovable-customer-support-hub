@@ -635,7 +635,7 @@ export const ConversationViewProvider = ({
               }
             }
           } catch (err) {
-            logger.error("Assign-on-reply failed", err as any, "ConversationViewProvider")
+            logger.error("Assign-on-reply failed", err, "ConversationViewProvider")
           }
         })()
       }
@@ -806,7 +806,7 @@ export const ConversationViewProvider = ({
       queryClient.setQueryData(["conversation", conversationId, user?.id], (old: any) => {
         if (old) {
           const [hours, minutes] = state.snoozeTime.split(":").map(Number)
-          const snoozeDateTime = new Date(state.snoozeDate!)
+          const snoozeDateTime = new Date(state.snoozeDate)
           snoozeDateTime.setHours(hours, minutes, 0, 0)
           return { ...old, snooze_until: snoozeDateTime.toISOString() }
         }
@@ -1127,7 +1127,7 @@ export const ConversationViewProvider = ({
       const { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .maybeSingle()
 
       if (profile?.organization_id) {
@@ -1136,9 +1136,9 @@ export const ConversationViewProvider = ({
           .from("response_tracking")
           .insert({
             organization_id: profile.organization_id,
-            conversation_id: conversationId!,
+            conversation_id: conversationId,
             message_id: messageId,
-            agent_id: user!.id,
+            agent_id: user.id,
             response_source: "ai_draft",
             customer_message: customerMessage?.content || null,
             agent_response: draftMsg.content,

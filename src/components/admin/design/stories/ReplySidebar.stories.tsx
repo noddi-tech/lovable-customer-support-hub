@@ -95,7 +95,7 @@ export const HighPriorityTicket: Story = {
 }
 
 export const InteractiveDemo: Story = {
-  render: () => {
+  render: function InteractiveDemoStory() {
     const [replyText, setReplyText] = useState("")
     const [status, setStatus] = useState<"open" | "pending" | "resolved" | "closed">("open")
     const [priority, setPriority] = useState<"low" | "normal" | "high" | "urgent">("normal")

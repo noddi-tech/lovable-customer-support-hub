@@ -26,7 +26,7 @@ export function useScoreHistory(applicationId: string | null | undefined) {
       const { data, error } = await supabase
         .from("applicant_score_history" as any)
         .select("*")
-        .eq("application_id", applicationId!)
+        .eq("application_id", applicationId)
         .order("created_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as any

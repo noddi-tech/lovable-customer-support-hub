@@ -148,7 +148,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         ...new Set(
           (rows ?? [])
             .filter((r) => r.sender_type === "agent" && r.sender_id)
-            .map((r) => r.sender_id as string),
+            .map((r) => r.sender_id),
         ),
       ]
 
@@ -216,9 +216,7 @@ export function useThreadMessages(conversationIds?: string | string[]) {
         conversation: Array.isArray(r.conversation) ? r.conversation[0] : r.conversation,
         // Inject agent profile for proper attribution in normalizeMessage
         sender_profile:
-          r.sender_type === "agent" && r.sender_id
-            ? agentProfiles[r.sender_id as string]
-            : undefined,
+          r.sender_type === "agent" && r.sender_id ? agentProfiles[r.sender_id] : undefined,
       }))
 
       // Extract conversation customer info for normalization context

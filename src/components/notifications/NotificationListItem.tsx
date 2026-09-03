@@ -45,14 +45,26 @@ export const NotificationListItem: React.FC<NotificationListItemProps> = ({
     notification.data?.conversation_id || notification.data?.ticket_id || notification.data?.call_id
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
     <div
+      role="button"
+      tabIndex={hasLink ? 0 : -1}
       className={cn(
         "group relative flex items-start gap-4 p-4 border-b border-border transition-colors",
         !notification.is_read && "bg-muted/30",
         "hover:bg-muted/50",
         hasLink && "cursor-pointer",
       )}
-      onClick={() => hasLink && onNavigate(notification)}
+      onClick={() => {
+        if (hasLink) onNavigate(notification)
+      }}
+      onKeyDown={(e) => {
+        if (!hasLink) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onNavigate(notification)
+        }
+      }}
     >
       {/* Priority indicator line */}
       <div

@@ -193,7 +193,10 @@ export default function AuditLogAnalytics() {
                     dataKey="value"
                   >
                     {actionTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={entry.name ?? entry.action ?? JSON.stringify(entry)}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -209,6 +212,7 @@ export default function AuditLogAnalytics() {
             {isLoading ? (
               <div className="space-y-2">
                 {Array.from({ length: 10 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
               </div>

@@ -13,7 +13,7 @@ export function useFormFieldMappings(formMappingId: string | null) {
       const { data, error } = await supabase
         .from("recruitment_form_field_mappings")
         .select("*")
-        .eq("form_mapping_id", formMappingId!)
+        .eq("form_mapping_id", formMappingId)
         .order("display_order", { ascending: true })
       if (error) throw error
       return (data ?? []) as unknown as FormFieldMapping[]

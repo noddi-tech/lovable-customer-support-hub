@@ -18,7 +18,7 @@ export function usePositionScoringConfig(positionId: string | null | undefined) 
       const { data, error } = await supabase
         .from("job_positions")
         .select("id, scoring_enabled, scoring_rubric, scoring_global_baseline_id")
-        .eq("id", positionId!)
+        .eq("id", positionId)
         .maybeSingle()
       if (error) throw error
       return data as any

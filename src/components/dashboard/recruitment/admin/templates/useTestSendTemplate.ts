@@ -22,8 +22,8 @@ export function useTestSendTemplate() {
       if (error) {
         throw new Error(error.message || "Kunne ikke sende testmail")
       }
-      if (data && (data as any).error) {
-        throw new Error((data as any).error)
+      if (data?.error) {
+        throw new Error(data.error)
       }
     },
   })

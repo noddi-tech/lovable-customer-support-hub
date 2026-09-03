@@ -172,7 +172,10 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
                   .slice(-10)
                   .reverse()
                   .map((op: any, idx: number) => (
-                    <div key={idx} className="p-2 bg-destructive/10 rounded">
+                    <div
+                      key={`${op.label}-${op.duration}-${op.component ?? ""}`}
+                      className="p-2 bg-destructive/10 rounded"
+                    >
                       <div className="flex justify-between items-center">
                         <span className="font-mono text-xs">{op.label}</span>
                         <Badge variant="destructive" className="text-xs">
@@ -199,7 +202,10 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
                   .slice(-10)
                   .reverse()
                   .map((event: any, idx: number) => (
-                    <div key={idx} className="p-2 bg-muted/30 rounded">
+                    <div
+                      key={`${event.component}-${event.timestamp}-${event.reason}`}
+                      className="p-2 bg-muted/30 rounded"
+                    >
                       <div className="font-mono">{event.component}</div>
                       <div className="text-muted-foreground mt-1">{event.reason}</div>
                       <div className="text-muted-foreground text-xs mt-1">
@@ -222,6 +228,7 @@ export const PerformanceDebugPanel: React.FC<PerformanceDebugPanelProps> = ({
                   .slice(-5)
                   .reverse()
                   .map((call: any, idx: number) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: parse call list lacks stable ids
                     <div key={idx} className="p-2 bg-muted/30 rounded font-mono text-xs">
                       <div className="flex justify-between">
                         <span>{call.function}</span>

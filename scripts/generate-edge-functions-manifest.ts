@@ -16,8 +16,9 @@ function parseVerifyJwt(): Record<string, boolean> {
   const config = readFileSync(CONFIG_PATH, "utf8")
   const map: Record<string, boolean> = {}
   const re = /\[functions\.([^\]]+)\]\s*\n(?:[^[]*?)verify_jwt\s*=\s*(true|false)/g
-  let m: RegExpExecArray | null
-  while ((m = re.exec(config))) map[m[1]] = m[2] === "true"
+  for (let m = re.exec(config); m !== null; m = re.exec(config)) {
+    map[m[1]] = m[2] === "true"
+  }
   return map
 }
 

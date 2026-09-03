@@ -87,7 +87,11 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {activeView !== "home" && (
-                    <button onClick={() => setActiveView("home")} className="hover:opacity-80">
+                    <button
+                      type="button"
+                      onClick={() => setActiveView("home")}
+                      className="hover:opacity-80"
+                    >
                       <ArrowLeft className="h-5 w-5" />
                     </button>
                   )}
@@ -104,7 +108,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                   )}
                   <span className="font-medium">{config.company_name || "Support"}</span>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="hover:opacity-80">
+                <button type="button" onClick={() => setIsOpen(false)} className="hover:opacity-80">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -134,6 +138,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
                   <div className="space-y-2">
                     {config.enable_chat && (
                       <button
+                        type="button"
                         onClick={() => setActiveView("chat")}
                         className="w-full p-3 rounded-lg border hover:bg-muted/50 text-left flex items-center gap-3 transition-colors"
                       >
@@ -152,6 +157,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
 
                     {config.enable_contact_form && (
                       <button
+                        type="button"
                         onClick={() => setActiveView("ask")}
                         className="w-full p-3 rounded-lg border hover:bg-muted/50 text-left flex items-center gap-3 transition-colors"
                       >
@@ -170,6 +176,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
 
                     {config.enable_knowledge_search && (
                       <button
+                        type="button"
                         onClick={() => setActiveView("search")}
                         className="w-full p-3 rounded-lg border hover:bg-muted/50 text-left flex items-center gap-3 transition-colors"
                       >
@@ -290,6 +297,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
 
               <div className="relative">
                 <button
+                  type="button"
                   className="flex items-center gap-1.5 px-2 py-1 text-xs bg-muted rounded-md border hover:bg-muted/80 transition-colors"
                   onClick={() => setShowLanguageMenu(!showLanguageMenu)}
                 >
@@ -320,6 +328,7 @@ export const WidgetPreview: React.FC<WidgetPreviewProps> = ({ config }) => {
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => setIsOpen(true)}
             className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-110"
             style={{

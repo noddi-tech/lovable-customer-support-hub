@@ -113,7 +113,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       console.log("[AircallLoginModal] Modal opened - making workspace visible")
-      const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+      const container = document.querySelector("#aircall-workspace-container")
       if (container) {
         container.classList.remove("aircall-hidden")
         container.classList.add("aircall-visible")
@@ -346,7 +346,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                         </summary>
                         <div className="mt-2 space-y-1 pl-4">
                           {getCookieEnableInstructions(browserInfo.type).map((instruction, idx) => (
-                            <div key={idx} className="flex gap-2">
+                            <div key={instruction} className="flex gap-2">
                               <span className="font-bold">{idx + 1}.</span>
                               <span>{instruction}</span>
                             </div>

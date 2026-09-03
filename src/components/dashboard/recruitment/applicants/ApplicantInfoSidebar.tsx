@@ -35,7 +35,7 @@ function useBulkImport(id: string | null) {
       const { data, error } = await supabase
         .from("recruitment_bulk_imports")
         .select("id, created_at")
-        .eq("id", id!)
+        .eq("id", id)
         .maybeSingle()
       if (error) throw error
       return data as { id: string; created_at: string } | null

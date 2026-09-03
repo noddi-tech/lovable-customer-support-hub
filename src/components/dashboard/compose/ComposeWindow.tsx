@@ -723,7 +723,11 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
         {files.length > 0 && (
           <div className="px-3 pb-2 flex flex-wrap gap-1.5">
             {files.map((file, index) => (
-              <Badge key={`${file.name}-${index}`} variant="secondary" className="gap-1 max-w-full">
+              <Badge
+                key={`${file.name}-${file.size}-${file.lastModified}`}
+                variant="secondary"
+                className="gap-1 max-w-full"
+              >
                 <Paperclip className="h-3 w-3 shrink-0" />
                 <span className="truncate max-w-[160px]">{file.name}</span>
                 <span className="text-muted-foreground text-[10px]">{formatBytes(file.size)}</span>
@@ -810,7 +814,7 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
                 <p className="text-sm font-medium">AI Suggestions</p>
                 {aiSuggestions.map((suggestion, index) => (
                   <Card
-                    key={index}
+                    key={suggestion}
                     className="p-3 cursor-pointer hover:bg-accent transition-colors"
                     onClick={() => {
                       setSelectedSuggestion(suggestion)

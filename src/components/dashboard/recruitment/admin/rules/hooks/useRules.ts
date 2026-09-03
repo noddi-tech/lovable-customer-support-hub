@@ -11,7 +11,7 @@ export function useRules() {
       const { data, error } = await supabase
         .from("recruitment_automation_rules")
         .select("*")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .order("execution_order", { ascending: true })
         .order("created_at", { ascending: true })
       if (error) throw error
@@ -30,7 +30,7 @@ export function useStagesForOrg() {
       const { data, error } = await supabase
         .from("recruitment_pipelines")
         .select("id, name, stages")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
       if (error) throw error
       const seen = new Set<string>()
       const flat: Array<{ id: string; name: string; color?: string; order: number }> = []
@@ -61,7 +61,7 @@ export function usePositionsForOrg() {
       const { data, error } = await supabase
         .from("job_positions")
         .select("id, title, status")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .order("title", { ascending: true })
       if (error) throw error
       return (data ?? []) as Array<{ id: string; title: string; status: string }>
@@ -78,7 +78,7 @@ export function useActiveTemplatesForOrg() {
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("id, name, subject, is_active, soft_deleted_at")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("is_active", true)
         .is("soft_deleted_at", null)
         .order("name", { ascending: true })
@@ -97,7 +97,7 @@ export function useAssignableUsersForOrg() {
       const { data: memberships, error: memErr } = await supabase
         .from("organization_memberships")
         .select("user_id, role, status")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("status", "active")
         .in("role", ["admin", "super_admin", "agent"])
       if (memErr) throw memErr
@@ -114,8 +114,8 @@ export function useAssignableUsersForOrg() {
       if (profErr) throw profErr
 
       const list = (profiles ?? []).map((p) => ({
-        id: p.id as string,
-        full_name: (p.full_name as string | null) ?? (p.email as string | null) ?? null,
+        id: p.id,
+        full_name: p.full_name ?? p.email ?? null,
         role: roleByUserId.get(p.user_id) ?? "unknown",
       }))
       return list.sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "", "nb"))

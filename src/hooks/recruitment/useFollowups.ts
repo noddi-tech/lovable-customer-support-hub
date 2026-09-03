@@ -40,7 +40,7 @@ export function useApplicantFollowups(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("recruitment_followups" as any)
         .select("*")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .is("completed_at", null)
         .order("scheduled_for", { ascending: true })
       if (error) throw error

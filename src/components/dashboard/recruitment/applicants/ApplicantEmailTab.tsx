@@ -57,7 +57,7 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
               <Clock className="h-3.5 w-3.5" /> Planlagte e-poster
             </div>
             <ul className="divide-y">
-              {scheduled!.map((s) => (
+              {scheduled.map((s) => (
                 <li key={s.id} className="py-2 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{s.subject}</div>
@@ -95,16 +95,25 @@ export const ApplicantEmailTab: React.FC<Props> = ({ applicant }) => {
             </div>
           ) : (
             <ul className="divide-y">
-              {conversations!.map((c) => {
+              {conversations.map((c) => {
                 const isExpanded = expandedId === c.id
                 return (
                   <li key={c.id} className="bg-background">
+                    {/* biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML */}
                     <div
+                      role="button"
+                      tabIndex={0}
                       className={cn(
                         "flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors",
                         isExpanded && "bg-muted/30",
                       )}
                       onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setExpandedId(isExpanded ? null : c.id)
+                        }
+                      }}
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />

@@ -13,6 +13,7 @@ export default function PipelineSummary({ data }: Props) {
 
   const renderStage = (s: (typeof data.stages)[number]) => (
     <button
+      type="button"
       key={s.id}
       onClick={() => navigate(`/operations/recruitment/applicants?stage=${s.id}`)}
       className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-colors min-w-[120px] ${

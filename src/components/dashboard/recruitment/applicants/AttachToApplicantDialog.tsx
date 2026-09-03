@@ -38,7 +38,7 @@ export const AttachToApplicantDialog: React.FC<Props> = ({ open, onOpenChange, a
       const { data, error } = await supabase
         .from("conversations")
         .select("id, subject, updated_at, applicant_id, customer:customers(email, full_name)")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .is("deleted_at", null)
         .or(`subject.ilike.%${q}%`)
         .order("updated_at", { ascending: false })

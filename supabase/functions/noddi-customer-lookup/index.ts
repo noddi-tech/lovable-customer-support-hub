@@ -519,7 +519,8 @@ function textFromBooking(b: any): string {
   }
 
   // categories
-  for (const c of Array.isArray(b?.service_categories) ? b?.service_categories : []) {
+  const categories = b?.service_categories
+  for (const c of Array.isArray(categories) ? categories : []) {
     push(c?.name)
     push(c?.type)
     push(c?.title)

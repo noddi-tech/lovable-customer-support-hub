@@ -347,7 +347,10 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
     // --- Mobile card layout ---
     if (isMobile) {
       return (
+        // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
         <div
+          role="button"
+          tabIndex={0}
           style={style}
           className={cn(
             "px-3 py-2.5 border-b border-border cursor-pointer active:bg-muted/70 transition-colors select-none overflow-hidden",
@@ -357,6 +360,16 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
             !conversation.is_read && "bg-primary/5",
           )}
           onClick={handleRowClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              if (showBulkCheckbox && onBulkSelect) {
+                onBulkSelect(conversation.id, !isBulkSelected, false)
+              } else {
+                onSelect(conversation)
+              }
+            }
+          }}
         >
           <div className="flex items-start gap-3 w-full min-w-0">
             {showBulkCheckbox && (
@@ -477,10 +490,23 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
             null
           }
         >
+          {/* biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML */}
           <div
+            role="button"
+            tabIndex={0}
             style={style}
             className={cn("flex items-center px-4 border-b", rowClasses)}
             onClick={handleRowClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                if (showBulkCheckbox && onBulkSelect) {
+                  onBulkSelect(conversation.id, !isBulkSelected, false)
+                } else {
+                  onSelect(conversation)
+                }
+              }
+            }}
           >
             {showBulkCheckbox && (
               <div className="w-10 p-2 shrink-0">

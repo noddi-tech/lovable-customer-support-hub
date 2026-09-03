@@ -71,7 +71,7 @@ export const WidgetSettings: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_user_organization_id")
       if (error) throw error
-      return data as string
+      return data
     },
   })
 

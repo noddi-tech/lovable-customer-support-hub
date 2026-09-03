@@ -36,17 +36,17 @@ export const AircallDebugPanel: React.FC = () => {
   }, [])
 
   // Get real-time workspace container info
-  const container = document.querySelector("#aircall-workspace-container") as HTMLElement
+  const container = document.querySelector("#aircall-workspace-container")
   const computedStyle = container ? window.getComputedStyle(container) : null
 
   // PHASE 3: Monitor dialog pointer-events
-  const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]") as HTMLElement
-  const dialogContent = document.querySelector("[data-radix-dialog-content]") as HTMLElement
+  const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]")
+  const dialogContent = document.querySelector("[data-radix-dialog-content]")
   const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null
   const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null
 
   // PHASE 5: Enhanced diagnostics
-  const aircallIframe = document.querySelector('iframe[id*="aircall"]') as HTMLIFrameElement | null
+  const aircallIframe = document.querySelector('iframe[id*="aircall"]')
   const iframeAllow = aircallIframe?.getAttribute("allow") || ""
   const hasHidPermission = iframeAllow.includes("hid")
 
@@ -162,7 +162,9 @@ export const AircallDebugPanel: React.FC = () => {
       "aircall_workspace_visible",
     ]
 
-    keysToRemove.forEach((key) => localStorage.removeItem(key))
+    keysToRemove.forEach((key) => {
+      localStorage.removeItem(key)
+    })
 
     toast({
       title: "Reinitializing Aircall",
@@ -500,7 +502,7 @@ export const AircallDebugPanel: React.FC = () => {
             <span className="text-muted-foreground block mb-1">Issues:</span>
             <div className="space-y-1">
               {context.diagnosticIssues.map((issue, i) => (
-                <Badge key={i} variant="destructive" className="text-xs mr-1">
+                <Badge key={issue} variant="destructive" className="text-xs mr-1">
                   {issue}
                 </Badge>
               ))}

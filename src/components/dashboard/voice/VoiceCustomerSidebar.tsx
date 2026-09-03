@@ -57,18 +57,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
         }
       : undefined)
 
-  // Early return if no data
-  if (!call && !customerPhone) {
-    return (
-      <div className={className}>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>No call or customer information available.</AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
   // Update email mutation
   const updateEmailMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -94,6 +82,9 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
       })
     },
   })
+
+  // Get Noddi data
+  const { data: noddiData, isLoading: noddiLoading } = useNoddihKundeData(customerForNoddi ?? null)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,9 +117,6 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     updateEmailMutation.mutate(emailToAdd.trim())
   }
 
-  // Get Noddi data
-  const { data: noddiData, isLoading: noddiLoading } = useNoddihKundeData(customerForNoddi)
-
   // Quick stats from Noddi data
   const stats = noddiData?.data?.found
     ? {
@@ -138,6 +126,18 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
         hasPriority: !!noddiData.data.priority_booking,
       }
     : null
+
+  // Early return if no data
+  if (!call && !customerPhone) {
+    return (
+      <div className={className}>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>No call or customer information available.</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
   return (
     <div className={className}>

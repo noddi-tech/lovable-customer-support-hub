@@ -38,7 +38,7 @@ export const TagDialog = ({
         <div className="space-y-4">
           {/* Current tags */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Current Tags</label>
+            <div className="text-sm font-medium mb-2 block">Current Tags</div>
             <div className="flex flex-wrap gap-2">
               {currentTags.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No tags added yet</p>
@@ -46,7 +46,11 @@ export const TagDialog = ({
                 currentTags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="gap-1">
                     {tag}
-                    <button onClick={() => onRemoveTag(tag)} className="hover:text-destructive">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveTag(tag)}
+                      className="hover:text-destructive"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
@@ -57,9 +61,12 @@ export const TagDialog = ({
 
           {/* Add new tag */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Add New Tag</label>
+            <label htmlFor="tag-dialog-new-tag" className="text-sm font-medium mb-2 block">
+              Add New Tag
+            </label>
             <div className="flex gap-2">
               <Input
+                id="tag-dialog-new-tag"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 placeholder="Enter tag name..."

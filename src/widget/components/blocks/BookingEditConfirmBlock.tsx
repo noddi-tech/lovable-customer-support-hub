@@ -324,7 +324,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
         {rows.length > 0 ? (
           rows.map((r, i) => (
             <div
-              key={i}
+              key={r.label}
               style={{
                 padding: "6px 0",
                 fontSize: "13px",
@@ -349,6 +349,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
       </div>
       <div style={{ display: "flex", gap: "8px", padding: "0 12px 12px" }}>
         <button
+          type="button"
           onClick={handleConfirm}
           disabled={isUsed || confirming}
           style={{
@@ -396,6 +397,7 @@ const BookingEditConfirmBlock: React.FC<BlockComponentProps> = ({
           Bekreft endringer
         </button>
         <button
+          type="button"
           onClick={handleCancel}
           disabled={isUsed || confirming}
           style={{

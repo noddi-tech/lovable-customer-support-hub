@@ -205,9 +205,10 @@ function conversationListReducer(
     }
     case "SET_BULK_SELECTION": {
       const newSelected = new Set(state.selectedConversations)
-      action.payload.ids.forEach((id) =>
-        action.payload.selected ? newSelected.add(id) : newSelected.delete(id),
-      )
+      action.payload.ids.forEach((id) => {
+        if (action.payload.selected) newSelected.add(id)
+        else newSelected.delete(id)
+      })
       return { ...state, selectedConversations: newSelected }
     }
     case "CLEAR_BULK_SELECTION":
@@ -957,7 +958,9 @@ export const ConversationListProvider = ({
 
       if (conversation?.thread_ids && conversation.thread_ids.length > 0) {
         // If it's a threaded conversation, add all thread IDs
-        conversation.thread_ids.forEach((threadId) => expandedIds.add(threadId))
+        conversation.thread_ids.forEach((threadId) => {
+          expandedIds.add(threadId)
+        })
       } else {
         // Otherwise just add the single ID
         expandedIds.add(id)

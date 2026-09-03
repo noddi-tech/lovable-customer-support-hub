@@ -207,9 +207,9 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
     )
 
     // Find and click "Expand all" button
+    fireEvent.click(expandAllButton)
     await waitFor(() => {
       const expandAllButton = screen.getByText("Expand all")
-      fireEvent.click(expandAllButton)
     })
 
     // Should now show full content
@@ -223,9 +223,9 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
     })
 
     // Find and click "Collapse all" button
+    fireEvent.click(collapseAllButton)
     await waitFor(() => {
       const collapseAllButton = screen.getByText("Collapse all")
-      fireEvent.click(collapseAllButton)
     })
 
     // Should show preview again
@@ -335,9 +335,9 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
     )
 
     // First expand the message
+    fireEvent.click(expandButton)
     await waitFor(() => {
       const expandButton = screen.getByRole("button")
-      fireEvent.click(expandButton)
     })
 
     // Should show quoted history toggle if quotes were detected

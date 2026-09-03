@@ -135,6 +135,7 @@ export function TagsTab() {
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
               <Skeleton key={i} className="h-14 w-full" />
             ))}
           </div>

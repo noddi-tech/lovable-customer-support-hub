@@ -59,6 +59,7 @@ export const MobileEmailMessageCard = ({
     >
       {/* Compact header - always visible */}
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
       >

@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     const asString = (v: unknown, max: number): string =>
       typeof v === "string"
         ? v
+            // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip in sanitizer
             .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "") // control chars
             .replace(/<[^>]*>/g, "") // strip markup
             .trim()

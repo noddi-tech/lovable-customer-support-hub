@@ -47,12 +47,12 @@ export function EmailTemplateListRow({ template, selected, stages, onClick }: Pr
               variant="outline"
               className="text-[10px] h-5"
               style={{
-                borderColor: stage!.color,
-                color: stage!.color,
-                backgroundColor: `${stage!.color}15`,
+                borderColor: stage.color,
+                color: stage.color,
+                backgroundColor: `${stage.color}15`,
               }}
             >
-              Ved: {stage!.name}
+              Ved: {stage.name}
             </Badge>
           )
         ) : (
@@ -70,7 +70,7 @@ export function EmailTemplateListRow({ template, selected, stages, onClick }: Pr
             variant="outline"
             className="text-[10px] h-5 border-destructive/50 text-destructive bg-destructive/5"
           >
-            Slettet {format(new Date(template.soft_deleted_at!), "dd.MM.yyyy")}
+            Slettet {format(new Date(template.soft_deleted_at), "dd.MM.yyyy")}
           </Badge>
         )}
       </div>

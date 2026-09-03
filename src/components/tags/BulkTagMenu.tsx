@@ -34,7 +34,9 @@ export const BulkTagMenu: React.FC<BulkTagMenuProps> = ({
     if (entityIds.length === 0) return []
     const counts = new Map<string, number>()
     entityIds.forEach((id) => {
-      getTags(id).forEach((t) => counts.set(t.id, (counts.get(t.id) ?? 0) + 1))
+      getTags(id).forEach((t) => {
+        counts.set(t.id, (counts.get(t.id) ?? 0) + 1)
+      })
     })
     return [...counts.entries()].filter(([, n]) => n === entityIds.length).map(([tagId]) => tagId)
   }, [entityIds, getTags])

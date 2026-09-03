@@ -97,8 +97,8 @@ export const IncomingCallModal = ({
     // Force pointer-events on all dialog-related elements
     const forcePointerEvents = () => {
       // Find dialog overlay and content
-      const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]") as HTMLElement
-      const dialogContent = document.querySelector("[data-radix-dialog-content]") as HTMLElement
+      const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]")
+      const dialogContent = document.querySelector("[data-radix-dialog-content]")
 
       if (dialogOverlay) {
         dialogOverlay.style.pointerEvents = "auto"
@@ -226,8 +226,11 @@ export const IncomingCallModal = ({
 
           {/* Quick Note - Before Answering */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Quick Note (Optional)</label>
+            <label htmlFor="incoming-call-quick-note" className="text-sm font-medium">
+              Quick Note (Optional)
+            </label>
             <Textarea
+              id="incoming-call-quick-note"
               placeholder="Jot down context before answering..."
               value={quickNote}
               onChange={(e) => setQuickNote(e.target.value)}

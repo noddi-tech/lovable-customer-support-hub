@@ -397,12 +397,14 @@ export const ManyTabs: Story = {
       <ResponsiveTabs {...args}>
         <ResponsiveTabsList>
           {Array.from({ length: 12 }, (_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static list placeholders
             <ResponsiveTabsTrigger key={i + 1} value={`tab${i + 1}`}>
               Tab {i + 1}
             </ResponsiveTabsTrigger>
           ))}
         </ResponsiveTabsList>
         {Array.from({ length: 12 }, (_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static list placeholders
           <ResponsiveTabsContent key={i + 1} value={`tab${i + 1}`} className="mt-4">
             <div className="p-4 bg-muted/30 rounded-lg">
               <h3 className="font-semibold mb-2">Content for Tab {i + 1}</h3>

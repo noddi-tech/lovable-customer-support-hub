@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import type React from "react"
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 
@@ -282,25 +282,16 @@ export const useDesignSystem = () => {
   return context
 }
 
+/** Returns undefined when used outside DesignSystemProvider (no throw). */
+export const useOptionalDesignSystem = () => useContext(DesignSystemContext)
+
 interface DesignSystemProviderProps {
   children: ReactNode
 }
 
 export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
   const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem)
-
-  // Get user's organization ID from auth context - handle case when auth isn't ready
-  let profile = null
-  let loading = true
-
-  try {
-    const authResult = useAuth()
-    profile = authResult.profile
-    loading = authResult.loading
-  } catch (error) {
-    // Auth context not available yet, use defaults
-    console.log("Auth context not available, using default design system")
-  }
+  const { profile, loading } = useAuth()
 
   // Fetch organization-specific design system from database
   const { data: organizationData, isLoading } = useQuery({
@@ -363,7 +354,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
   }, [organizationData])
 
   // Apply design system to document
-  const applyToDocument = () => {
+  const applyToDocument = useCallback(() => {
     const root = document.documentElement
 
     // Helper function to calculate luminance from HSL
@@ -465,7 +456,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
       designSystem.typography.fontWeight[designSystem.components.headings.fontWeight],
     )
     root.style.setProperty("--heading-style", designSystem.components.headings.style)
-  }
+  }, [designSystem])
 
   // Apply design system whenever it changes
   useEffect(() => {

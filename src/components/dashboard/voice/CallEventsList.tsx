@@ -249,7 +249,10 @@ const EventCard: React.FC<{ event: CallEvent; onFilter: (callId: string) => void
                   <h4 className="text-xs font-medium text-indigo-700">IVR</h4>
                   <div className="text-xs">
                     {ivrOptions.map((option: any, index: number) => (
-                      <div key={index} className="bg-indigo-50 p-0.5 rounded text-xs">
+                      <div
+                        key={`${option.branch}-${option.key ?? ""}`}
+                        className="bg-indigo-50 p-0.5 rounded text-xs"
+                      >
                         {option.branch} {option.key && `(Key: ${option.key})`}
                       </div>
                     ))}

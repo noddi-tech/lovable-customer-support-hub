@@ -25,15 +25,13 @@ interface BrandSearchInputProps {
 
 /** Search field shown at the top of brand pickers. */
 export const BrandSearchInput: React.FC<BrandSearchInputProps> = ({ value, onChange }) => (
-  <div
-    className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1"
-    onKeyDown={(e) => e.stopPropagation()}
-  >
+  <div className="sticky top-0 z-10 bg-popover px-2 pb-2 pt-1">
     <div className="relative">
       <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.stopPropagation()}
         placeholder="Search brands…"
         className="h-8 w-full rounded-md border border-input bg-background pl-7 pr-2 text-sm outline-none focus:ring-1 focus:ring-ring"
       />

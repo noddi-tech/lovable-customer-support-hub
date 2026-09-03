@@ -57,8 +57,8 @@ async function invokeNoddiNotes(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("noddi-notes", { body })
   // functions.invoke does not throw on non-2xx — always inspect `error`.
   if (error) throw new Error(error.message || "Noddi notes request failed")
-  if (data && typeof data === "object" && "error" in (data as any)) {
-    throw new Error(String((data as any).error))
+  if (data && typeof data === "object" && "error" in data) {
+    throw new Error(String(data.error))
   }
   return data
 }

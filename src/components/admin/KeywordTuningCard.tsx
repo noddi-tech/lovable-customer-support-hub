@@ -115,6 +115,7 @@ export const KeywordTuningCard = () => {
                 <Badge key={kw} variant="outline" className="text-xs gap-1 pr-1 border-primary/40">
                   {kw}
                   <button
+                    type="button"
                     onClick={() => handleRemoveAdded(kw)}
                     className="hover:bg-destructive/20 rounded-sm p-0.5"
                     disabled={updateOverrides.isPending}
@@ -180,6 +181,7 @@ export const KeywordTuningCard = () => {
               const isDisabled = disabledSet.has(kw)
               return (
                 <button
+                  type="button"
                   key={kw}
                   onClick={() => (isDisabled ? handleEnable(kw) : handleDisable(kw))}
                   disabled={updateOverrides.isPending}

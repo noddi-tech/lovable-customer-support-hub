@@ -109,7 +109,7 @@ export function useLocation() {
 }
 
 export function useParams<T extends Record<string, string | undefined> = Record<string, string>>() {
-  const params = useTsrParams({ strict: false }) as Record<string, string | undefined>
+  const params = useTsrParams({ strict: false })
   return useMemo(() => {
     const out = { ...params } as T & { "*"?: string }
     if (params._splat != null && out["*"] == null) {

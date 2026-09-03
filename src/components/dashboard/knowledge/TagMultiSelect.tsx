@@ -91,12 +91,21 @@ export function TagMultiSelect({
 
   return (
     <div ref={containerRef} className="relative">
+      {/* biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML */}
       <div
+        role="button"
+        tabIndex={0}
         className={cn(
           "min-h-10 w-full border rounded-md bg-background px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center",
           isOpen && "ring-2 ring-ring ring-offset-2",
         )}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            setIsOpen(!isOpen)
+          }
+        }}
       >
         {selectedTags.length === 0 ? (
           <span className="text-muted-foreground">{placeholder}</span>
@@ -157,10 +166,19 @@ export function TagMultiSelect({
                     Global
                   </div>
                   {globalTags.map((tag) => (
+                    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                     <div
                       key={tag.id}
+                      role="button"
+                      tabIndex={0}
                       className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded hover:bg-accent"
                       onClick={() => toggleTag(tag.name)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          toggleTag(tag.name)
+                        }
+                      }}
                     >
                       <div
                         className="w-3 h-3 rounded-full"
@@ -180,10 +198,19 @@ export function TagMultiSelect({
                     Category Tags
                   </div>
                   {categoryTags.map((tag) => (
+                    // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                     <div
                       key={tag.id}
+                      role="button"
+                      tabIndex={0}
                       className="flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded hover:bg-accent"
                       onClick={() => toggleTag(tag.name)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          toggleTag(tag.name)
+                        }
+                      }}
                     >
                       <div
                         className="w-3 h-3 rounded-full"

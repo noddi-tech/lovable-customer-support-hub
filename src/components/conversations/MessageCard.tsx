@@ -389,7 +389,7 @@ const MessageCardComponent = ({
   }
 
   return (
-    <div
+    <article
       data-message-id={message.id}
       data-author-type={message.authorType || "unknown"}
       data-is-note={isInternalNote ? "true" : "false"}
@@ -510,6 +510,7 @@ const MessageCardComponent = ({
                   const pending = status === "pending" || status === "retry"
                   return (
                     <span
+                      role="img"
                       className={cn(
                         "h-1.5 w-1.5 rounded-full shrink-0",
                         failed ? "bg-destructive" : pending ? "bg-amber-500" : "bg-emerald-500",
@@ -799,7 +800,7 @@ const MessageCardComponent = ({
                 <div className="mt-2 space-y-2">
                   {message.quotedBlocks.map((block, index) => (
                     <div
-                      key={index}
+                      key={block.raw}
                       className="pl-4 border-l-2 border-muted-foreground/30 text-sm text-muted-foreground"
                     >
                       <pre className="whitespace-pre-wrap">{block.raw}</pre>
@@ -872,7 +873,7 @@ const MessageCardComponent = ({
       </div>
 
       {/* Delete confirmation dialog is hoisted to the parent list to survive row unmount */}
-    </div>
+    </article>
   )
 }
 

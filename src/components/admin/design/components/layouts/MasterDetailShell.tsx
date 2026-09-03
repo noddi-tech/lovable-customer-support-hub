@@ -116,9 +116,9 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
             </div>
           ) : (
             /* The list manages its own sticky header, scrolling body and footer. */
-            <div className="h-full min-h-0 flex flex-col" aria-label={centerPaneLabel}>
+            <section className="h-full min-h-0 flex flex-col" aria-label={centerPaneLabel}>
               {center}
-            </div>
+            </section>
           )}
         </div>
 
@@ -178,12 +178,12 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
           )}
 
           {/* Center: Conversation list */}
-          <div
+          <section
             className="min-h-0 min-w-0 bg-card overflow-hidden h-full"
             aria-label={centerPaneLabel}
           >
             <div className="h-full py-3 sm:py-4 px-0">{center}</div>
-          </div>
+          </section>
         </div>
       )}
 

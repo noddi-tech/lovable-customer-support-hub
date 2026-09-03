@@ -240,7 +240,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({
       </div>
 
       {/* Inbox Categories - Scrollable Content */}
-      <div className="pane flex-1 min-h-0">
+      <div className="pane flex-1 min-h-0 min-w-0">
         <div className="px-0">
           <div className="flex items-center justify-between px-1 py-0.5">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">

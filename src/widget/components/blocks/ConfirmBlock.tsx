@@ -31,6 +31,7 @@ const ConfirmBlock: React.FC<BlockComponentProps> = ({
       <p style={{ fontSize: "13px", marginBottom: "12px", fontWeight: 500 }}>{summary}</p>
       <div style={{ display: "flex", gap: "8px" }}>
         <button
+          type="button"
           disabled={isUsed}
           onClick={() => handleSelect("Confirmed")}
           style={{
@@ -65,6 +66,7 @@ const ConfirmBlock: React.FC<BlockComponentProps> = ({
           Bekreft
         </button>
         <button
+          type="button"
           disabled={isUsed}
           onClick={() => handleSelect("Cancelled")}
           style={{

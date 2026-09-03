@@ -327,7 +327,10 @@ export const ConversationListHeader = ({
           {/* Filters */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex h-7 items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap">
+              <button
+                type="button"
+                className="flex h-7 items-center justify-between gap-1 rounded-md border border-input bg-background px-2 text-[10px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+              >
                 <Filter className="!w-2.5 !h-2.5 shrink-0" />
                 {!isMobile && (
                   <span className="truncate max-w-[70px] text-[10px]">{getFilterLabel()}</span>
@@ -623,6 +626,7 @@ export const ConversationListHeader = ({
               Search: "{state.searchQuery.substring(0, 20)}
               {state.searchQuery.length > 20 ? "..." : ""}"
               <button
+                type="button"
                 onClick={() => dispatch({ type: "SET_SEARCH_QUERY", payload: "" })}
                 className="ml-1 hover:text-foreground"
               >
@@ -639,6 +643,7 @@ export const ConversationListHeader = ({
               )}
               {state.statusFilter}
               <button
+                type="button"
                 onClick={() => dispatch({ type: "SET_STATUS_FILTER", payload: "all" })}
                 className="ml-1 hover:text-foreground"
               >
@@ -658,6 +663,7 @@ export const ConversationListHeader = ({
               )}
               {state.priorityFilter}
               <button
+                type="button"
                 onClick={() => dispatch({ type: "SET_PRIORITY_FILTER", payload: "all" })}
                 className="ml-1 hover:text-foreground"
               >

@@ -60,6 +60,7 @@ export const FlexWrap: Story = {
     direction: "row",
     gap: "4",
     wrap: true,
+    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
     children: Array.from({ length: 12 }, (_, i) => <FlexItem key={i}>Item {i + 1}</FlexItem>),
   },
 }

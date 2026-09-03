@@ -118,12 +118,14 @@ export function Step5Forms({ integrationId, onFinish, onBack }: Props) {
             return (
               <label
                 key={form.id}
+                htmlFor={`meta-form-${form.id}`}
                 className={
                   "flex items-center gap-3 rounded-md border p-3 " +
                   (already ? "bg-muted/30 cursor-not-allowed" : "cursor-pointer hover:bg-muted/40")
                 }
               >
                 <Checkbox
+                  id={`meta-form-${form.id}`}
                   checked={already || selected.has(form.id)}
                   disabled={already}
                   onCheckedChange={() => toggle(form.id)}

@@ -175,6 +175,7 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
             {storedCars.map((car) => (
               <button
+                type="button"
                 key={car.id}
                 onClick={() => handleStoredCarSelect(car)}
                 disabled={isUsed || loading}
@@ -207,6 +208,7 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
       <div style={{ display: "flex", gap: "6px", alignItems: "stretch" }}>
         {/* Country selector */}
         <button
+          type="button"
           onClick={() => setCountry((c) => (c === "NO" ? "SE" : "NO"))}
           disabled={isUsed || loading}
           style={{
@@ -260,6 +262,7 @@ const LicensePlateBlock: React.FC<BlockComponentProps> = ({
 
         {/* Submit button */}
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={isUsed || loading || !plate.trim()}
           style={{

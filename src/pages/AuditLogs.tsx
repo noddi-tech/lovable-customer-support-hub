@@ -287,6 +287,7 @@ export default function AuditLogs() {
               <tbody>
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                     <tr key={i} className="border-b border-border">
                       <td className="p-4">
                         <Skeleton className="h-4 w-32" />

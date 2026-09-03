@@ -26,7 +26,7 @@ export function useEffectiveRubric(applicationId: string | null | undefined) {
         .select(
           "position_id, job_positions:position_id(scoring_rubric, scoring_global_baseline_id)",
         )
-        .eq("id", applicationId!)
+        .eq("id", applicationId)
         .maybeSingle()
       if (error) throw error
       const pos: any = (app as any)?.job_positions

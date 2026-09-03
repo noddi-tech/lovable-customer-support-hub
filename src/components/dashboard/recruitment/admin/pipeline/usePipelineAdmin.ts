@@ -11,7 +11,7 @@ export function useDefaultPipeline() {
       const { data, error } = await supabase
         .from("recruitment_pipelines")
         .select("id, name, stages, is_default, created_at, updated_at")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("is_default", true)
         .maybeSingle()
       if (error) throw error

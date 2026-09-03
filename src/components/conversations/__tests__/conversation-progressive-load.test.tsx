@@ -128,8 +128,8 @@ describe("ProgressiveMessagesList", () => {
     await waitFor(() => {
       const loadButton = screen.getByText("Load older messages (12 remaining)")
       expect(loadButton).toBeInTheDocument()
-      expect(loadButton).toBeEnabled()
     })
+    expect(loadButton).toBeEnabled()
   })
 
   test("clicking load older messages calls fetchNextPage", async () => {
@@ -154,9 +154,9 @@ describe("ProgressiveMessagesList", () => {
       </QueryClientProvider>,
     )
 
+    fireEvent.click(loadButton)
     await waitFor(() => {
       const loadButton = screen.getByText("Load older messages (12 remaining)")
-      fireEvent.click(loadButton)
     })
 
     expect(mockFetchNextPage).toHaveBeenCalled()

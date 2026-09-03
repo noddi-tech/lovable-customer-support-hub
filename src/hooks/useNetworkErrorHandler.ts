@@ -135,7 +135,9 @@ export const useNetworkErrorHandler = (options: NetworkErrorHandlerOptions = {})
 
   // Cleanup timeouts on unmount
   const cleanup = useCallback(() => {
-    retryTimeouts.current.forEach((timeout) => clearTimeout(timeout))
+    retryTimeouts.current.forEach((timeout) => {
+      clearTimeout(timeout)
+    })
     retryTimeouts.current.clear()
   }, [])
 

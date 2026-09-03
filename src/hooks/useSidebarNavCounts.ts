@@ -50,9 +50,9 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
         })(),
       ])
 
-      const row = (allCountsRes as any)?.data?.[0]
+      const row = allCountsRes?.data?.[0]
       const textOpen = Number(row?.conversations_open) || 0
-      const chatActive = (chatRes as any)?.count ?? 0
+      const chatActive = chatRes?.count ?? 0
 
       return {
         // Inbox badge must match the "All inboxes" open count exactly (live chats included)

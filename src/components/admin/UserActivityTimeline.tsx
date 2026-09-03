@@ -65,9 +65,7 @@ export function UserActivityTimeline({
     },
     {} as Record<string, number>,
   )
-  const topAction = Object.entries(mostCommonAction).sort(
-    (a, b) => (b[1] as number) - (a[1] as number),
-  )[0]
+  const topAction = Object.entries(mostCommonAction).sort((a, b) => b[1] - a[1])[0]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,6 +115,7 @@ export function UserActivityTimeline({
           <div className="space-y-6 pr-4">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-20 w-full" />

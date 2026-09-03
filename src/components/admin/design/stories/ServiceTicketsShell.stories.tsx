@@ -122,7 +122,7 @@ const ticketInboxes = [
 ]
 
 export const TicketsList: Story = {
-  render: () => {
+  render: function TicketsListStory() {
     const [selectedTicket, setSelectedTicket] = useState<string | null>(null)
     const [selectedInbox, setSelectedInbox] = useState("open")
 
@@ -188,7 +188,7 @@ export const TicketsList: Story = {
 }
 
 export const TicketDetail: Story = {
-  render: () => {
+  render: function TicketDetailStory() {
     const [selectedTicket, setSelectedTicket] = useState<string>("ticket1")
     const [selectedInbox, setSelectedInbox] = useState("open")
 
@@ -251,7 +251,10 @@ export const TicketDetail: Story = {
           <CardContent>
             <div className="space-y-4">
               {ticket?.timeline.map((event, index) => (
-                <div key={index} className="flex items-start gap-3">
+                <div
+                  key={`${event.action}-${event.timestamp ?? event.time ?? ""}`}
+                  className="flex items-start gap-3"
+                >
                   <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -311,7 +314,7 @@ export const TicketDetail: Story = {
 }
 
 export const MobileView: Story = {
-  render: () => {
+  render: function MobileViewStory() {
     const [selectedTicket, setSelectedTicket] = useState<string>("ticket1")
 
     const ticket = mockTicketDetails[selectedTicket as keyof typeof mockTicketDetails]

@@ -206,7 +206,7 @@ export function useDesktopEmailNotifications() {
           if (seenNotifsRef.current.has(row.id)) return
           seenNotifsRef.current.add(row.id)
 
-          const data = (row.data || {}) as Record<string, unknown>
+          const data = row.data || {}
           const conversationId = conversationIdFromData(data)
           if (isViewingConversation(conversationId)) return
 

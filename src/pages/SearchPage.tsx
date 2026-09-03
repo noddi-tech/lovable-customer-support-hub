@@ -1,6 +1,6 @@
 import debounce from "lodash.debounce"
 import { Filter, Loader2, Mail, MessageSquare, Search, Users, X } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import { SearchFilters } from "@/components/search/SearchFilters"
@@ -30,10 +30,11 @@ const SearchPage = () => {
   const [filters, setFilters] = useState<SearchFiltersType>({})
 
   // Debounce search query
-  const debouncedSetQuery = useCallback(
-    debounce((value: string) => {
-      setDebouncedQuery(value)
-    }, 300),
+  const debouncedSetQuery = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedQuery(value)
+      }, 300),
     [],
   )
 
@@ -67,14 +68,13 @@ const SearchPage = () => {
   // Save search to recent
   useEffect(() => {
     if (debouncedQuery.length >= 2) {
-      const updated = [debouncedQuery, ...recentSearches.filter((s) => s !== debouncedQuery)].slice(
-        0,
-        5,
-      )
-      setRecentSearches(updated)
-      localStorage.setItem("recentSearches", JSON.stringify(updated))
+      setRecentSearches((prev) => {
+        const updated = [debouncedQuery, ...prev.filter((s) => s !== debouncedQuery)].slice(0, 5)
+        localStorage.setItem("recentSearches", JSON.stringify(updated))
+        return updated
+      })
     }
-  }, [debouncedQuery, recentSearches.filter])
+  }, [debouncedQuery])
 
   const clearRecentSearches = () => {
     setRecentSearches([])
@@ -122,6 +122,7 @@ const SearchPage = () => {
               />
               {query && (
                 <button
+                  type="button"
                   onClick={() => {
                     setQuery("")
                     setDebouncedQuery("")
@@ -254,7 +255,8 @@ const SearchPage = () => {
                         <div className="space-y-1">
                           {recentSearches.map((search, i) => (
                             <button
-                              key={i}
+                              type="button"
+                              key={search}
                               onClick={() => {
                                 setQuery(search)
                                 setDebouncedQuery(search)

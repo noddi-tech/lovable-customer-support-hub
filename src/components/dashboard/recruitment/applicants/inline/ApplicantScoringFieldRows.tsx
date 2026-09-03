@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 import { nb } from "date-fns/locale"
 import { Check, Loader2, Pencil, X } from "lucide-react"
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -12,14 +12,12 @@ import { useUpdateApplicant } from "../hooks/useUpdateApplicant"
 import type { ApplicantProfileData } from "../useApplicantProfile"
 import InlineEditableRow from "./InlineEditableRow"
 
-const LANG_LABELS: Record<string, string> = LANGUAGE_OPTIONS.reduce(
-  (acc, o) => ({ ...acc, [o.value]: o.label }),
-  {} as Record<string, string>,
+const LANG_LABELS: Record<string, string> = Object.fromEntries(
+  LANGUAGE_OPTIONS.map((o) => [o.value, o.label]),
 )
 
-const PERMIT_LABELS: Record<string, string> = PERMIT_OPTIONS.reduce(
-  (acc, o) => ({ ...acc, [o.value]: o.label }),
-  {} as Record<string, string>,
+const PERMIT_LABELS: Record<string, string> = Object.fromEntries(
+  PERMIT_OPTIONS.map((o) => [o.value, o.label]),
 )
 
 const Empty: React.FC = () => <span className="text-muted-foreground">Ikke oppgitt</span>
@@ -152,7 +150,10 @@ const MultiValueRow: React.FC<{
 
 export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
   const update = useUpdateApplicant()
-  const current = applicant.drivers_license_classes ?? []
+  const current = useMemo(
+    () => applicant.drivers_license_classes ?? [],
+    [applicant.drivers_license_classes],
+  )
   const [selected, setSelected] = useState<string[]>(current)
 
   // Re-sync local draft when the underlying value changes (after a save elsewhere).
@@ -185,8 +186,16 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
             {LICENSE_CLASSES.map((c) => {
               const checked = selected.includes(c)
               return (
-                <label key={c} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <Checkbox checked={checked} onCheckedChange={() => toggle(c)} />
+                <label
+                  key={c}
+                  htmlFor={`scoring-license-${c}`}
+                  className="flex items-center gap-1.5 text-sm cursor-pointer"
+                >
+                  <Checkbox
+                    id={`scoring-license-${c}`}
+                    checked={checked}
+                    onCheckedChange={() => toggle(c)}
+                  />
                   <span>{c}</span>
                 </label>
               )
@@ -235,7 +244,7 @@ export const DriverLicenseClassesRow: React.FC<RowProps> = ({ applicant }) => {
 
 export const CertificationsRow: React.FC<RowProps> = ({ applicant }) => {
   const update = useUpdateApplicant()
-  const current = applicant.certifications ?? []
+  const current = useMemo(() => applicant.certifications ?? [], [applicant.certifications])
   const [items, setItems] = useState<string[]>(current)
   const [input, setInput] = useState("")
 

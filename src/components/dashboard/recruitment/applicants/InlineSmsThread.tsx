@@ -67,7 +67,7 @@ export const InlineSmsThread: React.FC<Props> = ({ conversationId, applicantId, 
         <div className="text-sm text-muted-foreground py-4 text-center">Ingen meldinger ennå.</div>
       ) : (
         <ul className="space-y-2 max-h-96 overflow-y-auto pr-1">
-          {messages!.map((m) => {
+          {messages.map((m) => {
             const isAgent = m.sender_type === "agent"
             const statusInfo = m.sms_status ? STATUS_BADGE[m.sms_status] : null
             return (

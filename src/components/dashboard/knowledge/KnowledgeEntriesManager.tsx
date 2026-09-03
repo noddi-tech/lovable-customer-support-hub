@@ -306,6 +306,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                   <p className="text-sm font-medium mb-2">Agent Response</p>
                   <div
                     className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeEmailHTML
                     dangerouslySetInnerHTML={{
                       __html: sanitizeEmailHTML(
                         entry.agent_response.length > 200
@@ -345,7 +346,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                     <div className="flex gap-1 flex-wrap">
                       {entry.tags.map((tag, idx) => (
                         <Badge
-                          key={idx}
+                          key={tag}
                           variant="outline"
                           className="text-xs"
                           style={{
@@ -376,8 +377,14 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Customer Context</label>
+                <label
+                  htmlFor="knowledge-edit-customer-context"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Customer Context
+                </label>
                 <Textarea
+                  id="knowledge-edit-customer-context"
                   value={editingEntry.customer_context}
                   onChange={(e) =>
                     setEditingEntry({ ...editingEntry, customer_context: e.target.value })
@@ -386,7 +393,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Agent Response</label>
+                <div className="text-sm font-medium mb-2 block">Agent Response</div>
                 <SimpleRichEditor
                   value={editingEntry.agent_response}
                   onChange={(value) => setEditingEntry({ ...editingEntry, agent_response: value })}
@@ -394,7 +401,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Quality Score</label>
+                <div className="text-sm font-medium mb-2 block">Quality Score</div>
                 <StarRatingInput
                   value={editingEntry.quality_score ?? 3}
                   onChange={(value) => setEditingEntry({ ...editingEntry, quality_score: value })}
@@ -404,12 +411,14 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Category</label>
+                <label htmlFor="knowledge-edit-category" className="text-sm font-medium mb-2 block">
+                  Category
+                </label>
                 <Select
                   value={editingEntry.category || ""}
                   onValueChange={(v) => setEditingEntry({ ...editingEntry, category: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="knowledge-edit-category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -428,7 +437,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Tags</label>
+                <div className="text-sm font-medium mb-2 block">Tags</div>
                 <TagMultiSelect
                   organizationId={organizationId}
                   selectedTags={editingEntry.tags || []}
@@ -488,8 +497,14 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Customer Question/Context *</label>
+              <label
+                htmlFor="knowledge-create-customer-context"
+                className="text-sm font-medium mb-2 block"
+              >
+                Customer Question/Context *
+              </label>
               <Textarea
+                id="knowledge-create-customer-context"
                 placeholder="What is the typical customer question or situation?"
                 value={newEntry.customer_context}
                 onChange={(e) => setNewEntry({ ...newEntry, customer_context: e.target.value })}
@@ -497,7 +512,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Ideal Agent Response *</label>
+              <div className="text-sm font-medium mb-2 block">Ideal Agent Response *</div>
               <SimpleRichEditor
                 placeholder="What is the best response to this question?"
                 value={newEntry.agent_response}
@@ -506,12 +521,14 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Category</label>
+              <label htmlFor="knowledge-create-category" className="text-sm font-medium mb-2 block">
+                Category
+              </label>
               <Select
                 value={newEntry.category}
                 onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="knowledge-create-category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -530,7 +547,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Tags</label>
+              <div className="text-sm font-medium mb-2 block">Tags</div>
               <TagMultiSelect
                 organizationId={organizationId}
                 selectedTags={newEntry.tags}

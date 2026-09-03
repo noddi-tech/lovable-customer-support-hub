@@ -48,6 +48,7 @@
   "admin": {
     "title": "Admin Portaal",
     "description": "Beheer systeeminstellingen en configuraties",
+    "descriptionLabel": "Beschrijving",
     "inboxes": "Inboxen",
     "design": "Design & Huisstijl",
     "overview": "Overzicht",

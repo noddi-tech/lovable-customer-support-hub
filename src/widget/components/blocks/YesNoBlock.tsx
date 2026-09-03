@@ -26,6 +26,7 @@ const YesNoBlock: React.FC<BlockComponentProps> = ({
       )}
       <div style={{ display: "flex", gap: "8px" }}>
         <button
+          type="button"
           disabled={isUsed}
           onClick={() => handleSelect("Ja")}
           style={{
@@ -62,6 +63,7 @@ const YesNoBlock: React.FC<BlockComponentProps> = ({
           Ja
         </button>
         <button
+          type="button"
           disabled={isUsed}
           onClick={() => handleSelect("Nei")}
           style={{

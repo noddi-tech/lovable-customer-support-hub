@@ -28,7 +28,7 @@ export function ChatMetricsDialog({ open, onOpenChange }: ChatMetricsDialogProps
       onDaysChange={setDays}
       isLoading={isLoading}
       loadingLabel="Calculating chat metrics…"
-      error={(error as Error) ?? null}
+      error={error ?? null}
     >
       {data && (
         <div className="space-y-5">

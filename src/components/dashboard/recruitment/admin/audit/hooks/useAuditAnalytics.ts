@@ -77,8 +77,7 @@ export function useAuditAnalytics(
       const byApp = new Map<string, Array<{ stage: string; at: number }>>()
       for (const e of stageEvents.data ?? []) {
         const arr = byApp.get(e.application_id) ?? []
-        const stage =
-          (e.event_data as any)?.to_stage ?? (e.event_data as any)?.new_stage ?? "unknown"
+        const stage = e.event_data?.to_stage ?? e.event_data?.new_stage ?? "unknown"
         arr.push({ stage, at: new Date(e.created_at).getTime() })
         byApp.set(e.application_id, arr)
       }

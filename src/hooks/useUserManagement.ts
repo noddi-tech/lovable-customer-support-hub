@@ -6,27 +6,28 @@ import { useAuth } from "./useAuth"
 
 export type AppRole = "super_admin" | "admin" | "agent" | "user"
 
+export function useUserRoles(userId: string) {
+  const { isSuperAdmin } = useAuth()
+
+  return useQuery({
+    queryKey: ["user-roles", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("id, role, created_at")
+        .eq("user_id", userId)
+
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!userId && isSuperAdmin,
+  })
+}
+
 export function useUserManagement() {
   const { isSuperAdmin } = useAuth()
   const queryClient = useQueryClient()
   const { logAction } = useAuditLog()
-
-  // Fetch user roles
-  const getUserRoles = (userId: string) => {
-    return useQuery({
-      queryKey: ["user-roles", userId],
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("id, role, created_at")
-          .eq("user_id", userId)
-
-        if (error) throw error
-        return data || []
-      },
-      enabled: !!userId && isSuperAdmin,
-    })
-  }
 
   // Assign role to user
   const assignRole = useMutation({
@@ -292,8 +293,8 @@ export function useUserManagement() {
       if (error) {
         let errorMessage = "Failed to update email"
         try {
-          if (error.context && typeof (error.context as any).json === "function") {
-            const errorBody = await (error.context as any).json()
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json()
             errorMessage = errorBody?.error || error.message || errorMessage
           } else {
             errorMessage = error.message || errorMessage
@@ -334,10 +335,10 @@ export function useUserManagement() {
         let status: number | undefined
 
         try {
-          status = (error.context as any)?.status
+          status = error.context?.status
 
-          if (error.context && typeof (error.context as any).json === "function") {
-            const errorBody = await (error.context as any).json()
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json()
             errorMessage = errorBody?.error || error.message || errorMessage
             errorCode = errorBody?.code
           } else {
@@ -381,7 +382,6 @@ export function useUserManagement() {
   })
 
   return {
-    getUserRoles,
     assignRole: assignRole.mutate,
     removeRole: removeRole.mutate,
     updateUser: updateUser.mutate,

@@ -48,11 +48,11 @@ function invokeOrThrow<T>(fnName: string, body: unknown): Promise<T> {
   return supabase.functions.invoke(fnName, { body }).then(({ data, error }) => {
     // Per memory: check { error } directly — invoke does not throw on HTTP 5xx.
     if (error) {
-      const msg = (error as any)?.message ?? `${fnName} feilet`
+      const msg = error?.message ?? `${fnName} feilet`
       throw new Error(msg)
     }
-    if (data && typeof data === "object" && (data as any).error) {
-      throw new Error(String((data as any).error))
+    if (data && typeof data === "object" && data.error) {
+      throw new Error(String(data.error))
     }
     return data as T
   })

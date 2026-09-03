@@ -187,7 +187,9 @@ export function buildThreadSeed(
     if (threadInfo.inReplyTo) {
       references.add(threadInfo.inReplyTo)
     }
-    threadInfo.references.forEach((ref) => references.add(ref))
+    threadInfo.references.forEach((ref) => {
+      references.add(ref)
+    })
 
     // Extract normalized subject (use first non-empty one)
     if (!normalizedSubject && message.email_subject) {

@@ -82,6 +82,7 @@ export default function OversiktFilters({
 
       <div className="flex items-center gap-2 ml-auto">
         <span
+          role="img"
           className={`inline-block h-2 w-2 rounded-full ${
             realtimeConnected ? "bg-emerald-500" : "bg-muted-foreground/40"
           }`}

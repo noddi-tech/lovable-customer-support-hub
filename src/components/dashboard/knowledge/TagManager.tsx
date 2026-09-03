@@ -340,8 +340,11 @@ export function TagManager({ organizationId }: TagManagerProps) {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Name *</label>
+              <label htmlFor="tag-create-name" className="text-sm font-medium mb-2 block">
+                Name *
+              </label>
               <Input
+                id="tag-create-name"
                 placeholder="e.g., refund"
                 value={newTag.name}
                 onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
@@ -351,14 +354,16 @@ export function TagManager({ organizationId }: TagManagerProps) {
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Category</label>
+              <label htmlFor="tag-create-category" className="text-sm font-medium mb-2 block">
+                Category
+              </label>
               <Select
                 value={newTag.category_id || "global"}
                 onValueChange={(value) =>
                   setNewTag({ ...newTag, category_id: value === "global" ? null : value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="tag-create-category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -386,12 +391,14 @@ export function TagManager({ organizationId }: TagManagerProps) {
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Color</label>
+              <label htmlFor="tag-create-color" className="text-sm font-medium mb-2 block">
+                Color
+              </label>
               <Select
                 value={newTag.color}
                 onValueChange={(value) => setNewTag({ ...newTag, color: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="tag-create-color">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-4 h-4 rounded-full"
@@ -441,21 +448,26 @@ export function TagManager({ organizationId }: TagManagerProps) {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Name *</label>
+                <label htmlFor="tag-edit-name" className="text-sm font-medium mb-2 block">
+                  Name *
+                </label>
                 <Input
+                  id="tag-edit-name"
                   value={editingTag.name}
                   onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Category</label>
+                <label htmlFor="tag-edit-category" className="text-sm font-medium mb-2 block">
+                  Category
+                </label>
                 <Select
                   value={editingTag.category_id || "global"}
                   onValueChange={(value) =>
                     setEditingTag({ ...editingTag, category_id: value === "global" ? null : value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="tag-edit-category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -480,12 +492,14 @@ export function TagManager({ organizationId }: TagManagerProps) {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Color</label>
+                <label htmlFor="tag-edit-color" className="text-sm font-medium mb-2 block">
+                  Color
+                </label>
                 <Select
                   value={editingTag.color || "#6B7280"}
                   onValueChange={(value) => setEditingTag({ ...editingTag, color: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="tag-edit-color">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full"

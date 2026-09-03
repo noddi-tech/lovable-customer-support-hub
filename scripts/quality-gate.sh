@@ -51,7 +51,7 @@ run_check() {
   echo "→ Format check (Biome + Prettier Markdown)"
   npm run format:check
 
-  echo "→ Lint (Biome error-level + thin ESLint)"
+  echo "→ Lint (Biome error-level + ESLint hooks/react/type-aware)"
   npm run lint
 
   echo "→ UI guardrails (tabs lint + long-labels)"

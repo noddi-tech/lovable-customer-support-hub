@@ -100,7 +100,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
       const msgMap = new Map<string, typeof messages>()
       for (const msg of messages || []) {
         if (!msgMap.has(msg.conversation_id)) msgMap.set(msg.conversation_id, [])
-        msgMap.get(msg.conversation_id)!.push(msg)
+        msgMap.get(msg.conversation_id).push(msg)
       }
 
       // Filter to only conversations with error indicators
@@ -233,7 +233,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                             ))}
                             {(conv.tools_used?.length || 0) > 3 && (
                               <Badge variant="secondary" className="text-[10px]">
-                                +{conv.tools_used!.length - 3}
+                                +{conv.tools_used.length - 3}
                               </Badge>
                             )}
                           </div>
@@ -249,7 +249,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                               (() => {
                                 let errors: any[] = []
                                 try {
-                                  errors = JSON.parse(conv.error_details!)
+                                  errors = JSON.parse(conv.error_details)
                                 } catch {
                                   /* ignore */
                                 }
@@ -260,7 +260,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                                     </p>
                                     {errors.map((e: any, i: number) => (
                                       <div
-                                        key={i}
+                                        key={`${e.type}-${e.ts ?? ""}-${e.detail}`}
                                         className="text-xs rounded bg-destructive/10 border border-destructive/20 p-2"
                                       >
                                         <Badge variant="destructive" className="text-[10px] mr-2">
@@ -280,7 +280,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
                             <div className="space-y-2 max-h-[300px] overflow-y-auto">
                               {expandedMessages.map((msg, i) => (
                                 <div
-                                  key={i}
+                                  key={`${msg.role}-${msg.created_at ?? ""}-${msg.content?.slice(0, 40) ?? ""}`}
                                   className={`text-xs rounded-lg p-2 ${
                                     msg.role === "assistant"
                                       ? "bg-primary/10 border border-primary/20"
@@ -322,7 +322,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
           <CardContent>
             <div className="space-y-3">
               {RUNBOOK_ENTRIES.map((entry, i) => (
-                <div key={i} className="rounded-lg border p-3">
+                <div key={entry.title} className="rounded-lg border p-3">
                   <h4 className="font-medium text-sm">{entry.title}</h4>
                   <p className="text-xs text-muted-foreground mt-1">
                     <span className="font-medium">Symptom:</span> {entry.symptom}

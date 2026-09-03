@@ -1,6 +1,6 @@
 import { subDays, subHours, subWeeks } from "date-fns"
 import { ChevronDown, Clock } from "lucide-react"
-import React, { useState } from "react"
+import React, { useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,36 +37,39 @@ export const TimeRangeFilter: React.FC<TimeRangeFilterProps> = ({
   const [customUnit, setCustomUnit] = useState<"hours" | "days">("hours")
   const [isOpen, setIsOpen] = useState(false)
 
-  const handlePresetChange = (presetId: string) => {
-    setSelectedPreset(presetId)
+  const handlePresetChange = useCallback(
+    (presetId: string) => {
+      setSelectedPreset(presetId)
 
-    if (presetId === "all") {
-      onTimeRangeChange(null)
-      return
-    }
+      if (presetId === "all") {
+        onTimeRangeChange(null)
+        return
+      }
 
-    if (presetId === "custom") {
-      return // Handle custom in separate function
-    }
+      if (presetId === "custom") {
+        return // Handle custom in separate function
+      }
 
-    const preset = presets.find((p) => p.id === presetId)
-    if (!preset) return
+      const preset = presets.find((p) => p.id === presetId)
+      if (!preset) return
 
-    const now = new Date()
-    let startDate: Date
+      const now = new Date()
+      let startDate: Date
 
-    if (preset.hours) {
-      startDate = subHours(now, preset.hours)
-    } else if (preset.days) {
-      startDate = subDays(now, preset.days)
-    } else if (preset.weeks) {
-      startDate = subWeeks(now, preset.weeks)
-    } else {
-      return
-    }
+      if (preset.hours) {
+        startDate = subHours(now, preset.hours)
+      } else if (preset.days) {
+        startDate = subDays(now, preset.days)
+      } else if (preset.weeks) {
+        startDate = subWeeks(now, preset.weeks)
+      } else {
+        return
+      }
 
-    onTimeRangeChange(startDate)
-  }
+      onTimeRangeChange(startDate)
+    },
+    [onTimeRangeChange, presets],
+  )
 
   // Initialize with default preset on mount
   React.useEffect(() => {

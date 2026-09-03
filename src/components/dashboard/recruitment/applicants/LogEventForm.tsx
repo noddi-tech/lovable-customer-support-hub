@@ -55,7 +55,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
       } else if (type === "phone_call") {
         await logMut.mutateAsync({
           applicantId,
-          applicationId: applicationId!,
+          applicationId: applicationId,
           event_type: "phone_call",
           event_data: {
             duration_minutes: duration ? Number(duration) : null,
@@ -66,7 +66,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
       } else if (type === "interview_scheduled") {
         await logMut.mutateAsync({
           applicantId,
-          applicationId: applicationId!,
+          applicationId: applicationId,
           event_type: "interview_scheduled",
           event_data: {
             interview_type: interviewType,
@@ -77,7 +77,7 @@ const LogEventForm: React.FC<Props> = ({ applicantId, applicationId, onDone }) =
       } else if (type === "interview_completed") {
         await logMut.mutateAsync({
           applicantId,
-          applicationId: applicationId!,
+          applicationId: applicationId,
           event_type: "interview_completed",
           event_data: {
             interview_type: interviewType,

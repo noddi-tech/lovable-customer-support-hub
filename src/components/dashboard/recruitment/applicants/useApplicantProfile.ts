@@ -94,7 +94,7 @@ export function useApplicantProfile(id: string | undefined) {
         .select(
           "*, applications(id, current_stage_id, score, score_breakdown, score_status, score_explanation, score_strengths, score_concerns, score_updated_at, score_stage_id, score_model, assigned_to, applied_at, rejection_reason, position_id, job_positions(id, title))",
         )
-        .eq("id", id!)
+        .eq("id", id)
         .maybeSingle()
       if (error) throw error
       return data as unknown as ApplicantProfileData | null
@@ -113,7 +113,7 @@ export function useApplicantEvents(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("application_events")
         .select("*, profiles:performed_by(id, full_name, avatar_url)")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as unknown as ApplicantEvent[]
@@ -132,7 +132,7 @@ export function useApplicantNotes(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("applicant_notes")
         .select("*, profiles:author_id(id, full_name, avatar_url)")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as unknown as ApplicantNote[]
@@ -151,7 +151,7 @@ export function useApplicantFiles(applicantId: string | undefined) {
       const { data, error } = await supabase
         .from("applicant_files")
         .select("*")
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as unknown as ApplicantFile[]

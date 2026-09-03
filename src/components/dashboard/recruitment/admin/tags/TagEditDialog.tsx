@@ -47,7 +47,7 @@ export function TagEditDialog({ open, tag, onClose }: Props) {
       if (isCreate) {
         await createMut.mutateAsync({ name: trimmed, color, description })
       } else {
-        await updateMut.mutateAsync({ id: tag!.id, name: trimmed, color, description })
+        await updateMut.mutateAsync({ id: tag.id, name: trimmed, color, description })
       }
       onClose()
     } catch {

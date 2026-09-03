@@ -246,7 +246,7 @@ export const TriageHealthDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-1">
             {data.worst_triggers.map((t, i) => (
-              <div key={i}>
+              <div key={`${t.trigger_type}-${t.trigger_label}`}>
                 {i > 0 && <Separator className="my-1" />}
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -285,7 +285,7 @@ export const TriageHealthDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-1">
             {data.best_triggers.map((t, i) => (
-              <div key={i}>
+              <div key={`${t.trigger_type}-${t.trigger_label}`}>
                 {i > 0 && <Separator className="my-1" />}
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex items-center gap-2 min-w-0 flex-1">

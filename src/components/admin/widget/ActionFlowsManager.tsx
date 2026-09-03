@@ -271,7 +271,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
           {currentFlows.map((flow) => {
             const isExpanded = expandedFlowId === flow.id
             const isEditing = editingFlow?.id === flow.id
-            const displayFlow = isEditing ? editingFlow! : flow
+            const displayFlow = isEditing ? editingFlow : flow
 
             return (
               <Card key={flow.id} className={isExpanded ? "ring-2 ring-primary/20" : ""}>
@@ -303,7 +303,11 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <fieldset
+                      className="flex items-center gap-2 border-0 p-0 m-0 min-w-0"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
                       <Switch
                         checked={displayFlow.is_active}
                         onCheckedChange={(checked) =>
@@ -332,7 +336,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                       ) : (
                         <ChevronDown className="h-4 w-4" />
                       )}
-                    </div>
+                    </fieldset>
                   </div>
                 </CardHeader>
 
@@ -343,28 +347,28 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                         <div>
                           <Label>Label</Label>
                           <Input
-                            value={editingFlow!.label}
+                            value={editingFlow.label}
                             onChange={(e) =>
-                              setEditingFlow({ ...editingFlow!, label: e.target.value })
+                              setEditingFlow({ ...editingFlow, label: e.target.value })
                             }
                           />
                         </div>
                         <div>
                           <Label>Description</Label>
                           <Input
-                            value={editingFlow!.description || ""}
+                            value={editingFlow.description || ""}
                             onChange={(e) =>
-                              setEditingFlow({ ...editingFlow!, description: e.target.value })
+                              setEditingFlow({ ...editingFlow, description: e.target.value })
                             }
                           />
                         </div>
                         <div>
                           <Label>Trigger Phrases (comma-separated)</Label>
                           <Input
-                            value={editingFlow!.trigger_phrases.join(", ")}
+                            value={editingFlow.trigger_phrases.join(", ")}
                             onChange={(e) =>
                               setEditingFlow({
-                                ...editingFlow!,
+                                ...editingFlow,
                                 trigger_phrases: e.target.value
                                   .split(",")
                                   .map((p) => p.trim())
@@ -375,9 +379,9 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                         </div>
                         <div className="flex items-center gap-2 pt-6">
                           <Switch
-                            checked={editingFlow!.requires_verification}
+                            checked={editingFlow.requires_verification}
                             onCheckedChange={(checked) =>
-                              setEditingFlow({ ...editingFlow!, requires_verification: checked })
+                              setEditingFlow({ ...editingFlow, requires_verification: checked })
                             }
                           />
                           <Label>Requires Phone Verification</Label>
@@ -389,7 +393,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                       <div className="flex items-center justify-between">
                         <Label className="text-sm font-medium">Steps</Label>
                         {isEditing && (
-                          <Button variant="outline" size="sm" onClick={() => addStep(editingFlow!)}>
+                          <Button variant="outline" size="sm" onClick={() => addStep(editingFlow)}>
                             <Plus className="h-3 w-3 mr-1" /> Add Step
                           </Button>
                         )}
@@ -415,7 +419,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                                   <Select
                                     value={step.type}
                                     onValueChange={(v) =>
-                                      updateStep(editingFlow!, idx, { type: v as FlowStep["type"] })
+                                      updateStep(editingFlow, idx, { type: v as FlowStep["type"] })
                                     }
                                   >
                                     <SelectTrigger>
@@ -433,13 +437,13 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                                     placeholder="Field name"
                                     value={step.field || ""}
                                     onChange={(e) =>
-                                      updateStep(editingFlow!, idx, { field: e.target.value })
+                                      updateStep(editingFlow, idx, { field: e.target.value })
                                     }
                                   />
                                   <Select
                                     value={step.marker || "none"}
                                     onValueChange={(v) =>
-                                      updateStep(editingFlow!, idx, {
+                                      updateStep(editingFlow, idx, {
                                         marker: v === "none" ? "" : v,
                                       })
                                     }
@@ -461,7 +465,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                                       placeholder="Instruction"
                                       value={step.instruction}
                                       onChange={(e) =>
-                                        updateStep(editingFlow!, idx, {
+                                        updateStep(editingFlow, idx, {
                                           instruction: e.target.value,
                                         })
                                       }
@@ -470,7 +474,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => removeStep(editingFlow!, idx)}
+                                      onClick={() => removeStep(editingFlow, idx)}
                                     >
                                       <Trash2 className="h-3 w-3 text-destructive" />
                                     </Button>

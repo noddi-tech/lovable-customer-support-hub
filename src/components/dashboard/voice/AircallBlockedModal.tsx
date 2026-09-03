@@ -124,7 +124,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
                 <div className="mt-3 space-y-1 text-sm">
                   <div className="font-semibold">How to enable cookies in {browserInfo.name}:</div>
                   {getCookieEnableInstructions(browserInfo.type).map((instruction, idx) => (
-                    <div key={idx} className="flex items-start gap-2">
+                    <div key={instruction} className="flex items-start gap-2">
                       <span className="text-orange-600 font-bold min-w-[20px]">{idx + 1}.</span>
                       <span>{instruction}</span>
                     </div>
@@ -220,7 +220,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
               <strong>{t("aircall.blocked.browser.braveDetected")}</strong>
               <div className="mt-2 space-y-1 text-sm">
                 {getBrowserInstructions("brave").map((instruction, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
+                  <div key={instruction} className="flex items-start gap-2">
                     <span className="text-orange-600 font-bold">{idx + 1}.</span>
                     <span>{instruction}</span>
                   </div>

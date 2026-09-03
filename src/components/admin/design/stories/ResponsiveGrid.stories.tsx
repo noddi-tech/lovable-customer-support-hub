@@ -21,6 +21,7 @@ const GridItem = ({ children }: { children: React.ReactNode }) => (
 
 export const Default: Story = {
   args: {
+    // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
     children: Array.from({ length: 6 }, (_, i) => <GridItem key={i}>Item {i + 1}</GridItem>),
   },
 }
@@ -30,6 +31,7 @@ export const ResponsiveColumns: Story = {
     cols: { sm: "1" as string, md: "2" as string, lg: "3" as string, xl: "4" as string },
     gap: "4",
     children: Array.from({ length: 8 }, (_, i) => (
+      // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
       <GridItem key={i}>
         <strong>Item {i + 1}</strong>
         <p className="text-sm mt-1">Responsive grid</p>
@@ -44,6 +46,7 @@ export const AutoFitLayout: Story = {
     minColWidth: "200px",
     gap: "4",
     children: Array.from({ length: 12 }, (_, i) => (
+      // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
       <GridItem key={i}>
         <strong>Auto {i + 1}</strong>
         <p className="text-sm mt-1">Min 200px width</p>

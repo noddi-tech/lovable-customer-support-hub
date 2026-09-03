@@ -194,12 +194,17 @@ export const AttachmentPreviewCard: React.FC<AttachmentPreviewCardProps> = ({
       {/* Thumbnail / Icon */}
       <div className="flex-shrink-0 w-10 h-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
         {category === "image" && thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt={attachment.filename}
-            className="w-full h-full object-cover cursor-pointer"
+          <button
+            type="button"
+            className="w-full h-full appearance-none bg-transparent border-0 p-0 cursor-pointer"
             onClick={onImageClick}
-          />
+          >
+            <img
+              src={thumbnailUrl}
+              alt={attachment.filename}
+              className="w-full h-full object-cover"
+            />
+          </button>
         ) : (
           <CategoryIcon category={category} />
         )}

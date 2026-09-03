@@ -110,7 +110,7 @@ const CandidateFormPage: React.FC = () => {
         setIdentityError(ERROR_COPY.server_error)
         return
       }
-      const d = data as any
+      const d = data
       if (!d?.valid) {
         const reason = d?.reason ?? "invalid_or_expired"
         setIdentityError(ERROR_COPY[reason] ?? ERROR_COPY.server_error)
@@ -172,7 +172,7 @@ const CandidateFormPage: React.FC = () => {
       setStep("form")
       return
     }
-    const d = data as any
+    const d = data
     // Treat both fresh success and already-submitted (race / re-submit) as terminal success.
     if (d?.success === true || d?.reason === "already_submitted") {
       setStep("success")

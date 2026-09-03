@@ -109,7 +109,7 @@ export const ConversationHeader = () => {
             <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
               <AvatarFallback>
                 {(() => {
-                  const ap: any = (conversation as any).applicant
+                  const ap: any = conversation.applicant
                   const apName = ap
                     ? [ap.first_name, ap.last_name].filter(Boolean).join(" ").trim()
                     : ""
@@ -186,14 +186,11 @@ export const ConversationHeader = () => {
                 )}
                 <ConversationBrandPicker
                   conversationId={conversation.id}
-                  metadata={(conversation as any).metadata}
+                  metadata={conversation.metadata}
                   channel={conversation.channel}
                 />
                 <EntityTagPicker entityType="conversation" entityId={conversation.id} />
-                <HeaderCaseChip
-                  conversationId={conversation.id}
-                  caseId={(conversation as any).case_id}
-                />
+                <HeaderCaseChip conversationId={conversation.id} caseId={conversation.case_id} />
               </div>
             </div>
           </div>

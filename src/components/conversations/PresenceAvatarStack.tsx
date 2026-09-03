@@ -36,12 +36,17 @@ export const PresenceAvatarStack = memo<PresenceAvatarStackProps>(
     const typingUsersWithProfiles = useTypingUsersWithProfiles(conversationId)
 
     const currentUserProfile = presenceContext?.currentUserProfile ?? null
-    const presenceViewers = presenceContext?.viewersForConversation(conversationId) ?? []
+    const presenceViewers = useMemo(
+      () => presenceContext?.viewersForConversation(conversationId) ?? [],
+      [presenceContext, conversationId],
+    )
 
     // Merge: start with presence viewers, then add any typing users not already present
     const mergedViewers = useMemo(() => {
       const viewerMap = new Map<string, PresenceUser>()
-      presenceViewers.forEach((v) => viewerMap.set(v.user_id, v))
+      presenceViewers.forEach((v) => {
+        viewerMap.set(v.user_id, v)
+      })
       typingUsersWithProfiles.forEach((tp) => {
         if (!viewerMap.has(tp.user_id)) {
           viewerMap.set(tp.user_id, {

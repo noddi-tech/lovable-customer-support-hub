@@ -129,6 +129,7 @@ export default function OrganizationManagement() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
               <Card key={i} className="border-yellow-200 dark:border-yellow-900/50">
                 <CardHeader>
                   <Skeleton className="h-6 w-3/4" />

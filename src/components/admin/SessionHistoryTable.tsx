@@ -95,6 +95,7 @@ export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableP
     return (
       <div className="space-y-2">
         {[...Array(3)].map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>

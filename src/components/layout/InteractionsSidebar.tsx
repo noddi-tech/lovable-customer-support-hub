@@ -92,6 +92,7 @@ export const InteractionsSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
+                      type="button"
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-between gap-2",
@@ -126,6 +127,7 @@ export const InteractionsSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
+                      type="button"
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-start gap-2",
@@ -153,6 +155,7 @@ export const InteractionsSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
+                      type="button"
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-start gap-2",

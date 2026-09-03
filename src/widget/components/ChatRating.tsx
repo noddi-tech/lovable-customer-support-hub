@@ -99,6 +99,7 @@ export const ChatRating: React.FC<ChatRatingProps> = ({
                 onChange={(e) => setComment(e.target.value)}
               />
               <button
+                type="button"
                 className="noddi-chat-new-button"
                 style={{ backgroundColor: primaryColor }}
                 disabled={busy}
@@ -131,6 +132,7 @@ export const ChatRating: React.FC<ChatRatingProps> = ({
                 onChange={(e) => setEmail(e.target.value)}
               />
               <button
+                type="button"
                 className="noddi-chat-send"
                 style={{ backgroundColor: primaryColor }}
                 disabled={busy || !email.trim()}
@@ -156,7 +158,7 @@ export const ChatRating: React.FC<ChatRatingProps> = ({
         )}
       </div>
 
-      <button className="noddi-widget-back" onClick={onDone}>
+      <button type="button" className="noddi-widget-back" onClick={onDone}>
         {t.startNewConversation}
       </button>
     </div>

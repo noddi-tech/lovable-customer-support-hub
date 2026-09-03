@@ -54,7 +54,7 @@ export function getDepartmentColumns({
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => {
-        const desc = row.getValue("description") as string | null
+        const desc = row.getValue("description")
         return <span className="text-muted-foreground">{desc || "—"}</span>
       },
     },
@@ -70,7 +70,7 @@ export function getDepartmentColumns({
         </Button>
       ),
       cell: ({ row }) => {
-        return new Date(row.getValue("created_at") as string).toLocaleDateString()
+        return new Date(row.getValue("created_at")).toLocaleDateString()
       },
     },
     {

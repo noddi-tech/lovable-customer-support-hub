@@ -70,7 +70,7 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
     Promise.all(
       matching.map(async (a) => {
         const url = await createDataUrl(a)
-        return url ? { keys: [a.contentId, a.filename].filter(Boolean) as string[], url } : null
+        return url ? { keys: [a.contentId, a.filename].filter(Boolean), url } : null
       }),
     ).then((results) => {
       if (cancelled) return

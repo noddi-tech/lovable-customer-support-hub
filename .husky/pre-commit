@@ -1,1 +1,5 @@
+#!/usr/bin/env sh
+# Full pre-commit: staged autofix → quality gate → strict lint suite
+npx lint-staged
 QUALITY_GATE_RESTAGE=1 sh scripts/quality-gate.sh --fix-and-check
+npm run lint:strict

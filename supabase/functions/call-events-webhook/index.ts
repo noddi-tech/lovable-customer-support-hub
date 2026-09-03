@@ -107,104 +107,102 @@ interface StandardCallEvent {
   eventData: Record<string, any>
 }
 
-class AircallAdapter {
-  static convertWebhookToStandardEvent(payload: any): StandardCallEvent {
-    const call = payload.data
-    console.log("Aircall webhook payload:", JSON.stringify(payload, null, 2))
+function convertAircallWebhookToStandardEvent(payload: any): StandardCallEvent {
+  const call = payload.data
+  console.log("Aircall webhook payload:", JSON.stringify(payload, null, 2))
 
-    // Determine final status based on both Aircall status AND end_reason
-    let finalStatus = "ringing"
+  // Determine final status based on both Aircall status AND end_reason
+  let finalStatus = "ringing"
 
-    if (call.status === "done" || call.status === "hungup" || payload.event === "call.ended") {
-      // Call has ended - determine why
-      const missedReasons = [
-        "agents_did_not_answer",
-        "abandoned_in_ivr",
-        "not_answered",
-        "short_abandoned",
-        "no_available_agent",
-        "out_of_opening_hours",
-        "abandoned_in_classic",
-      ]
+  if (call.status === "done" || call.status === "hungup" || payload.event === "call.ended") {
+    // Call has ended - determine why
+    const missedReasons = [
+      "agents_did_not_answer",
+      "abandoned_in_ivr",
+      "not_answered",
+      "short_abandoned",
+      "no_available_agent",
+      "out_of_opening_hours",
+      "abandoned_in_classic",
+    ]
 
-      if (call.missed_call_reason && missedReasons.includes(call.missed_call_reason)) {
-        finalStatus = "missed"
-      } else if (call.answered_at) {
-        // Call was answered and then ended
-        finalStatus = "completed"
-      } else {
-        // No answered_at and no clear missed reason - default to missed
-        finalStatus = "missed"
-      }
+    if (call.missed_call_reason && missedReasons.includes(call.missed_call_reason)) {
+      finalStatus = "missed"
+    } else if (call.answered_at) {
+      // Call was answered and then ended
+      finalStatus = "completed"
     } else {
-      // Call is still in progress
-      const statusMap: Record<string, string> = {
-        initial: "ringing",
-        ringing: "ringing",
-        answered: "answered",
-        transferred: "transferred",
-        hold: "on_hold",
-        busy: "busy",
-        failed: "failed",
-      }
-      finalStatus = statusMap[call.status] || "ringing"
+      // No answered_at and no clear missed reason - default to missed
+      finalStatus = "missed"
     }
+  } else {
+    // Call is still in progress
+    const statusMap: Record<string, string> = {
+      initial: "ringing",
+      ringing: "ringing",
+      answered: "answered",
+      transferred: "transferred",
+      hold: "on_hold",
+      busy: "busy",
+      failed: "failed",
+    }
+    finalStatus = statusMap[call.status] || "ringing"
+  }
 
-    // Map Aircall events to our event types
-    const eventTypeMap: Record<string, string> = {
-      "call.created": "call_started",
-      "call.answered": "call_answered",
-      "call.hungup": "call_ended",
-      "call.ended": "call_ended",
-      "call.ended-manual": "call_ended",
-      "call.missed": "call_missed",
-      "call.transferred": "call_transferred",
-      "call.hold": "call_on_hold",
-      "call.unhold": "call_resumed",
-      "call.voicemail": "voicemail_left",
-      "call.voicemail_left": "voicemail_left",
-      "call.ivr_option_selected": "dtmf_pressed",
-    }
+  // Map Aircall events to our event types
+  const eventTypeMap: Record<string, string> = {
+    "call.created": "call_started",
+    "call.answered": "call_answered",
+    "call.hungup": "call_ended",
+    "call.ended": "call_ended",
+    "call.ended-manual": "call_ended",
+    "call.missed": "call_missed",
+    "call.transferred": "call_transferred",
+    "call.hold": "call_on_hold",
+    "call.unhold": "call_resumed",
+    "call.voicemail": "voicemail_left",
+    "call.voicemail_left": "voicemail_left",
+    "call.ivr_option_selected": "dtmf_pressed",
+  }
 
-    // Convert Unix timestamps to ISO strings
-    const convertTimestamp = (unixTimestamp: any): string | undefined => {
-      if (!unixTimestamp) return undefined
-      if (typeof unixTimestamp === "number") {
-        return new Date(unixTimestamp * 1000).toISOString()
-      }
-      if (typeof unixTimestamp === "string" && /^\d+$/.test(unixTimestamp)) {
-        return new Date(parseInt(unixTimestamp, 10) * 1000).toISOString()
-      }
-      return unixTimestamp
+  // Convert Unix timestamps to ISO strings
+  const convertTimestamp = (unixTimestamp: any): string | undefined => {
+    if (!unixTimestamp) return undefined
+    if (typeof unixTimestamp === "number") {
+      return new Date(unixTimestamp * 1000).toISOString()
     }
+    if (typeof unixTimestamp === "string" && /^\d+$/.test(unixTimestamp)) {
+      return new Date(parseInt(unixTimestamp, 10) * 1000).toISOString()
+    }
+    return unixTimestamp
+  }
 
-    return {
-      externalId: call.id.toString(),
-      provider: "aircall",
-      customerPhone: call.raw_digits || call.from?.phone_number,
-      agentPhone: call.to?.phone_number,
-      status: finalStatus,
-      direction: call.direction === "inbound" ? "inbound" : "outbound",
-      startedAt: convertTimestamp(call.started_at) || new Date().toISOString(),
-      endedAt: convertTimestamp(call.ended_at),
-      durationSeconds: call.duration || undefined,
-      recordingUrl: call.recording?.url || undefined,
-      metadata: {
-        aircallId: call.id,
-        tags: call.tags || [],
-        user: call.user || null,
-        contact: call.contact || null,
-        missedCallReason: call.missed_call_reason || null,
-        answeredAt: call.answered_at || null,
-        originalPayload: call,
-      },
-      eventType: eventTypeMap[payload.event] || "call_started",
-      eventData: {
-        webhookEvent: payload.event,
-        timestamp: convertTimestamp(payload.timestamp) || new Date().toISOString(),
-        callData: call,
-      },
-    }
+  return {
+    externalId: call.id.toString(),
+    provider: "aircall",
+    customerPhone: call.raw_digits || call.from?.phone_number,
+    agentPhone: call.to?.phone_number,
+    status: finalStatus,
+    direction: call.direction === "inbound" ? "inbound" : "outbound",
+    startedAt: convertTimestamp(call.started_at) || new Date().toISOString(),
+    endedAt: convertTimestamp(call.ended_at),
+    durationSeconds: call.duration || undefined,
+    recordingUrl: call.recording?.url || undefined,
+    metadata: {
+      aircallId: call.id,
+      tags: call.tags || [],
+      user: call.user || null,
+      contact: call.contact || null,
+      missedCallReason: call.missed_call_reason || null,
+      answeredAt: call.answered_at || null,
+      originalPayload: call,
+    },
+    eventType: eventTypeMap[payload.event] || "call_started",
+    eventData: {
+      webhookEvent: payload.event,
+      timestamp: convertTimestamp(payload.timestamp) || new Date().toISOString(),
+      callData: call,
+    },
   }
 }
 
@@ -212,7 +210,7 @@ class AircallAdapter {
 function adaptWebhookEvent(provider: string, payload: any): StandardCallEvent {
   switch (provider.toLowerCase()) {
     case "aircall":
-      return AircallAdapter.convertWebhookToStandardEvent(payload)
+      return convertAircallWebhookToStandardEvent(payload)
     default:
       throw new Error(`Unknown provider: ${provider}`)
   }

@@ -89,7 +89,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
         if (typeof ref === "function") {
           ref(node)
         } else if (ref) {
-          ;(ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = node
+          ref.current = node
         }
       },
       [ref],
@@ -293,9 +293,9 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
         {mentionState.isOpen &&
           typeof document !== "undefined" &&
           createPortal(
-            <div
+            <fieldset
               data-mention-panel="true"
-              className="fixed z-[10050] w-[280px] rounded-md border bg-popover text-popover-foreground shadow-md outline-none"
+              className="fixed z-[10050] w-[280px] rounded-md border bg-popover text-popover-foreground shadow-md outline-none m-0 p-0 min-w-0"
               style={{ top: panelPos.top, left: panelPos.left }}
               // Keep textarea focused when interacting with the panel
               onMouseDown={(e) => e.preventDefault()}
@@ -356,7 +356,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
                   </div>
                 )}
               </div>
-            </div>,
+            </fieldset>,
             document.body,
           )}
       </div>

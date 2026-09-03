@@ -91,6 +91,7 @@ const EmailInputBlock: React.FC<BlockComponentProps> = ({
           />
         </div>
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={!value.trim()}
           style={{

@@ -35,7 +35,7 @@ export function useApplicantTags(applicantId: string | undefined) {
         .select(
           "id, applicant_id, tag_id, added_at, recruitment_tags(id, name, color, archived_at)",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
         .order("added_at", { ascending: true })
       if (error) throw error
       return (data ?? []) as unknown as ApplicantTagLink[]
@@ -59,7 +59,9 @@ export function useApplicantTagsByIds(applicantIds: string[]) {
       if (error) throw error
       const map: Record<string, ApplicantTagLink[]> = {}
       for (const row of (data ?? []) as unknown as ApplicantTagLink[]) {
-        ;(map[row.applicant_id] ??= []).push(row)
+        const list = map[row.applicant_id]
+        if (list) list.push(row)
+        else map[row.applicant_id] = [row]
       }
       return map
     },

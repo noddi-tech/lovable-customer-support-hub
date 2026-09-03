@@ -34,7 +34,7 @@ export function useApplicantFieldValues(
         .select(
           "*, recruitment_custom_fields!inner(field_key, display_name, display_order, show_on_card, show_on_profile, options, recruitment_custom_field_types!inner(type_key))",
         )
-        .eq("applicant_id", applicantId!)
+        .eq("applicant_id", applicantId)
       if (error) throw error
       const rows = ((data ?? []) as any[]).map((r) => ({
         id: r.id,

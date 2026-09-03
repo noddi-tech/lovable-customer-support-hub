@@ -51,6 +51,7 @@ export function ConversationCaseSection({
         {linkedCase ? (
           <>
             <button
+              type="button"
               onClick={() => navigate(`/operations/cases/${linkedCase.id}`)}
               className="w-full rounded-md border p-2.5 text-left transition-colors hover:bg-accent/50"
             >

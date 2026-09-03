@@ -121,6 +121,7 @@ const GroupSelectBlock: React.FC<BlockComponentProps> = ({
 
       {selected && !showConfirmed && (
         <button
+          type="button"
           onClick={handleConfirm}
           style={{
             marginTop: "8px",

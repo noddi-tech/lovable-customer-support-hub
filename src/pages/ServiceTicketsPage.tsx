@@ -318,7 +318,7 @@ const ServiceTicketsPage: React.FC = () => {
                 <p className="text-sm font-medium text-muted-foreground mb-2">Error Messages</p>
                 <div className="bg-muted/50 p-3 rounded-lg">
                   {ticket.technicalDetails.errorMessages.map((error, index) => (
-                    <p key={index} className="text-sm font-mono text-foreground mb-1">
+                    <p key={error} className="text-sm font-mono text-foreground mb-1">
                       • {error}
                     </p>
                   ))}
@@ -350,7 +350,10 @@ const ServiceTicketsPage: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               {ticket.timeline.map((event, index) => (
-                <div key={index} className="flex items-start gap-3">
+                <div
+                  key={`${event.action}-${event.timestamp ?? event.time ?? ""}`}
+                  className="flex items-start gap-3"
+                >
                   <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">

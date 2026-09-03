@@ -138,9 +138,11 @@ const ApplicantsTable: React.FC<Props> = ({
           </TableHeader>
           <TableBody>
             {Array.from({ length: 5 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
               <TableRow key={i}>
                 {selectionEnabled && <TableCell />}
                 {HEADERS.map((__, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-24" />
                   </TableCell>

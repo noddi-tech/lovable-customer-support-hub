@@ -57,7 +57,9 @@ export function useEntityBrandActions({
         if (error) throw error
 
         toast.success(brandName ? `Brand set to ${brandName}` : "Brand cleared")
-        invalidateKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }))
+        invalidateKeys.forEach((key) => {
+          void queryClient.invalidateQueries({ queryKey: [key] })
+        })
 
         await afterSet?.(entityId, brandName)
       } catch (error) {

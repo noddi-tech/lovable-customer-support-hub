@@ -37,7 +37,7 @@ export const userColumns: ColumnDef<UserRow>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const name = row.getValue("full_name") as string | null
+      const name = row.getValue("full_name")
       const role = row.original.primary_role
       return (
         <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export const userColumns: ColumnDef<UserRow>[] = [
     accessorKey: "primary_role",
     header: "Role",
     cell: ({ row }) => {
-      const role = row.getValue("primary_role") as string
+      const role = row.getValue("primary_role")
       return (
         <Badge variant={role === "admin" ? "destructive" : "secondary"}>
           <Shield className="h-3 w-3 mr-1" />
@@ -90,7 +90,7 @@ export const userColumns: ColumnDef<UserRow>[] = [
     accessorKey: "is_active",
     header: "Status",
     cell: ({ row }) => {
-      const active = row.getValue("is_active") as boolean
+      const active = row.getValue("is_active")
       return (
         <Badge variant={active ? "default" : "secondary"}>{active ? "Active" : "Inactive"}</Badge>
       )
@@ -105,7 +105,7 @@ export const userColumns: ColumnDef<UserRow>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      return new Date(row.getValue("created_at") as string).toLocaleDateString()
+      return new Date(row.getValue("created_at")).toLocaleDateString()
     },
   },
   {

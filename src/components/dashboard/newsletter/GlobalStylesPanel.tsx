@@ -169,6 +169,7 @@ export const GlobalStylesPanel: React.FC = () => {
             </h3>
             <p style={{ marginBottom: "12px" }}>{t("sampleText")}</p>
             <button
+              type="button"
               style={{
                 backgroundColor: globalStyles.primaryColor,
                 color: "white",

@@ -213,17 +213,18 @@ export function useLiveChatSessions(organizationId: string | null) {
 
   // Update browser tab title with waiting count
   useEffect(() => {
+    const originalTitle = originalTitleRef.current
     if (waitingSessions.length > 0) {
-      document.title = `(${waitingSessions.length}) ${originalTitleRef.current}`
+      document.title = `(${waitingSessions.length}) ${originalTitle}`
     } else {
-      document.title = originalTitleRef.current
+      document.title = originalTitle
     }
 
     // Track count for next comparison
     previousWaitingCountRef.current = waitingSessions.length
 
     return () => {
-      document.title = originalTitleRef.current
+      document.title = originalTitle
     }
   }, [waitingSessions.length])
 

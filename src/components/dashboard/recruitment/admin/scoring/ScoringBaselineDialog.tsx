@@ -41,7 +41,7 @@ export const ScoringBaselineDialog: React.FC<Props> = ({ open, onOpenChange, bas
     if (open) {
       setName(baseline?.name ?? "")
       setIsDefault(baseline?.is_default ?? false)
-      setRubric((baseline?.rubric as ScoringRubric) ?? emptyRubric())
+      setRubric(baseline?.rubric ?? emptyRubric())
     }
   }, [open, baseline])
 

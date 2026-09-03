@@ -118,8 +118,11 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
   const [pendingMetaQuestion, setPendingMetaQuestion] = useState<MetaFormQuestion | null>(null)
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
 
-  const customFields = customFieldsQ.data ?? []
-  const questions: MetaFormQuestion[] = questionsQ.data?.questions ?? []
+  const customFields = useMemo(() => customFieldsQ.data ?? [], [customFieldsQ.data])
+  const questions: MetaFormQuestion[] = useMemo(
+    () => questionsQ.data?.questions ?? [],
+    [questionsQ.data?.questions],
+  )
   const scopeMissing = !!questionsQ.data?.scope_missing
 
   // Build per-row state. Key by meta_question_id (or label fallback).
@@ -147,7 +150,7 @@ export function FormMappingEditor({ formMappingId, formName, onReconnectClick }:
           meta_question_id: qid,
           meta_question_key: qkey,
           meta_question_text: q.label,
-          target_kind: (sug.target_kind ?? "metadata_only") as TargetKind,
+          target_kind: sug.target_kind ?? "metadata_only",
           target_standard_field: sug.target_standard_field ?? null,
           target_custom_field_id: sug.target_custom_field_id ?? null,
         }
@@ -495,7 +498,7 @@ function ApplyTemplatePreviewDialog({
   onApply: (updates: Array<{ qid: string; patch: Partial<RowState> }>) => void
 }) {
   const itemsQ = useFieldMappingTemplateItems(open ? templateId : null)
-  const items = itemsQ.data ?? []
+  const items = useMemo(() => itemsQ.data ?? [], [itemsQ.data])
   const [checked, setChecked] = useState<Record<string, boolean>>({})
 
   const proposed: ProposedAssignment[] = useMemo(() => {

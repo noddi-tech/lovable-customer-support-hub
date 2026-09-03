@@ -178,7 +178,7 @@ export default function CaseReportsPage() {
         ? withResolution.reduce(
             (acc, c) =>
               acc +
-              (new Date(c.resolved_at!).getTime() - new Date(c.created_at).getTime()) / 3600000,
+              (new Date(c.resolved_at).getTime() - new Date(c.created_at).getTime()) / 3600000,
             0,
           ) / withResolution.length
         : null
@@ -201,7 +201,7 @@ export default function CaseReportsPage() {
       byCategory: byKey(cases, (c) => c.category?.name ?? "Uncategorised"),
       byResolution: byKey(closed, (c) => c.resolution_code?.name ?? "No code"),
       byOwner: byKey(open, (c) => c.owner?.full_name ?? "Unassigned"),
-      byStatus: byKey(cases, (c) => CASE_STATUS_LABELS[c.status as CaseStatus] ?? c.status),
+      byStatus: byKey(cases, (c) => CASE_STATUS_LABELS[c.status] ?? c.status),
     }
   }, [cases])
 

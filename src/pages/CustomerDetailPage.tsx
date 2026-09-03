@@ -118,6 +118,7 @@ export default function CustomerDetailPage() {
                   ) : (
                     conversations.map((c) => (
                       <button
+                        type="button"
                         key={c.id}
                         onClick={() => navigate(`/c/${c.id}`)}
                         className="w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:p-2.5"
@@ -154,6 +155,7 @@ export default function CustomerDetailPage() {
                   ) : (
                     cases.map((c) => (
                       <button
+                        type="button"
                         key={c.id}
                         onClick={() => navigate(`/operations/cases/${c.id}`)}
                         className="w-full rounded-md border bg-card p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/60 sm:p-2.5"

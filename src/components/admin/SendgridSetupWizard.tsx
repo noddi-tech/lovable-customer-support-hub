@@ -144,8 +144,7 @@ export const SendgridSetupWizard = () => {
   const verifyDns = async () => {
     try {
       const values = form.getValues()
-      const dns: any =
-        (result as any)?.dns_records?.sender_auth ?? (result as any)?.sender_auth?.record?.dns
+      const dns: any = result?.dns_records?.sender_auth ?? result?.sender_auth?.record?.dns
       if (!dns) {
         toast({
           title: "Run setup first",
@@ -164,7 +163,7 @@ export const SendgridSetupWizard = () => {
         (a: any) => normalize(a.data.split(" ").pop()) === "mx.sendgrid.net",
       )
 
-      const cnameRecords = Object.values(dns) as any[]
+      const cnameRecords = Object.values(dns)
       const cnameChecks = await Promise.all(
         cnameRecords.map(async (rec: any) => {
           const r = await fetch(`https://dns.google/resolve?name=${rec.host}&type=CNAME`)
@@ -360,8 +359,7 @@ export const SendgridSetupWizard = () => {
                   </p>
                   <div className="rounded-md border border-border/50 p-3 text-xs bg-background/50 space-y-3">
                     {Object.values(
-                      (result as any)?.dns_records?.sender_auth ??
-                        (result as any)?.sender_auth?.record?.dns,
+                      result?.dns_records?.sender_auth ?? result?.sender_auth?.record?.dns,
                     ).map((rec: any) => (
                       <div key={rec.host} className="grid gap-1 sm:grid-cols-4">
                         <div className="flex gap-2 sm:col-span-2">

@@ -23,7 +23,8 @@ const ActionMenuBlock: React.FC<BlockComponentProps> = ({
         const isSelected = selectedOption === option
         return (
           <button
-            key={i}
+            type="button"
+            key={option}
             className="noddi-action-pill"
             disabled={isUsed}
             onClick={() => {
@@ -55,7 +56,7 @@ const ActionMenuPreview: React.FC = () => (
   <div className="flex flex-wrap gap-1">
     {["Option 1", "Option 2"].map((o, i) => (
       <span
-        key={i}
+        key={o}
         className="text-[8px] px-1.5 py-0.5 rounded-full border border-purple-400 text-purple-600"
       >
         {o}

@@ -9,7 +9,7 @@ const modules = import.meta.glob("/docs/**/*.md", {
   query: "?raw",
   import: "default",
   eager: true,
-}) as Record<string, string>
+})
 
 export interface DocEntry {
   /** Route slug, e.g. `adr/0001-record-architecture-decisions`. */

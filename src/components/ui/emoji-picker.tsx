@@ -54,7 +54,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect, trigger
     <div className="grid grid-cols-8 gap-1 p-2">
       {emojis.map((emoji, index) => (
         <Button
-          key={`${emoji.emoji}-${index}`}
+          key={emoji.shortcode}
           variant="ghost"
           className="h-8 w-8 p-0 hover:bg-muted text-lg"
           onClick={() => handleEmojiClick(emoji.emoji)}

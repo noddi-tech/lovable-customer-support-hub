@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -49,7 +49,7 @@ export const SendgridWebhookFixer: React.FC = () => {
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const fetchDiagnostics = async () => {
+  const fetchDiagnostics = useCallback(async () => {
     setIsLoadingDiagnostics(true)
     setDiagnosticError(null)
 
@@ -73,7 +73,7 @@ export const SendgridWebhookFixer: React.FC = () => {
     } finally {
       setIsLoadingDiagnostics(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchDiagnostics()

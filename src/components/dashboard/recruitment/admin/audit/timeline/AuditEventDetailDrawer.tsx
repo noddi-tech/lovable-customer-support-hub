@@ -33,7 +33,7 @@ function collectUuids(event: UnifiedAuditEvent | null): string[] {
   for (const bucket of [event.old_values, event.new_values]) {
     if (!bucket || typeof bucket !== "object") continue
     for (const f of UUID_FIELDS) {
-      const v = (bucket as Record<string, unknown>)[f]
+      const v = bucket[f]
       if (typeof v === "string" && UUID_RE.test(v)) ids.add(v)
     }
   }
@@ -159,7 +159,7 @@ function ExportContextView({ context }: { context: Record<string, unknown> | nul
   if (!context || typeof context !== "object") {
     return <p className="text-sm text-muted-foreground">Ingen kontekst.</p>
   }
-  const c = context as Record<string, unknown>
+  const c = context
   const format = typeof c.format === "string" ? c.format.toUpperCase() : null
   const count = typeof c.count === "number" ? c.count : null
   const fromDate =

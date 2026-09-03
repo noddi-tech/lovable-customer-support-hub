@@ -16,12 +16,21 @@ const RatingBlock: React.FC<BlockComponentProps> = ({
   const [hover, setHover] = useState(0)
 
   return (
-    <div
-      style={{ margin: "10px 0", display: "flex", gap: "4px", alignItems: "center" }}
+    <fieldset
+      style={{
+        margin: "10px 0",
+        display: "flex",
+        gap: "4px",
+        alignItems: "center",
+        border: "none",
+        padding: 0,
+        minWidth: 0,
+      }}
       onMouseLeave={() => setHover(0)}
     >
       {[1, 2, 3, 4, 5].map((star) => (
         <button
+          type="button"
           key={star}
           disabled={isUsed}
           onMouseEnter={() => !isUsed && setHover(star)}
@@ -56,7 +65,7 @@ const RatingBlock: React.FC<BlockComponentProps> = ({
       {selected > 0 && (
         <span style={{ fontSize: "12px", color: "#6b7280", marginLeft: "4px" }}>{selected}/5</span>
       )}
-    </div>
+    </fieldset>
   )
 }
 

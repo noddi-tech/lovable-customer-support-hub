@@ -25,7 +25,7 @@ export function useCustomFields() {
         .select(
           "*, recruitment_custom_field_types!inner(type_key, display_name_no, supports_options, ui_component)",
         )
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .order("display_order", { ascending: true })
       if (error) throw error
       return ((data ?? []) as any[]).map((r) => ({

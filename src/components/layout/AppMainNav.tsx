@@ -219,7 +219,7 @@ export const AppMainNav = () => {
 
       <SidebarContent>
         {groupOrder.map((groupKey) => {
-          const items = groupedItems[groupKey as keyof typeof groupedItems]
+          const items = groupedItems[groupKey]
           if (!items || items.length === 0) return null
           if (groupKey === "admin" && !isAdmin) return null
           if (groupKey === "super_admin" && !isSuperAdmin) return null
@@ -234,7 +234,7 @@ export const AppMainNav = () => {
                   )}
                 >
                   {groupKey === "super_admin" && <Crown className="inline h-4 w-4 mr-1" />}
-                  {groupLabels[groupKey as keyof typeof groupLabels]}
+                  {groupLabels[groupKey]}
                 </SidebarGroupLabel>
               )}
 
@@ -315,6 +315,7 @@ export const AppMainNav = () => {
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button
+              type="button"
               className={cn(
                 "flex items-center gap-2 w-full rounded-md px-3 py-2 hover:bg-muted/50 transition-colors text-left",
                 isCollapsed && "justify-center px-0",

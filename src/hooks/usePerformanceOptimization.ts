@@ -139,6 +139,7 @@ export const usePerformanceOptimization = (
   }, [])
 
   // Main performance tracking effect
+  // checkReRender already closes over `dependencies`, so its identity tracks caller deps
   useEffect(() => {
     if (finalConfig.enableLogging) {
       startRenderTiming()
@@ -146,7 +147,13 @@ export const usePerformanceOptimization = (
       checkMemoryUsage()
       endRenderTiming()
     }
-  }, dependencies)
+  }, [
+    finalConfig.enableLogging,
+    startRenderTiming,
+    checkReRender,
+    checkMemoryUsage,
+    endRenderTiming,
+  ])
 
   // Cleanup effect
   useEffect(() => {

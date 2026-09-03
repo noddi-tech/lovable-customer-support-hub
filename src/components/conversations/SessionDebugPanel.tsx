@@ -1,5 +1,5 @@
 import { Building, CheckCircle2, Clock, Database, RefreshCw, User, XCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,7 +20,7 @@ export function SessionDebugPanel() {
   const [debugInfo, setDebugInfo] = useState<SessionDebugInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const fetchDebugInfo = async () => {
+  const fetchDebugInfo = useCallback(async () => {
     setIsLoading(true)
     try {
       const { data, error } = await supabase.rpc("validate_session_context")
@@ -44,7 +44,7 @@ export function SessionDebugPanel() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [user, session])
 
   useEffect(() => {
     fetchDebugInfo()

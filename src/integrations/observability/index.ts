@@ -30,13 +30,12 @@ export const APP_NAME = "support-hub"
 const env = import.meta.env
 const isProd = env.MODE === "production"
 
-const OPENPANEL_CLIENT_ID = env.VITE_APP_OPENPANEL_CLIENT_ID as string | undefined
-const OPENPANEL_API_URL =
-  (env.VITE_APP_OPENPANEL_API_URL as string | undefined) || "https://analytics.noddi.co/api"
+const OPENPANEL_CLIENT_ID = env.VITE_APP_OPENPANEL_CLIENT_ID
+const OPENPANEL_API_URL = env.VITE_APP_OPENPANEL_API_URL || "https://analytics.noddi.co/api"
 
 /** First-party Faro collector (same-site for support.noddi.co — ad-blocker friendly). */
-const FARO_URL = (env.VITE_APP_FARO_URL as string | undefined) || "https://telemetry.noddi.co"
-const FARO_API_KEY = env.VITE_APP_FARO_API_KEY as string | undefined
+const FARO_URL = env.VITE_APP_FARO_URL || "https://telemetry.noddi.co"
+const FARO_API_KEY = env.VITE_APP_FARO_API_KEY
 
 let initialized = false
 

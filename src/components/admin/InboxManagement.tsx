@@ -412,6 +412,7 @@ export function InboxManagementContent() {
       {isLoadingInboxes ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[...Array(3)].map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Card key={i} className="animate-pulse">
               <CardHeader>
                 <div className="h-4 bg-muted rounded w-3/4"></div>

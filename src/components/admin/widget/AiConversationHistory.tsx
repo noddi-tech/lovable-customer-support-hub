@@ -208,6 +208,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
             <div className="divide-y">
               {filtered.map((convo) => (
                 <button
+                  type="button"
                   key={convo.id}
                   onClick={() => setSelectedConvoId(convo.id)}
                   className={`w-full p-3 text-left hover:bg-muted/50 transition-colors ${selectedConvoId === convo.id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
@@ -333,6 +334,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
                         {msg.role === "assistant" && (
                           <div className="flex items-center gap-1">
                             <button
+                              type="button"
                               onClick={() =>
                                 rateMessageMutation.mutate({
                                   messageId: msg.id,
@@ -344,6 +346,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
                               <ThumbsUp className="h-3 w-3" />
                             </button>
                             <button
+                              type="button"
                               onClick={() =>
                                 rateMessageMutation.mutate({
                                   messageId: msg.id,

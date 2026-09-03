@@ -42,7 +42,7 @@ export default function RecruitmentAdmin() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get("tab")
   const activeTab = VALID_TABS.includes(tabParam as (typeof VALID_TABS)[number])
-    ? (tabParam as string)
+    ? tabParam
     : "pipeline"
 
   useExecutionRealtimeToast()

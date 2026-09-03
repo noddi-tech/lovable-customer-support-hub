@@ -521,7 +521,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       {attachments.length > 0 && (
         <div className="flex items-center gap-2 px-4 py-2 border-t border-border bg-muted/30 overflow-x-auto">
           {attachments.map((attachment, index) => (
-            <div key={index} className="relative shrink-0">
+            <div key={attachment.url} className="relative shrink-0">
               {attachment.type === "image" ? (
                 <img
                   src={attachment.url}
@@ -534,6 +534,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
                 </div>
               )}
               <button
+                type="button"
                 onClick={() => removeAttachment(index)}
                 className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center"
               >

@@ -70,13 +70,13 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
               <div className="space-y-2">
                 {section.items.map((shortcut, idx) => (
                   <div
-                    key={idx}
+                    key={shortcut.description}
                     className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <span className="text-sm text-muted-foreground">{shortcut.description}</span>
                     <div className="flex items-center gap-1">
                       {shortcut.keys.map((key, keyIdx) => (
-                        <React.Fragment key={keyIdx}>
+                        <React.Fragment key={key}>
                           <kbd className="px-2 py-1 text-xs font-semibold bg-muted border border-border rounded">
                             {key}
                           </kbd>

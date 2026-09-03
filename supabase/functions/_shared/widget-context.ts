@@ -43,11 +43,14 @@ function clean(value: unknown, max: number): string {
     return String(value).slice(0, max)
   }
   if (typeof value !== "string") return ""
-  return value
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
-    .replace(/<[^>]*>/g, "")
-    .trim()
-    .slice(0, max)
+  return (
+    value
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip in sanitizer
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+      .replace(/<[^>]*>/g, "")
+      .trim()
+      .slice(0, max)
+  )
 }
 
 /** Returns a sanitized context object, or undefined when nothing usable was sent. */

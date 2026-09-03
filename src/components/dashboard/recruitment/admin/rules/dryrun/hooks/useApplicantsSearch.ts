@@ -18,7 +18,7 @@ export function useApplicantsSearch(query: string) {
       const { data: applicants, error: applicantsError } = await db
         .from("applicants")
         .select("id, first_name, last_name, email, applications(current_stage_id)")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .or(
           `first_name.ilike.%${safeQuery}%,last_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`,
         )
@@ -31,7 +31,7 @@ export function useApplicantsSearch(query: string) {
       const { data: pipeline, error: pipelineError } = await db
         .from("recruitment_pipelines")
         .select("stages")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("is_default", true)
         .maybeSingle()
 

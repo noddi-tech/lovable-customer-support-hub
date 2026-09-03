@@ -60,7 +60,7 @@ function useOrgAgents() {
     queryFn: async () => {
       const { data, error } = await (supabase.from("profiles") as any)
         .select("id, full_name, email")
-        .eq("organization_id", profile!.organization_id)
+        .eq("organization_id", profile.organization_id)
         .order("full_name")
       if (error) throw error
       return (data ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>
@@ -173,6 +173,7 @@ export default function CaseDetailPage() {
                         item.kind === "call" ? Phone : item.kind === "chat" ? MessageSquare : Mail
                       return (
                         <button
+                          type="button"
                           key={item.id}
                           disabled={!item.href}
                           onClick={() => item.href && navigate(item.href)}
@@ -319,8 +320,9 @@ export default function CaseDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <button
-                      onClick={() => setCustomerPanelId(record.customer!.id)}
-                      onDoubleClick={() => navigate(`/customers/${record.customer!.id}`)}
+                      type="button"
+                      onClick={() => setCustomerPanelId(record.customer.id)}
+                      onDoubleClick={() => navigate(`/customers/${record.customer.id}`)}
                       className="flex w-full items-center gap-2 rounded-md border p-2.5 text-left hover:bg-accent/50"
                     >
                       <UserRound className="h-4 w-4 text-muted-foreground" />

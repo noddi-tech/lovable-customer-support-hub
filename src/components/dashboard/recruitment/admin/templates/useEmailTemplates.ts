@@ -12,7 +12,7 @@ export function useEmailTemplates() {
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("*")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: true })
       if (error) throw error
       return (data ?? []) as EmailTemplate[]

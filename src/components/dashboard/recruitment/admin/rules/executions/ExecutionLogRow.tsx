@@ -31,9 +31,18 @@ export function ExecutionLogRow({ execution, onOpen, onAcknowledge, layout = "ta
 
   if (layout === "card") {
     return (
+      // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
       <div
+        role="button"
+        tabIndex={0}
         className={cn("rounded-md border p-4", needsAck && "border-l-2 border-l-destructive")}
         onClick={onOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onOpen()
+          }
+        }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">

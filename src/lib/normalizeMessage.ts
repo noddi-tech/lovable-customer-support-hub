@@ -64,7 +64,7 @@ function safeParseHeaders(h: unknown): Record<string, any> {
             return {} // Fallback to empty
           }
         }
-        return o as any
+        return o
       }
       return {}
     } catch {
@@ -418,7 +418,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
       ? "ai_draft"
       : isAgent
         ? "agent"
-        : ((rawMessage.sender_type as any) ?? "customer")
+        : (rawMessage.sender_type ?? "customer")
   // Use conversation fallbacks only if still missing
   // For agents: ALWAYS prefer profile data regardless of any header-derived values
   if (authorType === "agent" && senderProfile) {

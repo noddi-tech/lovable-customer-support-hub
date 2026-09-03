@@ -106,6 +106,7 @@ function escapeHtml(value: string): string {
 function safeFilename(name: string): string {
   const cleaned = (name || "file")
     .normalize("NFKD")
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip in sanitizer
     .replace(/[^\x00-\x7F]/g, "")
     .replace(/[^A-Za-z0-9._-]/g, "_")
     .replace(/_{2,}/g, "_")

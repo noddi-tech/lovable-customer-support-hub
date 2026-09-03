@@ -352,7 +352,9 @@ Deno.serve(async (req) => {
           pushEmail(meta.primary_noddi_email)
           extra.emails.forEach(pushEmail)
           ;(Array.isArray(meta.alternative_emails) ? meta.alternative_emails : []).forEach(
-            (e: any) => pushEmail(typeof e === "string" ? e : e?.email),
+            (e: any) => {
+              pushEmail(typeof e === "string" ? e : e?.email)
+            },
           )
 
           const brands = brandsByCustomer.get(row.id) || []

@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { Phone, PhoneCall, PhoneOff, Voicemail } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
@@ -40,10 +39,307 @@ export const useRealTimeCallNotifications = () => {
 
   console.log("🔍 useRealTimeCallNotifications hook initialized - CONSOLIDATING SUBSCRIPTIONS")
 
+  const navigateToCall = useCallback(
+    (callId: string) => {
+      console.log("[CallNotifications] 📍 Navigating to call:", callId)
+      navigate(`/voice?c=${callId}`)
+    },
+    [navigate],
+  )
+
+  const handleCallbackAction = useCallback(
+    async (callId: string) => {
+      console.log("Schedule callback for call:", callId)
+      toast({
+        title: "Callback Scheduled",
+        description: "The callback has been added to your queue",
+      })
+    },
+    [toast],
+  )
+
+  const handleVoicemailAction = useCallback(
+    (callId: string) => {
+      console.log("Listen to voicemail for call:", callId)
+      toast({
+        title: "Opening Voicemail",
+        description: "Loading voicemail player...",
+      })
+    },
+    [toast],
+  )
+
+  const handleQuickNote = useCallback(
+    (callId: string) => {
+      console.log("Add quick note for call:", callId)
+      toast({
+        title: "Quick Note",
+        description: "Opening note editor...",
+      })
+    },
+    [toast],
+  )
+
+  const handleCallEventNotification = useCallback(
+    async (callEvent: CallEvent, call: Call) => {
+      const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration)
+
+      let title = ""
+      let description = ""
+      let shouldNotify = false
+
+      switch (callEvent.event_type) {
+        case "call_started":
+          if (call.direction === "inbound") {
+            console.log("[CallNotifications] 🎬 call_started event - triggering modal!", {
+              call_id: call.id,
+              status: call.status,
+              customer_phone: call.customer_phone,
+            })
+
+            setIncomingCall(call)
+            setIsIncomingCallModalOpen(true)
+
+            title = "📞 Incoming Call"
+            description = `Call from ${call.customer_phone}`
+            shouldNotify = true
+          }
+          break
+
+        case "call_missed":
+          title = "❌ Missed Call"
+          description = `Missed call from ${call.customer_phone}`
+          shouldNotify = true
+          break
+
+        case "voicemail_left":
+          title = "🎙️ New Voicemail"
+          description = `Voicemail from ${call.customer_phone}`
+          shouldNotify = true
+          break
+
+        case "callback_requested":
+          title = "📞 Callback Requested"
+          description = `${call.customer_phone} requested a callback`
+          shouldNotify = true
+          break
+      }
+
+      if (shouldNotify) {
+        const fullDescription = `${description}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
+
+        toast({
+          title,
+          description: (
+            <div className="space-y-3">
+              <p>{fullDescription}</p>
+              <div className="text-sm text-muted-foreground">Customer: {call.customer_phone}</div>
+              {monitoredPhone && (
+                <div className="text-sm text-muted-foreground">
+                  Line: {monitoredPhone.phoneNumber.label} ({monitoredPhone.type})
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => navigateToCall(call.id)} className="h-8">
+                  View Call
+                </Button>
+                {callEvent.event_type === "callback_requested" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCallbackAction(call.id)}
+                    className="h-8"
+                  >
+                    Schedule Callback
+                  </Button>
+                )}
+                {callEvent.event_type === "voicemail_left" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleVoicemailAction(call.id)}
+                    className="h-8"
+                  >
+                    Listen
+                  </Button>
+                )}
+              </div>
+            </div>
+          ),
+          duration: 10000,
+        })
+
+        try {
+          const { data: user } = await supabase.auth.getUser()
+          if (user.user) {
+            await supabase.from("notifications").insert({
+              user_id: user.user.id,
+              title,
+              message: fullDescription,
+              type: "info",
+              data: {
+                call_id: call.id,
+                event_type: callEvent.event_type,
+                customer_phone: call.customer_phone,
+                monitored_line: monitoredPhone?.phoneNumber.label,
+                line_type: monitoredPhone?.type,
+              },
+            })
+          }
+        } catch (error) {
+          console.error("Error creating notification:", error)
+        }
+      }
+    },
+    [aircallIntegration, toast, navigateToCall, handleCallbackAction, handleVoicemailAction],
+  )
+
+  const handleNewCallNotification = useCallback(
+    async (call: Call) => {
+      console.log("[CallNotifications] 📞 New call detected:", {
+        id: call.id,
+        direction: call.direction,
+        status: call.status,
+        customer_phone: call.customer_phone,
+        created_at: call.created_at,
+      })
+
+      const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration)
+
+      const callAge = Date.now() - new Date(call.started_at).getTime()
+      const isRecentCall = callAge < 30000
+
+      const shouldShowModal =
+        call.direction === "inbound" &&
+        ((call.status !== "completed" && call.status !== "failed") || isRecentCall)
+
+      console.log("[CallNotifications] 🎯 Should show modal?", shouldShowModal, {
+        direction: call.direction,
+        status: call.status,
+        callAge,
+        isRecentCall,
+      })
+
+      if (shouldShowModal) {
+        console.log(
+          "[CallNotifications] 🚀 Opening incoming call modal with customer data pre-fetch...",
+        )
+
+        let customer = call.customers
+          ? {
+              id: call.customers.id,
+              full_name: call.customers.full_name,
+              email: call.customers.email,
+              phone: call.customers.phone || call.customer_phone,
+            }
+          : null
+
+        if (!customer && call.customer_phone) {
+          customer = {
+            id: `temp-${call.customer_phone}`,
+            phone: call.customer_phone,
+            full_name: undefined,
+            email: undefined,
+          }
+        }
+
+        if (customer) {
+          setCallContext(call.id, customer)
+
+          if (customer.email || customer.phone) {
+            console.log("[CallNotifications] 🔄 Pre-fetching Noddi data...", {
+              email: customer.email,
+              phone: customer.phone,
+            })
+
+            supabase.functions
+              .invoke("noddi-customer-lookup", {
+                body: {
+                  email: customer.email,
+                  phone: customer.phone,
+                  customerId: customer.id,
+                },
+              })
+              .then(() => {
+                console.log("[CallNotifications] ✅ Noddi data pre-fetched")
+              })
+              .catch((err) => {
+                console.error("[CallNotifications] ❌ Noddi pre-fetch failed:", err)
+              })
+          }
+        }
+
+        setIncomingCall(call)
+        setIsIncomingCallModalOpen(true)
+
+        const title =
+          isRecentCall && (call.status === "completed" || call.status === "failed")
+            ? "📞 Recent Call"
+            : "📞 New Incoming Call"
+        const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
+
+        toast({
+          title,
+          description,
+          duration: 5000,
+        })
+      } else if (call.direction === "inbound") {
+        console.log("[CallNotifications] ⏭️ Skipping modal (call already ended):", call.status)
+      }
+
+      if (call.status === "completed" || call.status === "failed") {
+        clearContext()
+      }
+    },
+    [aircallIntegration, setCallContext, clearContext, toast],
+  )
+
+  const handleCallStatusChangeNotification = useCallback(
+    async (oldCall: Call, newCall: Call) => {
+      let title = ""
+      let shouldNotify = false
+
+      if (oldCall.status === "ringing" && newCall.status === "answered") {
+        title = "✅ Call Answered"
+        shouldNotify = true
+      } else if (oldCall.status === "ringing" && newCall.status === "completed") {
+        title = "❌ Call Missed"
+        shouldNotify = true
+      } else if (newCall.status === "completed" && newCall.duration_seconds) {
+        title = "📞 Call Completed"
+        shouldNotify = true
+      }
+
+      if (shouldNotify) {
+        const monitoredPhone = getMonitoredPhoneForCall(newCall, aircallIntegration)
+        const description = `Call with ${newCall.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
+
+        toast({
+          title,
+          description: (
+            <div className="space-y-2">
+              <p>{description}</p>
+              {newCall.duration_seconds && (
+                <div className="text-sm text-muted-foreground">
+                  Duration: {Math.floor(newCall.duration_seconds / 60)}:
+                  {(newCall.duration_seconds % 60).toString().padStart(2, "0")}
+                </div>
+              )}
+              <Button size="sm" onClick={() => navigateToCall(newCall.id)} className="h-8">
+                View Details
+              </Button>
+            </div>
+          ),
+          duration: 5000,
+        })
+      }
+    },
+    [aircallIntegration, toast, navigateToCall],
+  )
+
   useEffect(() => {
     console.log("📡 useRealTimeCallNotifications: Setting up subscriptions...")
 
-    // WebSocket error detection
     const detectWebSocketBlock = () => {
       wsErrorCountRef.current++
       console.warn("[RealTime] WebSocket error count:", wsErrorCountRef.current)
@@ -60,7 +356,6 @@ export const useRealTimeCallNotifications = () => {
       }
     }
 
-    // Create managed subscription for call events with error handling
     const unsubscribeCallEvents = createManagedSubscription(
       "call-events-notifications",
       (channel) =>
@@ -75,17 +370,14 @@ export const useRealTimeCallNotifications = () => {
             console.log("New call event received:", payload)
             const callEvent = payload.new as CallEvent
 
-            // Reset error count on successful message
             wsErrorCountRef.current = 0
             setIsWebSocketBlocked(false)
 
-            // Prevent duplicate processing
             if (processedEventsRef.current.has(callEvent.id)) {
               return
             }
             processedEventsRef.current.add(callEvent.id)
 
-            // Get the associated call data
             try {
               const { data: call, error } = await supabase
                 .from("calls")
@@ -109,7 +401,6 @@ export const useRealTimeCallNotifications = () => {
       [createManagedSubscription, queryClient],
     )
 
-    // Create managed subscription for call status changes
     const unsubscribeCallStatus = createManagedSubscription(
       "calls-notifications",
       (channel) =>
@@ -135,7 +426,6 @@ export const useRealTimeCallNotifications = () => {
               }
             }
 
-            // Refresh call data
             queryClient.invalidateQueries({ queryKey: ["calls"] })
             queryClient.invalidateQueries({ queryKey: ["call-events"] })
           },
@@ -147,306 +437,15 @@ export const useRealTimeCallNotifications = () => {
       unsubscribeCallEvents()
       unsubscribeCallStatus()
     }
-  }, [aircallIntegration, createManagedSubscription, queryClient, toast])
-
-  const handleCallEventNotification = async (callEvent: CallEvent, call: Call) => {
-    const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration)
-
-    let title = ""
-    let description = ""
-    let icon = <Phone className="h-4 w-4" />
-    let shouldNotify = false
-
-    switch (callEvent.event_type) {
-      case "call_started":
-        if (call.direction === "inbound") {
-          console.log("[CallNotifications] 🎬 call_started event - triggering modal!", {
-            call_id: call.id,
-            status: call.status,
-            customer_phone: call.customer_phone,
-          })
-
-          // Trigger modal immediately on call_started event
-          setIncomingCall(call)
-          setIsIncomingCallModalOpen(true)
-
-          title = "📞 Incoming Call"
-          description = `Call from ${call.customer_phone}`
-          icon = <PhoneCall className="h-4 w-4 text-green-600" />
-          shouldNotify = true
-        }
-        break
-
-      case "call_missed":
-        title = "❌ Missed Call"
-        description = `Missed call from ${call.customer_phone}`
-        icon = <PhoneOff className="h-4 w-4 text-red-600" />
-        shouldNotify = true
-        break
-
-      case "voicemail_left":
-        title = "🎙️ New Voicemail"
-        description = `Voicemail from ${call.customer_phone}`
-        icon = <Voicemail className="h-4 w-4 text-blue-600" />
-        shouldNotify = true
-        break
-
-      case "callback_requested":
-        title = "📞 Callback Requested"
-        description = `${call.customer_phone} requested a callback`
-        icon = <Phone className="h-4 w-4 text-orange-600" />
-        shouldNotify = true
-        break
-    }
-
-    if (shouldNotify) {
-      const fullDescription = `${description}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
-
-      toast({
-        title,
-        description: (
-          <div className="space-y-3">
-            <p>{fullDescription}</p>
-            <div className="text-sm text-muted-foreground">Customer: {call.customer_phone}</div>
-            {monitoredPhone && (
-              <div className="text-sm text-muted-foreground">
-                Line: {monitoredPhone.phoneNumber.label} ({monitoredPhone.type})
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => navigateToCall(call.id)} className="h-8">
-                View Call
-              </Button>
-              {callEvent.event_type === "callback_requested" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleCallbackAction(call.id)}
-                  className="h-8"
-                >
-                  Schedule Callback
-                </Button>
-              )}
-              {callEvent.event_type === "voicemail_left" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleVoicemailAction(call.id)}
-                  className="h-8"
-                >
-                  Listen
-                </Button>
-              )}
-            </div>
-          </div>
-        ),
-        duration: 10000, // Show for 10 seconds
-      })
-
-      // Create a persistent notification in the database
-      try {
-        const { data: user } = await supabase.auth.getUser()
-        if (user.user) {
-          await supabase.from("notifications").insert({
-            user_id: user.user.id,
-            title,
-            message: fullDescription,
-            type: "info",
-            data: {
-              call_id: call.id,
-              event_type: callEvent.event_type,
-              customer_phone: call.customer_phone,
-              monitored_line: monitoredPhone?.phoneNumber.label,
-              line_type: monitoredPhone?.type,
-            },
-          })
-        }
-      } catch (error) {
-        console.error("Error creating notification:", error)
-      }
-    }
-  }
-
-  const handleNewCallNotification = async (call: Call) => {
-    console.log("[CallNotifications] 📞 New call detected:", {
-      id: call.id,
-      direction: call.direction,
-      status: call.status,
-      customer_phone: call.customer_phone,
-      created_at: call.created_at,
-    })
-
-    const monitoredPhone = getMonitoredPhoneForCall(call, aircallIntegration)
-
-    // Calculate how long ago the call started
-    const callAge = Date.now() - new Date(call.started_at).getTime()
-    const isRecentCall = callAge < 30000 // Less than 30 seconds old
-
-    // Show modal for:
-    // 1. Active inbound calls (not completed/failed)
-    // 2. Recently ended calls (< 30 seconds old)
-    const shouldShowModal =
-      call.direction === "inbound" &&
-      ((call.status !== "completed" && call.status !== "failed") || isRecentCall)
-
-    console.log("[CallNotifications] 🎯 Should show modal?", shouldShowModal, {
-      direction: call.direction,
-      status: call.status,
-      callAge,
-      isRecentCall,
-    })
-
-    if (shouldShowModal) {
-      console.log(
-        "[CallNotifications] 🚀 Opening incoming call modal with customer data pre-fetch...",
-      )
-
-      // Pre-fetch customer data and set context BEFORE showing modal
-      let customer = call.customers
-        ? {
-            id: call.customers.id,
-            full_name: call.customers.full_name,
-            email: call.customers.email,
-            phone: call.customers.phone || call.customer_phone,
-          }
-        : null
-
-      // If no customer exists, create temp one for Noddi lookup
-      if (!customer && call.customer_phone) {
-        customer = {
-          id: `temp-${call.customer_phone}`,
-          phone: call.customer_phone,
-          full_name: undefined,
-          email: undefined,
-        }
-      }
-
-      // Set call context to trigger Noddi data pre-fetch
-      if (customer) {
-        setCallContext(call.id, customer)
-
-        // Start pre-fetching Noddi data in background
-        if (customer.email || customer.phone) {
-          console.log("[CallNotifications] 🔄 Pre-fetching Noddi data...", {
-            email: customer.email,
-            phone: customer.phone,
-          })
-
-          // Trigger background fetch via edge function
-          supabase.functions
-            .invoke("noddi-customer-lookup", {
-              body: {
-                email: customer.email,
-                phone: customer.phone,
-                customerId: customer.id,
-              },
-            })
-            .then(({ data }) => {
-              console.log("[CallNotifications] ✅ Noddi data pre-fetched")
-            })
-            .catch((err) => {
-              console.error("[CallNotifications] ❌ Noddi pre-fetch failed:", err)
-            })
-        }
-      }
-
-      // Show modal for incoming calls
-      setIncomingCall(call)
-      setIsIncomingCallModalOpen(true)
-
-      // Show a toast for quick notification
-      const title =
-        isRecentCall && (call.status === "completed" || call.status === "failed")
-          ? "📞 Recent Call"
-          : "📞 New Incoming Call"
-      const description = `Call from ${call.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
-
-      toast({
-        title,
-        description,
-        duration: 5000,
-      })
-    } else if (call.direction === "inbound") {
-      console.log("[CallNotifications] ⏭️ Skipping modal (call already ended):", call.status)
-    }
-
-    // Clear context when call ends
-    if (call.status === "completed" || call.status === "failed") {
-      clearContext()
-    }
-  }
-
-  const handleCallStatusChangeNotification = async (oldCall: Call, newCall: Call) => {
-    let title = ""
-    let shouldNotify = false
-
-    if (oldCall.status === "ringing" && newCall.status === "answered") {
-      title = "✅ Call Answered"
-      shouldNotify = true
-    } else if (oldCall.status === "ringing" && newCall.status === "completed") {
-      title = "❌ Call Missed"
-      shouldNotify = true
-    } else if (newCall.status === "completed" && newCall.duration_seconds) {
-      title = "📞 Call Completed"
-      shouldNotify = true
-    }
-
-    if (shouldNotify) {
-      const monitoredPhone = getMonitoredPhoneForCall(newCall, aircallIntegration)
-      const description = `Call with ${newCall.customer_phone}${monitoredPhone ? ` on ${monitoredPhone.phoneNumber.label}` : ""}`
-
-      toast({
-        title,
-        description: (
-          <div className="space-y-2">
-            <p>{description}</p>
-            {newCall.duration_seconds && (
-              <div className="text-sm text-muted-foreground">
-                Duration: {Math.floor(newCall.duration_seconds / 60)}:
-                {(newCall.duration_seconds % 60).toString().padStart(2, "0")}
-              </div>
-            )}
-            <Button size="sm" onClick={() => navigateToCall(newCall.id)} className="h-8">
-              View Details
-            </Button>
-          </div>
-        ),
-        duration: 5000,
-      })
-    }
-  }
-
-  const navigateToCall = (callId: string) => {
-    console.log("[CallNotifications] 📍 Navigating to call:", callId)
-    navigate(`/voice?c=${callId}`)
-  }
-
-  const handleCallbackAction = async (callId: string) => {
-    // Handle callback scheduling
-    console.log("Schedule callback for call:", callId)
-    toast({
-      title: "Callback Scheduled",
-      description: "The callback has been added to your queue",
-    })
-  }
-
-  const handleVoicemailAction = (callId: string) => {
-    // Handle voicemail listening
-    console.log("Listen to voicemail for call:", callId)
-    toast({
-      title: "Opening Voicemail",
-      description: "Loading voicemail player...",
-    })
-  }
-
-  const handleQuickNote = (callId: string) => {
-    // Handle quick note adding
-    console.log("Add quick note for call:", callId)
-    toast({
-      title: "Quick Note",
-      description: "Opening note editor...",
-    })
-  }
+  }, [
+    aircallIntegration,
+    createManagedSubscription,
+    queryClient,
+    toast,
+    handleCallEventNotification,
+    handleNewCallNotification,
+    handleCallStatusChangeNotification,
+  ])
 
   const closeIncomingCallModal = () => {
     setIsIncomingCallModalOpen(false)

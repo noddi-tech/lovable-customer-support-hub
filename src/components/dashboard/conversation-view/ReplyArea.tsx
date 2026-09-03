@@ -94,7 +94,7 @@ export const ReplyArea = () => {
     const customerEmail = conversation?.customer?.email?.toLowerCase()
 
     for (const msg of messages) {
-      const headers = (msg as any).email_headers
+      const headers = msg.email_headers
       if (!Array.isArray(headers)) continue
 
       for (const header of headers) {
@@ -574,7 +574,7 @@ export const ReplyArea = () => {
           <div className="flex flex-wrap gap-2">
             {attachments.map((att, index) => (
               <div
-                key={index}
+                key={`${att.file.name}-${att.file.size}-${att.file.lastModified}`}
                 className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md border text-sm group"
               >
                 <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

@@ -1,5 +1,5 @@
 import { CheckCircle2, Loader2, Webhook, XCircle } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -34,13 +34,7 @@ export function Step4Webhook({
   const [doneIntegration, setDoneIntegration] = useState<MetaIntegration | null>(null)
   const ranRef = useRef(false)
 
-  useEffect(() => {
-    if (ranRef.current) return
-    ranRef.current = true
-    void run()
-  }, [run])
-
-  async function run() {
+  const run = useCallback(async () => {
     try {
       if (flow === "oauth") {
         if (!stateId || !pageId) throw new Error("Mangler state eller side")
@@ -63,7 +57,13 @@ export function Step4Webhook({
         variant: "destructive",
       })
     }
-  }
+  }, [flow, stateId, pageId, manualIntegrationId, finalize, subscribe, toast])
+
+  useEffect(() => {
+    if (ranRef.current) return
+    ranRef.current = true
+    void run()
+  }, [run])
 
   const handleRetry = () => {
     setStatus("pending")

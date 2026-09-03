@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, screen, waitFor } from "@testing-library/dom"
-import { type RenderOptions, render } from "@testing-library/react"
+import { fireEvent, type RenderOptions, render, screen, waitFor } from "@testing-library/react"
 import type React from "react"
 import { vi } from "vitest"
 
@@ -71,6 +70,7 @@ export { customRender as render, fireEvent, screen, waitFor }
 
 // Utility to create test children
 export const createTestChildren = (count: number) =>
+  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
   Array.from({ length: count }, (_, i) => <div key={i}>Child {i + 1}</div>)
 
 // Custom matcher for Tailwind classes

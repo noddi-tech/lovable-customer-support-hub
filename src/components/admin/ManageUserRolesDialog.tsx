@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { type AppRole, useUserManagement } from "@/hooks/useUserManagement"
+import { type AppRole, useUserManagement, useUserRoles } from "@/hooks/useUserManagement"
 
 interface ManageUserRolesDialogProps {
   open: boolean
@@ -66,9 +66,8 @@ const defaultRoleInfo = {
 const availableRoles: AppRole[] = ["super_admin", "admin", "agent", "user"]
 
 export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRolesDialogProps) {
-  const { getUserRoles, assignRole, removeRole, isAssigningRole, isRemovingRole } =
-    useUserManagement()
-  const { data: currentRoles = [], isLoading, refetch } = getUserRoles(user.user_id)
+  const { assignRole, removeRole, isAssigningRole, isRemovingRole } = useUserManagement()
+  const { data: currentRoles = [], isLoading, refetch } = useUserRoles(user.user_id)
 
   useEffect(() => {
     if (open) {

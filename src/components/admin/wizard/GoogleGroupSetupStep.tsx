@@ -353,6 +353,7 @@ export function GoogleGroupSetupStep({
               {/* Step 1 */}
               <div className="flex items-start gap-3">
                 <button
+                  type="button"
                   onClick={() => setStep1Done(!step1Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                     step1Done
@@ -385,6 +386,7 @@ export function GoogleGroupSetupStep({
               {/* Step 2 */}
               <div className="flex items-start gap-3">
                 <button
+                  type="button"
                   onClick={() => setStep2Done(!step2Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                     step2Done
@@ -422,6 +424,7 @@ export function GoogleGroupSetupStep({
               {/* Step 3 */}
               <div className="flex items-start gap-3">
                 <button
+                  type="button"
                   onClick={() => setStep3Done(!step3Done)}
                   className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                     step3Done

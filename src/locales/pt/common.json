@@ -48,6 +48,7 @@
   "admin": {
     "title": "Portal Admin",
     "description": "Gerir configurações do sistema",
+    "descriptionLabel": "Descrição",
     "inboxes": "Caixas de Entrada",
     "design": "Design & Marca",
     "overview": "Visão Geral",

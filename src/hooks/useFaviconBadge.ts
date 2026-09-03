@@ -17,7 +17,9 @@ function setBadgeHref(href: string | null) {
 
   if (!href) {
     badge?.remove()
-    originals.forEach((l) => l.removeAttribute("data-hidden-by-badge"))
+    originals.forEach((l) => {
+      l.removeAttribute("data-hidden-by-badge")
+    })
     return
   }
 

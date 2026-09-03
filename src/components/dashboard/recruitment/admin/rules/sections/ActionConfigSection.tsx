@@ -236,6 +236,7 @@ export function ActionConfigSection({
                 <p className="text-[11px] text-muted-foreground italic">Ingen headers lagt til.</p>
               )}
               {headerRows.map((row, idx) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: editable header rows lack stable ids
                 <div key={idx} className="flex gap-2 items-start">
                   <Input
                     value={row.key}

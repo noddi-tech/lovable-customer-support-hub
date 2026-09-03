@@ -39,7 +39,7 @@ export function useApplicantQueuePosition(applicationId: string | null | undefin
       const selfQ: any = supabase
         .from("application_scoring_queue")
         .select("id, status, created_at, applications!inner(position_id)")
-        .eq("application_id", applicationId!)
+        .eq("application_id", applicationId)
         .in("status", ["pending", "processing"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -48,9 +48,9 @@ export function useApplicantQueuePosition(applicationId: string | null | undefin
       if (selfErr) throw selfErr
       if (!self) return EMPTY
 
-      const status = (self as any).status as "pending" | "processing"
-      const positionId = (self as any).applications?.position_id as string | undefined
-      const createdAt = (self as any).created_at as string
+      const status = self.status as "pending" | "processing"
+      const positionId = self.applications?.position_id as string | undefined
+      const createdAt = self.created_at as string
       if (!positionId) return { ...EMPTY, inQueue: true, status }
 
       // 2. Count rows ahead (older pending/processing on same position).

@@ -83,7 +83,7 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
     } else {
       // Marker with closing tag
       const afterOpen = remaining.slice(earliest.idx + earliest.marker.tag.length)
-      const closeIdx = afterOpen.indexOf(earliest.marker.closingTag!)
+      const closeIdx = afterOpen.indexOf(earliest.marker.closingTag)
 
       if (closeIdx === -1) {
         // Malformed — treat rest as text
@@ -100,7 +100,7 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
         blocks.push(block)
       }
 
-      remaining = afterOpen.slice(closeIdx + earliest.marker.closingTag!.length)
+      remaining = afterOpen.slice(closeIdx + earliest.marker.closingTag.length)
     }
   }
 
@@ -109,9 +109,7 @@ export function parseMessageBlocks(content: string): MessageBlock[] {
   }
 
   // Strip text blocks that are just leftover marker tags
-  const markerTags = new Set(
-    MARKERS.flatMap((m) => [m.tag, m.closingTag].filter(Boolean) as string[]),
-  )
+  const markerTags = new Set(MARKERS.flatMap((m) => [m.tag, m.closingTag].filter(Boolean)))
   return blocks.filter((b) => {
     if (b.type !== "text") return true
     const trimmed = (b as any).content?.trim()

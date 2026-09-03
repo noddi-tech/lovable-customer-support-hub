@@ -1,0 +1,54 @@
+name: Lint strict
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-strict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Quality gate (check-only)
+        run: npm run quality:gate:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Knip
+        run: npm run lint:knip
+
+      - name: dependency-cruiser
+        run: npm run lint:deps
+
+      - name: Secrets (secretlint)
+        run: npm run lint:secrets
+
+      - name: Clone detection (jscpd)
+        run: npm run lint:dupes
+
+      - name: npm audit (high+)
+        run: npm run lint:audit
+        continue-on-error: true
+
+      - name: Setup Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: .semgrep.yml
+        continue-on-error: true

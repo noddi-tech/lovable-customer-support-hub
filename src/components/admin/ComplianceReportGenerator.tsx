@@ -167,7 +167,7 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
         <div className="space-y-6">
           {/* Report Template Selection */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Report Template</label>
+            <div className="text-sm font-medium mb-2 block">Report Template</div>
             <div className="grid grid-cols-1 gap-3">
               {Object.entries(reportTemplates).map(([key, { label, description }]) => (
                 <Card
@@ -191,10 +191,16 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
 
           {/* Date Range Selection */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Date Range</label>
+            <label htmlFor="compliance-date-range" className="text-sm font-medium mb-2 block">
+              Date Range
+            </label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                <Button
+                  id="compliance-date-range"
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange?.from ? (
                     dateRange.to ? (
@@ -222,9 +228,11 @@ export function ComplianceReportGenerator({ open, onOpenChange }: ComplianceRepo
 
           {/* Export Format */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Export Format</label>
+            <label htmlFor="compliance-export-format" className="text-sm font-medium mb-2 block">
+              Export Format
+            </label>
             <Select defaultValue="csv">
-              <SelectTrigger>
+              <SelectTrigger id="compliance-export-format">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -49,7 +49,7 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({
   }
 
   return (
-    <div className="w-64" onKeyDown={(e) => e.stopPropagation()}>
+    <fieldset className="w-64 border-0 p-0 m-0 min-w-0" onKeyDown={(e) => e.stopPropagation()}>
       <div className="relative p-2">
         <Search className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <input
@@ -90,7 +90,7 @@ export const TagPickerList: React.FC<TagPickerListProps> = ({
           {search.trim() ? `Create "${search.trim()}"` : "Create tag"}
         </Button>
       </div>
-    </div>
+    </fieldset>
   )
 }
 

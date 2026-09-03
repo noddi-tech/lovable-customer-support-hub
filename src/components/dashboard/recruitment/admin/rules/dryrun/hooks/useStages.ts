@@ -13,7 +13,7 @@ export function useStages() {
       const { data, error } = await db
         .from("recruitment_pipelines")
         .select("stages")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("is_default", true)
         .maybeSingle()
 

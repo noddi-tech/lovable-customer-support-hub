@@ -62,7 +62,7 @@ export function useTriageHealth() {
       ])
 
       const feedback = feedbackRes.data || []
-      const totalAlerts = (alertsRes.data as number | null) ?? 0
+      const totalAlerts = alertsRes.data ?? 0
       const activeMutes = mutesRes.data || []
 
       // Aggregate
@@ -100,7 +100,7 @@ export function useTriageHealth() {
               mute_rate: 0,
             })
           }
-          const s = byTrigger.get(key)!
+          const s = byTrigger.get(key)
           s.total++
           if (reaction === "+1") s.positive++
           else if (reaction === "-1") s.negative++

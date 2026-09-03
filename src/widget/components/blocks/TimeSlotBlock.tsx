@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getApiUrl, proxyHeaders } from "../../api"
 import { type BlockComponentProps, type FlowPreviewProps, registerBlock } from "./registry"
 
@@ -52,11 +52,15 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
   const submitted = isUsed ? localStorage.getItem(`noddi_action_${blockKey}`) : null
 
   const addressId = data.address_id ? Number(data.address_id) : null
-  const carIds: number[] = data.car_ids
-    ? Array.isArray(data.car_ids)
-      ? data.car_ids.map(Number)
-      : [Number(data.car_ids)]
-    : []
+  const carIds = useMemo<number[]>(
+    () =>
+      data.car_ids
+        ? Array.isArray(data.car_ids)
+          ? data.car_ids.map(Number)
+          : [Number(data.car_ids)]
+        : [],
+    [data.car_ids],
+  )
   const licensePlate: string | null = data.license_plate || null
   const salesItemId: number | null = data.sales_item_id ? Number(data.sales_item_id) : null
 
@@ -361,6 +365,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
         }}
       >
         <button
+          type="button"
           onClick={() => setSelectedIdx((i) => Math.max(0, i - 1))}
           disabled={selectedIdx === 0 || isUsed}
           style={{
@@ -378,6 +383,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           {formatDate(currentDate)}
         </div>
         <button
+          type="button"
           onClick={() => setSelectedIdx((i) => Math.min(sortedDates.length - 1, i + 1))}
           disabled={selectedIdx === sortedDates.length - 1 || isUsed}
           style={{
@@ -399,6 +405,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
           const price = w.price || w.total_price
           return (
             <button
+              type="button"
               key={w.id || w.pk || w.delivery_window_id || i}
               onClick={() => handleSlotSelect(w)}
               disabled={isUsed}

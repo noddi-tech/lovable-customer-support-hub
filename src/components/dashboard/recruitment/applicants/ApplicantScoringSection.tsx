@@ -177,14 +177,16 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
   const tier = scoreTier(data.score)
   const strengths = data.score_strengths ?? []
   const concerns = data.score_concerns ?? []
-  const breakdown = (data.score_breakdown ?? {}) as Record<string, number>
+  const breakdown = data.score_breakdown ?? {}
   const rawEntries = Object.entries(breakdown)
   // Order by the rubric's criterion order when available; unknown ids fall to the end.
   const orderIndex = new Map<string, number>()
-  ;(rubric?.criteria ?? []).forEach((c, i) => orderIndex.set(c.id, i))
+  ;(rubric?.criteria ?? []).forEach((c, i) => {
+    orderIndex.set(c.id, i)
+  })
   const breakdownEntries = [...rawEntries].sort(([a], [b]) => {
-    const ai = orderIndex.has(a) ? (orderIndex.get(a) as number) : Number.MAX_SAFE_INTEGER
-    const bi = orderIndex.has(b) ? (orderIndex.get(b) as number) : Number.MAX_SAFE_INTEGER
+    const ai = orderIndex.has(a) ? orderIndex.get(a) : Number.MAX_SAFE_INTEGER
+    const bi = orderIndex.has(b) ? orderIndex.get(b) : Number.MAX_SAFE_INTEGER
     return ai - bi
   })
 
@@ -249,7 +251,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
                 ) : (
                   <ul className="space-y-1.5">
                     {strengths.map((s, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
+                      <li key={s} className="flex items-start gap-2 text-sm">
                         <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                         <span>{s}</span>
                       </li>
@@ -264,7 +266,7 @@ const ApplicantScoringSection: React.FC<Props> = ({ applicationId, positionTitle
                 ) : (
                   <ul className="space-y-1.5">
                     {concerns.map((c, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
+                      <li key={c} className="flex items-start gap-2 text-sm">
                         <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
                         <span>{c}</span>
                       </li>

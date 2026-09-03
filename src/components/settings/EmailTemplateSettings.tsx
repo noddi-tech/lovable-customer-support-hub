@@ -297,6 +297,7 @@ export function EmailTemplateSettings() {
                         padding: "16px",
                         textAlign: "center",
                       }}
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeTemplateHTML
                       dangerouslySetInnerHTML={{
                         __html: sanitizeTemplateHTML(template.header_content),
                       }}
@@ -319,6 +320,7 @@ export function EmailTemplateSettings() {
                         }}
                       >
                         <div
+                          // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeTemplateHTML
                           dangerouslySetInnerHTML={{
                             __html: sanitizeTemplateHTML(
                               template.include_agent_name
@@ -341,6 +343,7 @@ export function EmailTemplateSettings() {
                         textAlign: "center",
                         fontSize: "12px",
                       }}
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML sanitized via sanitizeTemplateHTML
                       dangerouslySetInnerHTML={{
                         __html: sanitizeTemplateHTML(template.footer_content),
                       }}

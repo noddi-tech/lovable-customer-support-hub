@@ -70,7 +70,9 @@ class AircallEventBridge {
         }
       })
 
-      expiredKeys.forEach((key) => this.processedEvents.delete(key))
+      expiredKeys.forEach((key) => {
+        this.processedEvents.delete(key)
+      })
     }
 
     console.log(`[EventBridge] ✅ Marked as processed [${source}]: ${type} (${eventId})`)

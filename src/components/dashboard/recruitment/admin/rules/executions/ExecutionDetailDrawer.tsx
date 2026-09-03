@@ -176,6 +176,7 @@ export function ExecutionDetailDrawer({ execution, onClose, onAcknowledge }: Pro
                     execution.overall_status === "skipped" || action.skipped === true
                   const failed = !isSkipped && isActionFailed(action)
                   return (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: action list lacks stable ids
                     <div key={index} className="rounded-md border p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>

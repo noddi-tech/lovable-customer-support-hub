@@ -51,9 +51,12 @@ export const useTeamMemberMentions = () => {
     (content: string): string[] => {
       const mentionPattern = /@([^@\n]+?)(?=\s|$|@)/g
       const mentionedIds: string[] = []
-      let match
 
-      while ((match = mentionPattern.exec(content)) !== null) {
+      for (
+        let match = mentionPattern.exec(content);
+        match !== null;
+        match = mentionPattern.exec(content)
+      ) {
         const mentionedName = match[1].trim()
         const matchedMember = members.find(
           (m) => m.full_name?.toLowerCase() === mentionedName.toLowerCase(),

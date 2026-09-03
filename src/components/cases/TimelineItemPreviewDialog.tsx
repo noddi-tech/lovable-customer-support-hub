@@ -33,7 +33,9 @@ function toPlainText(content: string | null, contentType: string | null): string
   if ((contentType || "").includes("html") || /<\/?[a-z][\s\S]*>/i.test(content)) {
     const doc = new DOMParser().parseFromString(content, "text/html")
     // Drop quoted history / signatures noise the parser keeps as raw nodes
-    doc.querySelectorAll("style, script").forEach((el) => el.remove())
+    doc.querySelectorAll("style, script").forEach((el) => {
+      el.remove()
+    })
     return (doc.body.textContent || "").replace(/\n{3,}/g, "\n\n").trim()
   }
   return content.trim()
@@ -48,7 +50,7 @@ function useTimelineMessages(conversationId: string | null) {
       const { data, error } = await supabase
         .from("messages")
         .select("id, content, content_type, sender_type, is_internal, created_at, email_subject")
-        .eq("conversation_id", conversationId as string)
+        .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .limit(50)
       if (error) throw error
@@ -149,7 +151,7 @@ export function TimelineItemPreviewDialog({
               size="sm"
               onClick={() => {
                 onOpenChange(false)
-                navigate(item.href as string)
+                navigate(item.href)
               }}
             >
               <ExternalLink className="mr-2 h-3.5 w-3.5" />

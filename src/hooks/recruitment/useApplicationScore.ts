@@ -30,7 +30,7 @@ export function useApplicationScore(applicationId: string | null | undefined) {
     refetchOnWindowFocus: "always",
     staleTime: 0,
     refetchInterval: (q) => {
-      const d = q.state.data as ApplicationScore | undefined
+      const d = q.state.data
       if (d?.score_status === "pending" || d?.score_status === "scoring") return 5000
       return false
     },
@@ -40,7 +40,7 @@ export function useApplicationScore(applicationId: string | null | undefined) {
         .select(
           "id, score, score_status, score_explanation, score_strengths, score_concerns, score_breakdown, score_updated_at, score_stage_id, score_model",
         )
-        .eq("id", applicationId!)
+        .eq("id", applicationId)
         .maybeSingle()
       if (error) throw error
       return data as any
@@ -52,7 +52,7 @@ export function useApplicationScore(applicationId: string | null | undefined) {
   // that display score (header ScoreCircle via ['applicant',id], pipeline card
   // via ['pipeline-applications'], list view via ['applicants']) refetch together.
   const prevStatusRef = useRef<ScoreStatus | null | undefined>(undefined)
-  const status = query.data?.score_status as ScoreStatus | null | undefined
+  const status = query.data?.score_status
   useEffect(() => {
     const prev = prevStatusRef.current
     prevStatusRef.current = status ?? null

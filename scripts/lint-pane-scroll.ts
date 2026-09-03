@@ -1,5 +1,15 @@
 #!/usr/bin/env tsx
 
+/**
+ * Domain linter for pane scroll layout anti-patterns.
+ *
+ * Scope (intentionally narrow — see docs/layout/panes.md):
+ * 1. `data-testid="campaigns-grid"` must sit near `h-full` + `min-h-0`
+ * 2. Raw pane shells that set only one of `min-h-0` / `min-w-0` (not PaneColumn —
+ *    that utility already applies both)
+ * 3. PaneColumn / PaneScroll must not also set competing overflow-auto
+ */
+
 import { readdirSync, readFileSync, statSync } from "fs"
 import { join } from "path"
 
@@ -10,33 +20,6 @@ interface Violation {
   context: string
 }
 
-// Patterns that indicate pane scroll issues
-const ANTI_PATTERNS = [
-  // Grid containers without proper height constraints
-  /className=["'][^"']*grid[^"']*(?!.*h-full)[^"']*/,
-  /className=["'][^"']*grid[^"']*(?!.*min-h-0)[^"']*/,
-  // Pane wrappers without proper constraints
-  /className=["'][^"']*(?:min-h-0|min-w-0)[^"']*(?!.*min-h-0.*min-w-0)[^"']*/,
-  // Competing overflow on ancestors
-  /className=["'][^"']*overflow-auto[^"']*/,
-  /className=["'][^"']*overflow-y-auto[^"']*/,
-]
-
-const PATTERN_NAMES = [
-  "Grid container missing h-full",
-  "Grid container missing min-h-0",
-  "Pane wrapper incomplete constraints",
-  "Competing overflow-auto found",
-  "Competing overflow-y-auto found",
-]
-
-// Required patterns for pane grids
-const REQUIRED_PATTERNS = [
-  /data-testid=["']campaigns-grid["']/,
-  /className=["'][^"']*h-full[^"']*/,
-  /className=["'][^"']*min-h-0[^"']*/,
-]
-
 function scanFile(filePath: string): Violation[] {
   const violations: Violation[] = []
   const content = readFileSync(filePath, "utf8")
@@ -46,54 +29,40 @@ function scanFile(filePath: string): Violation[] {
     const line = lines[i]
     const lineNumber = i + 1
 
-    // Look for pane grid containers
-    if (line.includes("campaigns-grid") || (line.includes("grid") && line.includes("pane"))) {
-      // Check 5 lines window around grid containers
+    if (line.includes("campaigns-grid")) {
       const start = Math.max(0, i - 2)
       const end = Math.min(lines.length, i + 3)
       const window = lines.slice(start, end).join("\n")
 
-      // Check for anti-patterns
-      ANTI_PATTERNS.forEach((pattern, index) => {
-        if (pattern.test(window)) {
-          violations.push({
-            file: filePath,
-            line: lineNumber,
-            issue: PATTERN_NAMES[index],
-            context: line.trim(),
-          })
-        }
-      })
+      if (!/\bh-full\b/.test(window)) {
+        violations.push({
+          file: filePath,
+          line: lineNumber,
+          issue: "Grid container missing h-full",
+          context: line.trim(),
+        })
+      }
 
-      // For grids, ensure required patterns are present
-      if (line.includes("campaigns-grid")) {
-        const hasHFull = /h-full/.test(window)
-        const hasMinH0 = /min-h-0/.test(window)
-
-        if (!hasHFull) {
-          violations.push({
-            file: filePath,
-            line: lineNumber,
-            issue: "Grid missing h-full constraint",
-            context: line.trim(),
-          })
-        }
-
-        if (!hasMinH0) {
-          violations.push({
-            file: filePath,
-            line: lineNumber,
-            issue: "Grid missing min-h-0 constraint",
-            context: line.trim(),
-          })
-        }
+      if (!/\bmin-h-0\b/.test(window)) {
+        violations.push({
+          file: filePath,
+          line: lineNumber,
+          issue: "Grid container missing min-h-0",
+          context: line.trim(),
+        })
       }
     }
 
-    // Check for pane wrapper patterns
-    if (line.includes("PaneColumn") || (line.includes("min-h-0") && line.includes("min-w-0"))) {
-      const hasMinH0 = /min-h-0/.test(line)
-      const hasMinW0 = /min-w-0/.test(line)
+    // PaneColumn already includes min-h-0 min-w-0 — do not flag its call sites.
+    // Only flag raw className shells that look like scroll panes and miss one axis.
+    if (
+      !line.includes("PaneColumn") &&
+      !line.includes("PaneScroll") &&
+      /className=/.test(line) &&
+      /\bpane\b/.test(line)
+    ) {
+      const hasMinH0 = /\bmin-h-0\b/.test(line)
+      const hasMinW0 = /\bmin-w-0\b/.test(line)
 
       if (hasMinH0 && !hasMinW0) {
         violations.push({
@@ -113,6 +82,18 @@ function scanFile(filePath: string): Violation[] {
         })
       }
     }
+
+    if (
+      (line.includes("PaneColumn") || line.includes("PaneScroll")) &&
+      (/\boverflow-auto\b/.test(line) || /\boverflow-y-auto\b/.test(line))
+    ) {
+      violations.push({
+        file: filePath,
+        line: lineNumber,
+        issue: "Competing overflow on pane utility",
+        context: line.trim(),
+      })
+    }
   }
 
   return violations
@@ -121,14 +102,12 @@ function scanFile(filePath: string): Violation[] {
 function scanDirectory(dir: string): Violation[] {
   let violations: Violation[] = []
 
-  const items = readdirSync(dir)
-
-  for (const item of items) {
+  for (const item of readdirSync(dir)) {
     const fullPath = join(dir, item)
     const stat = statSync(fullPath)
 
     if (stat.isDirectory()) {
-      if (!item.includes("node_modules")) {
+      if (!item.includes("node_modules") && item !== "dist" && item !== "coverage") {
         violations = violations.concat(scanDirectory(fullPath))
       }
     } else if (item.endsWith(".tsx") || item.endsWith(".ts")) {
@@ -150,12 +129,12 @@ function main() {
     console.error(`❌ Found ${violations.length} pane scroll violations:`)
     console.error("")
 
-    violations.forEach((violation) => {
+    for (const violation of violations) {
       console.error(`📁 ${violation.file}:${violation.line}`)
       console.error(`   Issue: ${violation.issue}`)
       console.error(`   Context: ${violation.context}`)
       console.error("")
-    })
+    }
 
     console.error("💡 Fix these violations to ensure proper pane scrolling:")
     console.error("   - Grid containers need: h-full min-h-0")
@@ -164,10 +143,10 @@ function main() {
     console.error("   - Use PaneColumn/PaneScroll utilities")
 
     process.exit(1)
-  } else {
-    console.log("✅ No pane scroll violations found!")
-    process.exit(0)
   }
+
+  console.log("✅ No pane scroll violations found!")
+  process.exit(0)
 }
 
 main()

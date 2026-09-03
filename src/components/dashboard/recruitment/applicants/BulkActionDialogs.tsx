@@ -105,7 +105,7 @@ export function MoveStageDialog({
 }: BaseProps & { onConfirm: (stageId: string) => void }) {
   const { data: pipeline } = useApplicantPipeline()
   const [stageId, setStageId] = useState<string>("")
-  const stages = (pipeline?.stages ?? []) as PipelineStage[]
+  const stages = pipeline?.stages ?? []
   useEffect(() => {
     if (!open) setStageId("")
   }, [open])
@@ -270,7 +270,7 @@ export function SendEmailBulkDialog({
       const { data, error } = await supabase
         .from("recruitment_email_templates")
         .select("id, name, subject")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("is_active", true)
         .is("soft_deleted_at", null)
         .order("name")
@@ -285,7 +285,7 @@ export function SendEmailBulkDialog({
       const { data, error } = await supabase
         .from("inboxes")
         .select("id, name, is_default")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("is_active", true)
         .eq("purpose", "recruitment")
         .order("is_default", { ascending: false })
@@ -489,7 +489,7 @@ export function SendFormBulkDialog({
       let q = supabase
         .from("inboxes")
         .select("id, name, sms_enabled")
-        .eq("organization_id", currentOrganizationId!)
+        .eq("organization_id", currentOrganizationId)
         .eq("is_active", true)
         .eq("purpose", "recruitment")
       if (channel === "sms") q = q.eq("sms_enabled", true)
@@ -525,11 +525,11 @@ export function SendFormBulkDialog({
               onValueChange={(v) => setChannel(v as any)}
               className="flex gap-4"
             >
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="email" /> E-post
+              <label htmlFor="bulk-channel-email" className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="email" id="bulk-channel-email" /> E-post
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="sms" /> SMS
+              <label htmlFor="bulk-channel-sms" className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="sms" id="bulk-channel-sms" /> SMS
               </label>
             </RadioGroup>
           </div>

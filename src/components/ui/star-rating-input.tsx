@@ -39,8 +39,8 @@ export function StarRatingInput({
   }
 
   return (
-    <div
-      className={cn("flex items-center gap-1", className)}
+    <fieldset
+      className={cn("flex items-center gap-1 border-0 p-0 m-0 min-w-0", className)}
       onMouseLeave={() => setHoverValue(null)}
     >
       {Array.from({ length: max }, (_, i) => i + 1).map((starIndex) => (
@@ -59,6 +59,6 @@ export function StarRatingInput({
         </button>
       ))}
       <span className="ml-2 text-sm text-muted-foreground">{value.toFixed(1)}</span>
-    </div>
+    </fieldset>
   )
 }

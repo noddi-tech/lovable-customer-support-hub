@@ -280,7 +280,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
             <p className="noddi-widget-subtitle">{localizedResponseTime}</p>
           </div>
         </div>
-        <button onClick={onClose} className="noddi-widget-close" aria-label="Close">
+        <button type="button" onClick={onClose} className="noddi-widget-close" aria-label="Close">
           <svg
             width="20"
             height="20"
@@ -327,6 +327,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
 
             <div className="noddi-widget-sent-actions">
               <button
+                type="button"
                 className="noddi-widget-action"
                 onClick={() => {
                   setShowSuccess(false)
@@ -337,6 +338,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                 {t.sendAnother || "Send another message"}
               </button>
               <button
+                type="button"
                 className="noddi-widget-back"
                 onClick={() => {
                   setShowSuccess(false)
@@ -358,6 +360,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
               {/* Show live chat only when agents are online */}
               {config.enableChat && config.agentsOnline && (
                 <button
+                  type="button"
                   className="noddi-widget-action noddi-widget-action-primary"
                   onClick={handleStartChat}
                   disabled={isStartingChat}
@@ -404,7 +407,11 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
               )}
 
               {config.enableContactForm && (
-                <button className="noddi-widget-action" onClick={() => setView("contact")}>
+                <button
+                  type="button"
+                  className="noddi-widget-action"
+                  onClick={() => setView("contact")}
+                >
                   <svg
                     width="20"
                     height="20"
@@ -426,7 +433,11 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
 
               {/* Help centre: opt-in per widget (admin flag) and host-gated via enableKnowledgeSearch */}
               {knowledgeSearchEnabled && (
-                <button className="noddi-widget-action" onClick={() => setView("search")}>
+                <button
+                  type="button"
+                  className="noddi-widget-action"
+                  onClick={() => setView("search")}
+                >
                   <svg
                     width="20"
                     height="20"
@@ -450,6 +461,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                 <p className="noddi-widget-history-title">{t.yourMessages || "Your messages"}</p>
                 {submissions.map((s) => (
                   <button
+                    type="button"
                     key={`${s.conversationId || s.sentAt}`}
                     className="noddi-widget-history-item"
                     onClick={() => {
@@ -469,7 +481,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
           </div>
         ) : view === "contact" ? (
           <div className="noddi-widget-view">
-            <button className="noddi-widget-back" onClick={() => setView("home")}>
+            <button type="button" className="noddi-widget-back" onClick={() => setView("home")}>
               <svg
                 width="16"
                 height="16"
@@ -517,7 +529,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
           /* Help centre stays behind the admin flag and the host gate. */
           knowledgeSearchEnabled ? (
             <div className="noddi-widget-view">
-              <button className="noddi-widget-back" onClick={() => setView("home")}>
+              <button type="button" className="noddi-widget-back" onClick={() => setView("home")}>
                 <svg
                   width="16"
                   height="16"
@@ -568,6 +580,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
           <span>{t.poweredBy}</span>
           <div className="noddi-widget-language-selector">
             <button
+              type="button"
               className="noddi-widget-language-btn"
               onClick={() => setShowLanguageMenu(!showLanguageMenu)}
               aria-label={t.changeLanguage}
@@ -580,6 +593,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
               <div className="noddi-widget-language-menu">
                 {availableLanguages.map((lang) => (
                   <button
+                    type="button"
                     key={lang.code}
                     className={`noddi-widget-language-option ${currentLanguage === lang.code ? "active" : ""}`}
                     onClick={() => handleLanguageChange(lang.code)}

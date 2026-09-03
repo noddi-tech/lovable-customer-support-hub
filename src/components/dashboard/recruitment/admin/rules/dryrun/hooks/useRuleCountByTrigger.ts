@@ -16,7 +16,7 @@ export function useRuleCountByTrigger() {
       const { data, error } = await supabase
         .from("recruitment_automation_rules")
         .select("trigger_type")
-        .eq("organization_id", orgId!)
+        .eq("organization_id", orgId)
         .eq("is_active", true)
 
       if (error) throw error

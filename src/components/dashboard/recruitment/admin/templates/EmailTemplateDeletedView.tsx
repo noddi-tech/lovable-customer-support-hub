@@ -37,7 +37,7 @@ export function EmailTemplateDeletedView({
               variant="outline"
               className="text-[10px] h-5 border-destructive/50 text-destructive bg-destructive/5"
             >
-              Slettet {format(new Date(template.soft_deleted_at!), "dd.MM.yyyy HH:mm")}
+              Slettet {format(new Date(template.soft_deleted_at), "dd.MM.yyyy HH:mm")}
             </Badge>
           </h2>
           <p className="text-xs text-muted-foreground">

@@ -130,6 +130,7 @@ export const MobileCustomerSummaryCard = ({
   return (
     <div className="border-b border-border bg-muted/20">
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left"
       >
@@ -162,7 +163,7 @@ export const MobileCustomerSummaryCard = ({
               const uniqueSegments = [...new Map(segments.map((s: any) => [s.segment, s])).values()]
               return uniqueSegments.map((s: any, i: number) => (
                 <span
-                  key={i}
+                  key={s.segment}
                   className={`rounded-full px-1.5 py-0.5 text-[9px] ${segColors[s.segment] || "bg-gray-100 text-gray-700"}`}
                 >
                   {segLabels[s.segment] || s.segment}
@@ -362,7 +363,7 @@ export const MobileCustomerSummaryCard = ({
                       const Icon = style.icon
                       return (
                         <span
-                          key={idx}
+                          key={tag}
                           className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] rounded-full ${style.bg} ${style.text}`}
                         >
                           {Icon && <Icon className="w-2.5 h-2.5" />}
@@ -399,7 +400,10 @@ export const MobileCustomerSummaryCard = ({
               {orderLines.length > 0 && (
                 <div className="space-y-0.5">
                   {orderLines.map((l, i) => (
-                    <div key={i} className="flex items-center justify-between text-[10px]">
+                    <div
+                      key={`${l.name}-${l.quantity}`}
+                      className="flex items-center justify-between text-[10px]"
+                    >
                       <span className="truncate mr-2">
                         {l.name}
                         {l.quantity > 1 ? ` × ${l.quantity}` : ""}

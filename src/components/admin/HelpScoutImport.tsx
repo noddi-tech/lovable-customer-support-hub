@@ -885,7 +885,7 @@ export const HelpScoutImport = () => {
                   <Label className="text-destructive">Errors ({progress.errors.length})</Label>
                   <div className="max-h-32 overflow-y-auto space-y-1 text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
                     {progress.errors.map((error, idx) => (
-                      <div key={idx} className="flex gap-2">
+                      <div key={error} className="flex gap-2">
                         <XCircle className="w-3 h-3 text-destructive shrink-0 mt-0.5" />
                         <span>{error}</span>
                       </div>

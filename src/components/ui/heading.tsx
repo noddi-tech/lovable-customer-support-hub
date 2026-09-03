@@ -16,7 +16,7 @@ export const Heading: React.FC<HeadingProps> = ({
   ...props
 }) => {
   const { designSystem } = useDesignSystem()
-  const Component = as || (`h${level}` as "h1" | "h2" | "h3")
+  const Component = as || `h${level}`
 
   const getHeadingClasses = () => {
     const baseClasses = "design-system-heading"

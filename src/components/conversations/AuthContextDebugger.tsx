@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Clock, Database, RefreshCw, XCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthContext"
 import { Badge } from "@/components/ui/badge"
@@ -98,7 +98,7 @@ export function AuthContextDebugger() {
   const [debugInfo, setDebugInfo] = useState<AuthDebugInfo | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 
-  const runFullDiagnostics = async () => {
+  const runFullDiagnostics = useCallback(async () => {
     setIsChecking(true)
 
     try {
@@ -183,7 +183,7 @@ export function AuthContextDebugger() {
     } finally {
       setIsChecking(false)
     }
-  }
+  }, [user, session])
 
   const forceSessionRefresh = async () => {
     try {
@@ -381,7 +381,7 @@ export function AuthContextDebugger() {
                           <h5 className="text-sm font-medium text-foreground">How to fix</h5>
                           <ol className="text-sm text-muted-foreground mt-1 space-y-1 list-decimal list-inside">
                             {guidance.fix.map((step, i) => (
-                              <li key={i}>{step}</li>
+                              <li key={step}>{step}</li>
                             ))}
                           </ol>
                         </div>

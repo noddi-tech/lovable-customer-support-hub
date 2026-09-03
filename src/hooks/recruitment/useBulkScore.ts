@@ -32,15 +32,15 @@ export function useBulkScore() {
           const { data, error } = await supabase.functions.invoke("score-application", {
             body: { application_id: id, trigger_reason: reason },
           })
-          if (error || (data as any)?.error) {
+          if (error || data?.error) {
             result.failed += 1
             result.errors.push({
               application_id: id,
-              error: error?.message || (data as any)?.error || "unknown",
+              error: error?.message || data?.error || "unknown",
             })
             continue
           }
-          if ((data as any)?.already_pending) result.skipped += 1
+          if (data?.already_pending) result.skipped += 1
           else result.queued += 1
         } catch (e: any) {
           result.failed += 1

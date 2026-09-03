@@ -171,7 +171,7 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
               <div className="flex items-center gap-1 flex-shrink-0">
                 {badges.slice(0, 2).map((badge, index) => (
                   <Badge
-                    key={index}
+                    key={badge.label}
                     variant={badge.variant || "default"}
                     className={cn("text-xs px-1.5 py-0.5 h-auto", badge.className)}
                   >
@@ -204,7 +204,7 @@ export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
 
                   return (
                     <div
-                      key={index}
+                      key={`${item.label}-${item.value}`}
                       className={cn("flex items-center gap-1", item.className)}
                       title={`${item.label}: ${item.value}`}
                     >

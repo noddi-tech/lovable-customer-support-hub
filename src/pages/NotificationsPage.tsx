@@ -277,6 +277,7 @@ const NotificationsPage = () => {
           {isLoading ? (
             <div className="space-y-4 p-6">
               {[...Array(5)].map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
                 <div key={i} className="flex items-start gap-4 p-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="flex-1 space-y-2">
@@ -359,9 +360,18 @@ const NotificationsPage = () => {
                     sortedAndFiltered.map((n) => {
                       const Icon = categoryIcons[n.category] || Bell
                       return (
+                        // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
                         <div
                           key={n.id}
+                          role="button"
+                          tabIndex={0}
                           onClick={() => handleNavigate(n)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              handleNavigate(n)
+                            }
+                          }}
                           className={cn(
                             "flex items-start gap-3 px-3 py-3 border-b border-border active:bg-muted/60",
                             !n.is_read && "bg-muted/30",

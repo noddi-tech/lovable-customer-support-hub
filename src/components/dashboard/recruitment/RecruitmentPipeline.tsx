@@ -26,6 +26,7 @@ const RecruitmentPipeline: React.FC = () => {
       {isLoading ? (
         <div className="flex gap-4 flex-1 min-h-0">
           {Array.from({ length: 4 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
             <Skeleton key={i} className="w-[280px] flex-shrink-0 h-full" />
           ))}
         </div>

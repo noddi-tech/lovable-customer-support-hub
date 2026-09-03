@@ -114,10 +114,19 @@ export const KnowledgeSearch: React.FC<KnowledgeSearchProps> = ({
         )}
 
         {results.map((result) => (
+          // biome-ignore lint/a11y/useSemanticElements: interactive container with nested controls; native <button> would be invalid HTML
           <div
             key={result.id}
+            role="button"
+            tabIndex={0}
             className={`noddi-widget-result ${expandedId === result.id ? "expanded" : ""}`}
             onClick={() => setExpandedId(expandedId === result.id ? null : result.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                setExpandedId(expandedId === result.id ? null : result.id)
+              }
+            }}
           >
             <div className="noddi-widget-result-header">
               <span className="noddi-widget-result-question">{result.question}</span>

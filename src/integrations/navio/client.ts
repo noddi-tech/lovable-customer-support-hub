@@ -33,5 +33,5 @@ export async function invokeNavio<T = unknown>(
     throw new NavioError(String(maybe.error), fn, maybe)
   }
 
-  return data as T
+  return data
 }

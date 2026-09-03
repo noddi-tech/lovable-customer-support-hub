@@ -268,12 +268,3 @@ describe("Author Attribution and Duplicate Content Issues", () => {
     })
   })
 })
-
-// Export test utilities for use in other test files
-export {
-  createTestQueryClient,
-  gmailEmailThread,
-  mockConversation,
-  mockNormalizationContext,
-  smsThread,
-}

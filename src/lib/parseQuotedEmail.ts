@@ -531,11 +531,11 @@ function extractFromHtml(html: string): {
   if (outlookSeparators.length > 0) {
     // Sort separators by DOM position to find the TRUE first separator
     const sortedSeparators = outlookSeparators.sort((a, b) => {
-      const position = (a as Element).compareDocumentPosition(b as Element)
+      const position = a.compareDocumentPosition(b)
       return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
     })
 
-    const firstSeparator = sortedSeparators[0] as Element
+    const firstSeparator = sortedSeparators[0]
 
     logger.debug(
       "First separator",
@@ -701,9 +701,8 @@ function extractFromHtml(html: string): {
     // Find all text nodes and remove content after the footer
     const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
     let currentTextPos = 0
-    let node: Node | null
 
-    while ((node = walker.nextNode())) {
+    for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
       const textContent = node.textContent || ""
       const nodeStart = currentTextPos
       const nodeEnd = currentTextPos + textContent.length
@@ -804,11 +803,11 @@ function extractFromPlain(text: string): {
   if (cut > -1) {
     const kind = headerIdx > -1 ? "header" : "plain"
     const raw = lines.slice(cut).join("\n")
-    const quotedBlock = { kind: kind as "header" | "plain", raw }
+    const quotedBlock = { kind: kind, raw }
     quoted.push(quotedBlock)
 
     // Parse into structured message
-    const quotedMessage = parseQuotedHeaders(raw, kind as "header" | "plain")
+    const quotedMessage = parseQuotedHeaders(raw, kind)
     if (quotedMessage) {
       quotedMessages.push(quotedMessage)
     }

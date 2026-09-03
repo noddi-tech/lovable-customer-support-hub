@@ -41,7 +41,7 @@ export function buildThreadTree(messages: NormalizedMessage[]): ThreadNode[] {
     const parentId = inReplyTo || referencesArray[referencesArray.length - 1]
 
     if (parentId && messageMap.has(parentId)) {
-      const parentNode = messageMap.get(parentId)!
+      const parentNode = messageMap.get(parentId)
       parentNode.children.push(node)
       parentNode.hasChildren = true
       node.parentId = parentId
@@ -68,7 +68,9 @@ export function buildThreadTree(messages: NormalizedMessage[]): ThreadNode[] {
     }
   }
 
-  rootNodes.forEach((node) => calculateDepth(node))
+  rootNodes.forEach((node) => {
+    calculateDepth(node)
+  })
 
   // Sort root nodes by creation time
   rootNodes.sort(

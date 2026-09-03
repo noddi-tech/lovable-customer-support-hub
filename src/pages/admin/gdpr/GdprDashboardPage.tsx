@@ -110,7 +110,7 @@ const GdprDashboardPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y">
                   {rows.map((row) => {
-                    const summary = (row.fulfillment_summary ?? {}) as any
+                    const summary = row.fulfillment_summary ?? {}
                     const downloadUrl: string | null =
                       row.request_type === "export" &&
                       row.status === "fulfilled" &&

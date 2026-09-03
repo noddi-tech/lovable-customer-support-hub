@@ -13,6 +13,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   RefreshCw,
+  Wrench,
 } from "lucide-react"
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -50,7 +51,6 @@ const MobileEmailConversationView = lazy(() =>
 )
 
 import { formatDistanceToNow } from "date-fns"
-import { Wrench } from "lucide-react"
 import { PresenceAvatarStack } from "@/components/conversations/PresenceAvatarStack"
 import { CreateNoddiTicketDialog } from "@/components/noddi-tickets/CreateNoddiTicketDialog"
 import { EntityTagPicker } from "@/components/tags/TagPicker"
@@ -326,7 +326,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
             {/* Brand (auto-set by the widget, manually overridable here) */}
             <ConversationBrandPicker
               conversationId={conversation.id}
-              metadata={(conversation as any).metadata}
+              metadata={conversation.metadata}
               channel={conversation.channel}
             />
 

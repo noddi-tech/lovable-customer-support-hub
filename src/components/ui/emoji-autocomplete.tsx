@@ -236,7 +236,7 @@ export const EmojiAutocomplete: React.FC<EmojiAutocompleteProps> = ({
             <div className="p-1">
               {suggestions.map((emoji, index) => (
                 <Button
-                  key={`${emoji.emoji}-${index}`}
+                  key={emoji.shortcode}
                   variant={index === selectedIndex ? "secondary" : "ghost"}
                   className="w-full justify-start text-left h-auto p-2 mb-1"
                   onClick={() => selectEmoji(emoji)}

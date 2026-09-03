@@ -182,7 +182,7 @@ export function ManageUserOrganizationsDialog({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveFromOrganization(membership.organization!.id)}
+                          onClick={() => handleRemoveFromOrganization(membership.organization.id)}
                           className="text-destructive hover:text-destructive"
                           disabled={user.organization_memberships?.length === 1}
                         >

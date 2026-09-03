@@ -1,0 +1,21 @@
+{
+  "threshold": 10,
+  "minLines": 8,
+  "minTokens": 50,
+  "format": ["typescript", "tsx", "javascript", "jsx"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/supabase/migrations/**",
+    "**/src/integrations/supabase/types.ts",
+    "**/src/data/**/*.generated.*",
+    "**/*.generated.*",
+    "**/*.stories.tsx",
+    "**/locales/**"
+  ],
+  "reporters": ["console", "json"],
+  "output": ".jscpd-report",
+  "absolute": true,
+  "gitignore": true
+}

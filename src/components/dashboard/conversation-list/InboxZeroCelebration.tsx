@@ -59,6 +59,7 @@ export const InboxZeroCelebration: React.FC = () => {
     <div className="flex items-center justify-center h-48 relative overflow-hidden">
       {/* Confetti particles */}
       {Array.from({ length: 12 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
         <ConfettiParticle key={i} index={i} />
       ))}
 

@@ -304,6 +304,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
             {storedAddresses.map((addr) => (
               <button
+                type="button"
                 key={addr.id}
                 onClick={() => handleStoredAddressSelect(addr)}
                 style={{
@@ -375,6 +376,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
               {selected}
             </span>
             <button
+              type="button"
               onClick={handleClear}
               style={{
                 background: "none",
@@ -453,6 +455,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
             const secondary = s.secondary_text || ""
             return (
               <button
+                type="button"
                 key={s.place_id || i}
                 onClick={() => handleSelect(s)}
                 style={{

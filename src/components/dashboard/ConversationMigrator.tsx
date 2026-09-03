@@ -125,9 +125,11 @@ export const ConversationMigrator: React.FC<ConversationMigratorProps> = ({
       <CardContent className="space-y-4">
         {/* From Inbox */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t("dashboard.fromInbox", "From Inbox")}</label>
+          <label htmlFor="migrator-from-inbox" className="text-sm font-medium">
+            {t("dashboard.fromInbox", "From Inbox")}
+          </label>
           <Select value={fromInbox} onValueChange={setFromInbox}>
-            <SelectTrigger>
+            <SelectTrigger id="migrator-from-inbox">
               <SelectValue>
                 <div className="flex items-center gap-2">
                   <div
@@ -167,9 +169,11 @@ export const ConversationMigrator: React.FC<ConversationMigratorProps> = ({
 
         {/* To Inbox */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t("dashboard.toInbox", "To Inbox")}</label>
+          <label htmlFor="migrator-to-inbox" className="text-sm font-medium">
+            {t("dashboard.toInbox", "To Inbox")}
+          </label>
           <Select value={toInbox} onValueChange={setToInbox}>
-            <SelectTrigger>
+            <SelectTrigger id="migrator-to-inbox">
               <SelectValue>
                 <div className="flex items-center gap-2">
                   <div

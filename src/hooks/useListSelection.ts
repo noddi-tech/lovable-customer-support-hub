@@ -13,7 +13,10 @@ export function useListSelection(orderedIds: string[]) {
   const setSelection = useCallback((ids: string[], selected: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      ids.forEach((id) => (selected ? next.add(id) : next.delete(id)))
+      ids.forEach((id) => {
+        if (selected) next.add(id)
+        else next.delete(id)
+      })
       return next
     })
   }, [])

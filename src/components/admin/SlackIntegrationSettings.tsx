@@ -366,7 +366,7 @@ export const SlackIntegrationSettings = () => {
 
       {/* Per-Inbox Channel Routing */}
       <InboxSlackRouting
-        integration={integration!}
+        integration={integration}
         channels={channels}
         secondaryChannels={secondaryChannels}
         hasSecondaryWorkspace={hasSecondaryWorkspace}

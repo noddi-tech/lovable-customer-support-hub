@@ -107,6 +107,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
       brandLabel={brand?.label ?? null}
     >
       <button
+        type="button"
         onClick={(e) => {
           const modifierSelect = e.metaKey || e.ctrlKey || e.shiftKey
           if (onBulkSelect && (selectionMode || modifierSelect)) {
@@ -127,13 +128,17 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
         )}
       >
         {selectionMode && (
-          <span className="pt-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <fieldset
+            className="pt-1 shrink-0 border-0 p-0 m-0 min-w-0"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             <Checkbox
               checked={isBulkSelected}
               onCheckedChange={(checked) => onBulkSelect?.(conv.id, checked === true)}
               aria-label="Select chat"
             />
-          </span>
+          </fieldset>
         )}
         {/* Avatar with status indicator */}
         <div className="relative shrink-0">

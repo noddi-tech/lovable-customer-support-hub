@@ -19,7 +19,7 @@ export function usePositionRubricStatus(positionId: string | null | undefined) {
       const { data: pos, error } = await supabase
         .from("job_positions")
         .select("organization_id, scoring_enabled, scoring_rubric, scoring_global_baseline_id")
-        .eq("id", positionId!)
+        .eq("id", positionId)
         .maybeSingle()
       if (error) throw error
       if (!pos) return { state: "inactive" }

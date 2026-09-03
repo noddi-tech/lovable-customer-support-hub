@@ -71,6 +71,7 @@ export const SettingsSidebar: React.FC = () => {
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={itemIsActive}>
                     <button
+                      type="button"
                       onClick={() => navigate(item.path)}
                       className={cn(
                         "w-full justify-start gap-2",
@@ -100,6 +101,7 @@ export const SettingsSidebar: React.FC = () => {
                   }
                 >
                   <button
+                    type="button"
                     onClick={() => navigate("/admin")}
                     className={cn(
                       "w-full justify-start gap-2",

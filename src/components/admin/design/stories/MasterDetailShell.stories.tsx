@@ -42,7 +42,7 @@ const mockConversations = [
 ]
 
 export const ListMode: Story = {
-  render: () => {
+  render: function ListModeStory() {
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
 
     const renderInboxList = () => <InboxList selectedInbox="all" />
@@ -84,7 +84,7 @@ export const ListMode: Story = {
 }
 
 export const DetailMode: Story = {
-  render: () => {
+  render: function DetailModeStory() {
     const [isDetail, setIsDetail] = useState(true)
 
     const renderMessageThread = () => (
@@ -143,7 +143,7 @@ export const MobileView: Story = {
       defaultViewport: "mobile1",
     },
   },
-  render: () => {
+  render: function MobileViewStory() {
     const [isDetail, setIsDetail] = useState(false)
 
     const renderConversationList = () => (

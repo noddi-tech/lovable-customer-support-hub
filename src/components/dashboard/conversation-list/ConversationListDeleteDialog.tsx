@@ -16,7 +16,7 @@ export const ConversationListDeleteDialog = () => {
   const { t } = useTranslation()
 
   const handleConfirm = () => {
-    deleteConversation(state.conversationToDelete!)
+    deleteConversation(state.conversationToDelete)
   }
 
   const handleCancel = () => {

@@ -81,9 +81,11 @@ export const useSimpleRealtimeSubscriptions = (
   forceReconnectRef.current = forceReconnect
 
   useEffect(() => {
+    const configs = configsRef.current
     if (!enabled || configs.length === 0) return
 
     const setupSubscription = () => {
+      const currentConfigs = configsRef.current
       // Check if this subscription already exists
       const existing = activeChannels.get(channelKey)
       if (existing) {
@@ -91,7 +93,7 @@ export const useSimpleRealtimeSubscriptions = (
           "Reusing existing realtime subscription",
           {
             channelKey,
-            tables: configs.map((c) => c.table),
+            tables: currentConfigs.map((c) => c.table),
             refCount: existing.refCount + 1,
           },
           "Realtime",
@@ -113,7 +115,7 @@ export const useSimpleRealtimeSubscriptions = (
         {
           channelName,
           channelKey,
-          tables: configs.map((c) => c.table),
+          tables: currentConfigs.map((c) => c.table),
         },
         "Realtime",
       )
@@ -122,7 +124,7 @@ export const useSimpleRealtimeSubscriptions = (
       const channel = supabase.channel(channelName)
 
       // Add listeners for each table
-      configs.forEach(({ table, queryKey }) => {
+      currentConfigs.forEach(({ table, queryKey }) => {
         channel.on(
           "postgres_changes",
           {
@@ -208,13 +210,14 @@ export const useSimpleRealtimeSubscriptions = (
 
       // Subscribe to the channel
       channel.subscribe((status) => {
+        const latestConfigs = configsRef.current
         logger.debug(
           `Connection status changed`,
           {
             channelName,
             channelKey,
             status,
-            tables: configs.map((c) => c.table),
+            tables: latestConfigs.map((c) => c.table),
             activeSubscriptions: activeChannels.size,
           },
           "Realtime",
@@ -233,7 +236,7 @@ export const useSimpleRealtimeSubscriptions = (
             logger.warn(
               "Realtime subscription failed - falling back to polling",
               {
-                tables: configs.map((c) => c.table),
+                tables: latestConfigs.map((c) => c.table),
                 status,
                 channelName,
               },
@@ -247,7 +250,7 @@ export const useSimpleRealtimeSubscriptions = (
             logger.debug(
               "Max retries reached, using polling mode with 10s auto-retry",
               {
-                tables: configs.map((c) => c.table),
+                tables: latestConfigs.map((c) => c.table),
               },
               "Realtime",
             )
@@ -260,7 +263,7 @@ export const useSimpleRealtimeSubscriptions = (
             `Retrying subscription in ${delay}ms`,
             {
               attempt: retryCountRef.current + 1,
-              tables: configs.map((c) => c.table),
+              tables: latestConfigs.map((c) => c.table),
             },
             "Realtime",
           )
@@ -281,8 +284,8 @@ export const useSimpleRealtimeSubscriptions = (
           // PROMINENT LOG to verify subscription is active
           console.log("🔌 [REALTIME] Connected!", {
             channelName,
-            tables: configs.map((c) => c.table),
-            queryKeys: configs.map((c) => c.queryKey),
+            tables: latestConfigs.map((c) => c.table),
+            queryKeys: latestConfigs.map((c) => c.queryKey),
             totalActiveChannels: activeChannels.size,
           })
 
@@ -291,7 +294,7 @@ export const useSimpleRealtimeSubscriptions = (
             {
               channelName,
               channelKey,
-              tables: configs.map((c) => c.table),
+              tables: latestConfigs.map((c) => c.table),
               activeSubscriptions: activeChannels.size,
             },
             "Realtime",
@@ -356,15 +359,8 @@ export const useSimpleRealtimeSubscriptions = (
       retryCountRef.current = 0
       hasLoggedErrorRef.current = false
     }
-  }, [
-    enabled,
-    configs.length,
-    queryClient,
-    channelKey,
-    channelName,
-    configs.map, // Add listeners for each table
-    configs.forEach,
-  ])
+    // configs read via configsRef to avoid resubscribing on unstable array identity
+  }, [enabled, queryClient, channelKey, channelName])
 
   // Auto-retry every 30 seconds when in error state (use refs to avoid dependency loops)
   useEffect(() => {
