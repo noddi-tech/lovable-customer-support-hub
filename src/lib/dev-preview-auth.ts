@@ -11,9 +11,22 @@
 
 const STORAGE_KEY = "dev:preview-auth-bypass"
 
-/** True only in a dev build (vite dev server / Lovable preview). */
+/** Hostnames that are always a non-production sandbox. */
+function isPreviewHost(): boolean {
+  if (typeof window === "undefined") return false
+  const host = window.location.hostname
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".lovableproject.com") ||
+    host.startsWith("id-preview--") ||
+    host.endsWith("-preview.lovable.app")
+  )
+}
+
+/** True in a dev build or on a Lovable preview/sandbox host. */
 export function isDevPreview(): boolean {
-  return import.meta.env.DEV === true
+  return import.meta.env.DEV === true || isPreviewHost()
 }
 
 /** True when the developer has explicitly enabled the bypass in this browser. */
