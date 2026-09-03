@@ -143,13 +143,9 @@ const shortConversationMessageRoute = createRoute({
   ),
 })
 
-const docsIndexRoute = route("/docs", () => (
-  <Protected>
-    <Suspense fallback={null}>
-      <DocsPage />
-    </Suspense>
-  </Protected>
-))
+// `/docs/$` also matches the bare `/docs` URL (empty splat) and DocsPage redirects
+// it to the default doc, so a separate index route would only create an ambiguous
+// route template and a router warning on every `<Link to="/docs">`.
 const docsSplatRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/docs/$",
@@ -595,7 +591,6 @@ export const routeTree = rootRoute.addChildren([
   homeRoute,
   shortConversationRoute,
   shortConversationMessageRoute,
-  docsIndexRoute,
   docsSplatRoute,
   apiDocsRoute,
   searchRoute,

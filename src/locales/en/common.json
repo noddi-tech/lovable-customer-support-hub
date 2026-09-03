@@ -677,5 +677,15 @@
   "productPrice": "Product Price",
   "productDescription": "Product Description",
   "productImage": "Product Image",
-  "customCode": "Custom Code"
+  "customCode": "Custom Code",
+  "navigation": {
+    "notifications": "Notifications",
+    "support": "Support",
+    "interactions": "Interactions",
+    "marketing": "Marketing",
+    "operations": "Operations",
+    "settings": "Settings",
+    "admin": "Admin",
+    "superAdmin": "Super Admin"
+  }
 }
