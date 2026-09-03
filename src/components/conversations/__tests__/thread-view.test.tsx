@@ -8,6 +8,17 @@ import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 vi.mock("@/hooks/conversations/useThreadMessagesList")
 const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
+// Mock conversation view context (component reads draft handlers from it)
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea: false },
+    dispatch: vi.fn(),
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
+
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -30,9 +41,19 @@ const createQueryClient = () =>
     },
   })
 
+// jsdom does not implement Element.prototype.scrollTo (used by the auto-scroll effect)
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = vi.fn()
+}
+
 const renderWithProviders = (component: React.ReactElement) => {
   const queryClient = createQueryClient()
-  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+  const utils = render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+  return {
+    ...utils,
+    rerender: (next: React.ReactElement) =>
+      utils.rerender(<QueryClientProvider client={queryClient}>{next}</QueryClientProvider>),
+  }
 }
 
 const mockMessages = [
@@ -200,12 +221,11 @@ describe("ProgressiveMessagesList - Thread View", () => {
       />,
     )
 
-    // Should not show quoted content toggle
-    expect(screen.queryByText(/Show quoted history/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/Hide quoted history/)).not.toBeInTheDocument()
-
-    // Should not show the quoted content itself
+    // Quoted history stays collapsed by default — its raw content is not rendered inline
     expect(screen.queryByText("Some quoted content")).not.toBeInTheDocument()
+    // ...but it remains accessible behind the trimmed-content toggle
+    expect(screen.getByText(/Show trimmed content/)).toBeInTheDocument()
+    expect(screen.queryByText(/Hide trimmed content/)).not.toBeInTheDocument()
   })
 
   it("shows proper sender attribution per card", () => {
@@ -230,11 +250,11 @@ describe("ProgressiveMessagesList - Thread View", () => {
       />,
     )
 
-    // Should show customer email as label
-    expect(screen.getAllByText("customer@example.com")).toHaveLength(2)
+    // Two customer cards attributed to "Customer"
+    expect(screen.getAllByLabelText(/message from Customer/)).toHaveLength(2)
 
-    // Should show agent email displayed as authorLabel
-    expect(screen.getByText("Agent (agent@company.com)")).toBeInTheDocument()
+    // Agent card carries the full authorLabel on its accessible label
+    expect(screen.getByLabelText(/message from Agent \(agent@company\.com\)/)).toBeInTheDocument()
   })
 
   it("shows correct remaining count decreases", () => {

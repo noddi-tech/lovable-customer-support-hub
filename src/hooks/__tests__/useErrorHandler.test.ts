@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useErrorHandler } from "../useErrorHandler"
 
 // Mock the toast hook
-const mockToast = vi.fn()
+const { mockToast, mockLogger } = vi.hoisted(() => ({
+  mockToast: vi.fn(),
+  mockLogger: { error: vi.fn() },
+}))
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({
     toast: mockToast,
@@ -11,9 +14,6 @@ vi.mock("@/hooks/use-toast", () => ({
 }))
 
 // Mock the logger
-const mockLogger = {
-  error: vi.fn(),
-}
 vi.mock("@/utils/logger", () => ({
   logger: mockLogger,
 }))

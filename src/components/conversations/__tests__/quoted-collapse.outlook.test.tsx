@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/hooks/useDateFormatting", () => ({
   useDateFormatting: () => ({
-    formatShortDateTime: (date: string) => new Date(date).toLocaleString(),
+    dateTime: (date: string) => new Date(date).toLocaleString(),
   }),
 }))
 
@@ -87,12 +87,12 @@ Customer`
     // Should show only the new content
     const emailContent = screen.getByTestId("email-content")
     expect(emailContent).toHaveTextContent(
-      "Thank you for your inquiry.\n\nWe will get back to you shortly.",
+      "Thank you for your inquiry. We will get back to you shortly.",
     )
     expect(emailContent).not.toHaveTextContent("-----Original Message-----")
 
     // Should have toggle for quoted content
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 
   it("handles email headers pattern", () => {
@@ -127,11 +127,11 @@ Original message content here.`
 
     // Should collapse at the From: header
     expect(screen.getByTestId("email-content")).toHaveTextContent("Reply to your message below.")
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 
   it("handles HTML Outlook quotes with div borders", () => {
-    const htmlWithOutlookQuote = `<div>New response here.</div>
+    const htmlWithOutlookQuote = `<div>New response to your question here.</div>
 <div style="border-top: 1px solid #ccc; padding-top: 10px;">
 <p><strong>From:</strong> customer@example.com</p>
 <p><strong>Sent:</strong> Thursday, January 4, 2024 3:30 PM</p>
@@ -159,7 +159,7 @@ Original message content here.`
     )
 
     // Should show only the new content
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 
   it("handles separator lines", () => {
@@ -194,6 +194,6 @@ Previous message content here.`
 
     // Should collapse at the separator line
     expect(screen.getByTestId("email-content")).toHaveTextContent("Thanks for the update.")
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 })

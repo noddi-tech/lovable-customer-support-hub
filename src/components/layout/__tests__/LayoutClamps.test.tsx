@@ -27,6 +27,43 @@ vi.mock("@/components/dashboard/EnhancedInteractionsLayout", () => ({
   EnhancedInteractionsLayout: () => <div data-testid="interactions-content">Interactions</div>,
 }))
 
+// AppMainNav data hooks (rendered by UnifiedAppLayout inside Index)
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: "1", email: "test@example.com" },
+    profile: { id: "p1", full_name: "Agent" },
+    isSuperAdmin: false,
+    isAdmin: false,
+    loading: false,
+    signOut: vi.fn(),
+  }),
+}))
+vi.mock("@/hooks/useOptimizedCounts", () => ({ useOptimizedCounts: () => ({ data: {} }) }))
+vi.mock("@/hooks/useSidebarNavCounts", () => ({
+  useSidebarNavCounts: () => ({ textOpen: 0, chatActive: 0 }),
+}))
+vi.mock("@/hooks/useDateFormatting", () => ({
+  useDateFormatting: () => ({ dateTime: () => "Jan 1, 2024 12:00", timezone: "UTC" }),
+}))
+
+// UnifiedAppLayout peripheral side-effect hooks + child components
+vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({
+  useNotificationPermissionPrompt: () => {},
+}))
+vi.mock("@/hooks/useDesktopEmailNotifications", () => ({
+  useDesktopEmailNotifications: () => {},
+}))
+vi.mock("@/hooks/useOpenConversationsBadge", () => ({ useOpenConversationsBadge: () => {} }))
+vi.mock("@/components/search/SearchCommandPalette", () => ({ SearchCommandPalette: () => null }))
+vi.mock("@/components/layout/QuickInboxSwitcher", () => ({ QuickInboxSwitcher: () => null }))
+vi.mock("@/features/whats-new/WhatsNewDialog", () => ({ WhatsNewDialog: () => null }))
+vi.mock("@/components/live-chat/NewChatAlertBanner", () => ({ NewChatAlertBanner: () => null }))
+vi.mock("@/components/layout/MobileEdgeSwipe", () => ({ MobileEdgeSwipe: () => null }))
+vi.mock("@/components/layout/MobileBottomNav", () => ({ MobileBottomNav: () => null }))
+vi.mock("@/components/layout/AgentAvailabilityPanel", () => ({
+  AgentAvailabilityPanel: () => null,
+}))
+
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -69,20 +106,22 @@ describe("Layout Clamp Removal", () => {
     expect(shellLevelElements).toHaveLength(0)
   })
 
-  it("should render interactions content without global centering", () => {
+  it("should render interactions content without global centering", async () => {
     const { container } = render(
       <TestWrapper>
         <Index />
       </TestWrapper>,
     )
 
-    expect(screen.getByTestId("interactions-content")).toBeInTheDocument()
+    expect(await screen.findByTestId("interactions-content")).toBeInTheDocument()
 
     // Check that the main content wrapper doesn't have centering classes
     /* eslint-disable testing-library/no-container, testing-library/no-node-access -- main landmark may lack accessible name in this shell */
     const mainContentArea = container.querySelector('main, [role="main"], .app-content')
     /* eslint-enable testing-library/no-container, testing-library/no-node-access */
     expect(mainContentArea).toBeTruthy()
-    expect(mainContentArea?.className).not.toMatch(/max-w-|mx-auto|container/)
+    // `max-w-none` explicitly removes any width clamp, so it is allowed; only
+    // actual clamps (max-w-<size>), centering, or container should be absent.
+    expect(mainContentArea?.className).not.toMatch(/max-w-(?!none\b)|mx-auto|container/)
   })
 })

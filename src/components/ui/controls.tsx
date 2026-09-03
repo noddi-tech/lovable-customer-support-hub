@@ -83,6 +83,7 @@ export function Toolbar({
 
   return (
     <div
+      role="toolbar"
       className={cn("control-toolbar", spacingClasses[spacing], wrap && "flex-wrap", className)}
       {...props}
     >

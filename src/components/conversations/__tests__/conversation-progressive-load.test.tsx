@@ -1,15 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, vi } from "vitest"
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
 import { createNormalizationContext, normalizeMessage } from "@/lib/normalizeMessage"
 import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 
 // Mock dependencies
-vi.mock("@/hooks/conversations/useConversationMessages")
+vi.mock("@/hooks/conversations/useThreadMessagesList")
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea: false },
+    dispatch: vi.fn(),
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
+
+// jsdom does not implement Element.scrollTo; the scroll area calls it on load.
+Element.prototype.scrollTo = vi.fn()
 vi.mock("@/hooks/useDateFormatting", () => ({
   useDateFormatting: () => ({
     formatShortDateTime: (date: string) => new Date(date).toLocaleString(),
+    dateTime: (date: string) => new Date(date).toLocaleString(),
   }),
 }))
 vi.mock("react-i18next", () => ({
@@ -74,12 +87,13 @@ describe("ProgressiveMessagesList", () => {
   })
 
   test("renders only newest messages initially", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 10,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 10,
+      loadedCount: 3,
+      estimatedNormalized: 10,
+      remaining: 7,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -105,12 +119,13 @@ describe("ProgressiveMessagesList", () => {
   })
 
   test("shows load older messages button when more messages available", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 15,
+      loadedCount: 3,
+      estimatedNormalized: 15,
+      remaining: 12,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -125,21 +140,20 @@ describe("ProgressiveMessagesList", () => {
       </QueryClientProvider>,
     )
 
-    await waitFor(() => {
-      const loadButton = screen.getByText("Load older messages (12 remaining)")
-      expect(loadButton).toBeInTheDocument()
-    })
+    const loadButton = await screen.findByText("Load older messages (12 remaining)")
+    expect(loadButton).toBeInTheDocument()
     expect(loadButton).toBeEnabled()
   })
 
   test("clicking load older messages calls fetchNextPage", async () => {
     const mockFetchNextPage = vi.fn().mockResolvedValue({})
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 15,
+      loadedCount: 3,
+      estimatedNormalized: 15,
+      remaining: 12,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -154,21 +168,20 @@ describe("ProgressiveMessagesList", () => {
       </QueryClientProvider>,
     )
 
+    const loadButton = await screen.findByText("Load older messages (12 remaining)")
     fireEvent.click(loadButton)
-    await waitFor(() => {
-      const loadButton = screen.getByText("Load older messages (12 remaining)")
-    })
 
     expect(mockFetchNextPage).toHaveBeenCalled()
   })
 
   test("shows loading state while fetching next page", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 15,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 15,
+      loadedCount: 3,
+      estimatedNormalized: 15,
+      remaining: 12,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: true,
@@ -191,12 +204,13 @@ describe("ProgressiveMessagesList", () => {
   })
 
   test("shows no messages state when conversation is empty", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [],
       totalCount: 0,
-      normalizedCountLoaded: 0,
-      totalNormalizedEstimated: 0,
+      loadedCount: 0,
+      estimatedNormalized: 0,
+      remaining: 0,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -217,12 +231,13 @@ describe("ProgressiveMessagesList", () => {
   })
 
   test("does not show load button when no more pages", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: mockMessages,
       totalCount: 3,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 3,
+      loadedCount: 3,
+      estimatedNormalized: 3,
+      remaining: 0,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,

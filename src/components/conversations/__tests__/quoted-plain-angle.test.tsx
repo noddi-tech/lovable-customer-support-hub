@@ -76,7 +76,7 @@ describe("MessageCard - Plain Text Angle Quote Detection", () => {
     expect(message.quotedBlocks?.[0]?.kind).toBe("plain")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 
   it("handles mixed content with some angle quotes", () => {
@@ -120,6 +120,6 @@ Let me know if you need anything else.`
     expect(message.quotedBlocks?.[0]?.kind).toBe("plain")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 })

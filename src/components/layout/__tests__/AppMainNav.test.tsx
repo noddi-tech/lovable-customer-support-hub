@@ -71,9 +71,9 @@ const TestWrapper = ({
 }
 
 describe("AppMainNav Active States", () => {
-  it("should highlight interactions/text as active on root path", async () => {
+  it("should highlight inbox as active on /interactions/text path", async () => {
     render(
-      <TestWrapper initialPath="/">
+      <TestWrapper initialPath="/interactions/text">
         <AppMainNav />
       </TestWrapper>,
     )
@@ -82,9 +82,9 @@ describe("AppMainNav Active States", () => {
     expect(textMessagesLink).toHaveAttribute("aria-current", "page")
   })
 
-  it("should highlight voice as active on /voice path", async () => {
+  it("should highlight voice as active on /interactions/voice path", async () => {
     render(
-      <TestWrapper initialPath="/voice">
+      <TestWrapper initialPath="/interactions/voice">
         <AppMainNav />
       </TestWrapper>,
     )
@@ -93,9 +93,9 @@ describe("AppMainNav Active States", () => {
     expect(voiceLink).toHaveAttribute("aria-current", "page")
   })
 
-  it("should highlight campaigns as active on /marketing path", async () => {
+  it("should highlight campaigns as active on /marketing/campaigns path", async () => {
     render(
-      <TestWrapper initialPath="/marketing">
+      <TestWrapper initialPath="/marketing/campaigns">
         <AppMainNav />
       </TestWrapper>,
     )
@@ -104,25 +104,25 @@ describe("AppMainNav Active States", () => {
     expect(campaignsLink).toHaveAttribute("aria-current", "page")
   })
 
-  it("should highlight service tickets as active on /operations path", async () => {
+  it("should highlight ops tickets as active on /operations/tickets path", async () => {
     render(
-      <TestWrapper initialPath="/operations">
+      <TestWrapper initialPath="/operations/tickets">
         <AppMainNav />
       </TestWrapper>,
     )
 
-    const ticketsLink = await screen.findByRole("link", { name: /service tickets/i })
+    const ticketsLink = await screen.findByRole("link", { name: /ops tickets/i })
     expect(ticketsLink).toHaveAttribute("aria-current", "page")
   })
 
-  it("should highlight settings/general as active on /settings path", async () => {
+  it("should highlight admin portal as active on /admin path", async () => {
     render(
-      <TestWrapper initialPath="/settings">
+      <TestWrapper initialPath="/admin">
         <AppMainNav />
       </TestWrapper>,
     )
 
-    const generalLink = await screen.findByRole("link", { name: /^general$/i })
-    expect(generalLink).toHaveAttribute("aria-current", "page")
+    const adminLink = await screen.findByRole("link", { name: /admin portal/i })
+    expect(adminLink).toHaveAttribute("aria-current", "page")
   })
 })

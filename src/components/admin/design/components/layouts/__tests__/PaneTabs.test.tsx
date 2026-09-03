@@ -40,7 +40,7 @@ describe("PaneTabs", () => {
 
     // Sticky wrapper is a layout-only parent of the tablist
     // eslint-disable-next-line testing-library/no-node-access -- sticky class is on non-semantic layout wrapper
-    const stickyHeader = screen.getByRole("tablist").parentElement
+    const stickyHeader = screen.getByRole("tablist").closest(".sticky")
     expect(stickyHeader).toBeInTheDocument()
     expect(stickyHeader).toHaveClass("sticky", "top-0", "z-10", "bg-background")
   })

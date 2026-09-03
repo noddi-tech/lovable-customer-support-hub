@@ -146,21 +146,26 @@ Original message content`
   })
 
   describe("formatEmailText", () => {
-    it("should preserve formatting for plain text", () => {
+    it("should wrap plain text lines in styled paragraphs", () => {
       const text = "Hello\nworld\n\nNew paragraph"
       const result = formatEmailText(text)
-      expect(result).toBe(text)
+      expect(result).toContain("<p")
+      expect(result).toContain(">Hello</p>")
+      expect(result).toContain(">world</p>")
+      expect(result).toContain(">New paragraph</p>")
+      // Blank lines are preserved as spacing <br> tags
+      expect(result).toContain("<br>")
     })
 
     it("should handle empty text", () => {
       const result = formatEmailText("")
-      expect(result).toBe("")
+      expect(result).toBe("<br>")
     })
 
-    it("should trim whitespace", () => {
+    it("should preserve leading/trailing whitespace inside the paragraph", () => {
       const text = "  Hello world  \n  "
       const result = formatEmailText(text)
-      expect(result).toBe("Hello world")
+      expect(result).toContain(">  Hello world  </p>")
     })
   })
 })

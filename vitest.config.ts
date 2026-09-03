@@ -6,6 +6,10 @@ import { defineConfig } from "vite"
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_COMMIT__: JSON.stringify("test"),
+    __APP_BUILD_TIME__: JSON.stringify("2024-01-01T00:00:00.000Z"),
+  },
   test: {
     globals: true,
     environment: "jsdom",

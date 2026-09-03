@@ -689,13 +689,20 @@ export const extractTextFromHTML = (htmlContent: string): string => {
     el.remove()
   })
 
+  // Preserve line breaks: convert <br> tags to newlines before extracting text
+  temp.querySelectorAll("br").forEach((br) => {
+    br.replaceWith("\n")
+  })
+
   // Get text content with some formatting preservation
   let text = temp.textContent || temp.innerText || ""
 
   // Clean up the text
   text = text
-    // Remove excessive whitespace
-    .replace(/\s+/g, " ")
+    // Strip leftover angle-bracket artifacts from malformed/invalid HTML
+    .replace(/<>/g, "")
+    // Collapse runs of horizontal whitespace but keep newlines intact
+    .replace(/[^\S\n]+/g, " ")
     // Remove common email artifacts
     .replace(/\[.*?\]/g, "")
     // Normalize line breaks
@@ -917,8 +924,21 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
       })
     })
 
+    // Outlook-style replies put the quoted thread after an <hr> divider,
+    // typically followed by "From:/Sent:/To:/Subject:" header lines. Remove the
+    // divider and everything after it.
+    const hr = container.querySelector("hr")
+    if (hr) {
+      let node: ChildNode | null = hr
+      while (node) {
+        const next: ChildNode | null = node.nextSibling
+        node.parentNode?.removeChild(node)
+        node = next
+      }
+    }
+
     // Remove elements that contain typical quote headers like "On ... wrote:" or "Original Message"
-    const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+)/i
+    const textPatterns = /(On .+wrote:|-----Original Message-----|From: .+Subject: .+|^From: )/i
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
     const toRemove: Element[] = []
     while (walker.nextNode()) {
@@ -948,7 +968,7 @@ export const stripQuotedEmailHTML = (htmlContent: string): string => {
 export const stripQuotedEmailText = (text: string): string => {
   try {
     const cutPattern =
-      /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)/i
+      /(On .+wrote:|-----Original Message-----|---+ Forwarded message ---+|From: .+\n.*Sent: .+\n.*To: .+\n.*Subject: .+)[\s\S]*/i
     let result = text.replace(cutPattern, "").trim()
 
     // Remove classic '>' quoted lines

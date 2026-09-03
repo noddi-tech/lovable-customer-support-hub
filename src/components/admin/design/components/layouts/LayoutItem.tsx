@@ -15,6 +15,7 @@ interface LayoutItemProps {
   order?: ResponsiveValue<string>
   align?: "auto" | "start" | "center" | "end" | "stretch"
   as?: "div" | "section" | "article" | "aside"
+  [key: `data-${string}`]: unknown
 }
 
 export const LayoutItem: React.FC<LayoutItemProps> = React.memo(
@@ -30,6 +31,7 @@ export const LayoutItem: React.FC<LayoutItemProps> = React.memo(
     order,
     align = "auto",
     as: Component = "div",
+    ...rest
   }) => {
     const flexClass = useMemo(() => (flex !== "none" ? `flex-${flex}` : "flex-none"), [flex])
     const growClass = useMemo(() => (grow ? "flex-grow" : "flex-grow-0"), [grow])
@@ -87,8 +89,8 @@ export const LayoutItem: React.FC<LayoutItemProps> = React.memo(
       () =>
         cn(
           flexClass,
-          grow && growClass,
-          shrink && shrinkClass,
+          growClass,
+          shrinkClass,
           basisClass,
           minWidthClass,
           maxWidthClass,
@@ -98,9 +100,7 @@ export const LayoutItem: React.FC<LayoutItemProps> = React.memo(
         ),
       [
         flexClass,
-        grow,
         growClass,
-        shrink,
         shrinkClass,
         basisClass,
         minWidthClass,
@@ -111,6 +111,10 @@ export const LayoutItem: React.FC<LayoutItemProps> = React.memo(
       ],
     )
 
-    return <Component className={combinedClassName}>{children}</Component>
+    return (
+      <Component className={combinedClassName} {...rest}>
+        {children}
+      </Component>
+    )
   },
 )

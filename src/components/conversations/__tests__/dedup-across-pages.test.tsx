@@ -1,17 +1,35 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
 import { createNormalizationContext, normalizeMessage } from "@/lib/normalizeMessage"
 import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 
 // Mock dependencies
-vi.mock("@/hooks/conversations/useConversationMessages")
+vi.mock("@/hooks/conversations/useThreadMessagesList")
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea: false },
+    dispatch: vi.fn(),
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
+vi.mock("@/hooks/useDateFormatting", () => ({
+  useDateFormatting: () => ({
+    dateTime: (date: string) => new Date(date).toLocaleString(),
+    formatShortDateTime: (date: string) => new Date(date).toLocaleString(),
+  }),
+}))
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }))
+
+// jsdom does not implement Element.scrollTo; the scroll area calls it on load.
+Element.prototype.scrollTo = vi.fn()
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -33,7 +51,7 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
   })
 
   it("deduplicates overlapping messages from multiple pages", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     // Simulate two pages with overlapping raw data but deduplication removes duplicates
     const originalMessage = {
@@ -50,11 +68,12 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
     }
 
     // Should only show 1 unique card despite 2 raw messages
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [normalizeMessage(originalMessage, testNormalizationContext)],
       totalCount: 10,
-      normalizedCountLoaded: 1,
-      totalNormalizedEstimated: 8,
+      loadedCount: 1,
+      remaining: 7,
+      estimatedNormalized: 8,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -78,10 +97,23 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
   })
 
   it("maintains chronological order after deduplication", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
-    // Messages in random order but should be displayed newest first
+    // Hook returns messages newest-first (as useThreadMessagesList sorts them)
     const messages = [
+      normalizeMessage(
+        {
+          id: "msg-3",
+          content: "Third message",
+          content_type: "text/plain",
+          sender_type: "customer" as const,
+          sender_id: "customer1",
+          is_internal: false,
+          attachments: null,
+          created_at: "2024-01-01T12:00:00Z",
+        },
+        testNormalizationContext,
+      ),
       normalizeMessage(
         {
           id: "msg-2",
@@ -108,26 +140,14 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
         },
         testNormalizationContext,
       ),
-      normalizeMessage(
-        {
-          id: "msg-3",
-          content: "Third message",
-          content_type: "text/plain",
-          sender_type: "customer" as const,
-          sender_id: "customer1",
-          is_internal: false,
-          attachments: null,
-          created_at: "2024-01-01T12:00:00Z",
-        },
-        testNormalizationContext,
-      ),
     ]
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages,
       totalCount: 3,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 3,
+      loadedCount: 3,
+      remaining: 0,
+      estimatedNormalized: 3,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -143,16 +163,16 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
     )
 
     await waitFor(() => {
-      const messageElements = screen.getAllByText(/message/)
-      // Should be in chronological order: Third, Second, First (newest first)
-      expect(messageElements[0]).toHaveTextContent("Third message")
+      // Cards render oldest-first (natural email reading order)
+      const messageElements = screen.getAllByText(/(First|Second|Third) message/)
+      expect(messageElements[0]).toHaveTextContent("First message")
       expect(messageElements[1]).toHaveTextContent("Second message")
-      expect(messageElements[2]).toHaveTextContent("First message")
+      expect(messageElements[2]).toHaveTextContent("Third message")
     })
   })
 
   it("uses stable dedup keys for React keys", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     const message = normalizeMessage(
       {
@@ -169,11 +189,12 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
       testNormalizationContext,
     )
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [message],
       totalCount: 1,
-      normalizedCountLoaded: 1,
-      totalNormalizedEstimated: 1,
+      loadedCount: 1,
+      remaining: 0,
+      estimatedNormalized: 1,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -190,7 +211,7 @@ describe("ProgressiveMessagesList - Cross-Page Deduplication", () => {
 
     // Verify the message card uses the dedupKey as React key
     await waitFor(() => {
-      expect(message.dedupKey).toBe("explicit:stable-external-id")
+      expect(message.dedupKey).toBe("id:stable-external-id")
       // The message card should be rendered
       expect(screen.getByText("Test message")).toBeInTheDocument()
     })

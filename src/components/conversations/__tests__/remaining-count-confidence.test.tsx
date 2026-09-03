@@ -1,17 +1,35 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
 import { createNormalizationContext, normalizeMessage } from "@/lib/normalizeMessage"
 import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 
 // Mock dependencies
-vi.mock("@/hooks/conversations/useConversationMessages")
+vi.mock("@/hooks/conversations/useThreadMessagesList")
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea: false },
+    dispatch: vi.fn(),
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
+vi.mock("@/hooks/useDateFormatting", () => ({
+  useDateFormatting: () => ({
+    dateTime: (date: string) => new Date(date).toLocaleString(),
+    formatShortDateTime: (date: string) => new Date(date).toLocaleString(),
+  }),
+}))
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }))
+
+// jsdom does not implement Element.scrollTo; the scroll area calls it on load.
+Element.prototype.scrollTo = vi.fn()
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -33,8 +51,8 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("shows count with high confidence and low remaining", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -51,8 +69,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 15,
-      normalizedCountLoaded: 5,
-      totalNormalizedEstimated: 15,
+      loadedCount: 5,
+      remaining: 10,
+      estimatedNormalized: 15,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -73,8 +92,8 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("hides count with high confidence but high remaining (>500)", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -91,8 +110,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 1000,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 800,
+      loadedCount: 3,
+      remaining: 0,
+      estimatedNormalized: 800,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -114,8 +134,8 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("hides count with low confidence regardless of count", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -132,8 +152,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 100,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 50,
+      loadedCount: 3,
+      remaining: 0,
+      estimatedNormalized: 50,
       confidence: "low" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -155,8 +176,8 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("shows zero remaining correctly", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -173,8 +194,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 5,
-      normalizedCountLoaded: 5,
-      totalNormalizedEstimated: 5,
+      loadedCount: 5,
+      remaining: 0,
+      estimatedNormalized: 5,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -196,8 +218,8 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("handles edge case with no estimated count", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
-    mockUseConversationMessagesList.mockReturnValue({
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -214,8 +236,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 0,
-      normalizedCountLoaded: 1,
-      totalNormalizedEstimated: 0,
+      loadedCount: 1,
+      remaining: 0,
+      estimatedNormalized: 0,
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -237,10 +260,10 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
   })
 
   it("confidence calculation reflects normalization quality", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     // Test high confidence scenario (good normalization ratio)
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -257,8 +280,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 100,
-      normalizedCountLoaded: 20,
-      totalNormalizedEstimated: 90, // Good ratio: 90/100 = 0.9
+      loadedCount: 20,
+      remaining: 70,
+      estimatedNormalized: 90, // Good ratio: 90/100 = 0.9
       confidence: "high" as const,
       hasNextPage: true,
       isFetchingNextPage: false,
@@ -278,7 +302,7 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
     })
 
     // Test low confidence scenario (poor normalization ratio)
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [
         normalizeMessage(
           {
@@ -295,8 +319,9 @@ describe("ProgressiveMessagesList - Remaining Count Confidence", () => {
         ),
       ],
       totalCount: 100,
-      normalizedCountLoaded: 20,
-      totalNormalizedEstimated: 25, // Poor ratio: 25/100 = 0.25
+      loadedCount: 20,
+      remaining: 0,
+      estimatedNormalized: 25, // Poor ratio: 25/100 = 0.25
       confidence: "low" as const,
       hasNextPage: true,
       isFetchingNextPage: false,

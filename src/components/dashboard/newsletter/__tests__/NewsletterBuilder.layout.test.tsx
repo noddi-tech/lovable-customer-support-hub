@@ -1,6 +1,16 @@
 import { render, screen } from "@testing-library/react"
-import { vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import NewsletterBuilder from "../../NewsletterBuilder"
+
+// dnd-kit calls `new ResizeObserver(...)`; provide a constructable class.
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+beforeEach(() => {
+  global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+})
 
 // Mock all the child components and hooks
 vi.mock("@/hooks/use-toast", () => ({
@@ -102,9 +112,10 @@ describe("NewsletterBuilder Layout", () => {
   it("renders all pane content", () => {
     render(<NewsletterBuilder />)
 
-    // Left pane content
+    // Left pane content (Radix Tabs only mounts the active tab's content, so the
+    // Templates panel is represented by its trigger rather than the mounted body).
     expect(screen.getByTestId("blocks-palette")).toBeInTheDocument()
-    expect(screen.getByTestId("template-library")).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "templates" })).toBeInTheDocument()
 
     // Center pane content
     expect(screen.getByTestId("newsletter-canvas")).toBeInTheDocument()

@@ -76,7 +76,7 @@ Den 4. jan. 2024 kl. 15:30 skrev John Doe <john@example.com>:
     expect(message.quotedBlocks?.[0]?.kind).toBe("header")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 
   it('detects Norwegian "På ... skrev:" pattern', () => {
@@ -115,6 +115,6 @@ På 4. januar 2024 skrev Kari Nordmann <kari@example.com>:
     expect(message.quotedBlocks?.[0]?.kind).toBe("header")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 })

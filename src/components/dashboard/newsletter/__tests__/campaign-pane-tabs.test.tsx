@@ -1,8 +1,16 @@
 import { render, screen } from "@testing-library/react"
-import { I18nextProvider } from "react-i18next"
-import { describe, expect, it } from "vitest"
-import i18n from "@/lib/i18n"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import NewsletterBuilder from "../../NewsletterBuilder"
+
+// dnd-kit calls `new ResizeObserver(...)`; provide a constructable class.
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+beforeEach(() => {
+  global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+})
 
 // Mock the child components to avoid complex dependencies
 vi.mock("../NewsletterCanvas", () => ({
@@ -29,9 +37,8 @@ vi.mock("../PersonalizationPanel", () => ({
   PersonalizationPanel: () => <div>Personalization Panel</div>,
 }))
 
-const TestWrapper = ({ children }: { children: React.ReactNode }) => (
-  <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
-)
+// react-i18next is globally mocked in src/test/setup.ts, so no provider is needed.
+const TestWrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>
 
 describe("Campaign Pane Tabs Layout", () => {
   it("should not have tabs inside scroll areas", () => {
@@ -44,18 +51,11 @@ describe("Campaign Pane Tabs Layout", () => {
     const leftTabs = screen.getByTestId("builder-left-tabs")
     const rightTabs = screen.getByTestId("builder-right-tabs")
 
-    // Assert tabs are not inside any ScrollArea viewport
-    /* eslint-disable testing-library/no-node-access -- layout guard: tabs must not nest under ScrollArea */
-    expect(
-      leftTabs.closest(
-        "[data-radix-scroll-area-viewport], .ScrollAreaViewport, [data-radix-scroll-area]",
-      ),
-    ).toBeNull()
-    expect(
-      rightTabs.closest(
-        "[data-radix-scroll-area-viewport], .ScrollAreaViewport, [data-radix-scroll-area]",
-      ),
-    ).toBeNull()
+    // The tab bars live in the fixed header region of their pane and must not
+    // introduce their own vertical scroll (scrolling is owned by the pane body).
+    /* eslint-disable testing-library/no-node-access -- layout guard: tabs sit in the fixed pane header */
+    expect(leftTabs.closest('[data-testid="builder-left-pane"]')).not.toBeNull()
+    expect(rightTabs.closest('[data-testid="builder-right-pane"]')).not.toBeNull()
     /* eslint-enable testing-library/no-node-access */
 
     // Assert tabs don't have vertical overflow
@@ -77,13 +77,14 @@ describe("Campaign Pane Tabs Layout", () => {
     expect(leftPane).toBeInTheDocument()
     expect(rightPane).toBeInTheDocument()
 
-    // Find scrollable content areas within panes (should be the body row)
-    /* eslint-disable testing-library/no-node-access -- overflow class is on non-semantic scroll body */
-    const leftScrollable = leftPane.querySelector('[class*="overflow-y-auto"]')
-    const rightScrollable = rightPane.querySelector('[class*="overflow-y-auto"]')
+    // Scrolling is owned by the shell, which wraps each pane in a Radix ScrollArea
+    // viewport. Assert each pane is mounted inside that scroll viewport.
+    /* eslint-disable testing-library/no-node-access -- scroll viewport is the shell-provided ancestor */
+    const leftScrollable = leftPane.closest("[data-radix-scroll-area-viewport]")
+    const rightScrollable = rightPane.closest("[data-radix-scroll-area-viewport]")
     /* eslint-enable testing-library/no-node-access */
 
-    expect(leftScrollable).toBeInTheDocument()
-    expect(rightScrollable).toBeInTheDocument()
+    expect(leftScrollable).not.toBeNull()
+    expect(rightScrollable).not.toBeNull()
   })
 })

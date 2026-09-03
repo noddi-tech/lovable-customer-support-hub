@@ -75,7 +75,7 @@ describe("MessageCard - Outlook Quote Detection", () => {
     expect(message.quotedBlocks?.[0]?.kind).toBe("outlook")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 
   it("detects plain text Outlook -----Original Message----- pattern", () => {
@@ -118,6 +118,6 @@ with multiple lines`
     expect(message.quotedBlocks?.[0]?.kind).toBe("header")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 })

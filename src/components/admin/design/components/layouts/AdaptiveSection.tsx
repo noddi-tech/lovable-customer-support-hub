@@ -15,6 +15,7 @@ interface AdaptiveSectionProps {
   rounded?: boolean
   shadow?: "none" | "sm" | "md" | "lg"
   as?: "div" | "section" | "article" | "aside" | "main"
+  [key: `data-${string}`]: unknown
 }
 
 export const AdaptiveSection: React.FC<AdaptiveSectionProps> = React.memo(
@@ -30,6 +31,7 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = React.memo(
     rounded = false,
     shadow = "none",
     as: Component = "section",
+    ...rest
   }) => {
     const getSpacingClass = useCallback((value: ResponsiveValue<string>, prefix: string) => {
       return typeof value === "string"
@@ -117,6 +119,10 @@ export const AdaptiveSection: React.FC<AdaptiveSectionProps> = React.memo(
       ],
     )
 
-    return <Component className={combinedClassName}>{children}</Component>
+    return (
+      <Component className={combinedClassName} {...rest}>
+        {children}
+      </Component>
+    )
   },
 )

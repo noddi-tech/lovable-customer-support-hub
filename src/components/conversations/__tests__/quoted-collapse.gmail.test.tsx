@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/hooks/useDateFormatting", () => ({
   useDateFormatting: () => ({
-    formatShortDateTime: (date: string) => new Date(date).toLocaleString(),
+    dateTime: (date: string) => new Date(date).toLocaleString(),
   }),
 }))
 
@@ -81,11 +81,11 @@ On Thu, Jan 4, 2024 at 3:30 PM John Doe <john@example.com> wrote:
 
     // Should show only the new content by default
     expect(screen.getByTestId("email-content")).toHaveTextContent(
-      "Hi there,\n\nThanks for your message.",
+      "Hi there, Thanks for your message.",
     )
 
     // Should have a toggle for quoted content
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 
   it("expands quoted content when toggle is clicked", () => {
@@ -116,11 +116,11 @@ On Thu, Jan 4, 2024 at 3:30 PM John Doe <john@example.com> wrote:
     )
 
     // Click the show quoted toggle
-    const showQuotedButton = screen.getByText(/Show quoted/i)
+    const showQuotedButton = screen.getByText(/conversation\.showQuoted/i)
     fireEvent.click(showQuotedButton)
 
     // Should now show the full content including quoted part
-    expect(screen.getByText(/Hide quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.hideQuoted/i)).toBeInTheDocument()
   })
 
   it("handles Norwegian Gmail patterns", () => {
@@ -156,7 +156,7 @@ Den 4. jan. 2024 kl. 15:30 skrev John Doe <john@example.com>:
 
     // Should collapse the Norwegian quoted content
     expect(screen.getByTestId("email-content")).toHaveTextContent("Takk for meldingen.")
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 
   it("handles email thread with multiple replies", () => {
@@ -190,6 +190,6 @@ On Jan 4, 2024, at 4:00 PM, Agent <agent@company.com> wrote:
 
     // Should show only the newest content
     expect(screen.getByTestId("email-content")).toHaveTextContent("Latest reply here.")
-    expect(screen.getByText(/Show quoted/i)).toBeInTheDocument()
+    expect(screen.getByText(/conversation\.showQuoted/i)).toBeInTheDocument()
   })
 })

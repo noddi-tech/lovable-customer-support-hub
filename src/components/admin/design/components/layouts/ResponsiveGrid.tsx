@@ -12,6 +12,7 @@ interface ResponsiveGridProps {
   minColWidth?: string
   alignment?: "start" | "center" | "end" | "stretch"
   as?: "div" | "section" | "nav" | "main"
+  [key: `data-${string}`]: unknown
 }
 
 const DEFAULT_COLS: ResponsiveValue<string> = { sm: "1", md: "2", lg: "3" }
@@ -26,6 +27,7 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = React.memo(
     minColWidth = "250px",
     alignment = "start",
     as: Component = "div",
+    ...rest
   }) => {
     const colsClass = useMemo(
       () =>
@@ -73,6 +75,10 @@ export const ResponsiveGrid: React.FC<ResponsiveGridProps> = React.memo(
       [autoFit, colsClass, autoFitClass, gapClass, alignmentClass, className],
     )
 
-    return <Component className={combinedClassName}>{children}</Component>
+    return (
+      <Component className={combinedClassName} {...rest}>
+        {children}
+      </Component>
+    )
   },
 )

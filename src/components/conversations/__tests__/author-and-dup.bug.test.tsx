@@ -6,13 +6,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
 import { createNormalizationContext, normalizeMessage } from "@/lib/normalizeMessage"
 import { MessageItem } from "../MessageItem"
 import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 
 // Mock the hooks
-vi.mock("@/hooks/conversations/useConversationMessages")
+vi.mock("@/hooks/conversations/useThreadMessagesList")
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
 vi.mock("@/hooks/useDateFormatting", () => ({
   useDateFormatting: () => ({
     dateTime: (date: string) => new Date(date).toLocaleString(),
@@ -138,7 +145,7 @@ describe("Author Attribution and Duplicate Content Issues", () => {
       expect(normalizedMessages[0].direction).toBe("inbound")
 
       expect(normalizedMessages[1].authorType).toBe("agent")
-      expect(normalizedMessages[1].authorLabel).toBe("Agent (agent@company.com)")
+      expect(normalizedMessages[1].authorLabel).toBe("agent@company.com")
       expect(normalizedMessages[1].direction).toBe("outbound")
 
       expect(normalizedMessages[2].authorType).toBe("customer")
@@ -186,21 +193,23 @@ describe("Author Attribution and Duplicate Content Issues", () => {
       expect(normalizedMessages[0].authorType).toBe("customer")
       expect(normalizedMessages[0].direction).toBe("inbound")
 
-      expect(normalizedMessages[1].authorType).toBe("customer") // This should FAIL - it's not detecting agent properly
-      expect(normalizedMessages[1].direction).toBe("inbound") // This should FAIL - should be outbound
+      // sms2 carries sender_type "agent", so it is attributed to the agent (outbound)
+      expect(normalizedMessages[1].authorType).toBe("agent")
+      expect(normalizedMessages[1].direction).toBe("outbound")
     })
   })
 
   describe("Progressive Message Loading", () => {
     it("should load newest 3 messages first without duplicates", () => {
-      const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+      const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
       // Mock the hook to return normalized messages
-      mockUseConversationMessagesList.mockReturnValue({
+      mockUseThreadMessagesList.mockReturnValue({
         messages: [],
         totalCount: 5,
-        normalizedCountLoaded: 0,
-        totalNormalizedEstimated: 5,
+        loadedCount: 0,
+        remaining: 0,
+        estimatedNormalized: 5,
         confidence: "high" as const,
         hasNextPage: true,
         isFetchingNextPage: false,

@@ -78,7 +78,7 @@ describe("EnhancedInteractionsLayout", () => {
     vi.clearAllMocks()
   })
 
-  it("renders exactly two panes in detail mode", () => {
+  it("renders a single thread pane in detail mode", async () => {
     render(
       <TestWrapper>
         <EnhancedInteractionsLayout
@@ -90,13 +90,15 @@ describe("EnhancedInteractionsLayout", () => {
       </TestWrapper>,
     )
 
-    const grid = screen.getByTestId("detail-grid")
+    // Router (TanStack) resolves asynchronously, so await the detail grid.
+    const grid = await screen.findByTestId("detail-grid")
     expect(grid).toBeInTheDocument()
-    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
-    expect(grid.childElementCount).toBe(2)
+    // Single-rail layout: only the message-thread pane (reply lives inside the thread view).
+    // eslint-disable-next-line testing-library/no-node-access -- assert single pane child
+    expect(grid.childElementCount).toBe(1)
   })
 
-  it("does not have width clamps in interactions subtree", () => {
+  it("does not have width clamps in the detail subtree", async () => {
     render(
       <TestWrapper>
         <EnhancedInteractionsLayout
@@ -108,17 +110,18 @@ describe("EnhancedInteractionsLayout", () => {
       </TestWrapper>,
     )
 
-    const interactionsRoot = screen.getByTestId("interactions-root")
+    const grid = await screen.findByTestId("detail-grid")
     // eslint-disable-next-line testing-library/no-node-access -- layout guard scans subtree classNames
-    const allElements = interactionsRoot.querySelectorAll("*")
+    const allElements = grid.querySelectorAll("*")
 
     allElements.forEach((element) => {
       const className = element.className?.toString() || ""
-      expect(className).not.toMatch(/\b(container|mx-auto|max-w-)\b/)
+      // `max-w-none` is an explicit anti-clamp and is allowed.
+      expect(className).not.toMatch(/\b(container|mx-auto)\b|\bmax-w-(?!none)/)
     })
   })
 
-  it("detail grid has exactly two panes and no inner horizontal padding", () => {
+  it("detail grid has a single pane with no inner horizontal padding", async () => {
     render(
       <TestWrapper>
         <EnhancedInteractionsLayout
@@ -130,16 +133,15 @@ describe("EnhancedInteractionsLayout", () => {
       </TestWrapper>,
     )
 
-    const grid = screen.getByTestId("detail-grid")
-    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
-    expect(grid.childElementCount).toBe(2) // thread + right rail
+    const grid = await screen.findByTestId("detail-grid")
+    // eslint-disable-next-line testing-library/no-node-access -- assert single pane child
+    expect(grid.childElementCount).toBe(1) // thread only (single rail)
 
-    // Check immediate children for px-0 (or 0 computed padding-left/right)
-    // eslint-disable-next-line testing-library/no-node-access -- padding measured on direct grid children
+    // Direct grid children must not carry horizontal padding classes.
+    // eslint-disable-next-line testing-library/no-node-access -- padding checked on direct grid children
     Array.from(grid.children).forEach((child) => {
-      const cs = window.getComputedStyle(child as HTMLElement)
-      expect(parseFloat(cs.paddingLeft)).toBeLessThanOrEqual(1)
-      expect(parseFloat(cs.paddingRight)).toBeLessThanOrEqual(1)
+      const className = (child as HTMLElement).className?.toString() || ""
+      expect(className).not.toMatch(/\bp[xlr]-[1-9]/)
     })
   })
 })

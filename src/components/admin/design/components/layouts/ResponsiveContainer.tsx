@@ -10,6 +10,7 @@ interface ResponsiveContainerProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | "7xl" | "full"
   center?: boolean
   as?: "div" | "section" | "main" | "article"
+  [key: `data-${string}`]: unknown
 }
 
 export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.memo(
@@ -20,6 +21,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.mem
     maxWidth = "7xl",
     center = false,
     as: Component = "div",
+    ...rest
   }) => {
     const paddingClass = useMemo(
       () =>
@@ -48,6 +50,10 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = React.mem
       [maxWidthClass, centerClass, paddingClass, className],
     )
 
-    return <Component className={combinedClassName}>{children}</Component>
+    return (
+      <Component className={combinedClassName} {...rest}>
+        {children}
+      </Component>
+    )
   },
 )

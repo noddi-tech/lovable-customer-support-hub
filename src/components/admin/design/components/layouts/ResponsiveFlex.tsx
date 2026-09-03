@@ -13,6 +13,7 @@ interface ResponsiveFlexProps {
   alignment?: "start" | "center" | "end" | "stretch"
   justify?: "start" | "center" | "end" | "between" | "around" | "evenly"
   as?: "div" | "section" | "nav" | "header" | "footer"
+  [key: `data-${string}`]: unknown
 }
 
 export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = React.memo(
@@ -26,6 +27,7 @@ export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = React.memo(
     alignment = "start",
     justify = "start",
     as: Component = "div",
+    ...rest
   }) => {
     const directionClass = useMemo(
       () => (direction === "responsive" ? `flex-col ${breakpoint}:flex-row` : `flex-${direction}`),
@@ -65,6 +67,10 @@ export const ResponsiveFlex: React.FC<ResponsiveFlexProps> = React.memo(
       [directionClass, wrapClass, gapClass, alignmentClass, justifyClass, className],
     )
 
-    return <Component className={combinedClassName}>{children}</Component>
+    return (
+      <Component className={combinedClassName} {...rest}>
+        {children}
+      </Component>
+    )
   },
 )

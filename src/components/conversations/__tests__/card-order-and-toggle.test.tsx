@@ -1,17 +1,36 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useConversationMessagesList } from "@/hooks/conversations/useConversationMessages"
+import { useThreadMessagesList } from "@/hooks/conversations/useThreadMessagesList"
 import { createNormalizationContext, normalizeMessage } from "@/lib/normalizeMessage"
 import { ProgressiveMessagesList } from "../ProgressiveMessagesList"
 
 // Mock dependencies
-vi.mock("@/hooks/conversations/useConversationMessages")
+vi.mock("@/hooks/conversations/useThreadMessagesList")
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }))
+vi.mock("@/hooks/useDateFormatting", () => ({
+  useDateFormatting: () => ({
+    dateTime: (date: string) => new Date(date).toLocaleString(),
+  }),
+}))
+vi.mock("@/contexts/ConversationViewContext", () => ({
+  useConversationView: () => ({
+    state: { showReplyArea: false },
+    dispatch: vi.fn(),
+    sendDraft: vi.fn(),
+    editDraft: vi.fn(),
+    dismissDraft: vi.fn(),
+  }),
+}))
+
+// jsdom does not implement Element.prototype.scrollTo (used by the auto-scroll effect)
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = vi.fn()
+}
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -33,7 +52,7 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
   })
 
   it("displays newest messages first by default", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     const messages = [
       normalizeMessage(
@@ -77,11 +96,11 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       ),
     ]
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages,
       totalCount: 3,
-      normalizedCountLoaded: 3,
-      totalNormalizedEstimated: 3,
+      loadedCount: 3,
+      estimatedNormalized: 3,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -97,16 +116,19 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
     )
 
     await waitFor(() => {
-      const messageElements = screen.getAllByText(/message/)
-      // Verify order: newest first
-      expect(messageElements[0]).toHaveTextContent("Newest message")
-      expect(messageElements[1]).toHaveTextContent("Middle message")
-      expect(messageElements[2]).toHaveTextContent("Oldest message")
+      expect(screen.getByText("Newest message")).toBeInTheDocument()
     })
+
+    // Continuous chat-style thread renders oldest at top, newest at bottom
+    const oldest = screen.getByText("Oldest message")
+    const middle = screen.getByText("Middle message")
+    const newest = screen.getByText("Newest message")
+    expect(oldest.compareDocumentPosition(middle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(middle.compareDocumentPosition(newest) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it("cards are collapsed by default", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+  it("renders all messages expanded in the continuous thread", async () => {
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     const messages = [
       normalizeMessage(
@@ -125,11 +147,11 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       ),
     ]
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages,
       totalCount: 1,
-      normalizedCountLoaded: 1,
-      totalNormalizedEstimated: 1,
+      loadedCount: 1,
+      estimatedNormalized: 1,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -145,18 +167,17 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
     )
 
     await waitFor(() => {
-      // Should show preview text (first 160 chars + ellipsis)
       expect(
         screen.getByText(/This is a long message that should show preview when collapsed/),
       ).toBeInTheDocument()
-
-      // Should not show full expanded content initially
-      expect(screen.queryByText(/It contains multiple sentences/)).not.toBeInTheDocument()
     })
+
+    // Continuous thread auto-expands cards, so the full content is shown
+    expect(screen.getByText(/It contains multiple sentences/)).toBeInTheDocument()
   })
 
-  it("supports expand all and collapse all functionality", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+  it("renders every message's full content in the continuous thread", async () => {
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     const messages = [
       normalizeMessage(
@@ -187,11 +208,11 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       ),
     ]
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages,
       totalCount: 2,
-      normalizedCountLoaded: 2,
-      totalNormalizedEstimated: 2,
+      loadedCount: 2,
+      estimatedNormalized: 2,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -206,10 +227,7 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       </QueryClientProvider>,
     )
 
-    const expandAllButton = await screen.findByText("Expand all")
-    fireEvent.click(expandAllButton)
-
-    // Should now show full content
+    // Continuous thread renders every loaded turn expanded with full content
     await waitFor(() => {
       expect(
         screen.getByText("Message 1 with full content to test expand/collapse"),
@@ -218,20 +236,10 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
         screen.getByText("Message 2 with full content to test expand/collapse"),
       ).toBeInTheDocument()
     })
-
-    const collapseAllButton = await screen.findByText("Collapse all")
-    fireEvent.click(collapseAllButton)
-
-    // Should show preview again
-    await waitFor(() => {
-      // Messages should be collapsed again showing only previews
-      const previews = screen.getAllByText(/Message \d+ with full content to test expand\/collapse/)
-      expect(previews.length).toBeGreaterThan(0)
-    })
   })
 
   it("displays correct sender attribution", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     const messages = [
       normalizeMessage(
@@ -264,11 +272,11 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       ),
     ]
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages,
       totalCount: 2,
-      normalizedCountLoaded: 2,
-      totalNormalizedEstimated: 2,
+      loadedCount: 2,
+      estimatedNormalized: 2,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -283,15 +291,19 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       </QueryClientProvider>,
     )
 
-    // Should show customer email as label
-    expect(screen.getByText("customer@example.com")).toBeInTheDocument()
+    // Card header shows the sender's short name (email local part) as attribution
+    await waitFor(() => {
+      expect(screen.getByText("customer")).toBeInTheDocument()
+    })
+    expect(screen.getByText("agent")).toBeInTheDocument()
 
-    // Should show agent email as label
-    expect(screen.getByText("agent@test.com")).toBeInTheDocument()
+    // Full email is preserved on the card's accessible label
+    expect(screen.getByLabelText(/from customer@example\.com/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/from agent@test\.com/i)).toBeInTheDocument()
   })
 
   it("shows quoted history toggle when available", async () => {
-    const mockUseConversationMessagesList = vi.mocked(useConversationMessagesList)
+    const mockUseThreadMessagesList = vi.mocked(useThreadMessagesList)
 
     // Create a message with quoted content
     const messageWithQuotes = normalizeMessage(
@@ -309,11 +321,11 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       testNormalizationContext,
     )
 
-    mockUseConversationMessagesList.mockReturnValue({
+    mockUseThreadMessagesList.mockReturnValue({
       messages: [messageWithQuotes],
       totalCount: 1,
-      normalizedCountLoaded: 1,
-      totalNormalizedEstimated: 1,
+      loadedCount: 1,
+      estimatedNormalized: 1,
       confidence: "high" as const,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -330,17 +342,15 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
 
     expect(messageWithQuotes.quotedBlocks?.length ?? 0).toBeGreaterThan(0)
 
-    const expandButton = await screen.findByRole("button", { name: /Expand message/i })
-    fireEvent.click(expandButton)
-
+    // Cards are auto-expanded in the continuous thread, so the toggle is visible directly
     await waitFor(() => {
-      expect(screen.getByText(/Show quoted history/)).toBeInTheDocument()
+      expect(screen.getByText(/Show trimmed content/)).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText(/Show quoted history/))
+    fireEvent.click(screen.getByText(/Show trimmed content/))
 
     await waitFor(() => {
-      expect(screen.getByText(/Hide quoted history/)).toBeInTheDocument()
+      expect(screen.getByText(/Hide trimmed content/)).toBeInTheDocument()
     })
   })
 })

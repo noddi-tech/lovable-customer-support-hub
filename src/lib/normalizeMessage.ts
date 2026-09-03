@@ -150,6 +150,7 @@ export interface EmailAddress {
 export interface NormalizedMessage {
   id: string
   dedupKey: string
+  softKey?: string | null
   createdAt: string | number
   channel: "email" | "sms" | "voice" | string
 
@@ -482,6 +483,7 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   const result: NormalizedMessage = {
     id: rawMessage.id,
     dedupKey: "", // Will be set below
+    softKey: null, // Will be set below
     createdAt: rawMessage.created_at,
     channel,
     from,
@@ -504,7 +506,9 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
   }
 
   // Generate stable dedup key after we have the normalized message
-  result.dedupKey = generateStableDedupKey(rawMessage, result)
+  const { dedupKey, softKey } = generateStableDedupKey(rawMessage, result)
+  result.dedupKey = dedupKey
+  result.softKey = softKey
 
   return result
 }
@@ -512,10 +516,16 @@ export function normalizeMessage(rawMessage: any, ctx: NormalizationContext): No
 /**
  * Generate stable dedup key with 3-step fallback chain
  */
-function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
+function generateStableDedupKey(
+  raw: any,
+  norm: NormalizedMessage,
+): { dedupKey: string; softKey: string | null } {
   // Special handling for quoted extracted messages
   if (raw.is_quoted_extraction) {
-    return `quoted:${raw.parent_message_id}:${raw.quoted_index || 0}`
+    return {
+      dedupKey: `quoted:${raw.parent_message_id}:${raw.quoted_index || 0}`,
+      softKey: null,
+    }
   }
 
   // Prefer IDs in your stored headers JSON - prioritize email_message_id as it's unique per message
@@ -535,17 +545,31 @@ function generateStableDedupKey(raw: any, norm: NormalizedMessage): string {
       email_message_id: raw.email_message_id,
       external_id: raw.external_id,
       hasHeaderMessageId: !!(hdr["Message-ID"] || hdr["Message-Id"]),
-      generatedKey: explicit ? `id:${String(explicit)}` : "content-hash",
+      generatedKey: explicit ? `id:${String(explicit)}` : `id:${String(raw.id)}`,
     },
     "dedupKey",
   )
 
-  if (explicit) return `id:${String(explicit)}`
+  // Primary key: an explicit message-id header, otherwise the row's primary id.
+  const dedupKey = explicit ? `id:${String(explicit)}` : `id:${String(raw.id)}`
 
-  // Fallback: content hash + author + 2-min bucket
-  const content = normalizeText(norm.visibleBody)
-  const bucket = roundTo2Min(norm.createdAt)
-  return `ch:${simpleHash(`${norm.authorType}|${content}|${bucket}`)}`
+  // Soft key: same content, same sender, same day collapses near-duplicate
+  // deliveries that carry different primary ids. Only applied when there is no
+  // explicit message-id header to trust.
+  let softKey: string | null = null
+  if (!explicit) {
+    const content = normalizeText(norm.visibleBody)
+    const sender = (norm.from?.email || norm.authorType || "").toLowerCase()
+    const day = dayBucket(norm.createdAt)
+    softKey = `sk:${simpleHash(`${sender}|${content}|${day}`)}`
+  }
+
+  return { dedupKey, softKey }
+}
+
+function dayBucket(value: string | number): string {
+  const d = typeof value === "string" ? new Date(value) : new Date(value)
+  return Number.isNaN(d.getTime()) ? String(value) : d.toISOString().slice(0, 10)
 }
 
 /**
@@ -563,12 +587,19 @@ export function deduplicateMessages(messages: NormalizedMessage[]): NormalizedMe
   })
 
   for (const message of sorted) {
-    // Deduplication by stable dedup key
+    // Deduplication by stable primary key, then by soft key (same content /
+    // sender / day) to catch near-duplicate deliveries with different ids.
     if (seenKeys.has(message.dedupKey)) {
+      continue
+    }
+    if (message.softKey && seenKeys.has(message.softKey)) {
       continue
     }
 
     seenKeys.add(message.dedupKey)
+    if (message.softKey) {
+      seenKeys.add(message.softKey)
+    }
     deduped.push(message)
   }
 

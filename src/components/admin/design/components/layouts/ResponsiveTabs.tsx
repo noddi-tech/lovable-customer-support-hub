@@ -378,7 +378,7 @@ export const ResponsiveTabsTrigger = forwardRef<HTMLButtonElement, ResponsiveTab
       <TabsTrigger
         ref={ref}
         className={cn(
-          "!inline-flex !flex-row !items-center gap-2 !whitespace-nowrap shrink-0 min-w-fit leading-none",
+          "!inline-flex !flex-row !items-center gap-2 !whitespace-nowrap !shrink-0 !min-w-fit !leading-none truncate min-w-0",
           sanitizedClassName,
         )}
         {...props}

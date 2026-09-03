@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import {
   ResponsiveTabs,
@@ -5,12 +6,22 @@ import {
   ResponsiveTabsTrigger,
 } from "@/components/admin/design/components/layouts/ResponsiveTabs"
 import { CampaignBuilderShell } from "@/components/dashboard/newsletter/CampaignBuilderShell"
+import { DesignSystemProvider } from "@/contexts/DesignSystemContext"
 import AdminDesignComponents from "@/pages/AdminDesignComponents"
+
+const renderAdminDesign = () =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <DesignSystemProvider>
+        <AdminDesignComponents />
+      </DesignSystemProvider>
+    </QueryClientProvider>,
+  )
 
 describe("Overlap Prevention", () => {
   describe("AdminDesignComponents", () => {
     it("should not use whitespace-nowrap on tabs", () => {
-      render(<AdminDesignComponents />)
+      renderAdminDesign()
 
       screen.getAllByRole("tab").forEach((tab) => {
         const styles = window.getComputedStyle(tab)
@@ -20,7 +31,7 @@ describe("Overlap Prevention", () => {
     })
 
     it("should have flex-wrap on tabs container", () => {
-      render(<AdminDesignComponents />)
+      renderAdminDesign()
 
       expect(screen.getByRole("tablist").className).toMatch(/flex-wrap/)
     })
@@ -139,7 +150,8 @@ describe("Overlap Prevention", () => {
       `
 
       expect(/-mb-1\b/.test(riskyCode)).toBe(true)
-      expect(/whitespace-nowrap.*TabsList/.test(riskyCode)).toBe(true)
+      // The sample has `<TabsList className="whitespace-nowrap ...">` — TabsList precedes the class
+      expect(/TabsList.*whitespace-nowrap/.test(riskyCode)).toBe(true)
     })
   })
 })

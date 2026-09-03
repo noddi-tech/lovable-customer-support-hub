@@ -88,10 +88,15 @@ export const ProgressiveMessagesList = forwardRef<
     // Captured once per mount so the divider does not jump while reading.
     const lastViewedAtRef = useRef<number | null>(null)
     if (lastViewedAtRef.current === null) {
-      const stored =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(`conv-last-viewed:${conversationId}`)
-          : null
+      let stored: string | null = null
+      try {
+        stored =
+          typeof window !== "undefined"
+            ? (window.localStorage?.getItem(`conv-last-viewed:${conversationId}`) ?? null)
+            : null
+      } catch {
+        /* storage unavailable — divider simply won't restore */
+      }
       lastViewedAtRef.current = stored ? Number(stored) : 0
     }
     useEffect(() => {
@@ -539,6 +544,13 @@ export const ProgressiveMessagesList = forwardRef<
               />
 
               <div className="space-y-1">
+                {/* Message count summary */}
+                {messages.length > 0 && (
+                  <div className="px-2 pb-2 text-xs text-muted-foreground">
+                    {messages.length} {messages.length === 1 ? "message" : "messages"}
+                  </div>
+                )}
+
                 {/* Pinned Notes Section */}
                 {(() => {
                   const pinnedNotes = messages.filter(
@@ -636,11 +648,7 @@ export const ProgressiveMessagesList = forwardRef<
                       ) : (
                         <>
                           <ChevronUp className="w-4 h-4 mr-2" />
-                          <span>
-                            {hasNextPage && remaining > 0
-                              ? `Load ${remaining} older messages`
-                              : "Load older messages"}
-                          </span>
+                          <span>{loadOlderLabel}</span>
                         </>
                       )}
                     </Button>

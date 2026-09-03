@@ -5,7 +5,12 @@ import { cn } from "@/lib/utils"
 
 // Helper to sanitize vertical layout classes from incoming className
 const stripVertical = (cls?: string) =>
-  cls ? cls.replace(/\bflex-col\b/g, "flex-row").replace(/\bgrid\b/g, "inline-flex") : cls
+  cls
+    ? cls
+        .replace(/\bflex-col\b/g, "flex-row")
+        .replace(/\bgrid\b/g, "inline-flex")
+        .replace(/\bitems-start\b/g, "items-center")
+    : cls
 
 const Tabs = TabsPrimitive.Root
 

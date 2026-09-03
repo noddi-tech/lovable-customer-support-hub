@@ -111,13 +111,23 @@ export interface QuotedMessage {
 
 type Input = { content: string; contentType?: string }
 
+/**
+ * Detect real HTML markup. Requires a proper tag (e.g. <div>, <p class="x">, </br>)
+ * so that a bare email address in angle brackets — "<john@example.com>" — is NOT
+ * misclassified as HTML.
+ */
+function looksLikeHtml(content: string): boolean {
+  return /<\/?[a-z][a-z0-9]*(\s[^>]*)?>/i.test(content)
+}
+
 const WROTE_HEADERS = [
   // English
   /^On .+ wrote:$/i,
   /^-----Original Message-----$/i,
   /^From: .+\n(?:Sent|Date): .+\n(?:To|Cc): .+\n(?:Subject|Re): .+$/i,
   // Norwegian
-  /^(Den|På) .+ skrev:$/i,
+  // "Den ... skrev:" and "Den ... skrev John Doe <john@example.com>:"
+  /^(Den|På) .+ skrev\b.*:$/i,
   /^Fra: .+\n(?:Sendt|Dato): .+\n(?:Til|Kopi): .+\n(?:Emne|Re): .+$/i,
   /^Skrev .+:$/i,
 ]
@@ -836,9 +846,7 @@ export function parseQuotedEmail(input: Input): {
   quotedMessages: QuotedMessage[]
 } {
   const cacheType =
-    input.contentType?.includes("html") || /<\/?[a-z][\s\S]*>/i.test(input.content || "")
-      ? "html"
-      : "text"
+    input.contentType?.includes("html") || looksLikeHtml(input.content || "") ? "html" : "text"
   const content = input.content || ""
 
   // Check cache first
@@ -867,7 +875,7 @@ export function parseQuotedEmail(input: Input): {
     quotedMessages: QuotedMessage[]
   }
 
-  if (contentType.includes("html") || /<\/?[a-z][\s\S]*>/i.test(content)) {
+  if (contentType.includes("html") || looksLikeHtml(content)) {
     const { visibleHTML, quoted, quotedMessages } = extractFromHtml(content)
     result = {
       visibleContent: visibleHTML.trim(),

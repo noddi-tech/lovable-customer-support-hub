@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
+import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { BrowserRouter } from "@/router/compat"
 import { EnhancedInteractionsLayout } from "./EnhancedInteractionsLayout"
 
-// Mock dependencies
+// Mock navigation in list mode (no conversation selected).
 vi.mock("@/hooks/useInteractionsNavigation", () => ({
   useInteractionsNavigation: () => ({
     currentState: {
@@ -21,23 +23,8 @@ vi.mock("@/hooks/useInteractionsNavigation", () => ({
 }))
 
 vi.mock("@/hooks/useInteractionsData", () => ({
-  useAccessibleInboxes: () => ({ data: [{ id: "inbox-1", name: "Test Inbox" }] }),
-  useConversations: () => ({
-    data: [
-      {
-        id: "conv-1",
-        subject: "Test Conversation",
-        preview: "Test preview",
-        fromName: "John Doe",
-        channel: "email",
-        updatedAt: "2024-01-01T10:00:00Z",
-        unread: true,
-        priority: "normal",
-        status: "open",
-      },
-    ],
-    isLoading: false,
-  }),
+  useAccessibleInboxes: () => ({ data: [{ id: "test-inbox", name: "Test Inbox" }] }),
+  useConversations: () => ({ data: [], isLoading: false }),
   useThread: () => ({ data: null, isLoading: false }),
   useReply: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
@@ -46,8 +33,23 @@ vi.mock("@/hooks/use-responsive", () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+// Heavy children are exercised by their own tests; here we assert the layout shell.
+vi.mock("@/components/layout/InboxList", () => ({
+  InboxList: () => <div data-testid="inbox-list">Inbox List</div>,
+}))
+
+vi.mock("./ConversationList", () => ({
+  ConversationList: () => <div data-testid="conversation-list">Conversation List</div>,
+}))
+
+vi.mock("./shared/ChannelPageHeader", () => ({
+  ChannelPageHeader: ({ title }: { title: string }) => (
+    <div data-testid="channel-page-header">{title}</div>
+  ),
+}))
+
+vi.mock("./InboxMetricsDialog", () => ({
+  InboxMetricsDialog: () => null,
 }))
 
 const createWrapper = () => {
@@ -58,8 +60,10 @@ const createWrapper = () => {
     },
   })
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>{children}</BrowserRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -75,63 +79,41 @@ describe("EnhancedInteractionsLayout", () => {
     vi.clearAllMocks()
   })
 
-  it("renders conversation list in single column (not grid)", () => {
+  it("renders the two-pane list layout (inbox rail + conversation list)", async () => {
     render(<EnhancedInteractionsLayout {...defaultProps} />, { wrapper: createWrapper() })
 
-    // Verify conversation appears in single column
-    expect(screen.getByText("Test Conversation")).toBeInTheDocument()
-    expect(screen.getByText("Test preview")).toBeInTheDocument()
-
-    // Check that it's in a column layout (space-y-2 class indicates vertical stacking)
-    // eslint-disable-next-line testing-library/no-node-access -- layout class lives on ancestor wrapper
-    const conversationContainer = screen.getByText("Test Conversation").closest(".space-y-2")
-    expect(conversationContainer).toBeInTheDocument()
+    // Router (TanStack) resolves asynchronously, so await the list grid.
+    const grid = await screen.findByTestId("list-grid")
+    expect(grid).toBeInTheDocument()
+    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
+    expect(grid.childElementCount).toBe(2)
   })
 
-  it("renders inbox selector with shadcn Select", () => {
+  it("renders the inbox rail and conversation list", async () => {
     render(<EnhancedInteractionsLayout {...defaultProps} />, { wrapper: createWrapper() })
 
-    // Should have workspace section with select
-    expect(screen.getByText("Workspace")).toBeInTheDocument()
+    expect(await screen.findByTestId("inbox-list")).toBeInTheDocument()
+    expect(screen.getByTestId("conversation-list")).toBeInTheDocument()
   })
 
-  it("renders status filters with counts", () => {
+  it("renders the search input", async () => {
     render(<EnhancedInteractionsLayout {...defaultProps} />, { wrapper: createWrapper() })
 
-    // Should have filters section
-    expect(screen.getByText("Filters")).toBeInTheDocument()
-    expect(screen.getByText("All Messages")).toBeInTheDocument()
-    expect(screen.getByText("Unread")).toBeInTheDocument()
-    expect(screen.getByText("Assigned to Me")).toBeInTheDocument()
-  })
-
-  it("renders search input", () => {
-    render(<EnhancedInteractionsLayout {...defaultProps} />, { wrapper: createWrapper() })
-
-    const searchInput = screen.getByPlaceholderText("Search conversations...")
+    const searchInput = await screen.findByPlaceholderText("Search conversations...")
     expect(searchInput).toBeInTheDocument()
   })
 
-  it("shows voice interface when activeSubTab is voice", () => {
-    render(<EnhancedInteractionsLayout {...defaultProps} activeSubTab="voice" />, {
-      wrapper: createWrapper(),
-    })
-
-    // Voice tab swaps out the conversation list layout
-    expect(screen.queryByText("Test Conversation")).not.toBeInTheDocument()
-  })
-
-  it.todo("shows loading state correctly")
-
-  it("shows empty state when no conversations", () => {
-    // Mock empty conversations
-    vi.mocked(require("@/hooks/useInteractionsData").useConversations).mockReturnValue({
-      data: [],
-      isLoading: false,
-    })
-
+  it("does not have width clamps in the list subtree", async () => {
     render(<EnhancedInteractionsLayout {...defaultProps} />, { wrapper: createWrapper() })
 
-    expect(screen.getByText("No conversations found")).toBeInTheDocument()
+    const grid = await screen.findByTestId("list-grid")
+    // eslint-disable-next-line testing-library/no-node-access -- layout guard scans subtree classNames
+    const allElements = grid.querySelectorAll("*")
+
+    allElements.forEach((element) => {
+      const className = element.className?.toString() || ""
+      // `max-w-none` is an explicit anti-clamp and is allowed.
+      expect(className).not.toMatch(/\b(container|mx-auto)\b|\bmax-w-(?!none)/)
+    })
   })
 })

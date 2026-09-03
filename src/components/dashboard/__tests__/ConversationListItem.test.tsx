@@ -1,8 +1,23 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
+import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ConversationPriority, ConversationStatus } from "@/contexts/ConversationListContext"
 import { createMockConversation } from "@/test/test-utils"
 import { ConversationListItem } from "../conversation-list/ConversationListItem"
+
+// The component pulls data-formatting and count hooks that use React Query.
+const renderWithClient = (ui: ReactNode) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
+}
+
+// Presence avatars depend on AuthContext + realtime; not relevant to these assertions.
+vi.mock("@/components/conversations/PresenceAvatarStack", () => ({
+  PresenceAvatarStack: () => null,
+}))
 
 // Mock the context hook
 const mockDispatch = vi.fn()
@@ -37,15 +52,16 @@ describe("ConversationListItem", () => {
   })
 
   it("renders conversation information correctly", () => {
-    render(<ConversationListItem {...defaultProps} />)
+    renderWithClient(<ConversationListItem {...defaultProps} />)
 
     expect(screen.getByText("Test Conversation")).toBeDefined()
+    // The list item shows the customer's display name (not the raw email).
     expect(screen.getByText("John Doe")).toBeDefined()
-    expect(screen.getByText("john@example.com")).toBeDefined()
+    expect(screen.queryByText("john@example.com")).toBeNull()
   })
 
   it("displays status and priority badges", () => {
-    render(<ConversationListItem {...defaultProps} />)
+    renderWithClient(<ConversationListItem {...defaultProps} />)
 
     expect(screen.getByText("open")).toBeDefined()
     expect(screen.getByText("normal")).toBeDefined()

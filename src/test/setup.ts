@@ -5,7 +5,9 @@ import { afterEach, beforeAll, vi } from "vitest"
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
-      getUser: vi.fn(),
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
     },
     from: vi.fn(() => ({
@@ -14,8 +16,16 @@ vi.mock("@/integrations/supabase/client", () => ({
       update: vi.fn().mockReturnThis(),
       delete: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      neq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     })),
     rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
     functions: {
@@ -46,7 +56,45 @@ vi.mock("@/utils/logger", () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+    getRecentLogs: vi.fn(() => []),
+    clearLogs: vi.fn(),
+    exportLogs: vi.fn(() => ""),
+    trackComponentRender: vi.fn(),
+    trackParseCache: vi.fn(),
+    trackSlowOperation: vi.fn(),
+    trackMemoBreak: vi.fn(),
+    trackParseCall: vi.fn(),
+    getDebugMetrics: vi.fn(() => ({})),
+    clearDebugMetrics: vi.fn(),
+    time: vi.fn(),
+    timeEnd: vi.fn(),
   },
+}))
+
+// Mock auth so component tests don't require an AuthProvider
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: "test-user", email: "agent@test.com" },
+    currentUser: { id: "test-user", email: "agent@test.com" },
+    session: null,
+    profile: null,
+    loading: false,
+    authLoading: false,
+    isProcessingOAuth: false,
+    isAdmin: false,
+    isSuperAdmin: false,
+    role: "agent",
+    memberships: [],
+    accessibleOrganizations: [],
+    allowedLocalOrgIds: [],
+    currentMembership: null,
+    currentOrganizationId: null,
+    organizationId: null,
+    isScopeEmpty: false,
+    signOut: vi.fn(),
+    refreshSession: vi.fn(),
+    validateSession: vi.fn(),
+  }),
 }))
 
 // Mock toast

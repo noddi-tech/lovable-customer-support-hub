@@ -51,7 +51,7 @@ export function SafeTabsWrapper({
       <TabsList
         className={cn(
           "h-auto min-h-[32px] p-1 gap-1 bg-muted",
-          wrap && "flex-wrap",
+          wrap ? "flex-wrap" : "flex-nowrap",
           spacingClasses[spacing],
           listClassName,
         )}

@@ -68,7 +68,7 @@ describe("MessageItem - Quoted Text Collapse", () => {
     )
 
     // Should show the toggle button for quoted text
-    const toggleButton = screen.getByRole("button", { name: /show quoted text/i })
+    const toggleButton = screen.getByRole("button", { name: /conversation\.showQuoted/i })
     expect(toggleButton).toBeInTheDocument()
   })
 
@@ -94,7 +94,9 @@ describe("MessageItem - Quoted Text Collapse", () => {
     )
 
     // Should not show the toggle button
-    expect(screen.queryByRole("button", { name: /show quoted text/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /conversation\.showQuoted/i }),
+    ).not.toBeInTheDocument()
   })
 
   test("toggle shows and hides quoted content", async () => {
@@ -119,7 +121,7 @@ describe("MessageItem - Quoted Text Collapse", () => {
       </QueryClientProvider>,
     )
 
-    const toggleButton = screen.getByRole("button", { name: /show quoted text/i })
+    const toggleButton = screen.getByRole("button", { name: /conversation\.showQuoted/i })
 
     // Initially quoted content should be hidden
     expect(screen.queryByText(/original message/i)).not.toBeInTheDocument()
@@ -128,19 +130,20 @@ describe("MessageItem - Quoted Text Collapse", () => {
     fireEvent.click(toggleButton)
 
     // Button text should change
-    expect(screen.getByRole("button", { name: /hide quoted text/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /conversation\.hideQuoted/i })).toBeInTheDocument()
 
     // Click again to hide
     fireEvent.click(toggleButton)
 
     // Button text should change back
-    expect(screen.getByRole("button", { name: /show quoted text/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /conversation\.showQuoted/i })).toBeInTheDocument()
   })
 
   test("handles HTML quoted content with blockquotes", async () => {
     const rawMessage = {
       id: "1",
-      content: "<p>This is my reply.</p><blockquote><p>This is the quoted content</p></blockquote>",
+      content:
+        "<p>This is my reply to your earlier question.</p><blockquote><p>This is the quoted content</p></blockquote>",
       content_type: "text/html",
       sender_type: "customer" as const,
       sender_id: "customer1",
@@ -159,7 +162,7 @@ describe("MessageItem - Quoted Text Collapse", () => {
     )
 
     // Should detect HTML quoted content and show toggle
-    const toggleButton = screen.getByRole("button", { name: /show quoted text/i })
+    const toggleButton = screen.getByRole("button", { name: /conversation\.showQuoted/i })
     expect(toggleButton).toBeInTheDocument()
   })
 
@@ -186,7 +189,7 @@ describe("MessageItem - Quoted Text Collapse", () => {
     )
 
     // Should detect email headers pattern and show toggle
-    const toggleButton = screen.getByRole("button", { name: /show quoted text/i })
+    const toggleButton = screen.getByRole("button", { name: /conversation\.showQuoted/i })
     expect(toggleButton).toBeInTheDocument()
   })
 })

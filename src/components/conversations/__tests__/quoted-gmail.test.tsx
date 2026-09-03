@@ -17,7 +17,8 @@ vi.mock("@/hooks/useDateFormatting", () => ({
 
 vi.mock("@/components/ui/email-render", () => ({
   EmailRender: ({ content }: { content: string }) => (
-    <div data-testid="email-content">{content}</div>
+    // biome-ignore lint/security/noDangerouslySetInnerHtml: test mock renders email HTML like the real component
+    <div data-testid="email-content" dangerouslySetInnerHTML={{ __html: content }} />
   ),
 }))
 
@@ -76,6 +77,6 @@ describe("MessageCard - Gmail Quote Detection", () => {
     expect(message.quotedBlocks?.[0]?.kind).toBe("gmail")
 
     // Should show quoted history toggle
-    expect(screen.getByText(/Show quoted history/i)).toBeInTheDocument()
+    expect(screen.getByText(/Show trimmed content/i)).toBeInTheDocument()
   })
 })
