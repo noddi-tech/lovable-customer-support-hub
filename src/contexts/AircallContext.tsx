@@ -1394,7 +1394,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   /**
    * Call control functions
    */
-  const answerCall = useCallback(async () => {
+  const answerCall = useCallback(() => {
     console.log("[AircallProvider] Showing workspace for user to answer call")
     // SDK v2 doesn't support programmatic answer - show workspace instead
     showAircallWorkspace()
@@ -1402,9 +1402,10 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       title: "Use Aircall Workspace to Answer",
       description: "Click the green Answer button in the Aircall phone",
     })
+    return Promise.resolve()
   }, [showAircallWorkspace, toast])
 
-  const rejectCall = useCallback(async () => {
+  const rejectCall = useCallback(() => {
     console.log("[AircallProvider] Showing workspace for user to reject call")
     // SDK v2 doesn't support programmatic reject - show workspace instead
     showAircallWorkspace()
@@ -1412,6 +1413,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       title: "Use Aircall Workspace to Reject",
       description: "Click the red Reject button in the Aircall phone",
     })
+    return Promise.resolve()
   }, [showAircallWorkspace, toast])
 
   const hangUp = useCallback(async () => {
