@@ -22,12 +22,29 @@ export function useStageProgressionValidation() {
       application_id: string
       target_stage_id: string
     }): Promise<StageProgressionResult> => {
-      const { data, error } = await supabase.functions.invoke("validate-stage-progression", {
-        body: input,
-      })
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
-      return data as StageProgressionResult
+      // Transport hiccups (cold start / dropped preflight) surface as
+      // "Failed to send a request to the Edge Function" and would block a
+      // kanban move. Retry once before giving up.
+      let lastError: unknown = null
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data, error } = await supabase.functions.invoke("validate-stage-progression", {
+          body: input,
+        })
+        if (!error) {
+          if (data?.error) throw new Error(data.error)
+          return data as StageProgressionResult
+        }
+        lastError = error
+        const isTransport = /failed to send a request|fetch|network/i.test(
+          (error as Error)?.message ?? "",
+        )
+        if (!isTransport) break
+        await new Promise((r) => setTimeout(r, 400))
+      }
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Kunne ikke validere fase-krav — prøv igjen")
     },
   })
 }
+
