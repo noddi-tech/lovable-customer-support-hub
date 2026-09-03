@@ -113,11 +113,17 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     // Handle unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason
+      if (isChunkLoadError(error)) {
+        event.preventDefault()
+        reloadOnceForChunkError("GlobalErrorBoundary:unhandledrejection")
+        return
+      }
       if (error && GlobalErrorBoundary.shouldSuppressError(error)) {
         event.preventDefault()
         logger.debug("Suppressed promise rejection", { error }, "GlobalErrorBoundary")
       }
     }
+
 
     // Handle global window errors
     const handleWindowError = (event: ErrorEvent) => {
