@@ -69,10 +69,17 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     return false
   }
 
-
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Stale code-split chunk after a redeploy → recover with one reload.
+    if (isChunkLoadError(error)) {
+      logger.warn("Stale chunk error caught by boundary", { error: error.message }, "GlobalErrorBoundary")
+      reloadOnceForChunkError("GlobalErrorBoundary")
+      return
+    }
+
     if (GlobalErrorBoundary.shouldSuppressError(error)) {
-      // Log suppressed errors for debugging but don't show UI
+      // Log suppressed errors for debugging; still show the fallback so the
+      // app never renders an empty root.
       logger.debug(
         "Suppressed error",
         {
@@ -82,11 +89,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         },
         "GlobalErrorBoundary",
       )
-
-      // Reset error state for suppressed errors
-      this.setState({ hasError: false, error: undefined })
       return
     }
+
 
     Sentry.captureException(error, {
       contexts: { react: { componentStack: errorInfo.componentStack } },
