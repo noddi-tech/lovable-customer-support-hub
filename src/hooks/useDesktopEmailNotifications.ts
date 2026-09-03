@@ -183,6 +183,7 @@ export function useDesktopEmailNotifications() {
     }
   }, [user, enabled, emailEnabled, chatEnabled, permission, showNotification])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: preference flags are read inside the realtime handler
   useEffect(() => {
     if (!user || !enabled || permission !== "granted") return
 
@@ -268,7 +269,6 @@ export function useDesktopEmailNotifications() {
     return () => {
       void supabase.removeChannel(channel)
     }
-    // biome-ignore lint/correctness/useExhaustiveDependencies: preference flags are read inside the realtime handler
   }, [
     user,
     enabled,
