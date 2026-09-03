@@ -78,9 +78,9 @@ export function useNavigate() {
 
       const href = toHref(to)
       if (options?.replace) {
-        router.history.replace(href, options.state)
+        router.history.replace(href, options?.state)
       } else {
-        router.history.push(href, options.state)
+        router.history.push(href, options?.state)
       }
     },
     [router],
