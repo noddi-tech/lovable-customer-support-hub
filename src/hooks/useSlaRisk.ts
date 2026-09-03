@@ -48,7 +48,6 @@ export function useSlaRiskByInbox(enabled = true) {
     },
   })
 
-
   const byInbox = useMemo(() => {
     const map = new Map<string, InboxSlaRisk>()
     const now = Date.now()
