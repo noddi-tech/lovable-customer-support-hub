@@ -300,12 +300,12 @@ const StandardResponsiveTabs: React.FC<StandardResponsiveTabsProps> = (props) =>
         if (React.isValidElement(child) && child.type === ResponsiveTabsList) {
           return React.cloneElement(child as React.ReactElement<ResponsiveTabsListProps>, {
             className: cn(
-              "flex flex-wrap w-full", // Override inline-flex, add flex-wrap
-              scrollable && "overflow-x-auto scrollbar-thin",
+              "flex flex-wrap w-full min-w-0", // Override inline-flex, add flex-wrap
               orientationClass,
               spacingClass,
               justifyClass,
               variantClasses.list,
+              scrollable && "overflow-x-auto scrollbar-thin",
               (child.props as ResponsiveTabsListProps).className,
             ),
             equalWidth,
