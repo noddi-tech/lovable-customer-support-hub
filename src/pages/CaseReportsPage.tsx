@@ -11,7 +11,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/useAuth"
-import { CASE_STATUS_LABELS, type CaseStatus, getCaseSlaState, useCases } from "@/hooks/useCases"
+import { CASE_STATUS_LABELS, getCaseSlaState, useCases } from "@/hooks/useCases"
 import { supabase } from "@/integrations/supabase/client"
 import { useNavigate } from "@/router/compat"
 
@@ -104,9 +104,9 @@ function TaxonomyEditor({
       return
     }
     setName("")
-    refresh()
-    queryClient.invalidateQueries({ queryKey: ["case-categories"] })
-    queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
+    void refresh()
+    void queryClient.invalidateQueries({ queryKey: ["case-categories"] })
+    void queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
     toast.success(`${title} added`)
   }
 
@@ -118,9 +118,9 @@ function TaxonomyEditor({
       toast.error(error.message)
       return
     }
-    refresh()
-    queryClient.invalidateQueries({ queryKey: ["case-categories"] })
-    queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
+    void refresh()
+    void queryClient.invalidateQueries({ queryKey: ["case-categories"] })
+    void queryClient.invalidateQueries({ queryKey: ["case-resolution-codes"] })
   }
 
   return (

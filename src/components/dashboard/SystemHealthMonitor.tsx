@@ -97,7 +97,7 @@ export function SystemHealthMonitor({ organizationId }: { organizationId: string
         description: `Updated ${data.updated_count} embeddings, ${data.failed_count} failed`,
       })
 
-      refetch()
+      void refetch()
     } catch (error) {
       console.error("Batch update error:", error)
       toast({

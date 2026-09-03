@@ -80,13 +80,13 @@ export const IncomingCallModal = ({
           }
 
           // Invalidate queries
-          queryClient.invalidateQueries({ queryKey: ["calls"] })
+          void queryClient.invalidateQueries({ queryKey: ["calls"] })
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [currentCall?.id, onClose, queryClient, currentCall.status])
 

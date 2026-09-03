@@ -332,7 +332,7 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
               } else {
                 console.log("[Noddi API] ✅ Customer name updated to:", displayName)
                 // Invalidate conversation list queries to reflect updated name
-                queryClient.invalidateQueries({ queryKey: ["conversations"] })
+                void queryClient.invalidateQueries({ queryKey: ["conversations"] })
               }
             }
           } else {

@@ -77,7 +77,7 @@ const TimeSlotBlock: React.FC<BlockComponentProps> = ({
       return
     }
 
-    ;(async () => {
+    void (async () => {
       try {
         const apiUrl = getApiUrl()
         const postJson = (body: any) =>

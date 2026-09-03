@@ -7,7 +7,6 @@ import type {
   Inbox,
   InboxCounts,
   InboxId,
-  Message,
   StatusFilter,
 } from "@/types/interactions"
 import { logger } from "@/utils/logger"
@@ -538,7 +537,7 @@ export async function getThread(
         inbound: msg.sender_type === "customer",
         senderType: msg.sender_type,
         isInternal: msg.is_internal,
-      })) as Message[],
+      })),
       totalMessages: totalCount || 0,
       hasMore: totalCount ? offset + effectiveLimit < Math.min(totalCount, maxMessages) : false,
     }

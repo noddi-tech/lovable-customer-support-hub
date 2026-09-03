@@ -55,7 +55,7 @@ export function useAircallContactSync(enabled: boolean) {
     mutationFn: (options?: { force?: boolean; limit?: number }) =>
       invokeSync({ force: options?.force ?? false, limit: options?.limit ?? 100 }),
     onSuccess: (summary) => {
-      queryClient.invalidateQueries({ queryKey: ["aircall-contact-sync-preview"] })
+      void queryClient.invalidateQueries({ queryKey: ["aircall-contact-sync-preview"] })
       if (!summary) return
       toast({
         title: "Aircall contact sync complete",

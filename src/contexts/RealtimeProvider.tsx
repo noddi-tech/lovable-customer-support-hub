@@ -80,7 +80,7 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Handle tab visibility changes - reconnect and refresh data when tab becomes active
   useEffect(() => {
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         // Debounce: skip if less than 1 second since last visibility change
         const now = Date.now()
@@ -97,15 +97,17 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
           memoizedForceReconnect()
         }
 
-        // Cancel any in-flight queries first to prevent CancelledError spam during dehydration
-        await queryClient.cancelQueries({ queryKey: ["conversations"] })
-        await queryClient.cancelQueries({ queryKey: ["notifications"] })
-        await queryClient.cancelQueries({ queryKey: ["messages"] })
+        void (async () => {
+          // Cancel any in-flight queries first to prevent CancelledError spam during dehydration
+          await queryClient.cancelQueries({ queryKey: ["conversations"] })
+          await queryClient.cancelQueries({ queryKey: ["notifications"] })
+          await queryClient.cancelQueries({ queryKey: ["messages"] })
 
-        // Then invalidate to trigger fresh refetch
-        queryClient.invalidateQueries({ queryKey: ["conversations"] })
-        queryClient.invalidateQueries({ queryKey: ["notifications"] })
-        queryClient.invalidateQueries({ queryKey: ["messages"] })
+          // Then invalidate to trigger fresh refetch
+          void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+          void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+          void queryClient.invalidateQueries({ queryKey: ["messages"] })
+        })()
       }
     }
 

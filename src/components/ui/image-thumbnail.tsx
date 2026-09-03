@@ -16,7 +16,7 @@ export const ImageThumbnail = ({ attachment, messageId, onClick }: ImageThumbnai
 
   // Load image
   useState(() => {
-    createBlobUrl(attachment, messageId).then((url) => {
+    void createBlobUrl(attachment, messageId).then((url) => {
       if (url) {
         setImageUrl(url)
       } else {
@@ -26,7 +26,7 @@ export const ImageThumbnail = ({ attachment, messageId, onClick }: ImageThumbnai
     })
   })
 
-  const handleDownload = async (e: React.MouseEvent) => {
+  const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!imageUrl) return
 

@@ -9,18 +9,19 @@ describe("Tabs Spacing", () => {
     expect(grid).toBeInTheDocument()
 
     // Ensure no shell-level container classes that could cause overlap
+    /* eslint-disable testing-library/no-node-access -- layout clamp check walks ancestors for forbidden classes */
     const content =
       grid.closest('[class*="max-w"]') ||
       grid.closest('[class*="mx-auto"]') ||
       grid.closest('[class*="container"]')
+    /* eslint-enable testing-library/no-node-access */
     expect(content).toBeNull()
   })
 
   it("ensures TabsList never has negative margins", () => {
-    const { container } = render(<NewsletterBuilder />)
+    render(<NewsletterBuilder />)
 
-    // Find all TabsList elements
-    const tabsLists = container.querySelectorAll('[role="tablist"]')
+    const tabsLists = screen.getAllByRole("tablist")
 
     tabsLists.forEach((tabsList) => {
       const classes = tabsList.className

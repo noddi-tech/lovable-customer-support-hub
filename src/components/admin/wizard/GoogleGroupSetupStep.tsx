@@ -411,7 +411,7 @@ export function GoogleGroupSetupStep({
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        copyToClipboard(forwardingAddress)
+                        void copyToClipboard(forwardingAddress)
                         setStep2Done(true)
                       }}
                     >

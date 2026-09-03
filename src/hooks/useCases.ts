@@ -307,8 +307,8 @@ export function useLinkChatSessionToCase() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["case-activity"] })
-      queryClient.invalidateQueries({ queryKey: ["cases"] })
+      void queryClient.invalidateQueries({ queryKey: ["case-activity"] })
+      void queryClient.invalidateQueries({ queryKey: ["cases"] })
     },
     onError: (error: any) => toast.error(error?.message ?? "Could not link chat session"),
   })
@@ -495,10 +495,12 @@ export function useCreateCase() {
       return data as { id: string; case_number: number }
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["cases"] })
-      queryClient.invalidateQueries({ queryKey: ["customer-record"] })
+      void queryClient.invalidateQueries({ queryKey: ["cases"] })
+      void queryClient.invalidateQueries({ queryKey: ["customer-record"] })
       if (variables.conversationId) {
-        queryClient.invalidateQueries({ queryKey: ["conversation-case", variables.conversationId] })
+        void queryClient.invalidateQueries({
+          queryKey: ["conversation-case", variables.conversationId],
+        })
       }
       toast.success(`Case #${data.case_number} created`)
     },
@@ -515,11 +517,11 @@ export function useUpdateCase() {
       return id
     },
     onSuccess: (id) => {
-      queryClient.invalidateQueries({ queryKey: ["cases"] })
-      queryClient.invalidateQueries({ queryKey: ["case", id] })
-      queryClient.invalidateQueries({ queryKey: ["case-events", id] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-case"] })
-      queryClient.invalidateQueries({ queryKey: ["customer-record"] })
+      void queryClient.invalidateQueries({ queryKey: ["cases"] })
+      void queryClient.invalidateQueries({ queryKey: ["case", id] })
+      void queryClient.invalidateQueries({ queryKey: ["case-events", id] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-case"] })
+      void queryClient.invalidateQueries({ queryKey: ["customer-record"] })
     },
     onError: (error: any) => toast.error(error?.message ?? "Could not update case"),
   })
@@ -541,9 +543,11 @@ export function useLinkConversationToCase() {
       if (error) throw error
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["conversation-case", variables.conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["case-conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["cases"] })
+      void queryClient.invalidateQueries({
+        queryKey: ["conversation-case", variables.conversationId],
+      })
+      void queryClient.invalidateQueries({ queryKey: ["case-conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["cases"] })
       toast.success(variables.caseId ? "Conversation linked to case" : "Conversation unlinked")
     },
     onError: (error: any) => toast.error(error?.message ?? "Could not link conversation"),

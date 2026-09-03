@@ -39,7 +39,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
   }, [])
 
   useEffect(() => {
-    fetchLiveBuild()
+    void fetchLiveBuild()
   }, [fetchLiveBuild])
 
   const handleDeploy = async () => {
@@ -58,7 +58,7 @@ export const WidgetDeployPanel: React.FC<WidgetDeployPanelProps> = ({ variant = 
       if (result.publishedAt) {
         setLiveBuild({ publishedAt: result.publishedAt, commit: result.commit, size: result.size })
       } else {
-        fetchLiveBuild()
+        void fetchLiveBuild()
       }
       toast.success("Widget deployed to production!", {
         description: `Size: ${result.size || "unknown"} — hard-refresh host apps to pick it up`,

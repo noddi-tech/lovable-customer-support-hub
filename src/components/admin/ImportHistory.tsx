@@ -66,7 +66,7 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
 
   // Initial fetch
   useEffect(() => {
-    fetchJobs()
+    void fetchJobs()
   }, [fetchJobs])
 
   // Polling for active jobs
@@ -76,7 +76,7 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
     if (!hasActiveJob) return
 
     const interval = setInterval(() => {
-      fetchJobs()
+      void fetchJobs()
     }, 3000) // Poll every 3 seconds
 
     return () => clearInterval(interval)
@@ -120,11 +120,11 @@ export const ImportHistory = ({ onResume }: ImportHistoryProps = {}) => {
     }
   }
 
-  const handleResumeJob = async (jobId: string) => {
+  const handleResumeJob = (jobId: string) => {
     if (onResume) {
       setResumingJobId(jobId)
       try {
-        await onResume(jobId)
+        onResume(jobId)
       } finally {
         setResumingJobId(null)
       }

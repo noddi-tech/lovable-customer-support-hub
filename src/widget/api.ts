@@ -188,7 +188,7 @@ export function setIdentity(value: Partial<Record<keyof WidgetIdentity, unknown>
     if (raw === undefined || raw === null || raw === "") continue
     next[key] = String(raw).trim().slice(0, IDENTITY_LIMITS[key])
   }
-  identity = { ...identity, ...next } as WidgetIdentity
+  identity = { ...identity, ...next }
   try {
     localStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(identity))
   } catch {

@@ -1,4 +1,5 @@
-import { Facebook, KeyRound, ShieldCheck } from "lucide-react"
+import { KeyRound, ShieldCheck } from "lucide-react"
+import { Facebook } from "@/components/icons/brand"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function MetaTokenHelpCard() {

@@ -24,25 +24,25 @@ export const useConversationShortcuts = () => {
         case "c":
           if (!event.shiftKey && conversation?.status !== "closed") {
             event.preventDefault()
-            updateStatus({ status: "closed" })
+            void updateStatus({ status: "closed" })
           }
           break
         case "o":
           if (!event.shiftKey && conversation?.status !== "open") {
             event.preventDefault()
-            updateStatus({ status: "open" })
+            void updateStatus({ status: "open" })
           }
           break
         case "p":
           if (!event.shiftKey && conversation?.status !== "pending") {
             event.preventDefault()
-            updateStatus({ status: "pending" })
+            void updateStatus({ status: "pending" })
           }
           break
         case "a":
           if (!event.shiftKey && conversation && !conversation.is_archived) {
             event.preventDefault()
-            updateStatus({ isArchived: true })
+            void updateStatus({ isArchived: true })
           }
           break
         case "s":

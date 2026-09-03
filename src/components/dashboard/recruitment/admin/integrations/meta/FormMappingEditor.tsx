@@ -737,9 +737,7 @@ function OptionMismatchNotice({
   if (!metaFamily) return null
 
   const fieldFamily: SelectFamily | null =
-    field.type_key === "single_select" || field.type_key === "multi_select"
-      ? (field.type_key as SelectFamily)
-      : null
+    field.type_key === "single_select" || field.type_key === "multi_select" ? field.type_key : null
 
   // Field isn't a select type at all — let the parent's existing UI handle it; nothing to warn here.
   if (!fieldFamily) return null

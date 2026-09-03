@@ -4,21 +4,21 @@
  *   1. react-hooks (exhaustive-deps / rules-of-hooks)
  *   2. react-refresh (Vite HMR safety)
  *   3. Domain AST rule for SelectItem value={…user_id}
- *   4. Type-aware typescript-eslint (curated; warn until backlog cleared)
+ *   4. Type-aware typescript-eslint (curated; warnings fail via --max-warnings=0)
  *   5. @eslint-react, import-x, vitest, testing-library, storybook
  *
- * Promote type-aware + testing-library rules to error via
- * `npm run lint:eslint:typed` once the backlog is clean.
+ * Promote type-aware + testing-library rules from warn→error via
+ * `bun run lint:eslint:typed` (ESLINT_TYPED_STRICT=1) when desired.
  */
 
 import eslintReact from "@eslint-react/eslint-plugin"
+import vitest from "@vitest/eslint-plugin"
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript"
 import importX from "eslint-plugin-import-x"
 import reactHooks from "eslint-plugin-react-hooks"
 import reactRefresh from "eslint-plugin-react-refresh"
 import storybook from "eslint-plugin-storybook"
 import testingLibrary from "eslint-plugin-testing-library"
-import vitest from "eslint-plugin-vitest"
 import globals from "globals"
 import tseslint from "typescript-eslint"
 
@@ -61,7 +61,8 @@ export default tseslint.config(
     settings: {
       "import-x/resolver-next": [
         createTypeScriptImportResolver({
-          project: ["tsconfig.json", "tsconfig.app.json", "tsconfig.node.json"],
+          // Root solution tsconfig already references app/node configs
+          project: "tsconfig.json",
           alwaysTryTypes: true,
         }),
       ],
@@ -159,7 +160,8 @@ export default tseslint.config(
     rules: {
       ...(cfg.rules || {}),
       // Soften while storybook package imports are cleaned up
-      "storybook/no-renderer-packages": typedStrict ? "error" : "warn",
+      // Off until @storybook/react-vite can be added without a full dependency upgrade.
+      "storybook/no-renderer-packages": "off",
       "react-refresh/only-export-components": "off",
     },
   })),

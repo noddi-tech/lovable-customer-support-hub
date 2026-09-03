@@ -127,7 +127,7 @@ const ApplicantFilesTab: React.FC<Props> = ({ applicantId, applicationId }) => {
             onDrop={(e) => {
               e.preventDefault()
               setDragOver(false)
-              handleFiles(e.dataTransfer.files)
+              void handleFiles(e.dataTransfer.files)
             }}
             className={cn(
               "border-2 border-dashed rounded-md p-8 text-center transition-colors m-0 min-w-0",

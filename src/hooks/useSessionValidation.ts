@@ -70,15 +70,7 @@ export function useSessionValidation() {
         return false
       }
 
-      const validation = validationData?.[0] as
-        | {
-            auth_uid: string
-            session_valid: boolean
-            organization_id: string | null
-            profile_exists: boolean
-            has_memberships: boolean
-          }
-        | undefined
+      const validation = validationData?.[0]
 
       // Check if user has profile and either legacy org_id or active memberships
       if (
@@ -126,7 +118,7 @@ export function useSessionValidation() {
   // Validate on mount and when user changes
   useEffect(() => {
     if (user) {
-      validateSession()
+      void validateSession()
     }
   }, [user, validateSession])
 

@@ -39,7 +39,7 @@ export function useUserSessions(userId: string, limit: number = 20) {
         .limit(limit)
 
       if (error) throw error
-      return data as UserSession[]
+      return data
     },
     enabled: !!userId,
   })
@@ -66,7 +66,7 @@ export function useUserSessionSummary(userId: string) {
           averageSessionDuration: 0,
           mostUsedDevice: "N/A",
           mostUsedBrowser: "N/A",
-        } as UserSessionSummary
+        }
       }
 
       // Calculate total active time
@@ -102,7 +102,7 @@ export function useUserSessionSummary(userId: string) {
         averageSessionDuration: Math.round(totalMinutes / sessions.length),
         mostUsedDevice,
         mostUsedBrowser,
-      } as UserSessionSummary
+      }
     },
     enabled: !!userId,
   })
@@ -120,7 +120,7 @@ export function useOrganizationSessions(organizationId: string, limit: number = 
         .limit(limit)
 
       if (error) throw error
-      return data as UserSession[]
+      return data
     },
     enabled: !!organizationId,
   })

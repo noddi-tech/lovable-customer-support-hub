@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table"
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy"
 import { formatDistanceToNow } from "date-fns"
 import {
   Activity,

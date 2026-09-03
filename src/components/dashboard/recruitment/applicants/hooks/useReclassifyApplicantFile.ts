@@ -13,7 +13,7 @@ export function useReclassifyApplicantFile() {
       if (error) throw error
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
+      void qc.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
       // Note: applicant_files has no updated_at — UPDATE not audit-captured.
       // Acceptable per spec (metadata-only change).
       toast.success("Filtype oppdatert")

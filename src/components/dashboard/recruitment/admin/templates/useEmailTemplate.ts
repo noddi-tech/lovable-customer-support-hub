@@ -22,7 +22,7 @@ export function useEmailTemplate(id: string | null | undefined) {
 }
 
 function invalidateList(qc: ReturnType<typeof useQueryClient>, orgId: string | null) {
-  qc.invalidateQueries({ queryKey: ["recruitment-email-templates", orgId] })
+  void qc.invalidateQueries({ queryKey: ["recruitment-email-templates", orgId] })
 }
 
 export function useCreateTemplate() {
@@ -79,7 +79,7 @@ export function useUpdateTemplate() {
     },
     onSuccess: (_data, vars) => {
       invalidateList(qc, orgId)
-      qc.invalidateQueries({ queryKey: ["recruitment-email-template", vars.id] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-email-template", vars.id] })
     },
   })
 }
@@ -97,7 +97,7 @@ export function useSoftDeleteTemplate() {
     },
     onSuccess: (_d, id) => {
       invalidateList(qc, orgId)
-      qc.invalidateQueries({ queryKey: ["recruitment-email-template", id] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-email-template", id] })
     },
   })
 }
@@ -115,7 +115,7 @@ export function useRestoreTemplate() {
     },
     onSuccess: (_d, id) => {
       invalidateList(qc, orgId)
-      qc.invalidateQueries({ queryKey: ["recruitment-email-template", id] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-email-template", id] })
     },
   })
 }

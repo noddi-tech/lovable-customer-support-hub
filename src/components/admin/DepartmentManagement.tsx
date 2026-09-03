@@ -43,7 +43,7 @@ export function DepartmentManagement() {
         .select("*")
         .order("created_at", { ascending: true })
       if (error) throw error
-      return data as DepartmentRow[]
+      return data
     },
   })
 
@@ -66,7 +66,7 @@ export function DepartmentManagement() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["departments"] })
+      void queryClient.invalidateQueries({ queryKey: ["departments"] })
       toast({
         title: "Department created",
         description: "The department has been created successfully.",
@@ -97,7 +97,7 @@ export function DepartmentManagement() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["departments"] })
+      void queryClient.invalidateQueries({ queryKey: ["departments"] })
       toast({
         title: "Department updated",
         description: "The department has been updated successfully.",
@@ -116,7 +116,7 @@ export function DepartmentManagement() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["departments"] })
+      void queryClient.invalidateQueries({ queryKey: ["departments"] })
       toast({
         title: t("admin.departmentDeleted"),
         description: t("admin.departmentDeletedDescription"),

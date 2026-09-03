@@ -224,7 +224,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
       toast.success(
         memberId ? `Assigned ${ids.length} chat(s)` : `Unassigned ${ids.length} chat(s)`,
       )
-      queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
       setSelectedIds(new Set())
     },
     [queryClient, selectedIds],

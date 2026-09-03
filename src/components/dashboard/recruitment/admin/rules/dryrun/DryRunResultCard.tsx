@@ -107,7 +107,7 @@ export function DryRunResultCard({ result }: { result: DryRunResult }) {
           </div>
         ) : (
           actions.map((action, index) => {
-            const failed = isActionFailed(action as any)
+            const failed = isActionFailed(action)
             const details = getActionDetails(action)
 
             return (
@@ -148,9 +148,9 @@ export function DryRunResultCard({ result }: { result: DryRunResult }) {
                   </dl>
                 ) : null}
 
-                {failed && getActionError(action as any) ? (
+                {failed && getActionError(action) ? (
                   <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive whitespace-pre-wrap break-words">
-                    {getActionError(action as any)}
+                    {getActionError(action)}
                   </p>
                 ) : null}
               </div>

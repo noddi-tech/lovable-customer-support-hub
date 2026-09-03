@@ -41,13 +41,13 @@ export function useTags() {
         .select("id, name, color, organization_id")
         .order("name")
       if (error) throw error
-      return (data || []) as Tag[]
+      return data || []
     },
   })
 
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["tags"] })
-    queryClient.invalidateQueries({ queryKey: ["tag-links"] })
+    void queryClient.invalidateQueries({ queryKey: ["tags"] })
+    void queryClient.invalidateQueries({ queryKey: ["tag-links"] })
   }, [queryClient])
 
   const createTag = useMutation({
@@ -59,7 +59,7 @@ export function useTags() {
         .select("id, name, color, organization_id")
         .single()
       if (error) throw error
-      return data as Tag
+      return data
     },
     onSuccess: (tag) => {
       toast.success(`Tag "${tag.name}" created`)

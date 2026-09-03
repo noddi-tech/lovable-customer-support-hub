@@ -103,8 +103,8 @@ export function NotificationsList({ context = "all" }: NotificationsListProps = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
     },
   })
 
@@ -115,8 +115,8 @@ export function NotificationsList({ context = "all" }: NotificationsListProps = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
     },
   })
 
@@ -130,8 +130,8 @@ export function NotificationsList({ context = "all" }: NotificationsListProps = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
     },
   })
 
@@ -162,8 +162,8 @@ export function NotificationsList({ context = "all" }: NotificationsListProps = 
       })
 
       // Also invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications"] })
 
       toast({
         title: t("dashboard.notifications.success"),

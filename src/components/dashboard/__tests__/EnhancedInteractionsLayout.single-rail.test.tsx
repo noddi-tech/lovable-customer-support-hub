@@ -92,6 +92,7 @@ describe("EnhancedInteractionsLayout", () => {
 
     const grid = screen.getByTestId("detail-grid")
     expect(grid).toBeInTheDocument()
+    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
     expect(grid.childElementCount).toBe(2)
   })
 
@@ -108,6 +109,7 @@ describe("EnhancedInteractionsLayout", () => {
     )
 
     const interactionsRoot = screen.getByTestId("interactions-root")
+    // eslint-disable-next-line testing-library/no-node-access -- layout guard scans subtree classNames
     const allElements = interactionsRoot.querySelectorAll("*")
 
     allElements.forEach((element) => {
@@ -129,9 +131,11 @@ describe("EnhancedInteractionsLayout", () => {
     )
 
     const grid = screen.getByTestId("detail-grid")
+    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
     expect(grid.childElementCount).toBe(2) // thread + right rail
 
     // Check immediate children for px-0 (or 0 computed padding-left/right)
+    // eslint-disable-next-line testing-library/no-node-access -- padding measured on direct grid children
     Array.from(grid.children).forEach((child) => {
       const cs = window.getComputedStyle(child as HTMLElement)
       expect(parseFloat(cs.paddingLeft)).toBeLessThanOrEqual(1)

@@ -221,10 +221,7 @@ export default function CaseDetailPage() {
                 <CardContent className="space-y-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Status</Label>
-                    <Select
-                      value={record.status}
-                      onValueChange={(v) => set({ status: v as CaseStatus })}
-                    >
+                    <Select value={record.status} onValueChange={(v) => set({ status: v })}>
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>
@@ -268,10 +265,7 @@ export default function CaseDetailPage() {
 
                   <div className="space-y-1.5">
                     <Label className="text-xs">Priority</Label>
-                    <Select
-                      value={record.priority}
-                      onValueChange={(v) => set({ priority: v as CasePriority })}
-                    >
+                    <Select value={record.priority} onValueChange={(v) => set({ priority: v })}>
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>

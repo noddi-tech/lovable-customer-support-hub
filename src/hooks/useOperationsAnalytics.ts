@@ -54,7 +54,7 @@ export function useOperationsAnalytics(periodDays: number = 30) {
         setOrganizationId(profile.organization_id)
       }
     }
-    fetchOrgId()
+    void fetchOrgId()
   }, [])
 
   // Fetch core metrics from DB directly
@@ -165,17 +165,17 @@ export function useOperationsAnalytics(periodDays: number = 30) {
 
   return {
     data: coreMetrics.data
-      ? ({
+      ? {
           ...coreMetrics.data,
           aiInsights: aiInsights.data || null,
-        } as OperationsAnalyticsData)
+        }
       : null,
     isLoading: coreMetrics.isLoading,
     isLoadingAI: aiInsights.isLoading,
     error: coreMetrics.error,
     refetch: () => {
-      coreMetrics.refetch()
-      aiInsights.refetch()
+      void coreMetrics.refetch()
+      void aiInsights.refetch()
     },
   }
 }

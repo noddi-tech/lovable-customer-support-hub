@@ -1877,7 +1877,7 @@ export const AiFlowBuilder: React.FC<AiFlowBuilderProps> = ({ widgetId }) => {
       }
       setLoaded(true)
     }
-    load()
+    void load()
   }, [widgetId])
 
   const handleSave = useCallback(async () => {

@@ -41,9 +41,9 @@ export function useUpdateApplicantNote() {
       }
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-notes", vars.applicantId] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
-      qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-notes", vars.applicantId] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
       toast.success("Notat oppdatert")
     },
     onError: (err: any) => {

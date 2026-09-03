@@ -64,7 +64,7 @@ export function usePositionsForOrg() {
         .eq("organization_id", orgId)
         .order("title", { ascending: true })
       if (error) throw error
-      return (data ?? []) as Array<{ id: string; title: string; status: string }>
+      return data ?? []
     },
     enabled: !!orgId,
   })
@@ -83,7 +83,7 @@ export function useActiveTemplatesForOrg() {
         .is("soft_deleted_at", null)
         .order("name", { ascending: true })
       if (error) throw error
-      return (data ?? []) as Array<{ id: string; name: string; subject: string }>
+      return data ?? []
     },
     enabled: !!orgId,
   })

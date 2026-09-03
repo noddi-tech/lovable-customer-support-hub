@@ -50,9 +50,9 @@ export function useBulkScore() {
       return result
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["application-score"] })
-      qc.invalidateQueries({ queryKey: ["applications"] })
-      qc.invalidateQueries({ queryKey: ["pipeline-applications"] })
+      void qc.invalidateQueries({ queryKey: ["application-score"] })
+      void qc.invalidateQueries({ queryKey: ["applications"] })
+      void qc.invalidateQueries({ queryKey: ["pipeline-applications"] })
     },
   })
 }

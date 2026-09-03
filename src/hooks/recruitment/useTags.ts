@@ -44,7 +44,7 @@ export function useTags(opts: { includeArchived?: boolean } = {}) {
       if (!opts.includeArchived) q = q.is("archived_at", null)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as RecruitmentTag[]
+      return data ?? []
     },
   })
 }
@@ -79,10 +79,10 @@ export function useCreateTag() {
         .select()
         .single()
       if (error) throw error
-      return data as RecruitmentTag
+      return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
       toast.success("Etikett opprettet")
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke opprette etikett"),
@@ -109,10 +109,10 @@ export function useUpdateTag() {
         .select()
         .single()
       if (error) throw error
-      return data as RecruitmentTag
+      return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
       toast.success("Etikett oppdatert")
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke oppdatere etikett"),
@@ -130,7 +130,7 @@ export function useArchiveTag() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
       toast.success("Etikett arkivert")
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke arkivere etikett"),
@@ -151,7 +151,7 @@ export function useReorderTags() {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-tags"] })
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke endre rekkefølge"),
   })

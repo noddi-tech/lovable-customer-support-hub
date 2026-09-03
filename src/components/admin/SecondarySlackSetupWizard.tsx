@@ -10,10 +10,10 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Slack,
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { Slack } from "@/components/icons/brand"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,7 +42,7 @@ export function SecondarySlackSetupWizard({
   const [showToken, setShowToken] = useState(false)
 
   const handleCopyScopes = () => {
-    navigator.clipboard.writeText(REQUIRED_SCOPES.join(", "))
+    void navigator.clipboard.writeText(REQUIRED_SCOPES.join(", "))
     toast.success("Scopes copied to clipboard")
   }
 

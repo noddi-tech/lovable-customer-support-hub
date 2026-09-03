@@ -60,7 +60,7 @@ export const InboundRoutesContent = () => {
         )
         .order("created_at", { ascending: false })
       if (error) throw error
-      return data as unknown as InboundRoute[]
+      return data
     },
   })
 
@@ -96,7 +96,7 @@ export const InboundRoutesContent = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     },
   })
 
@@ -106,7 +106,7 @@ export const InboundRoutesContent = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     },
   })
 
@@ -125,7 +125,7 @@ export const InboundRoutesContent = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     },
   })
 

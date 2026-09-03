@@ -29,7 +29,7 @@ export function useFieldMappingTemplates(scope: "all" | "system" | "org" = "all"
       if (scope === "org") q = q.eq("organization_id", currentOrganizationId)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as FieldMappingTemplate[]
+      return data ?? []
     },
   })
 }
@@ -45,7 +45,7 @@ export function useFieldMappingTemplate(id: string | null) {
         .eq("id", id)
         .maybeSingle()
       if (error) throw error
-      return data as unknown as FieldMappingTemplate | null
+      return data
     },
   })
 }
@@ -91,10 +91,10 @@ export function useCreateTemplate() {
         .select("*")
         .single()
       if (error) throw error
-      return data as unknown as FieldMappingTemplate
+      return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-templates"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-templates"] })
     },
   })
 }
@@ -118,8 +118,8 @@ export function useUpdateTemplate() {
       return data
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["recruitment-templates"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-template", vars.id] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-templates"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-template", vars.id] })
     },
   })
 }
@@ -242,7 +242,7 @@ export function useForkTemplate() {
         if (e4) throw e4
       }
 
-      return newTpl as unknown as FieldMappingTemplate
+      return newTpl
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["recruitment-templates"] }),
   })

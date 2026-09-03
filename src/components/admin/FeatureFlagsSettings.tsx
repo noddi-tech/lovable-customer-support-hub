@@ -119,7 +119,7 @@ export const FeatureFlagsSettings: React.FC = () => {
   -H "Authorization: Bearer <SUPABASE_USER_JWT>" \\
   -H "Content-Type: application/json" \\
   -d '{"context":{"targetingKey":"user-123"}}'`
-    navigator.clipboard.writeText(snippet)
+    void navigator.clipboard.writeText(snippet)
     toast.success("OFREP request copied")
   }
 

@@ -151,12 +151,12 @@ export function useBulkCreateApplicants() {
       return result
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["applicants"] })
-      queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
-      queryClient.invalidateQueries({ queryKey: ["pipeline"] })
-      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
-      queryClient.invalidateQueries({ queryKey: ["job-position"] })
-      queryClient.invalidateQueries({ queryKey: ["applicant-profile"] })
+      void queryClient.invalidateQueries({ queryKey: ["applicants"] })
+      void queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
+      void queryClient.invalidateQueries({ queryKey: ["pipeline"] })
+      void queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      void queryClient.invalidateQueries({ queryKey: ["job-position"] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-profile"] })
     },
   })
 }

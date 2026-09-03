@@ -45,6 +45,7 @@ describe("Campaign Pane Tabs Layout", () => {
     const rightTabs = screen.getByTestId("builder-right-tabs")
 
     // Assert tabs are not inside any ScrollArea viewport
+    /* eslint-disable testing-library/no-node-access -- layout guard: tabs must not nest under ScrollArea */
     expect(
       leftTabs.closest(
         "[data-radix-scroll-area-viewport], .ScrollAreaViewport, [data-radix-scroll-area]",
@@ -55,6 +56,7 @@ describe("Campaign Pane Tabs Layout", () => {
         "[data-radix-scroll-area-viewport], .ScrollAreaViewport, [data-radix-scroll-area]",
       ),
     ).toBeNull()
+    /* eslint-enable testing-library/no-node-access */
 
     // Assert tabs don't have vertical overflow
     expect(getComputedStyle(leftTabs).overflowY).toBe("visible")
@@ -76,8 +78,10 @@ describe("Campaign Pane Tabs Layout", () => {
     expect(rightPane).toBeInTheDocument()
 
     // Find scrollable content areas within panes (should be the body row)
+    /* eslint-disable testing-library/no-node-access -- overflow class is on non-semantic scroll body */
     const leftScrollable = leftPane.querySelector('[class*="overflow-y-auto"]')
     const rightScrollable = rightPane.querySelector('[class*="overflow-y-auto"]')
+    /* eslint-enable testing-library/no-node-access */
 
     expect(leftScrollable).toBeInTheDocument()
     expect(rightScrollable).toBeInTheDocument()

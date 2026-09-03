@@ -105,16 +105,16 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
   })
 
   const invalidate = (applicantId: string) => {
-    queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
-    queryClient.invalidateQueries({ queryKey: ["applicant", applicantId] })
-    queryClient.invalidateQueries({ queryKey: ["applicant-events", applicantId] })
-    queryClient.invalidateQueries({ queryKey: ["applicants"] })
-    queryClient.invalidateQueries({ queryKey: ["recruitment-automation-executions"] })
-    queryClient.invalidateQueries({ queryKey: ["recruitment-automation-failure-count"] })
+    void queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
+    void queryClient.invalidateQueries({ queryKey: ["applicant", applicantId] })
+    void queryClient.invalidateQueries({ queryKey: ["applicant-events", applicantId] })
+    void queryClient.invalidateQueries({ queryKey: ["applicants"] })
+    void queryClient.invalidateQueries({ queryKey: ["recruitment-automation-executions"] })
+    void queryClient.invalidateQueries({ queryKey: ["recruitment-automation-failure-count"] })
     // Defensive: stage rename/recolor/reorder races would leave
     // ApplicantStageBadge resolving an old label (e.g. "Diskvalifisert")
     // until the next manual refresh. Refresh the pipeline lookup table too.
-    queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
+    void queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
 
     // Server-side trigger flips applications.score_status -> 'pending' on
     // stage entry (per-stage scoring rules). Invalidate each application's
@@ -127,7 +127,7 @@ export function useStageMoveAutomation(opts?: { onComplete?: () => void; onCance
       const apps: any[] = Array.isArray(profile?.applications) ? profile.applications : []
       for (const app of apps) {
         if (!app?.id) continue
-        queryClient.invalidateQueries({ queryKey: ["application-score", app.id] })
+        void queryClient.invalidateQueries({ queryKey: ["application-score", app.id] })
       }
     } catch {
       // non-fatal — the ['applicant', id] invalidate above will eventually

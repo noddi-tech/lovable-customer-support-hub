@@ -85,7 +85,7 @@ export function CreateOrganizationModal({ open, onOpenChange }: CreateOrganizati
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     createOrganization(formData)
     onOpenChange(false)

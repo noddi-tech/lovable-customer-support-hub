@@ -44,7 +44,7 @@ export const ConversationCleanup = () => {
         message_threshold: threshold,
       })
       if (error) throw error
-      return data as LargeConversation[]
+      return data
     },
   })
 
@@ -55,9 +55,9 @@ export const ConversationCleanup = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["problematic-conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["problematic-conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       toast.success("Conversation deleted successfully")
     },
     onError: (error) => {

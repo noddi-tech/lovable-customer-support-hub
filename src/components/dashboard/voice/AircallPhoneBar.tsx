@@ -93,8 +93,12 @@ export const AircallPhoneBar = ({ incomingCall }: AircallPhoneBarProps = {}) => 
 
   // Keyboard shortcuts
   const { showHelp } = useCallKeyboardShortcuts({
-    onAnswer: answerCall,
-    onHangUp: hangUp,
+    onAnswer: () => {
+      void answerCall()
+    },
+    onHangUp: () => {
+      void hangUp()
+    },
     onMute: () => setIsMuted(!isMuted),
     onHold: () => setIsOnHold(!isOnHold),
     onAddNote: () => setShowContext(true),

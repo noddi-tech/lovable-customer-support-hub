@@ -112,70 +112,72 @@ export function useDesktopEmailNotifications() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        async (payload) => {
-          const message = payload.new as {
-            id: string
-            conversation_id: string
-            sender_type: string
-            is_internal: boolean
-            content: string | null
-            email_subject: string | null
-          }
-
-          // Only inbound customer messages, never our own replies or internal notes
-          if (message.sender_type !== "customer" || message.is_internal) return
-          if (seenMessagesRef.current.has(message.id)) return
-          seenMessagesRef.current.add(message.id)
-
-          if (isViewingConversation(message.conversation_id)) return
-
-          // RLS scopes this: no row means the user can't access the inbox
-          const { data: conversation } = await supabase
-            .from("conversations")
-            .select("id, subject, channel, customer:customers(full_name, email)")
-            .eq("id", message.conversation_id)
-            .maybeSingle()
-
-          if (!conversation) return
-          const channelName: string = conversation.channel || "email"
-          const isChat = ["chat", "live_chat", "widget"].includes(channelName)
-          if (!isChat && channelName !== "email") return
-          if (isChat ? !chatEnabled : !emailEnabled) return
-
-          const customer = conversation.customer as {
-            full_name?: string | null
-            email?: string | null
-          } | null
-          const from =
-            customer?.full_name || customer?.email || (isChat ? "New chat message" : "New email")
-          const subject = message.email_subject || conversation.subject || "(no subject)"
-          const preview = (message.content || "")
-            .replace(/<[^>]*>/g, " ")
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 160)
-
-          const notification = await showNotification({
-            title: isChat ? `💬 ${from}` : `${from}: ${subject}`,
-            body: preview || (isChat ? "New chat message" : "New email received"),
-            tag: `conversation-${message.conversation_id}`,
-            requireInteraction: isChat,
-            data: { conversationId: message.conversation_id },
-          })
-
-          if (notification) {
-            notification.onclick = () => {
-              window.focus()
-              window.location.href = `/c/${message.conversation_id}`
-              notification.close()
+        (payload) => {
+          void (async () => {
+            const message = payload.new as {
+              id: string
+              conversation_id: string
+              sender_type: string
+              is_internal: boolean
+              content: string | null
+              email_subject: string | null
             }
-          }
+
+            // Only inbound customer messages, never our own replies or internal notes
+            if (message.sender_type !== "customer" || message.is_internal) return
+            if (seenMessagesRef.current.has(message.id)) return
+            seenMessagesRef.current.add(message.id)
+
+            if (isViewingConversation(message.conversation_id)) return
+
+            // RLS scopes this: no row means the user can't access the inbox
+            const { data: conversation } = await supabase
+              .from("conversations")
+              .select("id, subject, channel, customer:customers(full_name, email)")
+              .eq("id", message.conversation_id)
+              .maybeSingle()
+
+            if (!conversation) return
+            const channelName: string = conversation.channel || "email"
+            const isChat = ["chat", "live_chat", "widget"].includes(channelName)
+            if (!isChat && channelName !== "email") return
+            if (isChat ? !chatEnabled : !emailEnabled) return
+
+            const customer = conversation.customer as {
+              full_name?: string | null
+              email?: string | null
+            } | null
+            const from =
+              customer?.full_name || customer?.email || (isChat ? "New chat message" : "New email")
+            const subject = message.email_subject || conversation.subject || "(no subject)"
+            const preview = (message.content || "")
+              .replace(/<[^>]*>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 160)
+
+            const notification = await showNotification({
+              title: isChat ? `💬 ${from}` : `${from}: ${subject}`,
+              body: preview || (isChat ? "New chat message" : "New email received"),
+              tag: `conversation-${message.conversation_id}`,
+              requireInteraction: isChat,
+              data: { conversationId: message.conversation_id },
+            })
+
+            if (notification) {
+              notification.onclick = () => {
+                window.focus()
+                window.location.href = `/c/${message.conversation_id}`
+                notification.close()
+              }
+            }
+          })()
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [user, enabled, emailEnabled, chatEnabled, permission, showNotification])
 
@@ -201,66 +203,68 @@ export function useDesktopEmailNotifications() {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
-          const row = payload.new as NotificationRow
-          if (seenNotifsRef.current.has(row.id)) return
-          seenNotifsRef.current.add(row.id)
+        (payload) => {
+          void (async () => {
+            const row = payload.new as NotificationRow
+            if (seenNotifsRef.current.has(row.id)) return
+            seenNotifsRef.current.add(row.id)
 
-          const data = row.data || {}
-          const conversationId = conversationIdFromData(data)
-          if (isViewingConversation(conversationId)) return
+            const data = row.data || {}
+            const conversationId = conversationIdFromData(data)
+            if (isViewingConversation(conversationId)) return
 
-          const eventType = typeof data.event_type === "string" ? data.event_type : null
-          let allowed = false
-          let href: string | null = conversationId ? `/c/${conversationId}` : null
+            const eventType = typeof data.event_type === "string" ? data.event_type : null
+            let allowed = false
+            let href: string | null = conversationId ? `/c/${conversationId}` : null
 
-          if (row.type === "assignment") {
-            allowed = assignmentEnabled
-          } else if (row.type === "mention") {
-            allowed = mentionEnabled
-            if (!href && typeof data.ticket_id === "string") {
-              href = `/service-tickets?ticket=${data.ticket_id}`
+            if (row.type === "assignment") {
+              allowed = assignmentEnabled
+            } else if (row.type === "mention") {
+              allowed = mentionEnabled
+              if (!href && typeof data.ticket_id === "string") {
+                href = `/service-tickets?ticket=${data.ticket_id}`
+              }
+            } else if (eventType === "call_started") {
+              allowed = incomingCallEnabled
+            } else if (eventType === "call_missed") {
+              allowed = missedCallEnabled
+            } else if (eventType === "voicemail_received") {
+              allowed = voicemailEnabled
+            } else if (row.type === "sla_breach" || row.type === "sla_warning") {
+              allowed = slaEnabled
+            } else {
+              return
             }
-          } else if (eventType === "call_started") {
-            allowed = incomingCallEnabled
-          } else if (eventType === "call_missed") {
-            allowed = missedCallEnabled
-          } else if (eventType === "voicemail_received") {
-            allowed = voicemailEnabled
-          } else if (row.type === "sla_breach" || row.type === "sla_warning") {
-            allowed = slaEnabled
-          } else {
-            return
-          }
 
-          if (!allowed) return
+            if (!allowed) return
 
-          const notification = await showNotification({
-            title: row.title,
-            body: row.message,
-            tag: `notification-${row.id}`,
-            requireInteraction: row.type === "mention" || eventType === "call_started",
-            data: { notificationId: row.id, conversationId },
-          })
+            const notification = await showNotification({
+              title: row.title,
+              body: row.message,
+              tag: `notification-${row.id}`,
+              requireInteraction: row.type === "mention" || eventType === "call_started",
+              data: { notificationId: row.id, conversationId },
+            })
 
-          if (notification && href) {
-            notification.onclick = () => {
-              window.focus()
-              window.location.href = href!
-              notification.close()
+            if (notification && href) {
+              notification.onclick = () => {
+                window.focus()
+                window.location.href = href!
+                notification.close()
+              }
+            } else if (notification) {
+              notification.onclick = () => {
+                window.focus()
+                notification.close()
+              }
             }
-          } else if (notification) {
-            notification.onclick = () => {
-              window.focus()
-              notification.close()
-            }
-          }
+          })()
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [
     user,

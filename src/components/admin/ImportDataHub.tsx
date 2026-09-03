@@ -63,7 +63,7 @@ export const ImportDataHub = () => {
       }
     }
 
-    fetchOrganization()
+    void fetchOrganization()
   }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId])
 
   return (

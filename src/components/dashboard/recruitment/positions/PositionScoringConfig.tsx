@@ -106,7 +106,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
       })
       toast({ title: "Scoring-konfigurasjon lagret" })
       setDirty(false)
-      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
+      void qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
       toast({ title: "Kunne ikke lagre", description: e?.message, variant: "destructive" })
     }
@@ -116,7 +116,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
     try {
       await update.mutateAsync({ id: positionId, scoring_enabled: true })
       toast({ title: "AI-scoring reaktivert" })
-      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
+      void qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
       toast({ title: "Kunne ikke reaktivere", description: e?.message, variant: "destructive" })
     }
@@ -126,7 +126,7 @@ const PositionScoringConfig: React.FC<Props> = ({ positionId }) => {
     try {
       await update.mutateAsync({ id: positionId, scoring_enabled: !next })
       toast({ title: next ? "AI-scoring stoppet" : "AI-scoring reaktivert" })
-      qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
+      void qc.invalidateQueries({ queryKey: ["position-rubric-status", positionId] })
     } catch (e: any) {
       toast({ title: "Kunne ikke endre", description: e?.message, variant: "destructive" })
     }

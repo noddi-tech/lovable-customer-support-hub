@@ -22,7 +22,7 @@ export default function DataDeletionStatus() {
 
   useEffect(() => {
     if (!code) return
-    ;(async () => {
+    void (async () => {
       const { data, error } = await supabase.functions.invoke("meta-deletion-status", {
         body: { code },
       })

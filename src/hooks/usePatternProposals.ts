@@ -78,7 +78,7 @@ export function usePatternProposals() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success("Forslag godtatt og tatt i bruk")
     },
     onError: (err: Error) => toast.error(`Feil: ${err.message}`),
@@ -93,7 +93,7 @@ export function usePatternProposals() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success("Forslag avvist")
     },
     onError: (err: Error) => toast.error(`Feil: ${err.message}`),
@@ -109,7 +109,7 @@ export function usePatternProposals() {
     },
     onSuccess: (data: unknown) => {
       const created = (data as { proposals_created?: number })?.proposals_created ?? 0
-      queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success(created > 0 ? `${created} nye forslag generert` : "Ingen nye forslag funnet")
     },
     onError: (err: Error) => toast.error(`Feil ved analyse: ${err.message}`),

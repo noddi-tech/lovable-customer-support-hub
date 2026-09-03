@@ -84,7 +84,7 @@ export function KnowledgeAnalytics({ organizationId }: { organizationId: string 
         description: `Promoted ${data.promoted_count} responses to knowledge base`,
       })
 
-      refetch()
+      void refetch()
     } catch (error) {
       console.error("Auto-promote error:", error)
       toast({

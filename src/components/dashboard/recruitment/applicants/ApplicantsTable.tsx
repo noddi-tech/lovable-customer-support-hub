@@ -37,6 +37,8 @@ interface Props {
   onToggleSelectAll?: (ids: string[], checked: boolean) => void
 }
 
+const EMPTY_SELECTED_IDS: string[] = []
+
 type SortCol = "name" | "email" | "position" | "stage" | "score" | "applied" | null
 type SortDir = "asc" | "desc"
 
@@ -77,7 +79,7 @@ function getValue(a: ApplicantRow, col: Exclude<SortCol, null>): string | number
 const ApplicantsTable: React.FC<Props> = ({
   filters,
   selectionEnabled = true,
-  selectedIds = [],
+  selectedIds = EMPTY_SELECTED_IDS,
   onToggleSelect,
   onToggleSelectAll,
 }) => {

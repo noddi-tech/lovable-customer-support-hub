@@ -62,11 +62,13 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
       return
     }
     setLoading(true)
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchAddressSuggestions(widgetKey, query)
-      setSuggestions(results)
-      setIsOpen(results.length > 0)
-      setLoading(false)
+    debounceRef.current = setTimeout(() => {
+      void (async () => {
+        const results = await searchAddressSuggestions(widgetKey, query)
+        setSuggestions(results)
+        setIsOpen(results.length > 0)
+        setLoading(false)
+      })()
     }, 300)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)

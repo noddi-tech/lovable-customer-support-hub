@@ -18,9 +18,9 @@ export function useTriggerScore() {
       return data as { queued: boolean; queue_id: string; already_pending?: boolean }
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["application-score", vars.application_id] })
-      qc.invalidateQueries({ queryKey: ["applicant-queue-position", vars.application_id] })
-      qc.invalidateQueries({ queryKey: ["position-scoring-queue"] })
+      void qc.invalidateQueries({ queryKey: ["application-score", vars.application_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-queue-position", vars.application_id] })
+      void qc.invalidateQueries({ queryKey: ["position-scoring-queue"] })
     },
   })
 }

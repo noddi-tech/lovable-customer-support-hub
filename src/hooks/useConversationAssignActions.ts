@@ -52,9 +52,9 @@ export function useConversationAssignActions() {
         if (profileId) rememberAssignee(profileId)
         toast.success(profileId ? `Assigned to ${displayName || "agent"}` : "Assignment cleared")
 
-        queryClient.invalidateQueries({ queryKey: ["conversations"] })
-        queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
-        queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       } catch (error) {
         logger.error("Failed to assign conversation", error, "useConversationAssignActions")
         toast.error("Failed to assign conversation")

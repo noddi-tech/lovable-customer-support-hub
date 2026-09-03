@@ -34,6 +34,8 @@ interface EmailRenderProps {
   showLoadImagesControl?: boolean
 }
 
+const EMPTY_ATTACHMENTS: EmailAttachment[] = []
+
 interface CollapsibleSectionProps {
   children: React.ReactNode
   buttonText: string
@@ -226,7 +228,7 @@ const AttachmentDownloadButton: React.FC<{ attachment: EmailAttachment; messageI
 const EmailRenderComponent: React.FC<EmailRenderProps> = ({
   content,
   contentType = "text/plain",
-  attachments = [],
+  attachments = EMPTY_ATTACHMENTS,
   messageId,
   className = "",
   showLoadImagesControl = true,
@@ -697,7 +699,9 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
       }
     }
 
-    const timer = setTimeout(processImages, 100) // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      void processImages()
+    }, 100) // Small delay to ensure DOM is ready
     return () => clearTimeout(timer)
   }, [isHTML, attachments, messageId, inlineImages, lightboxImages])
 

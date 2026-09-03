@@ -120,7 +120,7 @@ export function useCallNotes(callId?: string) {
         title: "Note added",
         description: "Call note has been saved successfully",
       })
-      queryClient.invalidateQueries({ queryKey: ["call-notes", data.call_id] })
+      void queryClient.invalidateQueries({ queryKey: ["call-notes", data.call_id] })
     },
     onError: (error) => {
       console.error("Error creating note:", error)
@@ -169,7 +169,7 @@ export function useCallNotes(callId?: string) {
         title: "Note updated",
         description: "Call note has been updated successfully",
       })
-      queryClient.invalidateQueries({ queryKey: ["call-notes", data.call_id] })
+      void queryClient.invalidateQueries({ queryKey: ["call-notes", data.call_id] })
     },
     onError: (error) => {
       console.error("Error updating note:", error)
@@ -193,7 +193,7 @@ export function useCallNotes(callId?: string) {
         title: "Note deleted",
         description: "Call note has been deleted successfully",
       })
-      queryClient.invalidateQueries({ queryKey: ["call-notes"] })
+      void queryClient.invalidateQueries({ queryKey: ["call-notes"] })
     },
     onError: (error) => {
       console.error("Error deleting note:", error)
@@ -221,13 +221,13 @@ export function useCallNotes(callId?: string) {
         },
         (payload) => {
           console.log("Call note change received:", payload)
-          queryClient.invalidateQueries({ queryKey: ["call-notes", callId] })
+          void queryClient.invalidateQueries({ queryKey: ["call-notes", callId] })
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [callId, queryClient])
 

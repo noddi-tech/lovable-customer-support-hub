@@ -83,7 +83,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         .maybeSingle()
 
       if (error) throw error
-      return data as ExtractionJob | null
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -103,7 +103,7 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         .limit(100)
 
       if (error) throw error
-      return data as PendingEntry[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -167,8 +167,10 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         title: "Extraction Complete",
         description: "Q&A pairs have been extracted and are ready for review.",
       })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-extraction-job", organizationId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["knowledge-pending-entries", organizationId],
+      })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-extraction-job", organizationId] })
     },
     onError: (error) => {
       setIsExtracting(false)
@@ -247,8 +249,10 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         description: "Entry has been added to the knowledge base.",
       })
       setEditingEntry(null)
-      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-entries", organizationId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["knowledge-pending-entries", organizationId],
+      })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-entries", organizationId] })
     },
     onError: (error) => {
       toast({
@@ -278,7 +282,9 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
         title: "Entry Skipped",
         description: "Entry has been removed from the review queue.",
       })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-pending-entries", organizationId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["knowledge-pending-entries", organizationId],
+      })
     },
   })
 
@@ -364,14 +370,14 @@ export function KnowledgeImportFromHistory({ organizationId }: KnowledgeImportFr
             <Button
               variant="outline"
               onClick={() => {
-                queryClient.invalidateQueries({
+                void queryClient.invalidateQueries({
                   queryKey: ["knowledge-extraction-job", organizationId],
                 })
-                queryClient.invalidateQueries({
+                void queryClient.invalidateQueries({
                   queryKey: ["knowledge-pending-entries", organizationId],
                 })
-                queryClient.invalidateQueries({ queryKey: ["knowledge-tags", organizationId] })
-                queryClient.invalidateQueries({
+                void queryClient.invalidateQueries({ queryKey: ["knowledge-tags", organizationId] })
+                void queryClient.invalidateQueries({
                   queryKey: ["knowledge-categories", organizationId],
                 })
               }}

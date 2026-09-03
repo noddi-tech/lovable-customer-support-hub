@@ -68,12 +68,12 @@ export function useThreadMessages(conversationIds?: string | string[]) {
 
   return useInfiniteQuery({
     queryKey: ["thread-messages", ...(ids.length > 0 ? ids : ["none"]), user?.id],
-    initialPageParam: null as string | null, // created_at cursor
+    initialPageParam: null, // created_at cursor
     queryFn: async ({ pageParam }) => {
       if (ids.length === 0) {
         return {
           rows: [] as NormalizedMessage[],
-          oldestCursor: null as string | null,
+          oldestCursor: null,
           hasMore: false,
           totalCount: 0,
         }

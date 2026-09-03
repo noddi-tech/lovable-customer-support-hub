@@ -18,7 +18,7 @@ export function CSVImportCard() {
     staleTime: 30_000,
     refetchOnMount: "always",
     queryFn: async () => {
-      if (!currentOrganizationId) return { count: 0, lastImportedAt: null as string | null }
+      if (!currentOrganizationId) return { count: 0, lastImportedAt: null }
 
       const { count, error: cErr } = await supabase
         .from("applicants")

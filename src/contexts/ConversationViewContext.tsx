@@ -317,10 +317,10 @@ export const ConversationViewProvider = ({
             "ConversationViewContext",
           )
           // Invalidate both query keys for immediate update
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: ["thread-messages"],
           })
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: ["messages", conversationId],
           })
         },
@@ -328,7 +328,7 @@ export const ConversationViewProvider = ({
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [conversationId, user?.id, queryClient, user])
 
@@ -615,7 +615,7 @@ export const ConversationViewProvider = ({
               await (supabase.from("conversations") as any)
                 .update({ assigned_to_id: profileId })
                 .eq("id", conversationId)
-              queryClient.invalidateQueries({ queryKey: ["conversation-meta"] })
+              void queryClient.invalidateQueries({ queryKey: ["conversation-meta"] })
             }
 
             if (conv?.case_id) {
@@ -630,8 +630,8 @@ export const ConversationViewProvider = ({
               if (caseRow?.status === "open") updates.status = "in_progress"
               if (Object.keys(updates).length > 0) {
                 await (supabase.from("cases") as any).update(updates).eq("id", conv.case_id)
-                queryClient.invalidateQueries({ queryKey: ["conversation-case"] })
-                queryClient.invalidateQueries({ queryKey: ["cases"] })
+                void queryClient.invalidateQueries({ queryKey: ["conversation-case"] })
+                void queryClient.invalidateQueries({ queryKey: ["cases"] })
               }
             }
           } catch (err) {
@@ -646,13 +646,13 @@ export const ConversationViewProvider = ({
       })
 
       // Force immediate refetch of thread-messages for notes to appear instantly
-      queryClient.refetchQueries({
+      void queryClient.refetchQueries({
         queryKey: ["thread-messages"],
         exact: false,
       })
 
       // Only invalidate essential queries
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       // Fire success toast only after the send (incl. all uploads) resolved —
       // guarantees we never claim success on an aborted upload.
       toast.success(variables.isInternal ? "Internal note added" : "Reply sent")
@@ -687,9 +687,9 @@ export const ConversationViewProvider = ({
       })
 
       // Invalidate conversations list to refresh the inbox view
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       dispatch({ type: "SET_ASSIGN_DIALOG", payload: { open: false, userId: "", loading: false } })
       toast.success("Conversation assigned successfully")
     },
@@ -717,7 +717,7 @@ export const ConversationViewProvider = ({
       })
 
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       dispatch({ type: "SET_MOVE_DIALOG", payload: { open: false, inboxId: "", loading: false } })
       toast.success("Conversation moved successfully")
     },
@@ -775,9 +775,9 @@ export const ConversationViewProvider = ({
       })
 
       // Invalidate conversations list to move conversation between status filters
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       toast.success("Status updated successfully")
     },
     onError: (error) => {
@@ -814,7 +814,7 @@ export const ConversationViewProvider = ({
       })
 
       // Only invalidate counts
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       dispatch({
         type: "SET_SNOOZE_DIALOG",
         payload: { open: false, date: undefined, time: "09:00" },
@@ -865,8 +865,8 @@ export const ConversationViewProvider = ({
       })
 
       // 3. Force refetch counts for immediate update
-      queryClient.refetchQueries({ queryKey: ["all-counts"] })
-      queryClient.refetchQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.refetchQueries({ queryKey: ["all-counts"] })
+      void queryClient.refetchQueries({ queryKey: ["conversation-counts"] })
     },
     onError: (error) => {
       logger.error("Failed to auto-mark as read", error, "ConversationViewProvider")
@@ -899,9 +899,9 @@ export const ConversationViewProvider = ({
       return response.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
       toast.success("Gmail sync completed - signatures should now display correctly")
     },
     onError: (error) => {
@@ -1081,7 +1081,7 @@ export const ConversationViewProvider = ({
       return
     }
 
-    queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+    void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
     toast.success("Tag added")
   }
 
@@ -1104,7 +1104,7 @@ export const ConversationViewProvider = ({
       return
     }
 
-    queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+    void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
     toast.success("Tag removed")
   }
 
@@ -1149,8 +1149,8 @@ export const ConversationViewProvider = ({
       }
 
       // Refresh messages to remove the draft
-      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
       toast.success("Draft sent as reply")
     } catch (error: any) {
       logger.error("Failed to send draft", error, "ConversationViewProvider")
@@ -1175,8 +1175,8 @@ export const ConversationViewProvider = ({
       .delete()
       .eq("id", messageId)
       .then(() => {
-        queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+        void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
       })
 
     toast.info("Draft loaded into composer — edit and send when ready")
@@ -1185,8 +1185,8 @@ export const ConversationViewProvider = ({
   const dismissDraft = async (messageId: string) => {
     try {
       await supabase.from("messages").delete().eq("id", messageId)
-      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
       toast.success("Draft dismissed")
     } catch (error: any) {
       logger.error("Failed to dismiss draft", error, "ConversationViewProvider")

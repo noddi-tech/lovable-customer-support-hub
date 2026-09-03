@@ -1,9 +1,9 @@
 import { Clock, Inbox } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import AutoSizer from "react-virtualized-auto-sizer"
-import { FixedSizeList as List } from "react-window"
-import InfiniteLoader from "react-window-infinite-loader"
+import { AutoSizer } from "react-virtualized-auto-sizer"
+import { List, type RowComponentProps } from "react-window"
+import { InfiniteLoader } from "react-window-infinite-loader"
 import { Checkbox } from "@/components/ui/checkbox"
 import { type Conversation, useConversationList } from "@/contexts/ConversationListContext"
 import { useIsMobile } from "@/hooks/use-responsive"
@@ -14,57 +14,56 @@ import { FlexHeaderCell } from "./FlexHeaderCell"
 import { SlaAlertBanner } from "./SlaAlertBanner"
 
 // Separate memoized row component to prevent re-creation on every parent render
-interface VirtualizedRowProps {
-  index: number
-  style: React.CSSProperties
-  data: {
-    conversations: Conversation[]
-    selectedConversation?: Conversation
-    onSelectConversation: (conversation: Conversation) => void
-    bulkSelectionMode: boolean
-    selectedConversations: Set<string>
-    dispatch: any
-    onBulkSelect: (id: string, selected: boolean, shiftKey?: boolean) => void
-  }
+type VirtualizedRowData = {
+  conversations: Conversation[]
+  selectedConversation?: Conversation
+  onSelectConversation: (conversation: Conversation) => void
+  bulkSelectionMode: boolean
+  selectedConversations: Set<string>
+  dispatch: any
+  onBulkSelect: (id: string, selected: boolean, shiftKey?: boolean) => void
 }
 
-const VirtualizedRow = memo(({ index, style, data }: VirtualizedRowProps) => {
-  const {
+const VirtualizedRow = memo(
+  ({
+    index,
+    style,
     conversations,
     selectedConversation,
     onSelectConversation,
     bulkSelectionMode,
     selectedConversations,
     onBulkSelect,
-  } = data
-  const conversation = conversations[index]
+  }: RowComponentProps<VirtualizedRowData>) => {
+    const conversation = conversations[index]
 
-  if (!conversation) {
-    return (
-      <div style={style} className="flex items-center px-4 border-b animate-pulse">
-        <div className="h-6 w-6 bg-muted rounded-full mr-3"></div>
-        <div className="flex-1 flex gap-4">
-          <div className="h-4 bg-muted rounded w-32"></div>
-          <div className="h-4 bg-muted rounded flex-1"></div>
-          <div className="h-4 bg-muted rounded w-20"></div>
-          <div className="h-4 bg-muted rounded w-24"></div>
+    if (!conversation) {
+      return (
+        <div style={style} className="flex items-center px-4 border-b animate-pulse">
+          <div className="h-6 w-6 bg-muted rounded-full mr-3"></div>
+          <div className="flex-1 flex gap-4">
+            <div className="h-4 bg-muted rounded w-32"></div>
+            <div className="h-4 bg-muted rounded flex-1"></div>
+            <div className="h-4 bg-muted rounded w-20"></div>
+            <div className="h-4 bg-muted rounded w-24"></div>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  return (
-    <ConversationTableRow
-      conversation={conversation}
-      isSelected={selectedConversation?.id === conversation.id}
-      onSelect={onSelectConversation}
-      isBulkSelected={selectedConversations.has(conversation.id)}
-      onBulkSelect={onBulkSelect}
-      showBulkCheckbox={bulkSelectionMode}
-      style={style}
-    />
-  )
-})
+    return (
+      <ConversationTableRow
+        conversation={conversation}
+        isSelected={selectedConversation?.id === conversation.id}
+        onSelect={onSelectConversation}
+        isBulkSelected={selectedConversations.has(conversation.id)}
+        onBulkSelect={onBulkSelect}
+        showBulkCheckbox={bulkSelectionMode}
+        style={style}
+      />
+    )
+  },
+)
 
 VirtualizedRow.displayName = "VirtualizedRow"
 
@@ -75,7 +74,6 @@ interface VirtualizedConversationTableProps {
 
 const ITEM_HEIGHT = 68
 const MOBILE_ITEM_HEIGHT = 100
-const HEADER_HEIGHT = 40
 const OVERSCAN_COUNT = 5
 
 const VirtualizedConversationTable = memo(
@@ -98,14 +96,20 @@ const VirtualizedConversationTable = memo(
 
     const conversations = useMemo(() => paginatedConversations, [paginatedConversations])
     const conversationCount = conversations.length
+    const rowCount = hasNextPage ? conversationCount + 1 : conversationCount
 
-    const isItemLoaded = (index: number) => !hasNextPage || index < conversationCount
+    const isRowLoaded = (index: number) => !hasNextPage || index < conversationCount
 
-    const loadMoreItems = async (startIndex: number, stopIndex: number) => {
-      if (hasNextPage && !isFetchingNextPage) {
-        await fetchNextPage()
-      }
-    }
+    // fetchNextPage is typed as () => void on the conversation list context
+    const loadMoreRows = useCallback(
+      (_startIndex: number, _stopIndex: number) => {
+        if (hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+        return Promise.resolve()
+      },
+      [hasNextPage, isFetchingNextPage, fetchNextPage],
+    )
 
     const handleSort = (key: string) => {
       dispatch({ type: "SET_SORT", payload: key })
@@ -143,8 +147,8 @@ const VirtualizedConversationTable = memo(
       conversations.length > 0 &&
       conversations.every((conv) => state.selectedConversations.has(conv.id))
 
-    // Prepare itemData for react-window - memoize to prevent unnecessary re-renders
-    const itemData = useMemo(
+    // Prepare rowProps for react-window - memoize to prevent unnecessary re-renders
+    const rowProps = useMemo<VirtualizedRowData>(
       () => ({
         conversations,
         selectedConversation,
@@ -329,33 +333,34 @@ const VirtualizedConversationTable = memo(
 
           {/* Virtualized Table Body */}
           <div className="flex-1 min-h-0 h-full">
-            <AutoSizer>
-              {({ height, width }) => {
-                const safeHeight = Math.max(height || 300, 300)
+            <AutoSizer
+              renderProp={({ height, width }) => {
+                if (height == null || width == null) {
+                  return null
+                }
+
+                const safeHeight = Math.max(height, 300)
                 return (
                   <InfiniteLoader
-                    isItemLoaded={isItemLoaded}
-                    itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
-                    loadMoreItems={loadMoreItems}
+                    isRowLoaded={isRowLoaded}
+                    rowCount={rowCount}
+                    loadMoreRows={loadMoreRows}
                   >
-                    {({ onItemsRendered, ref }) => (
+                    {({ onRowsRendered }) => (
                       <List
-                        ref={ref}
-                        height={safeHeight}
-                        width={width}
-                        itemCount={hasNextPage ? conversationCount + 1 : conversationCount}
-                        itemSize={isMobile ? MOBILE_ITEM_HEIGHT : ITEM_HEIGHT}
-                        itemData={itemData}
-                        onItemsRendered={onItemsRendered}
+                        style={{ height: safeHeight, width }}
+                        rowCount={rowCount}
+                        rowHeight={isMobile ? MOBILE_ITEM_HEIGHT : ITEM_HEIGHT}
+                        rowComponent={VirtualizedRow}
+                        rowProps={rowProps}
+                        onRowsRendered={onRowsRendered}
                         overscanCount={OVERSCAN_COUNT}
-                      >
-                        {VirtualizedRow}
-                      </List>
+                      />
                     )}
                   </InfiniteLoader>
                 )
               }}
-            </AutoSizer>
+            />
           </div>
         </div>
       </div>

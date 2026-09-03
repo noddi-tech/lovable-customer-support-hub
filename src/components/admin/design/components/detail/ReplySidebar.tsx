@@ -68,6 +68,8 @@ interface ReplySidebarProps {
   placeholder?: string
 }
 
+const EMPTY_TAGS: string[] = []
+
 export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   conversationId,
   replyText = "",
@@ -81,7 +83,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
   status = "open",
   priority = "normal",
   assignedTo,
-  tags = [],
+  tags = EMPTY_TAGS,
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,
@@ -124,7 +126,7 @@ export const ReplySidebar: React.FC<ReplySidebarProps> = ({
       // Send on Cmd+Enter or Ctrl+Enter
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
         event.preventDefault()
-        handleSendReply()
+        void handleSendReply()
       }
     },
     [handleSendReply],

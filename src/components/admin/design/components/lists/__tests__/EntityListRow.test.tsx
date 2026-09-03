@@ -189,6 +189,7 @@ describe("EntityListRow", () => {
       render(<EntityListRow {...mockProps} contentClassName="custom-content" />)
 
       const button = screen.getByRole("button")
+      // eslint-disable-next-line testing-library/no-node-access -- contentClassName is applied to an inner non-semantic wrapper
       const contentDiv = button.querySelector(".custom-content")
       expect(contentDiv).toBeInTheDocument()
     })

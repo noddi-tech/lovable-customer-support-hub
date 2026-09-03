@@ -38,7 +38,7 @@ function useBulkImport(id: string | null) {
         .eq("id", id)
         .maybeSingle()
       if (error) throw error
-      return data as { id: string; created_at: string } | null
+      return data
     },
   })
 }

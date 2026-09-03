@@ -205,7 +205,7 @@ export const ReplyArea = () => {
 
         // Process mentions after successful send
         if (isInternal && currentMentionedUserIds.length > 0 && conversationIdForMentions) {
-          processMentions(replyText, currentMentionedUserIds, {
+          void processMentions(replyText, currentMentionedUserIds, {
             type: "internal_note",
             conversation_id: conversationIdForMentions,
             message_id: messageId,

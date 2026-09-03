@@ -92,5 +92,5 @@ export function themeCssVars(theme: ResolvedWidgetTheme): React.CSSProperties {
     ["--noddi-secondary" as string]: theme.secondaryColor,
     ["--noddi-accent" as string]: theme.accentColor,
     ["--noddi-on-primary" as string]: theme.onPrimaryColor,
-  } as React.CSSProperties
+  }
 }

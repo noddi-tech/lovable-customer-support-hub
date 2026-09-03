@@ -106,8 +106,8 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
       }
       setResult(data as ExchangeResult)
       setStep("done")
-      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
       // Clear sensitive inputs immediately on success
       setAppSecret("")
       setUserToken("")
@@ -134,8 +134,8 @@ export function MetaTokenRefreshWizard({ open, onOpenChange, integration, onUseO
       }
       setResult(data as ExchangeResult)
       setStep("done")
-      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-admin-alerts"] })
       setSystemUserToken("")
       toast({ title: "System User-token lagret" })
     } catch (e: any) {

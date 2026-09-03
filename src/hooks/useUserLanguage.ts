@@ -70,7 +70,7 @@ export function useUserLanguage() {
       return
     }
 
-    initializeLanguage()
+    void initializeLanguage()
   }, [user, isReady])
 
   // Listen for i18n ready state changes

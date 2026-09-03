@@ -27,7 +27,7 @@ export const useTeamMemberMentions = () => {
         .order("full_name")
 
       if (error) throw error
-      return (data || []) as TeamMemberForMention[]
+      return data || []
     },
     enabled: !!profile?.organization_id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

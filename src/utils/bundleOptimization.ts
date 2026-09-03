@@ -10,7 +10,7 @@ export const dynamicImport = async <T = any>(
   try {
     const mod = await importFn()
     if (mod && typeof mod === "object" && "default" in mod) {
-      return (mod as { default: T }).default
+      return mod.default
     }
     return mod as T
   } catch (error) {

@@ -379,16 +379,16 @@ INSERT INTO response_tracking (
 
 ```bash
 # Run from project root
-npm run test:knowledge-system
+bun run test:knowledge-system
 ```
 
 ### Individual Test Suites
 
 ```bash
-npm run test:tracking
-npm run test:outcomes
-npm run test:promotion
-npm run test:admin
+bun run test:tracking
+bun run test:outcomes
+bun run test:promotion
+bun run test:admin
 ```
 
 ## Monitoring During Testing

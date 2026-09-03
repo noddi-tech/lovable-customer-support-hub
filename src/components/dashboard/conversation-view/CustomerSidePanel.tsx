@@ -956,7 +956,7 @@ export const CustomerSidePanel = ({
                         className="text-sm h-8 relative z-10"
                         style={{ pointerEvents: "auto" }}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAlternativeEmailSearch()
+                          if (e.key === "Enter") void handleAlternativeEmailSearch()
                         }}
                       />
                       <Button
@@ -990,7 +990,8 @@ export const CustomerSidePanel = ({
                         onChange={(e) => setSearchFirstName(e.target.value)}
                         className="text-sm h-8"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && searchFirstName.length >= 2) handleNameSearch()
+                          if (e.key === "Enter" && searchFirstName.length >= 2)
+                            void handleNameSearch()
                         }}
                       />
                     </div>
@@ -1011,7 +1012,8 @@ export const CustomerSidePanel = ({
                         onChange={(e) => setSearchLastName(e.target.value)}
                         className="text-sm h-8"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && searchFirstName.length >= 2) handleNameSearch()
+                          if (e.key === "Enter" && searchFirstName.length >= 2)
+                            void handleNameSearch()
                         }}
                       />
                     </div>

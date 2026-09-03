@@ -98,7 +98,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
         .from("inbound_routes")
         .select("id,inbox_id,address,group_email")
       if (error) throw error
-      return data as unknown as InboundRoute[]
+      return data
     },
   })
 
@@ -107,7 +107,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
     queryFn: async (): Promise<EmailAccount[]> => {
       const { data, error } = await supabase.rpc("get_email_accounts")
       if (error) throw error
-      return (data || []) as unknown as EmailAccount[]
+      return data || []
     },
   })
 
@@ -135,7 +135,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       toast.success("Inbox updated successfully")
     },
     onError: (error: any) => toast.error(`Failed to update inbox: ${error.message}`),
@@ -151,7 +151,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
       toast.success("Sending address updated")
     },
     onError: (error: any) => toast.error(`Failed to update sending address: ${error.message}`),

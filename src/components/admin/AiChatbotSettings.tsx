@@ -68,7 +68,7 @@ export const AiChatbotSettings: React.FC = () => {
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false })
       if (error) throw error
-      return data as WidgetConfig[]
+      return data
     },
     enabled: !!organizationId,
   })

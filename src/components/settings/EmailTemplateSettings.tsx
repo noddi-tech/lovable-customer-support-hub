@@ -175,7 +175,7 @@ export function EmailTemplateSettings() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-template"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-template"] })
       toast({
         title: "Email template saved",
         description: "Your email template has been updated successfully.",

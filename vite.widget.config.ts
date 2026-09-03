@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   define: {
@@ -17,7 +17,7 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/widget/index.tsx"),
+      entry: path.resolve(import.meta.dirname, "src/widget/index.tsx"),
       name: "NoddiWidget",
       fileName: () => "widget.js",
       formats: ["iife"],

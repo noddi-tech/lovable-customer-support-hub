@@ -316,11 +316,11 @@ export function useAggressiveSessionRecovery() {
 
       lastHealthCheckRef.current = now
 
-      performHealthCheck().then((isHealthy) => {
+      void performHealthCheck().then((isHealthy) => {
         // Require 5+ consecutive failures before triggering recovery (increased from 3)
         if (!isHealthy && healthState.consecutiveFailures >= 5) {
           console.log("🚨 Multiple health check failures (5+), triggering recovery...")
-          aggressiveRecovery()
+          void aggressiveRecovery()
         }
       })
     }

@@ -325,9 +325,9 @@ export const ThreadMerger: React.FC<ThreadMergerProps> = ({ inboxId, onMergeComp
       return results
     },
     onSuccess: (results) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["split-threads"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["split-threads"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
 
       toast({
         title: t("dashboard.mergeSuccess", "Threads Merged Successfully"),

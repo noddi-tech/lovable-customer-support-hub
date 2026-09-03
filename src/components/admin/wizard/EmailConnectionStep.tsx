@@ -31,7 +31,7 @@ export function EmailConnectionStep({
   useEffect(() => {
     if (setupType !== "gmail") return
     let cancelled = false
-    ;(async () => {
+    void (async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -120,32 +120,34 @@ export function EmailConnectionStep({
 
       window.addEventListener("message", handleMessage)
 
-      const checkClosed = setInterval(async () => {
-        if (popup.closed) {
-          clearInterval(checkClosed)
-          window.removeEventListener("message", handleMessage)
-          setIsConnecting(false)
+      const checkClosed = setInterval(() => {
+        void (async () => {
+          if (popup.closed) {
+            clearInterval(checkClosed)
+            window.removeEventListener("message", handleMessage)
+            setIsConnecting(false)
 
-          // Fallback: postMessage may not have fired (e.g. browser blocked
-          // the inline script). Verify against the database instead.
-          if (!advancedRef.current) {
-            const email = await checkForNewlyConnectedAccount()
-            if (email) {
-              advance(email)
-              toast({
-                title: "Gmail connected",
-                description: `${email} is now linked.`,
-              })
-            } else {
-              toast({
-                title: "Couldn't confirm connection",
-                description:
-                  "If the Google window said it succeeded, refresh and check Integrations.",
-                variant: "destructive",
-              })
+            // Fallback: postMessage may not have fired (e.g. browser blocked
+            // the inline script). Verify against the database instead.
+            if (!advancedRef.current) {
+              const email = await checkForNewlyConnectedAccount()
+              if (email) {
+                advance(email)
+                toast({
+                  title: "Gmail connected",
+                  description: `${email} is now linked.`,
+                })
+              } else {
+                toast({
+                  title: "Couldn't confirm connection",
+                  description:
+                    "If the Google window said it succeeded, refresh and check Integrations.",
+                  variant: "destructive",
+                })
+              }
             }
           }
-        }
+        })()
       }, 1000)
     } catch (error) {
       toast({

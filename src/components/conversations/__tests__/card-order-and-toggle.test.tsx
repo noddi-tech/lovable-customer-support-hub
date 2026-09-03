@@ -206,11 +206,8 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       </QueryClientProvider>,
     )
 
-    // Find and click "Expand all" button
+    const expandAllButton = await screen.findByText("Expand all")
     fireEvent.click(expandAllButton)
-    await waitFor(() => {
-      const expandAllButton = screen.getByText("Expand all")
-    })
 
     // Should now show full content
     await waitFor(() => {
@@ -222,11 +219,8 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       ).toBeInTheDocument()
     })
 
-    // Find and click "Collapse all" button
+    const collapseAllButton = await screen.findByText("Collapse all")
     fireEvent.click(collapseAllButton)
-    await waitFor(() => {
-      const collapseAllButton = screen.getByText("Collapse all")
-    })
 
     // Should show preview again
     await waitFor(() => {
@@ -334,25 +328,19 @@ describe("ProgressiveMessagesList - Card Order and Toggle", () => {
       </QueryClientProvider>,
     )
 
-    // First expand the message
+    expect(messageWithQuotes.quotedBlocks?.length ?? 0).toBeGreaterThan(0)
+
+    const expandButton = await screen.findByRole("button", { name: /Expand message/i })
     fireEvent.click(expandButton)
+
     await waitFor(() => {
-      const expandButton = screen.getByRole("button")
+      expect(screen.getByText(/Show quoted history/)).toBeInTheDocument()
     })
 
-    // Should show quoted history toggle if quotes were detected
-    if (messageWithQuotes.quotedBlocks && messageWithQuotes.quotedBlocks.length > 0) {
-      await waitFor(() => {
-        expect(screen.getByText(/Show quoted history/)).toBeInTheDocument()
-      })
+    fireEvent.click(screen.getByText(/Show quoted history/))
 
-      // Click to show quoted history
-      const showQuotedButton = screen.getByText(/Show quoted history/)
-      fireEvent.click(showQuotedButton)
-
-      await waitFor(() => {
-        expect(screen.getByText(/Hide quoted history/)).toBeInTheDocument()
-      })
-    }
+    await waitFor(() => {
+      expect(screen.getByText(/Hide quoted history/)).toBeInTheDocument()
+    })
   })
 })

@@ -23,7 +23,7 @@ export const useTeamMembers = () => {
         .order("full_name")
 
       if (error) throw error
-      return data as TeamMember[]
+      return data
     },
   })
 }

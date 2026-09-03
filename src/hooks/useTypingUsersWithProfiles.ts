@@ -60,7 +60,7 @@ export function useTypingUsersWithProfiles(conversationId: string | null): Typin
       }
     }
 
-    fetchProfiles()
+    void fetchProfiles()
   }, [typingUserIds])
 
   // Return only profiles of currently typing users (excluding self)

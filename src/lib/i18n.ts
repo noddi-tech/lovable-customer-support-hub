@@ -105,6 +105,6 @@ const initializeI18n = async () => {
 }
 
 // Initialize immediately
-initializeI18n()
+void initializeI18n()
 
 export default i18n

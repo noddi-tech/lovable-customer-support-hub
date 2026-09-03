@@ -15,6 +15,24 @@ interface SessionDebugInfo {
   timestamp: string
 }
 
+const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
+  <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+    <div className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-4 w-4 text-primary" />
+      ) : (
+        <XCircle className="h-4 w-4 text-destructive" />
+      )}
+      <span className="text-sm">{label}</span>
+    </div>
+    {value && (
+      <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
+        {value}
+      </span>
+    )}
+  </div>
+)
+
 export function SessionDebugPanel() {
   const { user, session, profile } = useAuth()
   const [debugInfo, setDebugInfo] = useState<SessionDebugInfo | null>(null)
@@ -47,7 +65,7 @@ export function SessionDebugPanel() {
   }, [user, session])
 
   useEffect(() => {
-    fetchDebugInfo()
+    void fetchDebugInfo()
   }, [fetchDebugInfo])
 
   const isHealthy =
@@ -56,24 +74,6 @@ export function SessionDebugPanel() {
     debugInfo.db_auth_uid &&
     debugInfo.db_organization_id &&
     debugInfo.db_profile_exists
-
-  const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <div className="flex items-center gap-2">
-        {ok ? (
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-        ) : (
-          <XCircle className="h-4 w-4 text-destructive" />
-        )}
-        <span className="text-sm">{label}</span>
-      </div>
-      {value && (
-        <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]">
-          {value}
-        </span>
-      )}
-    </div>
-  )
 
   return (
     <Card className="w-full max-w-2xl border-border/50">

@@ -83,8 +83,8 @@ export function useCreateFollowup() {
       return data
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-followups", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-followups", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
       toast({ title: "Påminnelse opprettet" })
     },
     onError: (e: any) =>
@@ -112,8 +112,8 @@ export function useCompleteFollowup() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-followups"] })
-      qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-followups"] })
+      void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
       toast({ title: "Markert som fullført" })
     },
     onError: (e: any) =>
@@ -132,8 +132,8 @@ export function useSnoozeFollowup() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-followups"] })
-      qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-followups"] })
+      void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
       toast({ title: "Påminnelse utsatt" })
     },
     onError: (e: any) =>
@@ -152,8 +152,8 @@ export function useDeleteFollowup() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-followups"] })
-      qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-followups"] })
+      void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
       toast({ title: "Påminnelse slettet" })
     },
     onError: (e: any) =>

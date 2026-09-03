@@ -556,7 +556,7 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
 
   const copyMarker = () => {
     const text = block.closingMarker ? `${block.marker}…${block.closingMarker}` : block.marker
-    navigator.clipboard.writeText(text)
+    void navigator.clipboard.writeText(text)
     toast({ title: "Copied", description: text })
   }
 
@@ -1259,7 +1259,7 @@ export const ComponentLibrary: React.FC = () => {
         .select("*")
         .eq("organization_id", currentOrganizationId)
       if (error) throw error
-      return (data || []) as unknown as CustomBlockRow[]
+      return data || []
     },
     enabled: !!currentOrganizationId,
   })
@@ -1270,12 +1270,16 @@ export const ComponentLibrary: React.FC = () => {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" })
     } else {
       toast({ title: "Deleted" })
-      queryClient.invalidateQueries({ queryKey: ["widget-block-configs", currentOrganizationId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["widget-block-configs", currentOrganizationId],
+      })
     }
   }
 
   const handleSaved = () => {
-    queryClient.invalidateQueries({ queryKey: ["widget-block-configs", currentOrganizationId] })
+    void queryClient.invalidateQueries({
+      queryKey: ["widget-block-configs", currentOrganizationId],
+    })
   }
 
   return (

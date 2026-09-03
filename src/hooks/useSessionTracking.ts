@@ -124,7 +124,12 @@ export function useSessionTracking() {
       clearInterval(heartbeatIntervalRef.current)
     }
     // Update every 5 minutes
-    heartbeatIntervalRef.current = setInterval(updateActivity, 5 * 60 * 1000)
+    heartbeatIntervalRef.current = setInterval(
+      () => {
+        void updateActivity()
+      },
+      5 * 60 * 1000,
+    )
   }, [updateActivity])
 
   // Stop heartbeat interval
@@ -138,7 +143,7 @@ export function useSessionTracking() {
   // Initialize session on mount if user is logged in
   useEffect(() => {
     if (user?.id && !sessionRef.current) {
-      createSession("login").then(() => {
+      void createSession("login").then(() => {
         startHeartbeat()
       })
     }

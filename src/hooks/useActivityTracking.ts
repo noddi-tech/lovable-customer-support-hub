@@ -57,7 +57,7 @@ export function useActivityTracking(sessionId?: string | null) {
         session_id: sessionId || null,
         event_type: eventType,
         event_name: eventName,
-        event_data: (eventData || {}) as Json,
+        event_data: eventData || {},
         page_path: location.pathname,
         created_at: new Date().toISOString(),
       }
@@ -66,7 +66,7 @@ export function useActivityTracking(sessionId?: string | null) {
 
       // Flush immediately if we hit max batch size
       if (eventQueueRef.current.length >= MAX_BATCH_SIZE) {
-        flushEvents()
+        void flushEvents()
       }
     },
     [user?.id, user?.email, profile?.organization_id, sessionId, location.pathname, flushEvents],
@@ -106,14 +106,16 @@ export function useActivityTracking(sessionId?: string | null) {
 
   // Start flush interval
   useEffect(() => {
-    flushIntervalRef.current = setInterval(flushEvents, FLUSH_INTERVAL)
+    flushIntervalRef.current = setInterval(() => {
+      void flushEvents()
+    }, FLUSH_INTERVAL)
 
     return () => {
       if (flushIntervalRef.current) {
         clearInterval(flushIntervalRef.current)
       }
       // Final flush on unmount
-      flushEvents()
+      void flushEvents()
     }
   }, [flushEvents])
 

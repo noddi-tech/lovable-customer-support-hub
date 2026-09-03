@@ -75,8 +75,8 @@ export function useInitiateGdprExport() {
     },
     onSuccess: (_data, vars) => {
       toast.success("GDPR-eksport startet — sjekk historikken om noen sekunder")
-      qc.invalidateQueries({ queryKey: ["gdpr-requests", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["gdpr-requests-org"] })
+      void qc.invalidateQueries({ queryKey: ["gdpr-requests", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["gdpr-requests-org"] })
     },
     onError: (err: Error) => {
       toast.error(err.message || "Kunne ikke starte eksport")
@@ -97,10 +97,10 @@ export function useInitiateGdprErasure() {
     },
     onSuccess: (_data, vars) => {
       toast.success("Sletting initiert")
-      qc.invalidateQueries({ queryKey: ["gdpr-requests", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["gdpr-requests-org"] })
-      qc.invalidateQueries({ queryKey: ["applicant", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["gdpr-requests", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["gdpr-requests-org"] })
+      void qc.invalidateQueries({ queryKey: ["applicant", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
     },
     onError: (err: Error) => {
       toast.error(err.message || "Kunne ikke slette kandidat")

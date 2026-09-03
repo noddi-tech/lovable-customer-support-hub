@@ -54,7 +54,7 @@ function useTimelineMessages(conversationId: string | null) {
         .order("created_at", { ascending: true })
         .limit(50)
       if (error) throw error
-      return (data ?? []) as PreviewMessage[]
+      return data ?? []
     },
   })
 }

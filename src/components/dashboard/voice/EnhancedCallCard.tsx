@@ -142,7 +142,7 @@ export const EnhancedCallCard: React.FC<EnhancedCallCardProps> = ({
                   <span className="font-semibold text-sm truncate font-mono">
                     {formatPhoneNumber(call.customer_phone)}
                   </span>
-                  <Badge variant={getStatusColor(call.status) as any} className="text-xs shrink-0">
+                  <Badge variant={getStatusColor(call.status)} className="text-xs shrink-0">
                     {getStatusLabel()}
                   </Badge>
                 </div>

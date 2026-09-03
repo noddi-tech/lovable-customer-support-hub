@@ -132,7 +132,7 @@ export const HelpScoutImport = () => {
         orgs?.[0]?.id
       if (preferred) setSelectedOrgId(preferred)
     }
-    fetchData()
+    void fetchData()
   }, [isSuperAdmin, allowedLocalOrgIds, memberships, currentOrganizationId])
 
   // Fetch inboxes when organization changes
@@ -148,7 +148,7 @@ export const HelpScoutImport = () => {
 
       setInboxes(data || [])
     }
-    fetchInboxes()
+    void fetchInboxes()
   }, [selectedOrgId])
 
   const handleTestConnection = async () => {
@@ -273,7 +273,7 @@ export const HelpScoutImport = () => {
     toast({ title: "All New", description: "All mailboxes will create new inboxes" })
   }
 
-  const handleStartImport = async () => {
+  const handleStartImport = () => {
     if (!selectedOrgId) {
       toast({
         title: "Error",
@@ -304,7 +304,7 @@ export const HelpScoutImport = () => {
 
     // If validation shown and passed, proceed with import
     if (showValidation && validationPassed) {
-      handleConfirmImport()
+      void handleConfirmImport()
     }
   }
 
@@ -345,68 +345,71 @@ export const HelpScoutImport = () => {
         })
 
         // Start polling for progress
-        const pollInterval = setInterval(async () => {
-          const { data: job, error: jobError } = await supabase
-            .from("import_jobs")
-            .select("*")
-            .eq("id", data.jobId)
-            .single()
+        const pollInterval = setInterval(() => {
+          void (async () => {
+            const { data: job, error: jobError } = await supabase
+              .from("import_jobs")
+              .select("*")
+              .eq("id", data.jobId)
+              .single()
 
-          if (jobError) {
-            console.error("Failed to fetch job progress:", jobError)
-            return
-          }
+            if (jobError) {
+              console.error("Failed to fetch job progress:", jobError)
+              return
+            }
 
-          if (job) {
-            // Extract current mailbox info from checkpoint
-            const metadata = job.metadata as any
-            const checkpoint = metadata?.checkpoint
-            if (checkpoint && typeof checkpoint.currentMailboxIndex === "number") {
-              const currentMailbox = mailboxes[checkpoint.currentMailboxIndex]
-              if (currentMailbox) {
-                setCurrentMailboxName(currentMailbox.name)
+            if (job) {
+              // Extract current mailbox info from checkpoint
+              const metadata = job.metadata as any
+              const checkpoint = metadata?.checkpoint
+              if (checkpoint && typeof checkpoint.currentMailboxIndex === "number") {
+                const currentMailbox = mailboxes[checkpoint.currentMailboxIndex]
+                if (currentMailbox) {
+                  setCurrentMailboxName(currentMailbox.name)
+                }
+              }
+
+              setProgress({
+                totalMailboxes: job.total_mailboxes || 0,
+                totalConversations: job.total_conversations || 0,
+                conversationsImported: job.conversations_imported || 0,
+                conversationsProcessed:
+                  (job.metadata as any)?.progress?.conversationsProcessed || 0,
+                conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
+                messagesImported: job.messages_imported || 0,
+                customersImported: job.customers_imported || 0,
+                errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
+                status: job.status as "idle" | "running" | "completed" | "error" | "paused",
+              })
+
+              // Handle paused status - it will auto-continue
+              if (job.status === "paused") {
+                toast({
+                  title: "Import Continuing",
+                  description: `Processed ${job.conversations_imported} conversations so far. Automatically continuing...`,
+                })
+                // Keep status as running in UI
+                setProgress((prev) => ({ ...prev, status: "running" }))
+              } else if (job.status === "completed") {
+                clearInterval(pollInterval)
+                setIsImporting(false)
+                setCurrentMailboxName("")
+                toast({
+                  title: "Import Complete",
+                  description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
+                })
+              } else if (job.status === "error") {
+                clearInterval(pollInterval)
+                setIsImporting(false)
+                setCurrentMailboxName("")
+                toast({
+                  title: "Import Failed",
+                  description: "The import encountered errors. Check the error log below.",
+                  variant: "destructive",
+                })
               }
             }
-
-            setProgress({
-              totalMailboxes: job.total_mailboxes || 0,
-              totalConversations: job.total_conversations || 0,
-              conversationsImported: job.conversations_imported || 0,
-              conversationsProcessed: (job.metadata as any)?.progress?.conversationsProcessed || 0,
-              conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
-              messagesImported: job.messages_imported || 0,
-              customersImported: job.customers_imported || 0,
-              errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
-              status: job.status as "idle" | "running" | "completed" | "error" | "paused",
-            })
-
-            // Handle paused status - it will auto-continue
-            if (job.status === "paused") {
-              toast({
-                title: "Import Continuing",
-                description: `Processed ${job.conversations_imported} conversations so far. Automatically continuing...`,
-              })
-              // Keep status as running in UI
-              setProgress((prev) => ({ ...prev, status: "running" }))
-            } else if (job.status === "completed") {
-              clearInterval(pollInterval)
-              setIsImporting(false)
-              setCurrentMailboxName("")
-              toast({
-                title: "Import Complete",
-                description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
-              })
-            } else if (job.status === "error") {
-              clearInterval(pollInterval)
-              setIsImporting(false)
-              setCurrentMailboxName("")
-              toast({
-                title: "Import Failed",
-                description: "The import encountered errors. Check the error log below.",
-                variant: "destructive",
-              })
-            }
-          }
+          })()
         }, 3000) // Poll every 3 seconds
       }
     } catch (error: any) {
@@ -456,61 +459,63 @@ export const HelpScoutImport = () => {
       })
 
       // Start polling for progress (same as regular import)
-      const pollInterval = setInterval(async () => {
-        const { data: job, error: jobError } = await supabase
-          .from("import_jobs")
-          .select("*")
-          .eq("id", pausedJobId)
-          .single()
+      const pollInterval = setInterval(() => {
+        void (async () => {
+          const { data: job, error: jobError } = await supabase
+            .from("import_jobs")
+            .select("*")
+            .eq("id", pausedJobId)
+            .single()
 
-        if (jobError) {
-          console.error("Failed to fetch job progress:", jobError)
-          return
-        }
+          if (jobError) {
+            console.error("Failed to fetch job progress:", jobError)
+            return
+          }
 
-        if (job) {
-          const metadata = job.metadata as any
-          const checkpoint = metadata?.checkpoint
-          if (checkpoint && typeof checkpoint.currentMailboxIndex === "number") {
-            const currentMailbox = mailboxes[checkpoint.currentMailboxIndex]
-            if (currentMailbox) {
-              setCurrentMailboxName(currentMailbox.name)
+          if (job) {
+            const metadata = job.metadata as any
+            const checkpoint = metadata?.checkpoint
+            if (checkpoint && typeof checkpoint.currentMailboxIndex === "number") {
+              const currentMailbox = mailboxes[checkpoint.currentMailboxIndex]
+              if (currentMailbox) {
+                setCurrentMailboxName(currentMailbox.name)
+              }
+            }
+
+            setProgress({
+              totalMailboxes: job.total_mailboxes || 0,
+              totalConversations: job.total_conversations || 0,
+              conversationsImported: job.conversations_imported || 0,
+              conversationsProcessed: (job.metadata as any)?.progress?.conversationsProcessed || 0,
+              conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
+              messagesImported: job.messages_imported || 0,
+              customersImported: job.customers_imported || 0,
+              errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
+              status: job.status as "idle" | "running" | "completed" | "error" | "paused",
+            })
+
+            if (job.status === "paused") {
+              setProgress((prev) => ({ ...prev, status: "running" }))
+            } else if (job.status === "completed") {
+              clearInterval(pollInterval)
+              setIsImporting(false)
+              setCurrentMailboxName("")
+              toast({
+                title: "Import Complete",
+                description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
+              })
+            } else if (job.status === "error") {
+              clearInterval(pollInterval)
+              setIsImporting(false)
+              setCurrentMailboxName("")
+              toast({
+                title: "Import Failed",
+                description: "The import encountered errors. Check the error log below.",
+                variant: "destructive",
+              })
             }
           }
-
-          setProgress({
-            totalMailboxes: job.total_mailboxes || 0,
-            totalConversations: job.total_conversations || 0,
-            conversationsImported: job.conversations_imported || 0,
-            conversationsProcessed: (job.metadata as any)?.progress?.conversationsProcessed || 0,
-            conversationsSkipped: (job.metadata as any)?.progress?.conversationsSkipped || 0,
-            messagesImported: job.messages_imported || 0,
-            customersImported: job.customers_imported || 0,
-            errors: Array.isArray(job.errors) ? job.errors.map((e: any) => e.message || e) : [],
-            status: job.status as "idle" | "running" | "completed" | "error" | "paused",
-          })
-
-          if (job.status === "paused") {
-            setProgress((prev) => ({ ...prev, status: "running" }))
-          } else if (job.status === "completed") {
-            clearInterval(pollInterval)
-            setIsImporting(false)
-            setCurrentMailboxName("")
-            toast({
-              title: "Import Complete",
-              description: `Successfully imported ${job.conversations_imported} conversations with ${job.messages_imported} messages.`,
-            })
-          } else if (job.status === "error") {
-            clearInterval(pollInterval)
-            setIsImporting(false)
-            setCurrentMailboxName("")
-            toast({
-              title: "Import Failed",
-              description: "The import encountered errors. Check the error log below.",
-              variant: "destructive",
-            })
-          }
-        }
+        })()
       }, 3000)
     } catch (error: any) {
       console.error("Resume failed:", error)

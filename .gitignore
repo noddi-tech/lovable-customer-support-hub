@@ -5,6 +5,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+bun-debug.log*
+
+# npm lockfile — this repo uses bun (bun.lock)
+package-lock.json
 lerna-debug.log*
 
 # Local env / secrets (never commit)

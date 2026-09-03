@@ -177,7 +177,7 @@ test("pane layout has proper structure", () => {
 Use `scripts/lint-pane-scroll.ts` to catch common violations:
 
 ```bash
-npm run lint:panes
+bun run lint:panes
 ```
 
 This will flag:

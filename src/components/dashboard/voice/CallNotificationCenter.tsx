@@ -66,7 +66,7 @@ export const CallNotificationCenter: React.FC<CallNotificationCenterProps> = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
     },
   })
 
@@ -86,7 +86,7 @@ export const CallNotificationCenter: React.FC<CallNotificationCenterProps> = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
       toast({
         title: "Notifications cleared",
         description: "All call notifications marked as read",

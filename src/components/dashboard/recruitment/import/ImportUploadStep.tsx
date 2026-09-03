@@ -41,7 +41,7 @@ const ImportUploadStep: React.FC<Props> = ({ onParsed }) => {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files?.[0]
-    if (file) handleFile(file)
+    if (file) void handleFile(file)
   }
 
   return (
@@ -74,7 +74,7 @@ const ImportUploadStep: React.FC<Props> = ({ onParsed }) => {
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) handleFile(file)
+            if (file) void handleFile(file)
           }}
         />
       </Card>

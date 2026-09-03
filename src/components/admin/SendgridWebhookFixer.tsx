@@ -76,7 +76,7 @@ export const SendgridWebhookFixer: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    fetchDiagnostics()
+    void fetchDiagnostics()
   }, [fetchDiagnostics])
 
   const fixWebhook = async () => {

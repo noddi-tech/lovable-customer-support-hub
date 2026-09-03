@@ -45,9 +45,9 @@ export function useUpdateApplicant() {
       return data as unknown as ApplicantProfileData
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant", vars.id] })
-      qc.invalidateQueries({ queryKey: ["applicants"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
+      void qc.invalidateQueries({ queryKey: ["applicant", vars.id] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
 
       // Bug B: server-side trigger flips applications.score_status -> 'pending' on
       // scoring-relevant edits. The right-rail ApplicantScoringSection reads from
@@ -69,7 +69,7 @@ export function useUpdateApplicant() {
             if (s === "pending" || s === "scoring") return prev // don't clobber in-flight
             return { ...prev, score_status: "pending" }
           })
-          qc.invalidateQueries({ queryKey: key })
+          void qc.invalidateQueries({ queryKey: key })
         }
       } catch {
         // best-effort optimistic update; failure is non-fatal

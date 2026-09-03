@@ -62,7 +62,7 @@ export function useUserActivitySummary(userId: string) {
           mostVisitedPages: [],
           mostUsedFeatures: [],
           recentActivity: [],
-        } as ActivitySummary
+        }
       }
 
       // Calculate events by type

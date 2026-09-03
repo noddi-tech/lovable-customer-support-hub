@@ -38,7 +38,7 @@ export function useApplicantTags(applicantId: string | undefined) {
         .eq("applicant_id", applicantId)
         .order("added_at", { ascending: true })
       if (error) throw error
-      return (data ?? []) as unknown as ApplicantTagLink[]
+      return data ?? []
     },
   })
 }
@@ -86,10 +86,10 @@ export function useAddApplicantTag() {
       if (error && !/duplicate key/i.test(error.message)) throw error
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-tags", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
-      qc.invalidateQueries({ queryKey: ["applicants"] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-tags", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke legge til etikett"),
   })
@@ -107,10 +107,10 @@ export function useRemoveApplicantTag() {
       if (error) throw error
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-tags", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
-      qc.invalidateQueries({ queryKey: ["applicants"] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-tags", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
     },
     onError: (err: any) => toast.error(err?.message || "Kunne ikke fjerne etikett"),
   })

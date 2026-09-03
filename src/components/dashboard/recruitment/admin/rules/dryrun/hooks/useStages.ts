@@ -28,7 +28,7 @@ export function useStages() {
           name: String(stage.name ?? ""),
           color: stage.color ?? null,
           order_index: Number(stage.order ?? 0),
-        })) as StageOption[]
+        }))
     },
     enabled: !!orgId,
     staleTime: 1000 * 60 * 5,

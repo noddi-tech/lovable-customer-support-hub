@@ -95,7 +95,7 @@ export const AccountInfoCard: React.FC = () => {
     setBusyProvider(provider)
     try {
       const { error } = await supabase.auth.linkIdentity({
-        provider: provider as any,
+        provider: provider,
         options: { redirectTo: `${window.location.origin}/auth` },
       })
       if (error) throw error

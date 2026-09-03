@@ -311,7 +311,8 @@ describe("ProgressiveMessagesList - Thread View", () => {
       />,
     )
 
-    // Should show loading spinner (Loader2 icon)
+    // Loader2 has no accessible name; class is the only stable loading signal
+    // eslint-disable-next-line testing-library/no-node-access -- decorative spinner SVG has no role/name
     expect(document.querySelector(".animate-spin")).toBeInTheDocument()
   })
 

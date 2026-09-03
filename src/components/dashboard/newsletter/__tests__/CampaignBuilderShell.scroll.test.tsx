@@ -29,5 +29,6 @@ test("campaigns has three independent scroll panes", () => {
   expect(grid.className).toContain("grid")
 
   // Crude check: three direct children for desktop layout
+  // eslint-disable-next-line testing-library/no-node-access -- assert three pane children
   expect(grid.childElementCount).toBe(3)
 })

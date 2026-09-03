@@ -137,7 +137,7 @@ export const useRealtimeConnectionManager = () => {
       // Clear existing subscriptions
       prev.subscriptions.forEach((channel, channelName) => {
         console.log(`🧹 Cleaning up channel: ${channelName}`)
-        supabase.removeChannel(channel)
+        void supabase.removeChannel(channel)
       })
 
       // Recreate all pending subscriptions
@@ -277,7 +277,7 @@ export const useRealtimeConnectionManager = () => {
           console.log(
             `[RealtimeConnectionManager] 🧹 Removing managed subscription: ${channelName}`,
           )
-          supabase.removeChannel(channel)
+          void supabase.removeChannel(channel)
           updateGlobalState((prev) => {
             const newSubscriptions = new Map(prev.subscriptions)
             newSubscriptions.delete(channelName)
@@ -313,7 +313,7 @@ export const useRealtimeConnectionManager = () => {
       // Use the global state for cleanup
       globalConnectionState.subscriptions.forEach((channel, channelName) => {
         console.log(`🧹 Final cleanup of channel: ${channelName}`)
-        supabase.removeChannel(channel)
+        void supabase.removeChannel(channel)
       })
     }
   }, [])

@@ -93,7 +93,7 @@ export const InlineNoteEditor = ({
     // Cmd/Ctrl+Enter to save (regular Enter inserts newline / picks mention).
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault()
-      handleSave()
+      void handleSave()
     }
   }
 

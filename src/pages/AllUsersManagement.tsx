@@ -200,7 +200,7 @@ export default function AllUsersManagement() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast({
         title: letUserSetPassword ? "Invite sent successfully" : "User created successfully",
         description: letUserSetPassword
@@ -265,7 +265,7 @@ export default function AllUsersManagement() {
       return { userId, orgId }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast({ title: "User added to organization" })
       setShowAddExistingDialog(false)
       setSelectedExistingUserId("")

@@ -17,23 +17,23 @@ For **initial setup** (clone, `.env`, quality gate, Make targets), see
 
 ```bash
 # Enable UIProbe for tab/button overlap detection
-VITE_UI_PROBE=1 npm run dev
+VITE_UI_PROBE=1 bun run dev
 ```
 
 ### Controlling Log Verbosity
 
 ```bash
 # Show all debug logs
-VITE_LOG_LEVEL=DEBUG npm run dev
+VITE_LOG_LEVEL=DEBUG bun run dev
 
 # Show only important logs (default)
-VITE_LOG_LEVEL=INFO npm run dev
+VITE_LOG_LEVEL=INFO bun run dev
 
 # Minimal logging
-VITE_LOG_LEVEL=WARN npm run dev
+VITE_LOG_LEVEL=WARN bun run dev
 
 # Silent mode
-VITE_LOG_LEVEL=SILENT npm run dev
+VITE_LOG_LEVEL=SILENT bun run dev
 ```
 
 ## Development Workflow

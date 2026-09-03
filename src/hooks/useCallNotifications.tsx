@@ -81,7 +81,7 @@ export const useCallNotifications = (config: CallNotificationConfig = {}) => {
 
       // Show browser notification
       if (browserNotificationsEnabled && permission === "granted") {
-        showNotification({
+        void showNotification({
           title: "Incoming Call",
           body: `Call from ${customerName || phone}`,
           tag: `incoming-call-${phone}`,
@@ -117,7 +117,7 @@ export const useCallNotifications = (config: CallNotificationConfig = {}) => {
 
       // Show browser notification
       if (browserNotificationsEnabled && permission === "granted") {
-        showNotification({
+        void showNotification({
           title: "Missed Call",
           body: `You missed a call from ${customerName || phone}`,
           tag: `missed-call-${phone}`,
@@ -151,7 +151,7 @@ export const useCallNotifications = (config: CallNotificationConfig = {}) => {
 
       // Show browser notification
       if (browserNotificationsEnabled && permission === "granted") {
-        showNotification({
+        void showNotification({
           title: "New Voicemail",
           body: `New voicemail from ${customerName || phone}`,
           tag: `voicemail-${phone}`,
@@ -185,7 +185,7 @@ export const useCallNotifications = (config: CallNotificationConfig = {}) => {
 
       // Show browser notification
       if (browserNotificationsEnabled && permission === "granted") {
-        showNotification({
+        void showNotification({
           title: "Callback Request",
           body: `${customerName || phone} requested a callback`,
           tag: `callback-${phone}`,

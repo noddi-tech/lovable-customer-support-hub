@@ -50,6 +50,88 @@ interface CallsListProps {
   selectedCallId?: string
 }
 
+const CallCardWithNotes = ({
+  call,
+  selectedCallId,
+  onViewDetails,
+  onNavigateToEvents,
+  onRemoveCall,
+}: {
+  call: any
+  selectedCallId?: string
+  onViewDetails: (call: any) => void
+  onNavigateToEvents?: (callId: string) => void
+  onRemoveCall: (callId: string) => void
+}) => {
+  const { notes } = useCallNotes(call.id)
+  const notesCount = notes?.length || 0
+
+  return (
+    <EnhancedCallCard
+      call={call}
+      isSelected={selectedCallId === call.id}
+      onViewDetails={onViewDetails}
+      onNavigateToEvents={onNavigateToEvents}
+      onRemoveCall={onRemoveCall}
+      notesCount={notesCount}
+    />
+  )
+}
+
+const CallGroup = ({
+  title,
+  calls,
+  icon,
+  defaultOpen = true,
+  selectedCallId,
+  onViewDetails,
+  onNavigateToEvents,
+  onRemoveCall,
+}: {
+  title: string
+  calls: any[]
+  icon: React.ReactNode
+  defaultOpen?: boolean
+  selectedCallId?: string
+  onViewDetails: (call: any) => void
+  onNavigateToEvents?: (callId: string) => void
+  onRemoveCall: (callId: string) => void
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  if (calls.length === 0) return null
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md"
+      >
+        {icon}
+        <span className="font-semibold text-sm">{title}</span>
+        <Badge variant="secondary" className="ml-auto">
+          {calls.length}
+        </Badge>
+      </button>
+      {isOpen && (
+        <div className="space-y-2">
+          {calls.map((call) => (
+            <CallCardWithNotes
+              key={call.id}
+              call={call}
+              selectedCallId={selectedCallId}
+              onViewDetails={onViewDetails}
+              onNavigateToEvents={onNavigateToEvents}
+              onRemoveCall={onRemoveCall}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const CallsList = ({
   showTimeFilter = true,
   dateFilter,
@@ -405,63 +487,6 @@ export const CallsList = ({
     return "opacity-100"
   }
 
-  // Component to render a call card with notes
-  const CallCardWithNotes = ({ call }: { call: any }) => {
-    const { notes } = useCallNotes(call.id)
-    const notesCount = notes?.length || 0
-
-    return (
-      <EnhancedCallCard
-        call={call}
-        isSelected={selectedCallId === call.id}
-        onViewDetails={openCallDetails}
-        onNavigateToEvents={onNavigateToEvents}
-        onRemoveCall={removeCall}
-        notesCount={notesCount}
-      />
-    )
-  }
-
-  // Convert renderGroup to a proper component to fix React hooks rule violation
-  const CallGroup = ({
-    title,
-    calls,
-    icon,
-    defaultOpen = true,
-  }: {
-    title: string
-    calls: typeof filteredCalls
-    icon: React.ReactNode
-    defaultOpen?: boolean
-  }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen)
-
-    if (calls.length === 0) return null
-
-    return (
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 w-full text-left px-2 py-1 hover:bg-muted/50 rounded-md"
-        >
-          {icon}
-          <span className="font-semibold text-sm">{title}</span>
-          <Badge variant="secondary" className="ml-auto">
-            {calls.length}
-          </Badge>
-        </button>
-        {isOpen && (
-          <div className="space-y-2">
-            {calls.map((call) => (
-              <CallCardWithNotes key={call.id} call={call} />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   const openCallDetails = (call: any) => {
     setSelectedCall(call)
     setIsDetailsOpen(true)
@@ -623,24 +648,40 @@ export const CallsList = ({
             calls={groupedCalls.active}
             icon={<PhoneCall className="h-4 w-4 text-success animate-pulse" />}
             defaultOpen={true}
+            selectedCallId={selectedCallId}
+            onViewDetails={openCallDetails}
+            onNavigateToEvents={onNavigateToEvents}
+            onRemoveCall={removeCall}
           />
           <CallGroup
             title="Urgent"
             calls={groupedCalls.urgent}
             icon={<AlertCircle className="h-4 w-4 text-destructive" />}
             defaultOpen={true}
+            selectedCallId={selectedCallId}
+            onViewDetails={openCallDetails}
+            onNavigateToEvents={onNavigateToEvents}
+            onRemoveCall={removeCall}
           />
           <CallGroup
             title="Recent (Today)"
             calls={groupedCalls.recent}
             icon={<Clock className="h-4 w-4 text-primary" />}
             defaultOpen={true}
+            selectedCallId={selectedCallId}
+            onViewDetails={openCallDetails}
+            onNavigateToEvents={onNavigateToEvents}
+            onRemoveCall={removeCall}
           />
           <CallGroup
             title="Earlier"
             calls={groupedCalls.earlier}
             icon={<History className="h-4 w-4 text-muted-foreground" />}
             defaultOpen={false}
+            selectedCallId={selectedCallId}
+            onViewDetails={openCallDetails}
+            onNavigateToEvents={onNavigateToEvents}
+            onRemoveCall={removeCall}
           />
         </div>
       )}

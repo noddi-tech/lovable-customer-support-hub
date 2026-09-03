@@ -37,7 +37,7 @@ export const SyncCustomerNamesButton: React.FC<SyncCustomerNamesButtonProps> = (
   }, [currentOrganizationId, calls])
 
   useEffect(() => {
-    loadCachedNonCustomers()
+    void loadCachedNonCustomers()
   }, [loadCachedNonCustomers])
 
   const handleSyncAll = async () => {

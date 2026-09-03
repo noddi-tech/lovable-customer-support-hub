@@ -79,7 +79,7 @@ export function useCallbackRequests() {
       if (error) throw error
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
+      void queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
       toast({
         title: "Status updated",
         description: `Callback request marked as ${status}`,
@@ -117,7 +117,7 @@ export function useCallbackRequests() {
         title: "Callback assigned",
         description: "Callback request has been assigned to agent",
       })
-      queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
+      void queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
     },
     onError: (error) => {
       toast({

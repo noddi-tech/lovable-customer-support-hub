@@ -25,7 +25,7 @@ import { useTeamMembers } from "@/hooks/useTeamMembers"
 import { supabase } from "@/integrations/supabase/client"
 import { useOrganizationStore } from "@/stores/organizationStore"
 import { TagPicker } from "./TagPicker"
-import { type PipelineStage, useApplicantPipeline } from "./useApplicants"
+import { useApplicantPipeline } from "./useApplicants"
 
 export type ActiveBulkDialog =
   | null

@@ -25,58 +25,60 @@ export const useRealtimeNotifications = () => {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
-          const notification = payload.new as any
+        (payload) => {
+          void (async () => {
+            const notification = payload.new as any
 
-          // Invalidate queries to update notification badge
-          queryClient.invalidateQueries({ queryKey: ["notifications"] })
-          queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
+            // Invalidate queries to update notification badge
+            void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+            void queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
 
-          // Play sound based on notification type
-          if (notification.type === "mention") {
-            playMentionSound()
-          } else {
-            playNotificationSound()
-          }
+            // Play sound based on notification type
+            if (notification.type === "mention") {
+              playMentionSound()
+            } else {
+              playNotificationSound()
+            }
 
-          // Show toast notification
-          toast(notification.title, {
-            description: notification.message,
-            action: notification.data?.ticket_id
-              ? {
-                  label: "View Ticket",
-                  onClick: () => {
-                    window.location.href = `/operations/tickets?ticket=${notification.data.ticket_id}`
-                  },
-                }
-              : notification.data?.conversation_id
+            // Show toast notification
+            toast(notification.title, {
+              description: notification.message,
+              action: notification.data?.ticket_id
                 ? {
-                    label: "View",
+                    label: "View Ticket",
                     onClick: () => {
-                      const messagePath = notification.data?.message_id
-                        ? `/m/${notification.data.message_id}`
-                        : ""
-                      window.location.href = `/c/${notification.data.conversation_id}${messagePath}`
+                      window.location.href = `/operations/tickets?ticket=${notification.data.ticket_id}`
                     },
                   }
-                : undefined,
-          })
-
-          // Show browser notification if permission granted
-          if (permission === "granted") {
-            await showNotification({
-              title: notification.title,
-              body: notification.message,
-              tag: notification.id,
-              data: notification.data,
+                : notification.data?.conversation_id
+                  ? {
+                      label: "View",
+                      onClick: () => {
+                        const messagePath = notification.data?.message_id
+                          ? `/m/${notification.data.message_id}`
+                          : ""
+                        window.location.href = `/c/${notification.data.conversation_id}${messagePath}`
+                      },
+                    }
+                  : undefined,
             })
-          }
+
+            // Show browser notification if permission granted
+            if (permission === "granted") {
+              await showNotification({
+                title: notification.title,
+                body: notification.message,
+                tag: notification.id,
+                data: notification.data,
+              })
+            }
+          })()
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [user, queryClient, showNotification, permission, playMentionSound, playNotificationSound])
 }

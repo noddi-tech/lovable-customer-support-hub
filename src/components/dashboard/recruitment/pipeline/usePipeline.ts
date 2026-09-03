@@ -49,7 +49,7 @@ export function usePipelineApplications(filters: PipelineFilters) {
 
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as PipelineApplication[]
+      return data ?? []
     },
     enabled: !!currentOrganizationId,
     placeholderData: keepPreviousData,

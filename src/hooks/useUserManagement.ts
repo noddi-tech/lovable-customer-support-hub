@@ -160,7 +160,7 @@ export function useUserManagement() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast.success("User updated successfully")
     },
     onError: (error: any) => {
@@ -199,9 +199,9 @@ export function useUserManagement() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
-      queryClient.invalidateQueries({ queryKey: ["user-roles"] })
-      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["user-roles"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
       toast.success("User deleted successfully")
     },
     onError: (error: any) => {
@@ -268,9 +268,9 @@ export function useUserManagement() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
-      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
-      queryClient.invalidateQueries({ queryKey: ["organization-members"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-members"] })
       toast.success("Membership role updated successfully")
     },
     onError: (error: any) => {
@@ -312,7 +312,7 @@ export function useUserManagement() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast.success("Email updated successfully")
     },
     onError: (error: any) => {
@@ -372,7 +372,7 @@ export function useUserManagement() {
         return
       }
 
-      queryClient.invalidateQueries({ queryKey: ["invite-email-logs"] })
+      void queryClient.invalidateQueries({ queryKey: ["invite-email-logs"] })
       toast.success("Invite email sent successfully")
     },
     onError: (error: any) => {

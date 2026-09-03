@@ -25,8 +25,8 @@ export function useUpsertApplicantFieldValue() {
       return data
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-field-values", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["stage-progression", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-field-values", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["stage-progression", vars.applicant_id] })
     },
   })
 }

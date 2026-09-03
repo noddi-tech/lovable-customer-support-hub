@@ -186,61 +186,63 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
     }
 
     let cancelled = false
-    const timer = window.setTimeout(async () => {
-      setSuggestLoading(true)
-      try {
-        const like = `%${term}%`
-        const { data: local } = await supabase
-          .from("customers")
-          .select("id, full_name, email, phone")
-          .eq("organization_id", orgId)
-          .or(`full_name.ilike.${like},email.ilike.${like}`)
-          .limit(8)
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setSuggestLoading(true)
+        try {
+          const like = `%${term}%`
+          const { data: local } = await supabase
+            .from("customers")
+            .select("id, full_name, email, phone")
+            .eq("organization_id", orgId)
+            .or(`full_name.ilike.${like},email.ilike.${like}`)
+            .limit(8)
 
-        let merged: NoddiCustomer[] = (local || []).map((c: any) => ({
-          id: c.id,
-          full_name: c.full_name || c.email,
-          email: c.email || undefined,
-        }))
-
-        // Name lookup in Noddi when the term isn't an email fragment
-        if (!term.includes("@")) {
-          const parts = term.split(/\s+/).filter(Boolean)
-          const { data } = await supabase.functions.invoke("noddi-search-by-name", {
-            body: {
-              firstName: parts[0],
-              ...(parts.length > 1 ? { lastName: parts.slice(1).join(" ") } : {}),
-              organizationId: orgId,
-            },
-          })
-          const remote: NoddiCustomer[] = (data?.results || []).map((r: any) => ({
-            id: r.local_customer_id || `noddi-${r.noddi_user_id}`,
-            full_name: r.full_name,
-            email: r.email || r.noddi_email || undefined,
-            metadata: { noddi_email: r.noddi_email },
+          let merged: NoddiCustomer[] = (local || []).map((c: any) => ({
+            id: c.id,
+            full_name: c.full_name || c.email,
+            email: c.email || undefined,
           }))
-          merged = [...merged, ...remote]
-        }
 
-        // Dedupe by email (or id when there is no email)
-        const seen = new Set<string>()
-        const unique = merged.filter((c) => {
-          const key = (c.email || c.metadata?.noddi_email || c.id).toLowerCase()
-          if (seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
+          // Name lookup in Noddi when the term isn't an email fragment
+          if (!term.includes("@")) {
+            const parts = term.split(/\s+/).filter(Boolean)
+            const { data } = await supabase.functions.invoke("noddi-search-by-name", {
+              body: {
+                firstName: parts[0],
+                ...(parts.length > 1 ? { lastName: parts.slice(1).join(" ") } : {}),
+                organizationId: orgId,
+              },
+            })
+            const remote: NoddiCustomer[] = (data?.results || []).map((r: any) => ({
+              id: r.local_customer_id || `noddi-${r.noddi_user_id}`,
+              full_name: r.full_name,
+              email: r.email || r.noddi_email || undefined,
+              metadata: { noddi_email: r.noddi_email },
+            }))
+            merged = [...merged, ...remote]
+          }
 
-        if (!cancelled) {
-          setSuggestions(unique.slice(0, 8))
-          setSuggestOpen(unique.length > 0)
+          // Dedupe by email (or id when there is no email)
+          const seen = new Set<string>()
+          const unique = merged.filter((c) => {
+            const key = (c.email || c.metadata?.noddi_email || c.id).toLowerCase()
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+
+          if (!cancelled) {
+            setSuggestions(unique.slice(0, 8))
+            setSuggestOpen(unique.length > 0)
+          }
+        } catch (error) {
+          console.warn("Recipient lookup failed", error)
+          if (!cancelled) setSuggestions([])
+        } finally {
+          if (!cancelled) setSuggestLoading(false)
         }
-      } catch (error) {
-        console.warn("Recipient lookup failed", error)
-        if (!cancelled) setSuggestions([])
-      } finally {
-        if (!cancelled) setSuggestLoading(false)
-      }
+      })()
     }, 350)
 
     return () => {
@@ -337,8 +339,8 @@ export const ComposeWindow: React.FC<ComposeWindowProps> = ({ draft }) => {
   }
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["conversations"] })
-    queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+    void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+    void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
   }
 
   const goToInbox = (conversationId?: string) => {

@@ -197,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="text-muted-foreground hover:text-foreground relative hidden sm:flex"
                   onClick={() => {
                     if (!isInitialized) {
-                      initializePhone()
+                      void initializePhone()
                     } else if (isConnected) {
                       showAircallWorkspace()
                     } else {

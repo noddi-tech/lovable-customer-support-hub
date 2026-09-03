@@ -120,8 +120,8 @@ export function useRunBackgroundJob() {
           description: result?.error ?? "Unknown error",
         })
       }
-      queryClient.invalidateQueries({ queryKey: ["background-jobs"] })
-      queryClient.invalidateQueries({ queryKey: ["background-job-runs"] })
+      void queryClient.invalidateQueries({ queryKey: ["background-jobs"] })
+      void queryClient.invalidateQueries({ queryKey: ["background-job-runs"] })
     },
     onError: (err: any) => {
       toast.error("Could not trigger job", { description: err?.message ?? String(err) })

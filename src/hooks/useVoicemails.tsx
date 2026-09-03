@@ -101,7 +101,7 @@ export function useVoicemails() {
         title: "Voicemail assigned",
         description: "Voicemail has been assigned to agent",
       })
-      queryClient.invalidateQueries({ queryKey: ["voicemails"] })
+      void queryClient.invalidateQueries({ queryKey: ["voicemails"] })
     },
     onError: (error) => {
       toast({

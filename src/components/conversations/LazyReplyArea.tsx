@@ -40,7 +40,7 @@ export const LazyReplyArea = (_props: LazyReplyAreaProps) => {
 
   // Preload the ReplyArea chunk when conversation opens
   useEffect(() => {
-    preloadReplyArea()
+    void preloadReplyArea()
   }, [])
 
   // Mode is decided only here — not when collapsing the composer.

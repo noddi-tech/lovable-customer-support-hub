@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table"
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy"
 import { ArrowUpDown, Building, Crown, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

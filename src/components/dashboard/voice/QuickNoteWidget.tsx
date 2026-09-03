@@ -114,7 +114,7 @@ export const QuickNoteWidget = ({ callId, onSaved, className }: QuickNoteWidgetP
           autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              handleSave()
+              void handleSave()
             }
           }}
         />

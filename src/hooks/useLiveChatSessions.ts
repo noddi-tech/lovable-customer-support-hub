@@ -132,7 +132,7 @@ export function useLiveChatSessions(organizationId: string | null) {
         return false
       }
 
-      fetchSessions()
+      void fetchSessions()
       return true
     },
     [fetchSessions],
@@ -149,7 +149,7 @@ export function useLiveChatSessions(organizationId: string | null) {
         .eq("id", sessionId)
 
       if (!error) {
-        fetchSessions()
+        void fetchSessions()
       }
       return !error
     },
@@ -194,7 +194,7 @@ export function useLiveChatSessions(organizationId: string | null) {
       if (!error) {
         // Remove from notified set so it doesn't show again
         notifiedSessions.delete(sessionId)
-        fetchSessions()
+        void fetchSessions()
         return true
       }
       return false
@@ -204,10 +204,12 @@ export function useLiveChatSessions(organizationId: string | null) {
 
   // Fetch sessions and poll
   useEffect(() => {
-    fetchSessions()
+    void fetchSessions()
 
     // Poll every 10 seconds
-    const interval = setInterval(fetchSessions, 10000)
+    const interval = setInterval(() => {
+      void fetchSessions()
+    }, 10000)
     return () => clearInterval(interval)
   }, [fetchSessions])
 

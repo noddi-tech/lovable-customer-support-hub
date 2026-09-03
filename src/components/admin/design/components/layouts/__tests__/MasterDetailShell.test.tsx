@@ -71,6 +71,7 @@ describe("MasterDetailShell", () => {
 
       const detailGrid = screen.getByTestId("detail-grid")
       expect(detailGrid).toBeInTheDocument()
+      // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
       expect(detailGrid.children).toHaveLength(2)
     })
 

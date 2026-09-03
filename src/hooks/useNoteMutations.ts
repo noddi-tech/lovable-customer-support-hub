@@ -44,11 +44,11 @@ export const useNoteMutations = () => {
 
   const invalidateMessageCaches = useCallback(
     (conversationId?: string) => {
-      queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["thread-messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["messages"] })
     },
     [queryClient],
   )

@@ -30,7 +30,7 @@ export default function OAuthConsent() {
   useEffect(() => {
     let active = true
 
-    ;(async () => {
+    void (async () => {
       if (!authorizationId) {
         setError("Missing authorization_id in the URL.")
         return

@@ -7,7 +7,7 @@ import type { FeatureFlagRecord, FlagTargeting, FlagValueType } from "@/lib/feat
 const normalize = (row: Record<string, unknown>): FeatureFlagRecord => ({
   ...(row as unknown as FeatureFlagRecord),
   variants: (row.variants ?? {}) as Record<string, unknown>,
-  targeting: (row.targeting ?? {}) as FlagTargeting,
+  targeting: row.targeting ?? {},
   value_type: (row.value_type ?? "boolean") as FlagValueType,
 })
 
@@ -82,7 +82,7 @@ export function useFeatureFlagMutations() {
       if (error) throw error
     },
     onSuccess: () => {
-      invalidate()
+      void invalidate()
       toast.success("Feature flag saved")
     },
     onError: (e: Error) => toast.error(e.message || "Could not save the flag"),
@@ -119,7 +119,7 @@ export function useFeatureFlagMutations() {
       if (error) throw error
     },
     onSuccess: () => {
-      invalidate()
+      void invalidate()
       toast.success("Feature flag deleted")
     },
     onError: (e: Error) => toast.error(e.message || "Could not delete the flag"),

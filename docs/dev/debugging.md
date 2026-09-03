@@ -9,7 +9,7 @@ The UIProbe is a development-only diagnostic tool for detecting tab and button o
 Set the environment variable `VITE_UI_PROBE=1` to enable:
 
 ```bash
-VITE_UI_PROBE=1 npm run dev
+VITE_UI_PROBE=1 bun run dev
 ```
 
 ### What it detects
@@ -68,7 +68,7 @@ Use these components to prevent overlap issues:
 Run the tabs spacing lint check:
 
 ```bash
-npm run lint:tabs
+bun run lint:tabs
 ```
 
 This script checks for risky patterns that commonly cause overlap issues.

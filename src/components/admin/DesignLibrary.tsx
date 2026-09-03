@@ -108,6 +108,177 @@ const getOptimalTextColor = (hslBackground: string, opacity: number = 1): string
 
 import { Palette, Save } from "lucide-react"
 
+// Convert hex to HSL
+const hexToHsl = (hex: string): string => {
+  // Remove # if present
+  hex = hex.replace("#", "")
+
+  // Convert hex to RGB
+  const r = parseInt(hex.substr(0, 2), 16) / 255
+  const g = parseInt(hex.substr(2, 2), 16) / 255
+  const b = parseInt(hex.substr(4, 2), 16) / 255
+
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  let h = 0,
+    s = 0,
+    l = (max + min) / 2
+
+  if (max === min) {
+    h = s = 0 // achromatic
+  } else {
+    const d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0)
+        break
+      case g:
+        h = (b - r) / d + 2
+        break
+      case b:
+        h = (r - g) / d + 4
+        break
+    }
+    h /= 6
+  }
+
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+}
+
+// Convert HSL to hex
+const hslToHex = (hsl: string): string => {
+  const parts = hsl.trim().split(/\s+/)
+  const h = parseFloat(parts[0]) / 360
+  const s = parseFloat(parts[1].replace("%", "")) / 100
+  const l = parseFloat(parts[2].replace("%", "")) / 100
+
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+
+  let r, g, b
+
+  if (s === 0) {
+    r = g = b = l // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+    const p = 2 * l - q
+    r = hue2rgb(p, q, h + 1 / 3)
+    g = hue2rgb(p, q, h)
+    b = hue2rgb(p, q, h - 1 / 3)
+  }
+
+  const toHex = (c: number) => {
+    const hex = Math.round(c * 255).toString(16)
+    return hex.length === 1 ? `0${hex}` : hex
+  }
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+const EnhancedColorPicker = ({
+  label,
+  value,
+  onChange,
+  description,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  description: string
+}) => {
+  const [hexValue, setHexValue] = useState(hslToHex(value))
+
+  const handleHslChange = (newHslValue: string) => {
+    onChange(newHslValue)
+    setHexValue(hslToHex(newHslValue))
+  }
+
+  const handleHexChange = (newHexValue: string) => {
+    setHexValue(newHexValue)
+    if (newHexValue.length === 7 && newHexValue.startsWith("#")) {
+      const hslValue = hexToHsl(newHexValue)
+      onChange(hslValue)
+    }
+  }
+
+  const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHexValue = e.target.value
+    setHexValue(newHexValue)
+    const hslValue = hexToHsl(newHexValue)
+    onChange(hslValue)
+  }
+
+  return (
+    <AdaptiveSection spacing="3">
+      <Label className="text-sm font-medium">{label}</Label>
+
+      {/* Color Preview and Picker */}
+      <ResponsiveFlex gap="2" alignment="center">
+        <input
+          type="color"
+          value={hexValue}
+          onChange={handleColorPickerChange}
+          className="w-12 h-12 rounded border-2 border-border cursor-pointer"
+          title="Click to open color picker"
+        />
+        <div
+          className="w-12 h-12 rounded border-2 border-border"
+          style={{ backgroundColor: `hsl(${value})` }}
+          title="Color preview"
+        />
+        <AdaptiveSection spacing="2" className="flex-1">
+          <Input
+            value={hexValue}
+            onChange={(e) => handleHexChange(e.target.value)}
+            placeholder="#3b82f6"
+            className="uppercase"
+            title="Hex color code"
+          />
+          <Input
+            value={value}
+            onChange={(e) => handleHslChange(e.target.value)}
+            placeholder="217 91% 60%"
+            title="HSL values (H S% L%)"
+          />
+        </AdaptiveSection>
+      </ResponsiveFlex>
+
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </AdaptiveSection>
+  )
+}
+
+const GradientEditor = ({
+  label,
+  value,
+  onChange,
+  description,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  description: string
+}) => (
+  <AdaptiveSection spacing="2">
+    <Label>{label}</Label>
+    <Input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))"
+    />
+    <div className="h-10 rounded border-2 border-border" style={{ background: value }} />
+    <p className="text-xs text-muted-foreground">{description}</p>
+  </AdaptiveSection>
+)
+
 export const DesignLibrary = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -128,7 +299,7 @@ export const DesignLibrary = () => {
   const saveMutation = useMutation({
     mutationFn: saveDesignSystem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["organization-design-system"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-design-system"] })
       toast({
         title: "Design system saved",
         description: "Your design system has been saved successfully.",
@@ -235,177 +406,6 @@ export const DesignLibrary = () => {
     { key: "warning" as const, label: "Warning", description: "Warning states" },
     { key: "destructive" as const, label: "Destructive", description: "Error states" },
   ]
-
-  // Convert hex to HSL
-  const hexToHsl = (hex: string): string => {
-    // Remove # if present
-    hex = hex.replace("#", "")
-
-    // Convert hex to RGB
-    const r = parseInt(hex.substr(0, 2), 16) / 255
-    const g = parseInt(hex.substr(2, 2), 16) / 255
-    const b = parseInt(hex.substr(4, 2), 16) / 255
-
-    const max = Math.max(r, g, b)
-    const min = Math.min(r, g, b)
-    let h = 0,
-      s = 0,
-      l = (max + min) / 2
-
-    if (max === min) {
-      h = s = 0 // achromatic
-    } else {
-      const d = max - min
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-
-      switch (max) {
-        case r:
-          h = (g - b) / d + (g < b ? 6 : 0)
-          break
-        case g:
-          h = (b - r) / d + 2
-          break
-        case b:
-          h = (r - g) / d + 4
-          break
-      }
-      h /= 6
-    }
-
-    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
-  }
-
-  // Convert HSL to hex
-  const hslToHex = (hsl: string): string => {
-    const parts = hsl.trim().split(/\s+/)
-    const h = parseFloat(parts[0]) / 360
-    const s = parseFloat(parts[1].replace("%", "")) / 100
-    const l = parseFloat(parts[2].replace("%", "")) / 100
-
-    const hue2rgb = (p: number, q: number, t: number) => {
-      if (t < 0) t += 1
-      if (t > 1) t -= 1
-      if (t < 1 / 6) return p + (q - p) * 6 * t
-      if (t < 1 / 2) return q
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
-      return p
-    }
-
-    let r, g, b
-
-    if (s === 0) {
-      r = g = b = l // achromatic
-    } else {
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s
-      const p = 2 * l - q
-      r = hue2rgb(p, q, h + 1 / 3)
-      g = hue2rgb(p, q, h)
-      b = hue2rgb(p, q, h - 1 / 3)
-    }
-
-    const toHex = (c: number) => {
-      const hex = Math.round(c * 255).toString(16)
-      return hex.length === 1 ? `0${hex}` : hex
-    }
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`
-  }
-
-  const EnhancedColorPicker = ({
-    label,
-    value,
-    onChange,
-    description,
-  }: {
-    label: string
-    value: string
-    onChange: (value: string) => void
-    description: string
-  }) => {
-    const [hexValue, setHexValue] = useState(hslToHex(value))
-
-    const handleHslChange = (newHslValue: string) => {
-      onChange(newHslValue)
-      setHexValue(hslToHex(newHslValue))
-    }
-
-    const handleHexChange = (newHexValue: string) => {
-      setHexValue(newHexValue)
-      if (newHexValue.length === 7 && newHexValue.startsWith("#")) {
-        const hslValue = hexToHsl(newHexValue)
-        onChange(hslValue)
-      }
-    }
-
-    const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newHexValue = e.target.value
-      setHexValue(newHexValue)
-      const hslValue = hexToHsl(newHexValue)
-      onChange(hslValue)
-    }
-
-    return (
-      <AdaptiveSection spacing="3">
-        <Label className="text-sm font-medium">{label}</Label>
-
-        {/* Color Preview and Picker */}
-        <ResponsiveFlex gap="2" alignment="center">
-          <input
-            type="color"
-            value={hexValue}
-            onChange={handleColorPickerChange}
-            className="w-12 h-12 rounded border-2 border-border cursor-pointer"
-            title="Click to open color picker"
-          />
-          <div
-            className="w-12 h-12 rounded border-2 border-border"
-            style={{ backgroundColor: `hsl(${value})` }}
-            title="Color preview"
-          />
-          <AdaptiveSection spacing="2" className="flex-1">
-            <Input
-              value={hexValue}
-              onChange={(e) => handleHexChange(e.target.value)}
-              placeholder="#3b82f6"
-              className="uppercase"
-              title="Hex color code"
-            />
-            <Input
-              value={value}
-              onChange={(e) => handleHslChange(e.target.value)}
-              placeholder="217 91% 60%"
-              title="HSL values (H S% L%)"
-            />
-          </AdaptiveSection>
-        </ResponsiveFlex>
-
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </AdaptiveSection>
-    )
-  }
-
-  const GradientEditor = ({
-    label,
-    value,
-    onChange,
-    description,
-  }: {
-    label: string
-    value: string
-    onChange: (value: string) => void
-    description: string
-  }) => (
-    <AdaptiveSection spacing="2">
-      <Label>{label}</Label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 55%))"
-      />
-      <div className="h-10 rounded border-2 border-border" style={{ background: value }} />
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </AdaptiveSection>
-  )
 
   const designTabs = [
     {

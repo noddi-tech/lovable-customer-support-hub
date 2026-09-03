@@ -42,8 +42,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
       key: "r",
       ctrl: true,
       action: () => {
-        queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-        queryClient.invalidateQueries({ queryKey: ["conversation-meta", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-meta", conversationId] })
         toast.success("Conversation refreshed")
       },
       description: "Refresh conversation",

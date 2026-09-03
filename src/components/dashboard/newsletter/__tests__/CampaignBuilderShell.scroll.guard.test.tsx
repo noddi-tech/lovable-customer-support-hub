@@ -14,6 +14,7 @@ test("campaigns has proper pane scroll structure", () => {
 
   const grid = screen.getByTestId("campaigns-grid")
   expect(grid).toBeTruthy()
+  // eslint-disable-next-line testing-library/no-node-access -- assert three pane children
   expect(grid.childElementCount).toBe(3)
 })
 
@@ -59,5 +60,6 @@ test("tablet campaigns shows two-pane structure", () => {
 
   const grid = screen.getByTestId("campaigns-grid")
   expect(grid).toBeTruthy()
+  // eslint-disable-next-line testing-library/no-node-access -- assert two pane children on tablet
   expect(grid.childElementCount).toBe(2) // Center and right on tablet
 })

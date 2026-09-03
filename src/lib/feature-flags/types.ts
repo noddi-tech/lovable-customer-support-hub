@@ -55,7 +55,7 @@ function matches(rule: FlagTargetingRule, context: EvalContext): boolean {
     case "eq":
       return actual === rule.value
     case "in":
-      return Array.isArray(rule.value) && rule.value.includes(actual as never)
+      return Array.isArray(rule.value) && rule.value.includes(actual)
     case "contains":
       return typeof actual === "string" && typeof rule.value === "string"
         ? actual.includes(rule.value)

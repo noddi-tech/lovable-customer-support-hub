@@ -89,7 +89,7 @@ export function UserManagement() {
         .order("name", { ascending: true })
 
       if (error) throw error
-      return data as Department[]
+      return data
     },
   })
 
@@ -124,8 +124,8 @@ export function UserManagement() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["users"] })
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
       toast({
         title: "Invite sent",
         description: "The user will receive an email to set up their password.",

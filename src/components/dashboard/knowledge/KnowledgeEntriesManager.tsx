@@ -27,8 +27,6 @@ import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { sanitizeEmailHTML } from "@/utils/htmlSanitizer"
 import { sanitizeForPostgrest } from "@/utils/queryUtils"
-import type { KnowledgeCategory } from "./CategoryManager"
-import type { KnowledgeTag } from "./TagManager"
 import { TagMultiSelect } from "./TagMultiSelect"
 
 interface KnowledgeEntry {
@@ -71,7 +69,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
         .eq("is_active", true)
         .order("name")
       if (error) throw error
-      return data as KnowledgeCategory[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -87,7 +85,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
         .eq("organization_id", organizationId)
         .order("name")
       if (error) throw error
-      return data as KnowledgeTag[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -115,7 +113,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
 
       const { data, error } = await query
       if (error) throw error
-      return data as KnowledgeEntry[]
+      return data
     },
   })
 
@@ -137,7 +135,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
     },
     onSuccess: () => {
       toast({ title: "Entry updated successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
       setEditingEntry(null)
     },
     onError: (error) => {
@@ -157,7 +155,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
     },
     onSuccess: () => {
       toast({ title: "Entry deleted successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
       setDeleteConfirmEntry(null)
     },
     onError: (error) => {
@@ -187,7 +185,7 @@ export function KnowledgeEntriesManager({ organizationId }: { organizationId: st
     },
     onSuccess: () => {
       toast({ title: "Entry created successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-entries"] })
       setCreatingEntry(false)
       setNewEntry({ customer_context: "", agent_response: "", category: "", tags: [] })
     },

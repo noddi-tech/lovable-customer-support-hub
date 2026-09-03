@@ -61,7 +61,7 @@ export const ImportDataCleanup = () => {
   }, [])
 
   useEffect(() => {
-    fetchInboxes()
+    void fetchInboxes()
   }, [fetchInboxes])
 
   const handleMoveConversations = async () => {

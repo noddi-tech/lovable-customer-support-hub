@@ -22,13 +22,12 @@ describe("Controls Wrap Components", () => {
     )
 
     // Assert TabsList has control classes for flex-wrap behavior
-    const tabsList = document.querySelector('[role="tablist"]')
+    const tabsList = screen.getByRole("tablist")
     expect(tabsList).toHaveClass("control-tabslist")
     expect(tabsList).toHaveClass("control-safe-spacing")
 
     // Assert TabsTriggers have control-tab class
-    const tabTriggers = document.querySelectorAll('[role="tab"]')
-    tabTriggers.forEach((trigger) => {
+    screen.getAllByRole("tab").forEach((trigger) => {
       expect(trigger).toHaveClass("control-tab")
     })
   })
@@ -86,7 +85,7 @@ describe("Controls Wrap Components", () => {
 
     render(<TabsBar tabs={tabs} value="tab1" equalWidth />)
 
-    const tabsList = document.querySelector('[role="tablist"]')
+    const tabsList = screen.getByRole("tablist")
     expect(tabsList).toHaveClass("grid")
     expect(tabsList).toHaveClass("grid-cols-3")
   })

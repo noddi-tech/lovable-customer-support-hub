@@ -102,7 +102,7 @@ export function useApplicants(filters: ApplicantsFilters) {
 
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as ApplicantRow[]
+      return data ?? []
     },
     enabled: !!currentOrganizationId,
     refetchOnMount: "always",
@@ -237,8 +237,8 @@ export function useCreateApplicant() {
       return { applicantId: applicant.id }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["applicants"] })
-      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      void queryClient.invalidateQueries({ queryKey: ["applicants"] })
+      void queryClient.invalidateQueries({ queryKey: ["job-positions"] })
       toast.success("Søker opprettet")
     },
     onError: (err: any) => {

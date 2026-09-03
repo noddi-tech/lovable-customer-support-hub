@@ -202,7 +202,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
     (dataType: string) => {
       switch (dataType) {
         case "conversations":
-          queryClient.prefetchQuery({
+          void queryClient.prefetchQuery({
             queryKey: ["conversations"],
             queryFn: async () => {
               const { data } = await supabase.rpc("get_conversations", { p_status_filter: "all" })
@@ -212,7 +212,7 @@ export const useOptimizedCounts = (selectedInboxId?: string): OptimizedCounts =>
           })
           break
         case "notifications":
-          queryClient.prefetchQuery({
+          void queryClient.prefetchQuery({
             queryKey: ["notifications"],
             queryFn: async () => {
               const { data } = await supabase

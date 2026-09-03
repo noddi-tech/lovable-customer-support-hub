@@ -57,8 +57,8 @@ export function OrphanedUsersCleanup() {
       return data
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["orphaned-users"] })
-      queryClient.invalidateQueries({ queryKey: ["all-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["orphaned-users"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-users"] })
 
       // Build descriptive message
       const parts: string[] = []

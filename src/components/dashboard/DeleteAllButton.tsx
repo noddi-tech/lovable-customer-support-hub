@@ -39,10 +39,10 @@ export const DeleteAllButton = () => {
 
         // Only invalidate conversation-related queries
         setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["conversations"] })
-          queryClient.invalidateQueries({ queryKey: ["conversation-messages"] })
-          queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
-          queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+          void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+          void queryClient.invalidateQueries({ queryKey: ["conversation-messages"] })
+          void queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
+          void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
         }, 1000)
       }
     } catch (error) {

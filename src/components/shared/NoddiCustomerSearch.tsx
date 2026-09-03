@@ -241,7 +241,7 @@ export const NoddiCustomerSearch = ({
                 onChange={(e) => setSearchName(e.target.value)}
                 placeholder="e.g., Joachim Rathke"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchName.trim().length >= 2) handleNameSearch()
+                  if (e.key === "Enter" && searchName.trim().length >= 2) void handleNameSearch()
                 }}
               />
               <Button
@@ -270,7 +270,7 @@ export const NoddiCustomerSearch = ({
               value={alternativeEmail}
               onChange={(e) => setAlternativeEmail(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleAlternativeEmailSearch()
+                if (e.key === "Enter") void handleAlternativeEmailSearch()
               }}
             />
             <Button

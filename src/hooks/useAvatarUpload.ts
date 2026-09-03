@@ -72,7 +72,7 @@ export const useAvatarUpload = ({ userId, onSuccess }: UseAvatarUploadOptions) =
       setProgress(100)
 
       // Invalidate profile query
-      queryClient.invalidateQueries({ queryKey: ["profile", userId] })
+      void queryClient.invalidateQueries({ queryKey: ["profile", userId] })
 
       toast.success("Avatar updated successfully")
       onSuccess?.(publicUrl)
@@ -109,7 +109,7 @@ export const useAvatarUpload = ({ userId, onSuccess }: UseAvatarUploadOptions) =
       if (updateError) throw updateError
 
       // Invalidate profile query
-      queryClient.invalidateQueries({ queryKey: ["profile", userId] })
+      void queryClient.invalidateQueries({ queryKey: ["profile", userId] })
 
       toast.success("Avatar removed")
     } catch (error) {

@@ -31,7 +31,7 @@ esac
 
 run_fix() {
   echo "→ Autofix (Biome + ESLint --fix + Prettier Markdown)"
-  npm run fix
+  bun run fix
 
   if [ "${QUALITY_GATE_RESTAGE:-0}" = "1" ]; then
     # Re-include autofixed files that were already staged for this commit.
@@ -49,13 +49,13 @@ run_fix() {
 
 run_check() {
   echo "→ Format check (Biome + Prettier Markdown)"
-  npm run format:check
+  bun run format:check
 
-  echo "→ Lint (Biome error-level + ESLint hooks/react/type-aware)"
-  npm run lint
+  echo "→ Lint core (Biome + ESLint; warnings fail)"
+  bun run lint:core
 
   echo "→ UI guardrails (tabs lint + long-labels)"
-  npm run ui:guards
+  bun run ui:guards
 }
 
 echo "🔍 Quality gate ($MODE)"

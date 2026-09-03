@@ -72,7 +72,7 @@ export function EmailForwarding({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_email_accounts")
       if (error) throw error
-      return data as EmailAccount[]
+      return data
     },
   })
 
@@ -152,7 +152,7 @@ export function EmailForwarding({
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({
         title: "Email forwarding set up",
         description: "Your email forwarding has been configured successfully.",
@@ -179,7 +179,7 @@ export function EmailForwarding({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       setEditingAccount(null)
       setEditingInbox("unassigned")
       toast({
@@ -217,7 +217,7 @@ export function EmailForwarding({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({
         title: "Auto-sync settings updated",
         description: "Email account sync preferences have been saved.",
@@ -241,7 +241,7 @@ export function EmailForwarding({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({
         title: "Email account removed",
         description: "The email account has been disconnected.",
@@ -270,7 +270,7 @@ export function EmailForwarding({
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       const totalMessages =
         data.syncResults?.reduce(
           (sum: number, result: any) => sum + (result.messageCount || 0),
@@ -365,7 +365,7 @@ export function EmailForwarding({
       // Listen for messages from the popup
       const handleMessage = (event: MessageEvent) => {
         if (event.data.type === "gmail_connected") {
-          queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+          void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
           toast({
             title: "Gmail Connected",
             description: `Gmail account "${event.data.email}" connected successfully.`,

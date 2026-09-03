@@ -1,18 +1,13 @@
-import {
-  Facebook,
-  Globe,
-  Instagram,
-  type LucideIcon,
-  Mail,
-  MessageCircle,
-  MessageSquare,
-  Phone,
-} from "lucide-react"
+import { Globe, Mail, MessageCircle, MessageSquare, Phone } from "lucide-react"
+import type { ComponentType, SVGProps } from "react"
+import { Facebook, Instagram } from "@/components/icons/brand"
+
+type ChannelIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>
 
 export interface ChannelMeta {
   /** Short label shown on rows and filter chips. */
   label: string
-  icon: LucideIcon
+  icon: ChannelIcon
   /** Plain-English explanation shown on hover. */
   description: string
 }
@@ -72,7 +67,7 @@ export function channelLabel(channel?: string | null): string {
   return channelMeta(channel).label
 }
 
-export function channelIcon(channel?: string | null): LucideIcon {
+export function channelIcon(channel?: string | null): ChannelIcon {
   return channelMeta(channel).icon
 }
 

@@ -46,9 +46,9 @@ export function useDeleteApplicantFile() {
       }
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
-      qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
       toast.success("Fil slettet")
     },
     onError: (err: any) => {

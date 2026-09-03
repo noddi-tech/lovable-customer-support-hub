@@ -54,9 +54,9 @@ window.addEventListener("global-error-reset", () => {
 
 window.addEventListener("voice-error-reset", () => {
   console.log("🔄 [VoiceErrorBoundary] Voice error reset triggered")
-  queryClient.invalidateQueries({ queryKey: ["calls"] })
-  queryClient.invalidateQueries({ queryKey: ["voicemails"] })
-  queryClient.invalidateQueries({ queryKey: ["aircall"] })
+  void queryClient.invalidateQueries({ queryKey: ["calls"] })
+  void queryClient.invalidateQueries({ queryKey: ["voicemails"] })
+  void queryClient.invalidateQueries({ queryKey: ["aircall"] })
 })
 
 // Only render React if we're not redirecting to fix malformed URL

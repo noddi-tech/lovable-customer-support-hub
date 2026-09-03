@@ -60,7 +60,7 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
         setTypingUserIds(new Set(data.map((r) => r.user_id)))
       }
     }
-    fetchTyping()
+    void fetchTyping()
 
     // Realtime subscription (cross-tab / cross-user)
     const channel = supabase
@@ -93,7 +93,7 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
 
     return () => {
       localListeners.delete(handleLocalEvent)
-      channel.unsubscribe()
+      void channel.unsubscribe()
     }
   }, [conversationId, handleLocalEvent])
 

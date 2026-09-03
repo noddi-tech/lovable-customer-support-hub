@@ -258,11 +258,11 @@ export const VoiceInterface = () => {
   const selectedEntity = conversationId ? entities.find((e) => e.id === conversationId) : null
 
   const handleRefreshAll = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["calls"] })
-    queryClient.invalidateQueries({ queryKey: ["call-events"] })
-    queryClient.invalidateQueries({ queryKey: ["voicemails"] })
-    queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
-    queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
+    void queryClient.invalidateQueries({ queryKey: ["calls"] })
+    void queryClient.invalidateQueries({ queryKey: ["call-events"] })
+    void queryClient.invalidateQueries({ queryKey: ["voicemails"] })
+    void queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
+    void queryClient.invalidateQueries({ queryKey: ["call-notifications"] })
   }, [queryClient])
 
   const handleEntitySelect = useCallback(

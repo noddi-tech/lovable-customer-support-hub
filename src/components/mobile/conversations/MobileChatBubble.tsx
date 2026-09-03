@@ -160,7 +160,7 @@ export const MobileChatBubble = ({
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault()
-                    navigator.clipboard.writeText(content)
+                    void navigator.clipboard.writeText(content)
                     toast.success("Copied")
                   }}
                 >

@@ -40,6 +40,38 @@ type ConversationChannel =
   | "instagram"
   | "whatsapp"
 
+const FilterToggleButton = ({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+}) => (
+  <TooltipProvider delayDuration={200}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground"
+          aria-label={collapsed ? "Show filters" : "Hide filters"}
+          onClick={onToggle}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4 w-4" />
+          ) : (
+            <PanelLeftClose className="h-4 w-4" />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="flex items-center gap-2">
+        <span>{collapsed ? "Show filters" : "Hide filters"}</span>
+        <kbd className="rounded border border-border bg-muted px-1 text-[10px]">⌘M</kbd>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
+
 interface Customer {
   id: string
   full_name: string
@@ -234,12 +266,12 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
     },
     onSuccess: () => {
       // Update counts (these don't have staleTime issues)
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
     },
     onError: (err, conversationId, context) => {
       // Rollback on error - refetch to get correct state
-      queryClient.refetchQueries({ queryKey: ["conversations"] })
+      void queryClient.refetchQueries({ queryKey: ["conversations"] })
     },
   })
 
@@ -303,38 +335,16 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
 
   // Voice sub-tabs are now handled at the Index.tsx level
 
-  const FilterToggleButton = ({ collapsed }: { collapsed: boolean }) => (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground"
-            aria-label={collapsed ? "Show filters" : "Hide filters"}
-            onClick={() => setFiltersCollapsed(!collapsed)}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="flex items-center gap-2">
-          <span>{collapsed ? "Show filters" : "Hide filters"}</span>
-          <kbd className="rounded border border-border bg-muted px-1 text-[10px]">⌘M</kbd>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
+  const toggleFiltersCollapsed = useCallback(() => {
+    setFiltersCollapsed((prev) => !prev)
+  }, [])
 
   // Render inbox list with search
   const renderInboxList = () => {
     if (filtersCollapsed) {
       return (
         <div className="flex flex-col items-center pt-1">
-          <FilterToggleButton collapsed />
+          <FilterToggleButton collapsed onToggle={toggleFiltersCollapsed} />
         </div>
       )
     }
@@ -347,7 +357,7 @@ export const EnhancedInteractionsLayout: React.FC<EnhancedInteractionsLayoutProp
             <kbd className="rounded border border-border bg-muted px-1 text-[10px] text-muted-foreground">
               ⌘M
             </kbd>
-            <FilterToggleButton collapsed={false} />
+            <FilterToggleButton collapsed={false} onToggle={toggleFiltersCollapsed} />
           </span>
         </div>
 

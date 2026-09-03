@@ -33,7 +33,7 @@ export const FeatureFlagsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [])
 
   useEffect(() => {
-    OpenFeature.setContext({
+    void OpenFeature.setContext({
       targetingKey: user?.id ?? "anonymous",
       organizationId: organizationId ?? undefined,
       email: user?.email ?? undefined,

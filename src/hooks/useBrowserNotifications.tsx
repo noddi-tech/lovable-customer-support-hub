@@ -27,14 +27,14 @@ export const useBrowserNotifications = () => {
     setIsSupported(supported)
 
     if (supported) {
-      setPermission(Notification.permission as NotificationPermission)
+      setPermission(Notification.permission)
     }
   }, [])
 
   /** Re-read the live browser permission (e.g. after the user changed it in site settings). */
   const refreshPermission = useCallback((): NotificationPermission => {
     if (!("Notification" in window)) return "denied"
-    const current = Notification.permission as NotificationPermission
+    const current = Notification.permission
     setPermission(current)
     return current
   }, [])
@@ -42,7 +42,7 @@ export const useBrowserNotifications = () => {
   // Keep in sync when the user changes the setting in another tab / browser UI
   useEffect(() => {
     if (!isSupported) return
-    const onFocus = () => setPermission(Notification.permission as NotificationPermission)
+    const onFocus = () => setPermission(Notification.permission)
     window.addEventListener("focus", onFocus)
     document.addEventListener("visibilitychange", onFocus)
     return () => {
@@ -70,16 +70,13 @@ export const useBrowserNotifications = () => {
 
         try {
           const maybePromise = Notification.requestPermission((permission) => {
-            finish(permission as NotificationPermission)
+            finish(permission)
           })
           if (
             maybePromise != null &&
             typeof (maybePromise as PromiseLike<NotificationPermission>).then === "function"
           ) {
-            Promise.resolve(maybePromise).then(
-              (permission) => finish(permission as NotificationPermission),
-              reject,
-            )
+            Promise.resolve(maybePromise).then((permission) => finish(permission), reject)
           }
         } catch (error) {
           reject(error)

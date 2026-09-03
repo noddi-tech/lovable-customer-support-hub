@@ -3,9 +3,7 @@ import {
   Bell,
   CheckCircle,
   Clock,
-  Facebook,
   Inbox,
-  Instagram,
   Mail,
   MessageCircle,
   Users,
@@ -13,6 +11,7 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useTranslation } from "react-i18next"
+import { Facebook, Instagram } from "@/components/icons/brand"
 import { Button } from "@/components/ui/button"
 import { SidebarCounter } from "@/components/ui/sidebar-counter"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"

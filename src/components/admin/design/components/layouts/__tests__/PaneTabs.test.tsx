@@ -32,16 +32,17 @@ describe("PaneTabs", () => {
       </Tabs>
     )
 
-    const { container } = render(
+    render(
       <PaneTabs tabs={tabs} sticky>
         <div>Content</div>
       </PaneTabs>,
     )
 
-    // Check for sticky header structure
-    const stickyHeader = container.querySelector(".sticky")
+    // Sticky wrapper is a layout-only parent of the tablist
+    // eslint-disable-next-line testing-library/no-node-access -- sticky class is on non-semantic layout wrapper
+    const stickyHeader = screen.getByRole("tablist").parentElement
     expect(stickyHeader).toBeInTheDocument()
-    expect(stickyHeader).toHaveClass("top-0", "z-10", "bg-background")
+    expect(stickyHeader).toHaveClass("sticky", "top-0", "z-10", "bg-background")
   })
 })
 

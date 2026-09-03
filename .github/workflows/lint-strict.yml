@@ -13,38 +13,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "20"
-          cache: npm
+          bun-version: "1.3.4"
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: bun install --frozen-lockfile
 
       - name: Quality gate (check-only)
-        run: npm run quality:gate:check
+        run: bun run quality:gate:check
 
       - name: Typecheck
-        run: npm run typecheck
+        run: bun run typecheck
 
       - name: Unit tests
-        run: npm run test
+        run: bun run test
 
       - name: Knip
-        run: npm run lint:knip
+        run: bun run lint:knip
 
       - name: dependency-cruiser
-        run: npm run lint:deps
+        run: bun run lint:deps
 
       - name: Secrets (secretlint)
-        run: npm run lint:secrets
+        run: bun run lint:secrets
 
       - name: Clone detection (jscpd)
-        run: npm run lint:dupes
+        run: bun run lint:dupes
 
-      - name: npm audit (high+)
-        run: npm run lint:audit
+      - name: bun audit (critical+)
+        run: bun run lint:audit
         continue-on-error: true
 
       - name: Setup Semgrep

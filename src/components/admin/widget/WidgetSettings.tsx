@@ -134,7 +134,7 @@ export const WidgetSettings: React.FC = () => {
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["widget-configs"] })
+      void queryClient.invalidateQueries({ queryKey: ["widget-configs"] })
       setSelectedWidgetId(data.id)
       toast.success("Widget created successfully")
     },
@@ -185,7 +185,7 @@ export const WidgetSettings: React.FC = () => {
     },
     onSettled: () => {
       // Refetch to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: ["widget-configs", organizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["widget-configs", organizationId] })
     },
   })
 

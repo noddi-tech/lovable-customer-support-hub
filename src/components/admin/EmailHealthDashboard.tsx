@@ -188,7 +188,7 @@ export function EmailHealthDashboard({
 
       const { data, error } = await query
       if (error) throw error
-      return data as EmailIngestionLog[]
+      return data
     },
     enabled: !!routeAddresses,
     refetchInterval: 10000,
@@ -290,8 +290,8 @@ export function EmailHealthDashboard({
       setNewToken("")
       setIsUpdatingToken(false)
       setTokenTestResult(null)
-      queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens", organizationId] })
-      queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config", organizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound-routes-tokens", organizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["sendgrid-token-config", organizationId] })
     },
     onError: (error) => {
       toast.error("Failed to update token", { description: String(error) })
@@ -478,7 +478,7 @@ export function EmailHealthDashboard({
                 variant="outline"
                 size="icon"
                 onClick={() => {
-                  navigator.clipboard.writeText(fullWebhookUrl)
+                  void navigator.clipboard.writeText(fullWebhookUrl)
                   toast.success("Copied complete webhook URL")
                 }}
                 title="Copy URL"
@@ -595,9 +595,11 @@ export function EmailHealthDashboard({
             <Button
               variant="outline"
               onClick={() => {
-                refetchTokenConfig()
-                queryClient.invalidateQueries({ queryKey: ["email-health-stats", organizationId] })
-                queryClient.invalidateQueries({
+                void refetchTokenConfig()
+                void queryClient.invalidateQueries({
+                  queryKey: ["email-health-stats", organizationId],
+                })
+                void queryClient.invalidateQueries({
                   queryKey: ["email-ingestion-logs", organizationId],
                 })
                 setTokenTestResult(null)

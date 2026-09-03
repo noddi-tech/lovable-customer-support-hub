@@ -18,8 +18,8 @@ export function useTestMetaConnection(integrationId: string | null | undefined) 
       return data as MetaHealthCheckResult
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["meta-integration-health", integrationId] })
-      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
+      void qc.invalidateQueries({ queryKey: ["meta-integration-health", integrationId] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-meta-integration"] })
     },
   })
 }

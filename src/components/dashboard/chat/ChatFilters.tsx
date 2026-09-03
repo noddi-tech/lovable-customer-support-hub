@@ -15,10 +15,12 @@ interface ChatFiltersProps {
   }
 }
 
+const DEFAULT_COUNTS = { active: 0, waiting: 0, ended: 0, all: 0 }
+
 export const ChatFilters: React.FC<ChatFiltersProps> = ({
   currentFilter,
   onFilterChange,
-  counts = { active: 0, waiting: 0, ended: 0, all: 0 },
+  counts = DEFAULT_COUNTS,
 }) => {
   const filters: { key: ChatFilterType; label: string; count: number }[] = [
     { key: "active", label: "Active", count: counts.active },

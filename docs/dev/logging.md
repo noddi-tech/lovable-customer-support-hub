@@ -18,16 +18,16 @@ Set `VITE_LOG_LEVEL` environment variable to control verbosity:
 
 ```bash
 # Development - show all logs
-VITE_LOG_LEVEL=DEBUG npm run dev
+VITE_LOG_LEVEL=DEBUG bun run dev
 
 # Development - show only info and above (default)
-VITE_LOG_LEVEL=INFO npm run dev
+VITE_LOG_LEVEL=INFO bun run dev
 
 # Production - show only warnings and errors
-VITE_LOG_LEVEL=WARN npm run build
+VITE_LOG_LEVEL=WARN bun run build
 
 # Silent mode - no logs at all
-VITE_LOG_LEVEL=SILENT npm run dev
+VITE_LOG_LEVEL=SILENT bun run dev
 ```
 
 ## Usage

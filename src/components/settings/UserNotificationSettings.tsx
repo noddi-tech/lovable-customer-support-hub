@@ -147,7 +147,7 @@ export function UserNotificationSettings() {
   const { permission, isSupported } = useBrowserNotifications()
 
   const handleToggle = (key: PrefKey) => (checked: boolean) => {
-    updatePreferences({ [key]: checked } as Partial<NotificationPreferences>)
+    updatePreferences({ [key]: checked })
   }
 
   if (isLoading) {

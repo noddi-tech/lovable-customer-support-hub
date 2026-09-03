@@ -71,7 +71,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       }
     }
 
-    fetchProfile()
+    void fetchProfile()
   }, [user?.id])
 
   const updateViewersMap = useCallback((state: PresenceState) => {
@@ -130,7 +130,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
       .on("presence", { event: "leave" }, ({ key }) => {
         console.log("[Presence] Leave:", key)
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         console.log("[Presence] Subscription status:", status)
         if (status === "SUBSCRIBED") {
           setIsConnected(true)
@@ -149,19 +149,21 @@ export function useConversationPresence(organizationId?: string): UseConversatio
                 entered_at: new Date().toISOString(),
               }
 
-          await channel.track(trackPayload)
-          console.log(
-            "[Presence] Initial track done, conversation:",
-            currentConversationRef.current,
-          )
+          void (async () => {
+            await channel.track(trackPayload)
+            console.log(
+              "[Presence] Initial track done, conversation:",
+              currentConversationRef.current,
+            )
 
-          // Process any queued track
-          if (pendingTrackRef.current) {
-            const pendingId = pendingTrackRef.current
-            pendingTrackRef.current = null
-            console.log("[Presence] Processing queued track for:", pendingId)
-            channel.track({ ...trackPayload, conversation_id: pendingId })
-          }
+            // Process any queued track
+            if (pendingTrackRef.current) {
+              const pendingId = pendingTrackRef.current
+              pendingTrackRef.current = null
+              console.log("[Presence] Processing queued track for:", pendingId)
+              void channel.track({ ...trackPayload, conversation_id: pendingId })
+            }
+          })()
         } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
           console.warn("[Presence] Channel error/closed:", status)
           setIsConnected(false)
@@ -172,7 +174,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
 
     return () => {
       console.log("[Presence] Cleaning up channel:", channelName)
-      channel.unsubscribe()
+      void channel.unsubscribe()
       channelRef.current = null
       setIsConnected(false)
     }
@@ -185,7 +187,7 @@ export function useConversationPresence(organizationId?: string): UseConversatio
     if (!channel || !profile || !isConnected) return
 
     console.log("[Presence] Profile enrichment re-track")
-    channel.track({
+    void channel.track({
       ...profile,
       conversation_id: currentConversationRef.current,
       entered_at: new Date().toISOString(),
@@ -245,8 +247,12 @@ export function useConversationPresence(organizationId?: string): UseConversatio
   return {
     viewersMap,
     currentUserProfile,
-    trackConversation,
-    untrackConversation,
+    trackConversation: (conversationId: string) => {
+      void trackConversation(conversationId)
+    },
+    untrackConversation: () => {
+      void untrackConversation()
+    },
     isConnected,
   }
 }

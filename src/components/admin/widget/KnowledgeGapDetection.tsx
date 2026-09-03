@@ -41,7 +41,7 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
         .order("frequency", { ascending: false })
         .limit(50)
       if (error) throw error
-      return data as KnowledgeGap[]
+      return data
     },
     enabled: !!organizationId,
   })
@@ -55,7 +55,7 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
       toast.success("Gap dismissed")
     },
   })
@@ -69,7 +69,7 @@ export const KnowledgeGapDetection: React.FC<KnowledgeGapDetectionProps> = ({ or
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-gaps"] })
     },
   })
 

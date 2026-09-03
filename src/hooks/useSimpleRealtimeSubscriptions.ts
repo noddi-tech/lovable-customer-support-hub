@@ -62,7 +62,7 @@ export const useSimpleRealtimeSubscriptions = (
 
     // Remove existing channel from registry and Supabase
     if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
+      void supabase.removeChannel(channelRef.current)
       activeChannels.delete(currentChannelKey)
       channelRef.current = null
     }
@@ -107,7 +107,7 @@ export const useSimpleRealtimeSubscriptions = (
 
       // Clean up existing channel
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
+        void supabase.removeChannel(channelRef.current)
       }
 
       logger.debug(
@@ -194,13 +194,13 @@ export const useSimpleRealtimeSubscriptions = (
 
             // When conversations change, also invalidate count queries so sidebar updates immediately
             if (table === "conversations") {
-              queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-              queryClient.invalidateQueries({ queryKey: ["all-counts"] })
-              queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
+              void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+              void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+              void queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
             }
 
             // Also refetch to ensure consistency (backup)
-            queryClient.refetchQueries({
+            void queryClient.refetchQueries({
               predicate: (query) => query.queryKey[0] === queryKey,
               type: "active", // Only refetch currently active queries
             })
@@ -337,7 +337,7 @@ export const useSimpleRealtimeSubscriptions = (
 
           // Only remove channel if no more references
           if (existing.refCount <= 0) {
-            supabase.removeChannel(channelRef.current)
+            void supabase.removeChannel(channelRef.current)
             activeChannels.delete(channelKey)
             logger.debug(
               "Removed realtime channel",
@@ -350,7 +350,7 @@ export const useSimpleRealtimeSubscriptions = (
           }
         } else {
           // Fallback: remove channel if not in registry
-          supabase.removeChannel(channelRef.current)
+          void supabase.removeChannel(channelRef.current)
         }
 
         channelRef.current = null

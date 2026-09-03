@@ -76,7 +76,7 @@ export const NoteTemplateSelector = ({ onSelectTemplate, disabled }: NoteTemplat
         .order("name")
 
       if (error) throw error
-      return data as NoteTemplate[]
+      return data
     },
     enabled: !!profile?.organization_id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

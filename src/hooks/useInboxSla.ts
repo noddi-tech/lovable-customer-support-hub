@@ -37,8 +37,8 @@ export function useSaveInboxSla(inboxId: string | undefined) {
   const queryClient = useQueryClient()
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["sla_policies", inboxId] })
-    queryClient.invalidateQueries({ queryKey: ["inbox_support_metrics"] })
+    void queryClient.invalidateQueries({ queryKey: ["sla_policies", inboxId] })
+    void queryClient.invalidateQueries({ queryKey: ["inbox_support_metrics"] })
   }
 
   const save = useMutation({

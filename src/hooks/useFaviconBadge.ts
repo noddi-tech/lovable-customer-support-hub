@@ -38,7 +38,7 @@ function setBadgeHref(href: string | null) {
 let baseImagePromise: Promise<HTMLImageElement | null> | null = null
 
 function loadBaseImage(): Promise<HTMLImageElement | null> {
-  if (baseImagePromise) return baseImagePromise
+  if (baseImagePromise !== null) return baseImagePromise
   baseImagePromise = new Promise((resolve) => {
     const candidates = [getBaseFaviconHref(), "/favicon.png", "/favicon.ico"]
     let i = 0
@@ -126,7 +126,7 @@ export function useFaviconBadge(count: number | null | undefined) {
       return
     }
 
-    drawBadge(value).then((href) => {
+    void drawBadge(value).then((href) => {
       if (!cancelled && href) setBadgeHref(href)
     })
 

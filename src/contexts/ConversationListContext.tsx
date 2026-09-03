@@ -484,8 +484,8 @@ export const ConversationListProvider = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       toast.success("Conversation archived successfully")
     },
     onError: (error) => {
@@ -505,8 +505,8 @@ export const ConversationListProvider = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       toast.success("Conversation moved to trash")
       dispatch({ type: "CLOSE_DELETE_DIALOG" })
     },
@@ -614,8 +614,8 @@ export const ConversationListProvider = ({
       return unreadConversationIds.length
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       toast.success(`Marked ${count} conversations as read`)
     },
     onError: (error: any) => {
@@ -650,8 +650,8 @@ export const ConversationListProvider = ({
         const { error } = await supabase.from("conversations").update(updatePayload).in("id", chunk)
         if (error) throw error
       }
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       toast.success(`Archived ${ids.length} conversation${ids.length > 1 ? "s" : ""}`)
       dispatch({ type: "CLOSE_ARCHIVE_DIALOG" })
       dispatch({ type: "CLEAR_BULK_SELECTION" })
@@ -682,8 +682,8 @@ export const ConversationListProvider = ({
       if (error) throw error
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       toast.success(variables.currentReadState ? "Marked as unread" : "Marked as read")
     },
     onError: (error) => {
@@ -998,7 +998,7 @@ export const ConversationListProvider = ({
         if (error) throw error
       }
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
       toast.success(`Marked ${ids.length} conversations as read`)
       dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
@@ -1025,7 +1025,7 @@ export const ConversationListProvider = ({
         if (error) throw error
       }
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
       toast.success(`Marked ${ids.length} conversations as unread`)
       dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
@@ -1052,9 +1052,9 @@ export const ConversationListProvider = ({
         if (error) throw error
       }
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       toast.success(
         `Changed status to ${status} for ${ids.length} conversation${ids.length === 1 ? "" : "s"}`,
       )
@@ -1081,7 +1081,7 @@ export const ConversationListProvider = ({
             .in("id", chunk)
           if (error) throw error
         }
-        queryClient.invalidateQueries({ queryKey: ["conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] })
         toast.success(`Archived ${ids.length} conversations`)
         dispatch({ type: "CLEAR_BULK_SELECTION" })
       } catch (error) {
@@ -1112,9 +1112,9 @@ export const ConversationListProvider = ({
         if (conversationsError) throw conversationsError
       }
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
       toast.success(`Moved ${ids.length} conversations to trash`, { id: "bulk-delete" })
       dispatch({ type: "CLEAR_BULK_SELECTION" })
     } catch (error) {
@@ -1141,7 +1141,7 @@ export const ConversationListProvider = ({
         if (error) throw error
       }
 
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
       const agent = agentsData.find((a) => a.id === assigneeId)
       toast.success(`Assigned ${ids.length} conversations to ${agent?.name || "agent"}`)
       dispatch({ type: "CLEAR_BULK_SELECTION" })

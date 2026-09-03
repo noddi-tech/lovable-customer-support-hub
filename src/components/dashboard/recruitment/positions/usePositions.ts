@@ -40,7 +40,7 @@ export function useJobPositions() {
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      return (data ?? []) as unknown as JobPositionRow[]
+      return data ?? []
     },
     enabled: !!currentOrganizationId,
     staleTime: 10_000,
@@ -83,7 +83,7 @@ export function useJobPosition(id: string | undefined) {
         .maybeSingle()
 
       if (error) throw error
-      return (data as unknown as JobPositionDetail) ?? null
+      return data ?? null
     },
     enabled: !!id,
     refetchOnMount: "always",
@@ -109,7 +109,7 @@ export function useRecruitmentPipelines() {
         .order("name", { ascending: true })
 
       if (error) throw error
-      return (data ?? []) as PipelineRow[]
+      return data ?? []
     },
     enabled: !!currentOrganizationId,
   })
@@ -159,7 +159,7 @@ export function useCreateJobPosition() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      void queryClient.invalidateQueries({ queryKey: ["job-positions"] })
       toast.success("Stilling opprettet")
     },
     onError: (error: any) => {
@@ -184,8 +184,8 @@ export function useUpdateJobPosition() {
       return data
     },
     onSuccess: (_data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["job-position", vars.id] })
-      queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+      void queryClient.invalidateQueries({ queryKey: ["job-position", vars.id] })
+      void queryClient.invalidateQueries({ queryKey: ["job-positions"] })
       toast.success("Lagret")
     },
     onError: (error: any) => {

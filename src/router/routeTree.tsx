@@ -99,7 +99,7 @@ function redirectRoute(path: string, to: string) {
     getParentRoute: () => rootRoute,
     path,
     beforeLoad: () => {
-      throw redirect({ to: to as never, replace: true })
+      throw redirect({ to: to, replace: true })
     },
   })
 }

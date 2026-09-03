@@ -60,9 +60,9 @@ export function useApplicationScore(applicationId: string | null | undefined) {
     const wasActive = prev != null && ACTIVE.includes(prev)
     const isTerminal = TERMINAL.includes(status)
     if (wasActive && isTerminal) {
-      qc.invalidateQueries({ queryKey: ["applicant"] })
-      qc.invalidateQueries({ queryKey: ["applicants"] })
-      qc.invalidateQueries({ queryKey: ["pipeline-applications"] })
+      void qc.invalidateQueries({ queryKey: ["applicant"] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["pipeline-applications"] })
     }
   }, [status, qc])
 

@@ -63,7 +63,7 @@ const ServiceSelectBlock: React.FC<BlockComponentProps> = ({
       setLoading(false)
       return
     }
-    ;(async () => {
+    void (async () => {
       try {
         const resp = await fetch(`${getApiUrl()}/noddi-booking-proxy`, {
           method: "POST",

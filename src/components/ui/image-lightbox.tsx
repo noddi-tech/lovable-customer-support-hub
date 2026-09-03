@@ -34,7 +34,7 @@ export const ImageLightbox = ({
   useEffect(() => {
     if (currentImage && isOpen) {
       setZoom(1) // Reset zoom when changing images
-      createBlobUrl(currentImage, messageId).then((url) => {
+      void createBlobUrl(currentImage, messageId).then((url) => {
         setImageUrl(url)
       })
     }
@@ -54,7 +54,7 @@ export const ImageLightbox = ({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, onNext, onPrevious])
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!imageUrl) return
 
     const link = document.createElement("a")

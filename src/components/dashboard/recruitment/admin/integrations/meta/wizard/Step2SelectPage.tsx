@@ -1,5 +1,6 @@
-import { AlertCircle, Eye, EyeOff, Facebook, Loader2, RefreshCw } from "lucide-react"
+import { AlertCircle, Eye, EyeOff, Loader2, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Facebook } from "@/components/icons/brand"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

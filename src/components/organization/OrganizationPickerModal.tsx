@@ -32,12 +32,12 @@ export function OrganizationPickerModal({ open, onOpenChange }: OrganizationPick
   const { data: orgNames = {} } = useQuery({
     queryKey: ["org-picker-names", orgIds],
     queryFn: async () => {
-      if (orgIds.length === 0) return {} as Record<string, string>
+      if (orgIds.length === 0) return {}
       const { data, error } = await supabase
         .from("organizations")
         .select("id, name")
         .in("id", orgIds)
-      if (error) return {} as Record<string, string>
+      if (error) return {}
       return Object.fromEntries((data || []).map((o) => [o.id, o.name]))
     },
     enabled: open && orgIds.length > 0,

@@ -141,7 +141,7 @@ export function InboxManagementContent() {
         .from("inbound_routes")
         .select("id,inbox_id,address,group_email")
       if (error) throw error
-      return data as unknown as InboundRoute[]
+      return data
     },
   })
 
@@ -151,7 +151,7 @@ export function InboxManagementContent() {
     queryFn: async (): Promise<EmailAccount[]> => {
       const { data, error } = await supabase.rpc("get_email_accounts")
       if (error) throw error
-      return (data || []) as unknown as EmailAccount[]
+      return data || []
     },
   })
 
@@ -183,7 +183,7 @@ export function InboxManagementContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       setIsCreateDialogOpen(false)
       setNewInboxData({
         name: "",
@@ -209,8 +209,8 @@ export function InboxManagementContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
       toast.success("All conversations deleted successfully")
     },
     onError: (error) => {
@@ -245,7 +245,7 @@ export function InboxManagementContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       toast.success("Inbox deleted successfully")
     },
     onError: (error) => {

@@ -106,7 +106,7 @@ export function useCalls() {
         timestamp: new Date().toISOString(),
       })
 
-      return data as Call[]
+      return data
     },
     // Aggressive polling fallback to ensure UI updates
     refetchInterval: 1000 * 5, // 5 seconds fallback (increased speed for production debugging)
@@ -132,7 +132,7 @@ export function useCalls() {
       }
 
       console.log("[useCalls] ✅ Fetched call events:", data.length)
-      return data as CallEvent[]
+      return data
     },
     // Aggressive polling fallback to ensure UI updates
     refetchInterval: 1000 * 5, // 5 seconds fallback (increased speed for production debugging)
@@ -180,7 +180,7 @@ export function useCalls() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calls"] })
+      void queryClient.invalidateQueries({ queryKey: ["calls"] })
       toast({
         title: "Call removed",
         description: "The call has been removed from your history",

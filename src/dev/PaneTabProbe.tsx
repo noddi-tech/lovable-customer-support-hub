@@ -12,7 +12,7 @@ export function PaneTabProbe() {
       if (insideScrollArea) {
         console.warn("TabList is inside a ScrollArea — must be moved out:", el)
       }
-      const computed = getComputedStyle(el as HTMLElement)
+      const computed = getComputedStyle(el)
       if (/(auto|scroll|clip)/.test(computed.overflowY)) {
         console.warn("TabList has vertical overflow:", computed.overflowY, el)
       }

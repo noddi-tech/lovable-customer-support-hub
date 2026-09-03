@@ -9,9 +9,7 @@ import {
   Bell,
   CheckCircle,
   Clock,
-  Facebook,
   Inbox,
-  Instagram,
   Mail,
   Plus,
   Users,
@@ -19,6 +17,7 @@ import {
 } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { Facebook, Instagram } from "@/components/icons/brand"
 import { Button } from "@/components/ui/button"
 import { EnhancedLoadingSkeleton } from "@/components/ui/enhanced-loading-skeleton"
 import { Separator } from "@/components/ui/separator"
@@ -35,6 +34,8 @@ interface OptimizedInteractionsSidebarProps {
   onTabChange: (tab: string) => void
   selectedInboxId?: string
 }
+
+const LoadingSkeleton = () => <EnhancedLoadingSkeleton type="sidebar" count={6} />
 
 export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarProps>(
   ({ selectedTab, onTabChange, selectedInboxId }) => {
@@ -153,9 +154,6 @@ export const OptimizedInteractionsSidebar = memo<OptimizedInteractionsSidebarPro
       }),
       [prefetchData],
     )
-
-    // Loading skeleton
-    const LoadingSkeleton = () => <EnhancedLoadingSkeleton type="sidebar" count={6} />
 
     // Error state - Don't show error UI, just log it
     if (error) {

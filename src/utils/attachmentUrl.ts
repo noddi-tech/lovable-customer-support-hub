@@ -9,7 +9,7 @@ const FUNCTIONS_BASE = "https://qgfaycwsangsqzpveoup.supabase.co/functions/v1"
  */
 let cachedAccessToken: string | null = null
 
-supabase.auth.getSession().then(({ data }) => {
+void supabase.auth.getSession().then(({ data }) => {
   cachedAccessToken = data.session?.access_token ?? null
 })
 

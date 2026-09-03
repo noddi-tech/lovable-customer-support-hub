@@ -61,7 +61,7 @@ vi.mock("sonner", () => ({
 // Global test setup
 beforeAll(() => {
   // jsdom does not implement scrollTo; TanStack Router scroll restoration calls it.
-  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+  window.scrollTo = vi.fn()
 
   // Mock window.matchMedia for responsive hooks
   Object.defineProperty(window, "matchMedia", {

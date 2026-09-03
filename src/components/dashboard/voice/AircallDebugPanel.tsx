@@ -114,7 +114,7 @@ export const AircallDebugPanel: React.FC = () => {
 
   const copyDebugInfo = () => {
     const text = JSON.stringify(debugInfo, null, 2)
-    navigator.clipboard.writeText(text)
+    void navigator.clipboard.writeText(text)
     toast({
       title: "Debug Info Copied",
       description: "Debug information copied to clipboard",

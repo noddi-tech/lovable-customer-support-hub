@@ -71,7 +71,7 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
 
   useEffect(() => {
     if (open) {
-      refetch()
+      void refetch()
     }
   }, [open, refetch])
 
@@ -142,13 +142,13 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
                 {currentRoles
                   .slice()
                   .sort((a, b) => {
-                    const aOrder = roleInfo[a.role as AppRole]?.order ?? 99
-                    const bOrder = roleInfo[b.role as AppRole]?.order ?? 99
+                    const aOrder = roleInfo[a.role]?.order ?? 99
+                    const bOrder = roleInfo[b.role]?.order ?? 99
                     return aOrder - bOrder
                   })
                   .map((roleItem) => {
                     if (!roleItem.role) return null
-                    const info = roleInfo[roleItem.role as AppRole] || defaultRoleInfo
+                    const info = roleInfo[roleItem.role] || defaultRoleInfo
                     return (
                       <Card key={roleItem.id}>
                         <CardContent className="flex items-center justify-between py-3">
@@ -166,7 +166,7 @@ export function ManageUserRolesDialog({ open, onOpenChange, user }: ManageUserRo
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveRole(roleItem.role as AppRole)}
+                            onClick={() => handleRemoveRole(roleItem.role)}
                             disabled={isRemovingRole || currentRoles.length <= 1}
                             className="text-destructive hover:text-destructive"
                           >

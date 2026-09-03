@@ -86,7 +86,7 @@ export function SessionHistoryTable({ userId, limit = 10 }: SessionHistoryTableP
         .limit(limit)
 
       if (error) throw error
-      return data as UserSession[]
+      return data
     },
     enabled: !!userId,
   })

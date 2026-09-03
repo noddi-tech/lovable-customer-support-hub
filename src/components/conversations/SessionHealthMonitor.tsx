@@ -11,6 +11,22 @@ interface SessionHealthMonitorProps {
   autoRecover?: boolean
 }
 
+const CheckItem = ({ ok, label }: { ok: boolean; label: string }) => (
+  <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+    <div className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-4 w-4 text-primary" />
+      ) : (
+        <XCircle className="h-4 w-4 text-destructive" />
+      )}
+      <span className="text-sm">{label}</span>
+    </div>
+    <Badge variant={ok ? "default" : "destructive"} className="text-xs">
+      {ok ? "OK" : "FAIL"}
+    </Badge>
+  </div>
+)
+
 export function SessionHealthMonitor({
   showDetails = false,
   autoRecover = true,
@@ -27,7 +43,7 @@ export function SessionHealthMonitor({
   // Auto-run health check on mount when in debug/details mode
   useEffect(() => {
     if (showDetails && healthState.lastCheck === null) {
-      performHealthCheck()
+      void performHealthCheck()
     }
   }, [showDetails, healthState.lastCheck, performHealthCheck])
 
@@ -85,22 +101,6 @@ export function SessionHealthMonitor({
 
   // Show details card when requested (debug panel)
   if (showDetails) {
-    const CheckItem = ({ ok, label }: { ok: boolean; label: string }) => (
-      <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-        <div className="flex items-center gap-2">
-          {ok ? (
-            <CheckCircle2 className="h-4 w-4 text-primary" />
-          ) : (
-            <XCircle className="h-4 w-4 text-destructive" />
-          )}
-          <span className="text-sm">{label}</span>
-        </div>
-        <Badge variant={ok ? "default" : "destructive"} className="text-xs">
-          {ok ? "OK" : "FAIL"}
-        </Badge>
-      </div>
-    )
-
     return (
       <Card className="w-full border-border/50">
         <CardHeader>

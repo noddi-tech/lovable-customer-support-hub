@@ -33,10 +33,10 @@ export const LiveChatQueue: React.FC<LiveChatQueueProps> = ({ className, compact
     const success = await claimSession(sessionId, profile.id)
     if (success) {
       // Force invalidate conversation data before navigating to ensure fresh data loads
-      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-      queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
 
       toast.success("Chat claimed", { description: "You are now chatting with the visitor" })
 

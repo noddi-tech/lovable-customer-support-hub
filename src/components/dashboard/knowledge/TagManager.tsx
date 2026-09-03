@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import type { KnowledgeCategory } from "./CategoryManager"
 
 export interface KnowledgeTag {
   id: string
@@ -58,7 +57,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
   const [newTag, setNewTag] = useState({
     name: "",
     color: "#6B7280",
-    category_id: null as string | null,
+    category_id: null,
   })
 
   const { data: categories } = useQuery({
@@ -70,7 +69,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
         .eq("organization_id", organizationId)
         .order("name")
       if (error) throw error
-      return data as KnowledgeCategory[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -85,7 +84,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
         .eq("organization_id", organizationId)
         .order("name")
       if (error) throw error
-      return data as KnowledgeTag[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -124,7 +123,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Tag created successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
       setCreatingTag(false)
       setNewTag({ name: "", color: "#6B7280", category_id: null })
     },
@@ -151,7 +150,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Tag updated successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
       setEditingTag(null)
     },
     onError: (error) => {
@@ -170,7 +169,7 @@ export function TagManager({ organizationId }: TagManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Tag deleted successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-tags"] })
       setDeleteConfirm(null)
     },
     onError: (error) => {

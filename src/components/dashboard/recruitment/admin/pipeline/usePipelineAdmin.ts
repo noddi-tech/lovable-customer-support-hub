@@ -26,7 +26,7 @@ export function useStageApplicationCounts(pipelineId: string | undefined) {
   return useQuery({
     queryKey: ["stage-app-counts", pipelineId],
     queryFn: async () => {
-      if (!pipelineId) return {} as Record<string, number>
+      if (!pipelineId) return {}
       const { data, error } = await supabase
         .from("applications")
         .select("current_stage_id, position_id, job_positions!inner(pipeline_id)")
@@ -44,12 +44,12 @@ export function useStageApplicationCounts(pipelineId: string | undefined) {
 }
 
 function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-admin"] })
-  queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
-  queryClient.invalidateQueries({ queryKey: ["stage-app-counts"] })
-  queryClient.invalidateQueries({ queryKey: ["job-positions"] })
-  queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
-  queryClient.invalidateQueries({ queryKey: ["applicants"] })
+  void queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-admin"] })
+  void queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
+  void queryClient.invalidateQueries({ queryKey: ["stage-app-counts"] })
+  void queryClient.invalidateQueries({ queryKey: ["job-positions"] })
+  void queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
+  void queryClient.invalidateQueries({ queryKey: ["applicants"] })
 }
 
 export function useUpdatePipelineStages() {

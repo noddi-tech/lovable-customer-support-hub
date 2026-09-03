@@ -97,7 +97,7 @@ export function useApplicantProfile(id: string | undefined) {
         .eq("id", id)
         .maybeSingle()
       if (error) throw error
-      return data as unknown as ApplicantProfileData | null
+      return data
     },
     enabled: !!id,
     refetchOnMount: "always",
@@ -116,7 +116,7 @@ export function useApplicantEvents(applicantId: string | undefined) {
         .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
-      return (data ?? []) as unknown as ApplicantEvent[]
+      return data ?? []
     },
     enabled: !!applicantId,
     refetchOnMount: "always",
@@ -135,7 +135,7 @@ export function useApplicantNotes(applicantId: string | undefined) {
         .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
-      return (data ?? []) as unknown as ApplicantNote[]
+      return data ?? []
     },
     enabled: !!applicantId,
     refetchOnMount: "always",
@@ -154,7 +154,7 @@ export function useApplicantFiles(applicantId: string | undefined) {
         .eq("applicant_id", applicantId)
         .order("created_at", { ascending: false })
       if (error) throw error
-      return (data ?? []) as unknown as ApplicantFile[]
+      return data ?? []
     },
     enabled: !!applicantId,
     refetchOnMount: "always",
@@ -193,13 +193,13 @@ export function useUpdateApplicationStage() {
       return data
     },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["applicant", vars.applicantId] })
-      queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
-      queryClient.invalidateQueries({ queryKey: ["applicants"] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicants"] })
       // Mirror useStageMoveAutomation.invalidate() so this hook is safe
       // if/when re-wired: stage moves must fan out to pipeline + lookup table.
-      queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
-      queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
+      void queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
+      void queryClient.invalidateQueries({ queryKey: ["recruitment-pipeline-default"] })
     },
     onError: (err: any) => {
       toast.error(err?.message || "Kunne ikke endre status")
@@ -245,8 +245,8 @@ export function useAddApplicantNote() {
       }
     },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["applicant-notes", vars.applicantId] })
-      queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-notes", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
       toast.success("Notat lagt til")
     },
     onError: (err: any) => {
@@ -283,7 +283,7 @@ export function useLogApplicantEvent() {
       if (error) throw error
     },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
       toast.success("Hendelse lagret")
     },
     onError: (err: any) => {
@@ -324,8 +324,8 @@ export function useAssignApplication() {
       if (evtErr) throw evtErr
     },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["applicant", vars.applicantId] })
-      queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
       toast.success(`Tilordnet til ${vars.profileName}`)
     },
     onError: (err: any) => {
@@ -384,8 +384,8 @@ export function useUploadApplicantFile() {
       }
     },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
-      queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-files", vars.applicantId] })
+      void queryClient.invalidateQueries({ queryKey: ["applicant-events", vars.applicantId] })
       toast.success("Fil lastet opp")
     },
     onError: (err: any) => {

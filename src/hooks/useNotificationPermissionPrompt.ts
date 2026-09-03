@@ -42,7 +42,9 @@ export function useNotificationPermissionPrompt() {
     }
 
     // Slight delay so it doesn't fight with initial render/auth
-    const timer = window.setTimeout(ask, 1500)
+    const timer = window.setTimeout(() => {
+      void ask()
+    }, 1500)
     return () => {
       cancelled = true
       window.clearTimeout(timer)

@@ -134,7 +134,7 @@ export const scheduleInteractionLockWatchdog = (
   if (typeof window === "undefined") return
 
   // Tick 0: immediately after close
-  Promise.resolve().then(() => {
+  void Promise.resolve().then(() => {
     const snap = captureBodyLockSnapshot()
     const locked = detectInteractionLock(snap)
     const event = locked ? "interaction_lock_detected" : "body_lock_snapshot"

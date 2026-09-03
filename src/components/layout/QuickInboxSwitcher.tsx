@@ -24,6 +24,33 @@ interface QuickInboxSwitcherProps {
   onOpenChange: (open: boolean) => void
 }
 
+const NumberKey: React.FC<{ n: number }> = ({ n }) => (
+  <kbd className="flex h-5 w-5 items-center justify-center rounded border border-border bg-muted text-[11px] font-medium text-muted-foreground">
+    {n}
+  </kbd>
+)
+
+const Counts: React.FC<{ open: number; pending: number }> = ({ open: o, pending }) => (
+  <span className="ml-auto flex items-center gap-1">
+    <Badge
+      variant="secondary"
+      className={`h-5 px-1.5 text-[10px] ${o === 0 ? "text-muted-foreground" : ""}`}
+      title={`${o} open`}
+    >
+      {o}
+    </Badge>
+    {pending > 0 && (
+      <Badge
+        variant="outline"
+        className="h-5 px-1.5 text-[10px] text-orange-600 border-orange-500/40"
+        title={`${pending} pending`}
+      >
+        {pending}
+      </Badge>
+    )}
+  </span>
+)
+
 export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, onOpenChange }) => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -89,33 +116,6 @@ export const QuickInboxSwitcher: React.FC<QuickInboxSwitcherProps> = ({ open, on
     window.addEventListener("keydown", onKey, true)
     return () => window.removeEventListener("keydown", onKey, true)
   }, [open, selectable, goToInbox])
-
-  const NumberKey: React.FC<{ n: number }> = ({ n }) => (
-    <kbd className="flex h-5 w-5 items-center justify-center rounded border border-border bg-muted text-[11px] font-medium text-muted-foreground">
-      {n}
-    </kbd>
-  )
-
-  const Counts: React.FC<{ open: number; pending: number }> = ({ open: o, pending }) => (
-    <span className="ml-auto flex items-center gap-1">
-      <Badge
-        variant="secondary"
-        className={`h-5 px-1.5 text-[10px] ${o === 0 ? "text-muted-foreground" : ""}`}
-        title={`${o} open`}
-      >
-        {o}
-      </Badge>
-      {pending > 0 && (
-        <Badge
-          variant="outline"
-          className="h-5 px-1.5 text-[10px] text-orange-600 border-orange-500/40"
-          title={`${pending} pending`}
-        >
-          {pending}
-        </Badge>
-      )}
-    </span>
-  )
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>

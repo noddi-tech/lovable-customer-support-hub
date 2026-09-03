@@ -10,7 +10,7 @@ from an OpenAPI 3.1 document generated out of the function sources.
 ## Regenerating
 
 ```bash
-npm run docs:api   # writes src/data/openapi.generated.json
+bun run docs:api   # writes src/data/openapi.generated.json
 ```
 
 Run this after adding, renaming or removing an edge function. The generator reads:

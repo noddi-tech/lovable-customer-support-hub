@@ -526,10 +526,10 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      queryClient.invalidateQueries({
+                      void queryClient.invalidateQueries({
                         queryKey: ["conversation-messages", conversationId],
                       })
-                      queryClient.invalidateQueries({
+                      void queryClient.invalidateQueries({
                         queryKey: ["conversation-meta", conversationId],
                       })
                       toast.success("Conversation refreshed")
@@ -823,9 +823,9 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
                   toast.error("Failed to delete conversation")
                 } else {
                   toast.success("Conversation moved to trash")
-                  queryClient.invalidateQueries({ queryKey: ["conversations"] })
-                  queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-                  queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+                  void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+                  void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+                  void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
                   navigateBack(-1)
                 }
               }}

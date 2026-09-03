@@ -87,10 +87,10 @@ export const ChatMessagesList = ({
 
     const interval = setInterval(() => {
       if (editingNoteId || confirmDeleteId) return
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["thread-messages", conversationId],
       })
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["messages", conversationId],
       })
     }, 2000)
@@ -132,7 +132,7 @@ export const ChatMessagesList = ({
   }
 
   const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content)
+    void navigator.clipboard.writeText(content)
     toast.success("Message copied")
   }, [])
 
@@ -142,8 +142,8 @@ export const ChatMessagesList = ({
         const { error } = await supabase.from("messages").delete().eq("id", messageId)
         if (error) throw error
         toast.success("Message deleted")
-        queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-        queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
       } catch (error) {
         console.error("Failed to delete message:", error)
         toast.error("Failed to delete message")

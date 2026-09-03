@@ -115,10 +115,10 @@ export function useNotificationPreferences() {
           .single()
 
         if (createError) throw createError
-        return newPrefs as NotificationPreferences
+        return newPrefs
       }
 
-      return data as NotificationPreferences
+      return data
     },
     enabled: !!user?.id && !!profile?.organization_id,
   })
@@ -138,7 +138,7 @@ export function useNotificationPreferences() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notification-preferences", user?.id] })
+      void queryClient.invalidateQueries({ queryKey: ["notification-preferences", user?.id] })
       toast({
         title: "Preferences saved",
         description: "Your notification preferences have been updated.",

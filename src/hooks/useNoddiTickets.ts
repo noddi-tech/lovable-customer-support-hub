@@ -84,10 +84,10 @@ function useTicketMutation<TVars>(
     mutationFn: fn,
     onSuccess: (_data, vars) => {
       const id = ticketIdOf?.(vars)
-      queryClient.invalidateQueries({ queryKey: noddiTicketKeys.all })
+      void queryClient.invalidateQueries({ queryKey: noddiTicketKeys.all })
       if (id) {
-        queryClient.invalidateQueries({ queryKey: noddiTicketKeys.detail(id) })
-        queryClient.invalidateQueries({ queryKey: noddiTicketKeys.events(id) })
+        void queryClient.invalidateQueries({ queryKey: noddiTicketKeys.detail(id) })
+        void queryClient.invalidateQueries({ queryKey: noddiTicketKeys.events(id) })
       }
       toast.success(successMessage)
     },

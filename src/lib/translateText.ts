@@ -17,7 +17,7 @@ export function parseTranslateResponse(data: unknown): string {
       throw new Error("Translation returned an unreadable result")
     }
   } else if (data && typeof data === "object") {
-    payload = data as { translatedText?: unknown }
+    payload = data
   }
 
   const translated =

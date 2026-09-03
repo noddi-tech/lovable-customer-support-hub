@@ -1,15 +1,13 @@
+import { flexRender } from "@tanstack/react-table"
 import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
-} from "@tanstack/react-table"
+  type LegacyColumnDef,
+  useLegacyTable,
+} from "@tanstack/react-table/legacy"
+import type { ColumnFiltersState, ColumnVisibilityState, SortingState } from "@tanstack/table-core"
 import { Search } from "lucide-react"
 import * as React from "react"
 import { Button } from "@/components/ui/button"
@@ -24,7 +22,7 @@ import {
 } from "@/components/ui/table"
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+  columns: LegacyColumnDef<TData, TValue>[]
   data: TData[]
   searchPlaceholder?: string
   searchColumnId?: string
@@ -40,10 +38,10 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = React.useState<ColumnVisibilityState>({})
   const [globalFilterValue, setGlobalFilterValue] = React.useState("")
 
-  const table = useReactTable({
+  const table = useLegacyTable({
     data,
     columns,
     onSortingChange: setSorting,

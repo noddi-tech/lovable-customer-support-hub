@@ -59,7 +59,7 @@ const InlineEditableRow: React.FC<Props> = ({
         return
       }
     }
-    const patch: ApplicantPatch = {} as any
+    const patch: ApplicantPatch = {}
     if (type === "number") {
       ;(patch as any)[field] = next === "" ? null : Number(next)
     } else if (
@@ -80,7 +80,7 @@ const InlineEditableRow: React.FC<Props> = ({
       setGdprWarn(true)
       return
     }
-    const patch: ApplicantPatch = {} as any
+    const patch: ApplicantPatch = {}
     ;(patch as any)[field] = next
     if (field === "gdpr_consent" && !next) {
       patch.gdpr_consent_at = null
@@ -139,7 +139,7 @@ const InlineEditableRow: React.FC<Props> = ({
           toValue={sourceWarn.to}
           isPending={updateMut.isPending}
           onConfirm={() => {
-            void persist({ source: sourceWarn.to } as ApplicantPatch)
+            void persist({ source: sourceWarn.to })
           }}
         />
       )}

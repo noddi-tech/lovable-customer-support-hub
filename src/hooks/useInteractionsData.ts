@@ -301,10 +301,10 @@ export function useReply(
     },
     onSettled: () => {
       // Always refetch after mutation settles
-      queryClient.invalidateQueries({ queryKey: ["thread", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["conversations", inboxId, status, q] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts", inboxId] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] }) // For global counts
+      void queryClient.invalidateQueries({ queryKey: ["thread", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations", inboxId, status, q] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts", inboxId] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] }) // For global counts
     },
     onSuccess: () => {
       toast.success("Reply sent successfully")

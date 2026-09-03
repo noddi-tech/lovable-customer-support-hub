@@ -45,7 +45,7 @@ const PipelineBoard: React.FC<Props> = ({ applications, stages, filters }) => {
     if (snapshotRef.current) {
       queryClient.setQueryData<PipelineApplication[]>(queryKey, snapshotRef.current)
     } else {
-      queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
+      void queryClient.invalidateQueries({ queryKey: ["pipeline-applications"] })
     }
     snapshotRef.current = null
   }

@@ -14,11 +14,13 @@ interface ResponsiveGridProps {
   as?: "div" | "section" | "nav" | "main"
 }
 
+const DEFAULT_COLS: ResponsiveValue<string> = { sm: "1", md: "2", lg: "3" }
+
 export const ResponsiveGrid: React.FC<ResponsiveGridProps> = React.memo(
   ({
     children,
     className,
-    cols = { sm: "1", md: "2", lg: "3" },
+    cols = DEFAULT_COLS,
     gap = "4",
     autoFit = false,
     minColWidth = "250px",

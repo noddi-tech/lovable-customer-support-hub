@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-description: Enforce Support Hub pre-commit/pre-push quality gate (make fix then format-check + lint + ui-guards). Use before every commit or push, when finishing a change, or when Lovable/Grok/Claude/Cursor agents are about to commit.
+description: Enforce Support Hub pre-commit/pre-push quality gate (make fix then format-check + lint:core + ui-guards). Use before every commit or push, when finishing a change, or when Lovable/Grok/Claude/Cursor agents are about to commit.
 ---
 
 # Quality gate (required before commit / push)
@@ -18,14 +18,14 @@ make quality-gate
 Equivalents (same script Husky uses):
 
 ```bash
-npm run quality:gate
+bun run quality:gate
 sh scripts/quality-gate.sh --fix-and-check
 ```
 
 ### What it does
 
 1. Autofix: Biome `--write`, ESLint `--fix`, Prettier on `*.md` / `*.mdx`
-2. Verify: `format:check` → `lint` → `ui:guards`
+2. Verify: `format:check` → `lint:core` (Biome + ESLint) → `ui:guards`
 
 ### After it runs
 

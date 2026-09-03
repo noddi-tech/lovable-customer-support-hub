@@ -179,7 +179,7 @@ export function useVoiceIntegrations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["voice-integrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["voice-integrations"] })
       toast({
         title: "Settings saved",
         description: `${variables.provider} integration settings have been updated successfully`,
@@ -203,7 +203,7 @@ export function useVoiceIntegrations() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["voice-integrations"] })
+      void queryClient.invalidateQueries({ queryKey: ["voice-integrations"] })
       toast({
         title: "Integration removed",
         description: "Voice integration has been successfully removed",

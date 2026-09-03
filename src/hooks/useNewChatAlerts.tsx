@@ -47,68 +47,70 @@ export function useNewChatAlerts() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "widget_chat_sessions" },
-        async (payload) => {
-          const session = payload.new as {
-            id: string
-            status: string
-            visitor_name: string | null
-            visitor_email: string | null
-            started_at: string | null
-            widget_config_id: string | null
-          }
+        (payload) => {
+          void (async () => {
+            const session = payload.new as {
+              id: string
+              status: string
+              visitor_name: string | null
+              visitor_email: string | null
+              started_at: string | null
+              widget_config_id: string | null
+            }
 
-          if (seenRef.current.has(session.id)) return
-          if (session.status !== "waiting" && session.status !== "active") return
+            if (seenRef.current.has(session.id)) return
+            if (session.status !== "waiting" && session.status !== "active") return
 
-          // Scope to this organization's widgets
-          if (session.widget_config_id) {
-            const { data: config } = await supabase
-              .from("widget_configs")
-              .select("id, organization_id")
-              .eq("id", session.widget_config_id)
-              .maybeSingle()
-            if (!config || config.organization_id !== organizationId) return
-          }
+            // Scope to this organization's widgets
+            if (session.widget_config_id) {
+              const { data: config } = await supabase
+                .from("widget_configs")
+                .select("id, organization_id")
+                .eq("id", session.widget_config_id)
+                .maybeSingle()
+              if (!config || config.organization_id !== organizationId) return
+            }
 
-          seenRef.current.add(session.id)
+            seenRef.current.add(session.id)
 
-          const visitorName = session.visitor_name || session.visitor_email || "New visitor"
+            const visitorName = session.visitor_name || session.visitor_email || "New visitor"
 
-          setAlerts((prev) => [
-            {
-              sessionId: session.id,
-              visitorName,
-              startedAt: session.started_at || new Date().toISOString(),
-            },
-            ...prev.filter((a) => a.sessionId !== session.id),
-          ])
+            setAlerts((prev) => [
+              {
+                sessionId: session.id,
+                visitorName,
+                startedAt: session.started_at || new Date().toISOString(),
+              },
+              ...prev.filter((a) => a.sessionId !== session.id),
+            ])
 
-          playNotificationSound()
-          queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
-          queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
+            playNotificationSound()
+            void queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
+            void queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
 
-          if (permission === "granted" && desktopChatEnabled) {
-            const notification = await showNotification({
-              title: "💬 New live chat",
-              body: `${visitorName} is waiting for a reply`,
-              tag: `chat-session-${session.id}`,
-              requireInteraction: true,
-              data: { sessionId: session.id },
-            })
-            if (notification) {
-              notification.onclick = () => {
-                window.focus()
-                window.location.href = "/interactions/chat/active"
-                notification.close()
+            if (permission === "granted" && desktopChatEnabled) {
+              const notification = await showNotification({
+                title: "💬 New live chat",
+                body: `${visitorName} is waiting for a reply`,
+                tag: `chat-session-${session.id}`,
+                requireInteraction: true,
+                data: { sessionId: session.id },
+              })
+              if (notification) {
+                notification.onclick = () => {
+                  window.focus()
+                  window.location.href = "/interactions/chat/active"
+                  notification.close()
+                }
               }
             }
-          }
+          })()
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [
     user,

@@ -1,4 +1,4 @@
-import { AlertTriangle, Chrome, Cookie, Copy, ExternalLink, Key, Shield, Wifi } from "lucide-react"
+import { AlertTriangle, Compass, Cookie, Copy, ExternalLink, Key, Shield, Wifi } from "lucide-react"
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -50,7 +50,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
 
   // Detect browser on mount
   useEffect(() => {
-    detectBrowser().then(setBrowserInfo)
+    void detectBrowser().then(setBrowserInfo)
   }, [])
 
   const handleQuickTest = () => {
@@ -201,7 +201,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
         {/* Browser-Specific Warning */}
         {browserInfo && !browserInfo.isSupported && (
           <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-            <Chrome className="h-4 w-4 text-amber-600" />
+            <Compass className="h-4 w-4 text-amber-600" />
             <AlertDescription className="ml-2">
               <strong>
                 {t("aircall.blocked.browser.unsupported", { browser: browserInfo.name })}
@@ -249,7 +249,7 @@ const AircallBlockedModalComponent: React.FC<AircallBlockedModalProps> = ({
                   onClick={() => window.open(getChromeDownloadUrl(), "_blank")}
                   variant="default"
                 >
-                  <Chrome className="h-4 w-4 mr-2" />
+                  <Compass className="h-4 w-4 mr-2" />
                   {t("aircall.blocked.browser.downloadChrome")}
                 </Button>
               </div>

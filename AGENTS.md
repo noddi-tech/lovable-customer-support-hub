@@ -8,22 +8,22 @@ Do **not** commit or push until the quality gate passes.
 
 ```bash
 make quality-gate
-# equivalent: npm run quality:gate
+# equivalent: bun run quality:gate
 # equivalent: sh scripts/quality-gate.sh --fix-and-check
 ```
 
 That gate:
 
-1. **Autofix** — `npm run fix` (Biome write + ESLint `--fix` + Prettier Markdown)
-2. **Verify** — `format:check` + `lint` + `ui:guards`
+1. **Autofix** — `bun run fix` (Biome write + ESLint `--fix` + Prettier Markdown)
+2. **Verify** — `format:check` + `lint:core` + `ui:guards`
 
 Husky:
 
-- `.husky/pre-commit` → `lint-staged` → `quality-gate.sh --fix-and-check` → `npm run lint:strict`
+- `.husky/pre-commit` → `lint-staged` → `quality-gate.sh --fix-and-check` → `bun run lint`
   (full suite: Biome, ESLint, tabs/pane, Knip, dependency-cruiser, secrets, jscpd, Semgrep, audit)
 - `.husky/pre-push` → `scripts/quality-gate.sh --fix-and-check`
 
-Strict suite details: `make lint-strict` — see `docs/dev/linting.md`.
+Full suite: `make lint` (alias: `make lint-strict`) — see `docs/dev/linting.md`.
 
 Agents must run it themselves even when hooks might be skipped (Lovable remote commits, `--no-verify`, sandboxes without Husky).
 
@@ -59,8 +59,8 @@ Agents must not use `--no-verify` unless the user explicitly orders a bypass.
 | Dev server                  | `make dev`               |
 | Autofix                     | `make fix`               |
 | Quality gate (fix + verify) | `make quality-gate`      |
-| Lint only                   | `make lint`              |
-| Strict lint suite           | `make lint-strict`       |
+| All linters                 | `make lint`              |
+| Lint core (Biome + ESLint)  | `make lint-core`         |
 | Format check                | `make format-check`      |
 | Unit tests                  | `make test`              |
 | Full local CI-ish           | `make check` / `make ci` |

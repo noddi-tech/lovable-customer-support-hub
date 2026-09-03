@@ -100,7 +100,7 @@ export function useOrganizations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizations"] })
       toast.success("Organization created successfully")
     },
     onError: (error) => {
@@ -137,7 +137,7 @@ export function useOrganizations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizations"] })
       toast.success("Organization updated successfully")
     },
     onError: (error) => {
@@ -208,7 +208,7 @@ export function useOrganizations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
       toast.success("User added to organization")
     },
     onError: (error) => {
@@ -266,8 +266,8 @@ export function useOrganizations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
-      queryClient.invalidateQueries({ queryKey: ["organization-members"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-memberships"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization-members"] })
       toast.success("User removed from organization")
     },
     onError: (error) => {
@@ -311,7 +311,7 @@ export function useOrganizations() {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organizations"] })
+      void queryClient.invalidateQueries({ queryKey: ["organizations"] })
       toast.success("Organization deleted successfully")
     },
     onError: (error) => {

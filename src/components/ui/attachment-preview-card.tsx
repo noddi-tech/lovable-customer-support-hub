@@ -75,7 +75,7 @@ export const AttachmentPreviewCard: React.FC<AttachmentPreviewCardProps> = ({
   // Load image thumbnail
   useEffect(() => {
     if (category === "image" && attachment.storageKey) {
-      createBlobUrl(attachment, messageId).then((url) => {
+      void createBlobUrl(attachment, messageId).then((url) => {
         if (url) setThumbnailUrl(url)
       })
     }

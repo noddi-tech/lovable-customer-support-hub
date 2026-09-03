@@ -134,8 +134,8 @@ export function useSendCandidateForm() {
     },
     onSuccess: (_data, vars) => {
       // Memory #13: invalidate after token creation.
-      qc.invalidateQueries({ queryKey: ["candidate-form-tokens", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["candidate-form-tokens", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
     },
     onError: (err: any) => {
       toast.error(err?.message ?? "Kunne ikke sende skjema")
@@ -155,8 +155,8 @@ export function useRevokeCandidateForm() {
       return data
     },
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: ["candidate-form-tokens", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["candidate-form-tokens", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
       toast.success("Lenken er trukket tilbake")
     },
     onError: (err: any) => {

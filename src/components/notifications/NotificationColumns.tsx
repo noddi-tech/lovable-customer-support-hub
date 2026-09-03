@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table"
+import type { LegacyColumnDef as ColumnDef } from "@tanstack/react-table/legacy"
 import { formatDistanceToNow } from "date-fns"
 import { ArrowUpDown, AtSign, Bell, Check, Eye, Phone, Trash2, UserCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"

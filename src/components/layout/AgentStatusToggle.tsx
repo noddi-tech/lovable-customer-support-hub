@@ -133,7 +133,7 @@ export const AgentStatusToggle: React.FC<AgentStatusToggleProps> = ({
                   key={statusKey}
                   onSelect={(e) => {
                     e.preventDefault()
-                    setStatus(statusKey)
+                    void setStatus(statusKey)
                     toast.success(statusMessages[statusKey].title, {
                       description: statusMessages[statusKey].description,
                     })

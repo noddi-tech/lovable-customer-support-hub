@@ -35,7 +35,7 @@ export function useEntityTags(entityType: TaggableEntity) {
         .select("tag_id, entity_id")
         .eq("entity_type", entityType)
       if (error) throw error
-      return (data || []) as TagLinkRow[]
+      return data || []
     },
   })
 
@@ -81,7 +81,7 @@ export function useEntityTags(entityType: TaggableEntity) {
   )
 
   const invalidate = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["tag-links"] })
+    void queryClient.invalidateQueries({ queryKey: ["tag-links"] })
   }, [queryClient])
 
   const addTag = useCallback(

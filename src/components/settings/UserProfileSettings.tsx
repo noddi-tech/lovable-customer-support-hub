@@ -94,7 +94,7 @@ export const UserProfileSettings = () => {
 
       if (error) throw error
 
-      queryClient.invalidateQueries({ queryKey: ["profile", user.id] })
+      void queryClient.invalidateQueries({ queryKey: ["profile", user.id] })
       toast.success("Profile updated successfully")
     } catch (error) {
       console.error("Profile update error:", error)

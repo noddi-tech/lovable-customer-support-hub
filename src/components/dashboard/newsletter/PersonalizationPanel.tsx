@@ -25,7 +25,7 @@ export const PersonalizationPanel: React.FC = () => {
   const [customTag, setCustomTag] = useState("")
 
   const handleCopyTag = (tag: string) => {
-    navigator.clipboard.writeText(tag)
+    void navigator.clipboard.writeText(tag)
     toast({
       title: t("copied"),
       description: `${tag} ${t("copiedToClipboard")}`,

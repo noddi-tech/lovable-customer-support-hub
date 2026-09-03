@@ -68,7 +68,7 @@ export function CaseCustomerPicker({ value, onChange, disabled }: CaseCustomerPi
         .select("id, full_name, email, phone")
         .single()
       if (error) throw error
-      queryClient.invalidateQueries({ queryKey: ["customers-list"] })
+      void queryClient.invalidateQueries({ queryKey: ["customers-list"] })
       onChange({ id: data.id, label: labelFor(data) })
       setOpen(false)
       setSearch("")

@@ -50,9 +50,9 @@ export const ConversationMigrator: React.FC<ConversationMigratorProps> = ({
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
-      queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbox-counts"] })
 
       toast({
         title: t("dashboard.migrationSuccess", "Migration Successful"),

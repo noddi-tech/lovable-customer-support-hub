@@ -30,9 +30,9 @@ export function useConversationStatusActions() {
         if (error) throw error
 
         toast.success(STATUS_LABEL[status])
-        queryClient.invalidateQueries({ queryKey: ["conversations"] })
-        queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
-        queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
       } catch (error) {
         logger.error("Failed to change conversation status", error, "useConversationStatusActions")
         toast.error("Failed to change status")

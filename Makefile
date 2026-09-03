@@ -3,9 +3,9 @@
 
 .DEFAULT_GOAL := help
 
-NPM  ?= npm
-NPX  ?= npx
-VITE ?= $(NPX) vite
+BUN  ?= bun
+BUNX ?= bunx
+VITE ?= $(BUNX) vite
 
 RUN_DIR   := .run
 VITE_PID  := $(RUN_DIR)/vite.pid
@@ -16,7 +16,7 @@ VITE_PORT ?= 8080
 	up down \
 	dev start serve preview \
 	build build-dev build-widget \
-	lint lint-eslint lint-biome lint-tabs lint-pane lint-all \
+	lint lint-core lint-eslint lint-biome lint-tabs lint-pane lint-all \
 	lint-knip lint-deps lint-secrets lint-dupes lint-semgrep lint-audit lint-strict \
 	format format-check format-md format-md-check fix fix-unsafe \
 	quality-gate quality-gate-check \
@@ -37,8 +37,8 @@ help: ## Show available targets
 # Setup
 # ---------------------------------------------------------------------------
 
-install: ## Install npm dependencies
-	$(NPM) ci --legacy-peer-deps
+install: ## Install bun dependencies (frozen lockfile)
+	$(BUN) install --frozen-lockfile
 
 setup: install env ## Install deps and ensure .env exists
 
@@ -62,7 +62,7 @@ up: ## Start local Supabase + Vite (background)
 		echo "→ Vite already running (pid $$(cat "$(VITE_PID)"))"; \
 	else \
 		echo "→ Starting Vite on http://localhost:$(VITE_PORT)…"; \
-		( $(NPM) run dev >"$(VITE_LOG)" 2>&1 & echo $$! >"$(VITE_PID)" ); \
+		( $(BUN) run dev >"$(VITE_LOG)" 2>&1 & echo $$! >"$(VITE_PID)" ); \
 		sleep 1; \
 		if [ -f "$(VITE_PID)" ] && kill -0 $$(cat "$(VITE_PID)") 2>/dev/null; then \
 			echo "→ Vite started (pid $$(cat "$(VITE_PID)"), log $(VITE_LOG))"; \
@@ -100,20 +100,20 @@ down: ## Stop Vite + local Supabase
 	@echo "Stack is down."
 
 dev: ## Start Vite dev server (foreground)
-	$(NPM) run dev
+	$(BUN) run dev
 
 start: dev ## Alias for dev
 
 serve: dev ## Alias for dev
 
 preview: ## Preview production build (run build first)
-	$(NPM) run preview
+	$(BUN) run preview
 
 build: ## Production build
-	$(NPM) run build
+	$(BUN) run build
 
 build-dev: ## Development-mode build
-	$(NPM) run build:dev
+	$(BUN) run build:dev
 
 build-widget: ## Build embeddable widget bundle
 	$(VITE) build --config vite.widget.config.ts
@@ -125,100 +125,103 @@ build-widget: ## Build embeddable widget bundle
 # domain scripts (tabs/pane).
 # ---------------------------------------------------------------------------
 
-lint: ## Biome (error-level) + ESLint (hooks/react/type-aware curated)
-	$(NPM) run lint
+lint: ## All linters (Biome, ESLint, tabs, pane, knip, deps, secrets, dupes, semgrep, audit)
+	$(BUN) run lint
 
-lint-eslint: ## ESLint only (hooks, react, import-x, type-aware)
-	$(NPM) run lint:eslint
+lint-core: ## Fast path: Biome + ESLint only (warnings fail)
+	$(BUN) run lint:core
 
-lint-biome: ## Biome check (error-level)
-	$(NPM) run lint:biome
+lint-eslint: ## ESLint only (hooks, react, import-x, type-aware; max-warnings=0)
+	$(BUN) run lint:eslint
+
+lint-biome: ## Biome check (warnings fail)
+	$(BUN) run lint:biome
 
 lint-tabs: ## Lint unsafe tab/button overflow patterns
-	$(NPM) run lint:tabs
+	$(BUN) run lint:tabs
 
 lint-pane: ## Lint pane scroll layout anti-patterns
-	$(NPM) run lint:pane
+	$(BUN) run lint:pane
 
 lint-all: ## Biome + ESLint + domain linters (tabs/pane)
-	$(NPM) run lint:all
+	$(BUN) run lint:all
 
 lint-knip: ## Unused files / dependencies (Knip)
-	$(NPM) run lint:knip
+	$(BUN) run lint:knip
 
 lint-deps: ## Architecture boundaries (dependency-cruiser)
-	$(NPM) run lint:deps
+	$(BUN) run lint:deps
 
 lint-secrets: ## Secret scanning (gitleaks or secretlint)
-	$(NPM) run lint:secrets
+	$(BUN) run lint:secrets
 
 lint-dupes: ## Copy-paste detection (jscpd)
-	$(NPM) run lint:dupes
+	$(BUN) run lint:dupes
 
 lint-semgrep: ## SAST patterns (semgrep; skips if not installed)
-	$(NPM) run lint:semgrep
+	$(BUN) run lint:semgrep
 
-lint-audit: ## npm audit (high+)
-	$(NPM) run lint:audit
+lint-audit: ## bun audit (critical+)
+	$(BUN) run lint:audit
 
-lint-strict: ## Full strict suite (lint:all + knip + deps + secrets + dupes + audit)
-	$(NPM) run lint:strict
+lint-strict: ## Alias for make lint (full suite; kept for older docs/hooks)
+	$(BUN) run lint:strict
 
 format: ## Format JS/TS via Biome + Markdown via Prettier
-	$(NPM) run format
+	$(BUN) run format
 
 format-check: ## Check Biome + Markdown formatting without writing (CI)
-	$(NPM) run format:check
+	$(BUN) run format:check
 
 format-md: ## Format Markdown/MDX with Prettier only
-	$(NPM) run format:md
+	$(BUN) run format:md
 
 format-md-check: ## Check Markdown/MDX formatting only
-	$(NPM) run format:md:check
+	$(BUN) run format:md:check
 
 fix: ## Apply safe autofixes (Biome + ESLint + Prettier Markdown)
-	$(NPM) run fix
+	$(BUN) run fix
 
 fix-unsafe: ## Apply autofixes including Biome --unsafe rewrites
-	$(NPM) run fix:unsafe
+	$(BUN) run fix:unsafe
 
-quality-gate: ## Autofix then format-check + lint + ui-guards (pre-push)
-	$(NPM) run quality:gate
+quality-gate: ## Autofix then format-check + lint:core + ui-guards (pre-push)
+	$(BUN) run quality:gate
 
-quality-gate-check: ## Verify only (no writes): format-check + lint + ui-guards
-	$(NPM) run quality:gate:check
+quality-gate-check: ## Verify only (no writes): format-check + lint:core + ui-guards
+	$(BUN) run quality:gate:check
 
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------
 
 typecheck: ## TypeScript check (no emit)
-	$(NPM) run typecheck
+	$(BUN) run typecheck
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
 test: ## Run unit/integration tests (Vitest)
-	$(NPM) run test
+	$(BUN) run test
 
 test-watch: ## Run Vitest in watch mode
-	$(NPM) run test:watch
+	$(BUN) run test:watch
 
 test-coverage: ## Run tests with coverage
-	$(NPM) run test:coverage
+	$(BUN) run test:coverage
 
 test-ui: ## Run long-labels / tabs UI regression tests
-	$(NPM) run test:tabs
+	$(BUN) run test:tabs
 
 ui-guards: ## Pre-commit UI guardrails (tabs lint + long-labels)
-	$(NPM) run ui:guards
+	$(BUN) run ui:guards
 
 e2e: ## Run Playwright end-to-end tests
-	$(NPX) playwright test
+	$(BUNX) playwright test
 
 e2e-ui: ## Run Playwright with interactive UI
-	$(NPX) playwright test --ui
+	$(BUNX) playwright test --ui
 
 # ---------------------------------------------------------------------------
 # Codegen / docs
@@ -229,13 +232,13 @@ docs-api: generate-openapi ## Generate OpenAPI docs (alias)
 generate: generate-openapi generate-edge-functions ## Regenerate OpenAPI + edge-function manifest
 
 generate-openapi: ## Generate OpenAPI spec into src/data
-	$(NPM) run docs:api
+	$(BUN) run docs:api
 
 generate-edge-functions: ## Generate edge-functions manifest
-	$(NPX) tsx scripts/generate-edge-functions-manifest.ts
+	$(BUNX) tsx scripts/generate-edge-functions-manifest.ts
 
 sync-noddi-schema: ## Sync Noddi API schema types
-	$(NPX) tsx scripts/sync-noddi-schema.ts
+	$(BUNX) tsx scripts/sync-noddi-schema.ts
 
 # ---------------------------------------------------------------------------
 # Supabase (local)

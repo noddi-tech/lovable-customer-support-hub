@@ -180,7 +180,7 @@ export function AutonomyDashboard({ organizationId }: AutonomyDashboardProps) {
     },
     onSuccess: () => {
       toast.success("Max level updated")
-      queryClient.invalidateQueries({ queryKey: ["autonomy-topics", organizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["autonomy-topics", organizationId] })
     },
     onError: () => toast.error("Failed to update max level"),
   })

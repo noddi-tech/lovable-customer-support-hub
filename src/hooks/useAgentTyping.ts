@@ -66,10 +66,10 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
       clearTimeout(typingTimeoutRef.current)
     }
 
-    sendTypingStatus(true)
+    void sendTypingStatus(true)
 
     typingTimeoutRef.current = setTimeout(() => {
-      sendTypingStatus(false)
+      void sendTypingStatus(false)
     }, 3000)
   }, [sendTypingStatus, enabled])
 
@@ -78,7 +78,7 @@ export function useAgentTyping({ conversationId, enabled = true }: UseAgentTypin
       clearTimeout(typingTimeoutRef.current)
       typingTimeoutRef.current = null
     }
-    sendTypingStatus(false)
+    void sendTypingStatus(false)
   }, [sendTypingStatus])
 
   // Cleanup on unmount or conversation change

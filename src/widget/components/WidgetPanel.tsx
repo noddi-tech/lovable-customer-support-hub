@@ -185,7 +185,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
     const stored = readStoredChatSession()
     if (!stored) return
 
-    ;(async () => {
+    void (async () => {
       const live = await getChatSession(stored.sessionId)
       if (cancelled) return
       if (!live || live.status === "ended" || live.status === "abandoned") {

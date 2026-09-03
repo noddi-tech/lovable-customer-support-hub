@@ -201,8 +201,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
       )
       const subjectText =
         conversation.subject || t("dashboard.conversation.noSubject", "No Subject")
-      const statusCfg = statusConfig[conversation.status as keyof typeof statusConfig]
-      const priorityCfg = priorityConfig[conversation.priority as keyof typeof priorityConfig]
+      const statusCfg = statusConfig[conversation.status]
+      const priorityCfg = priorityConfig[conversation.priority]
       const waitingTime = formatCompactTime(conversation.received_at || conversation.updated_at)
       const slaBorder = getSLABorderColor(conversation.slaStatus)
       const receivedRaw = conversation.received_at || conversation.updated_at
@@ -654,10 +654,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
 
             {/* SLA */}
             <div className="p-2 w-28 shrink-0">
-              <SLABadge
-                status={conversation.slaStatus as any}
-                slaBreachAt={conversation.sla_breach_at}
-              />
+              <SLABadge status={conversation.slaStatus} slaBreachAt={conversation.sla_breach_at} />
             </div>
 
             {/* Priority */}
@@ -871,10 +868,7 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
 
           {/* SLA */}
           <TableCell className="p-2 w-28">
-            <SLABadge
-              status={conversation.slaStatus as any}
-              slaBreachAt={conversation.sla_breach_at}
-            />
+            <SLABadge status={conversation.slaStatus} slaBreachAt={conversation.sla_breach_at} />
           </TableCell>
 
           {/* Priority */}

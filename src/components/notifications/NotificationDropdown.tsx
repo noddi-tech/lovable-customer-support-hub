@@ -73,7 +73,7 @@ export function NotificationDropdown() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
     },
   })
 
@@ -84,9 +84,9 @@ export function NotificationDropdown() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
     },
   })
 
@@ -112,8 +112,8 @@ export function NotificationDropdown() {
       })
 
       // Also invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
 
       toast({
         title: t("dashboard.notifications.success"),

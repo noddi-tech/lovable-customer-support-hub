@@ -170,7 +170,7 @@ const BucketCard = ({ bucket, integration, onUpdate, isPending }: BucketCardProp
           <Label className="text-xs">Pingmetode</Label>
           <Select
             value={mode}
-            onValueChange={(v) => update({ mention_mode: v as SlackMentionMode })}
+            onValueChange={(v) => update({ mention_mode: v })}
             disabled={isPending}
           >
             <SelectTrigger>

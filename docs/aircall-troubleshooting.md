@@ -221,7 +221,7 @@ The `showWorkspace()` and `hideWorkspace()` methods were dispatching custom even
 Ensure both React Query packages are at the same version:
 
 ```bash
-npm install @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
+bun add @tanstack/react-query@^5.90.2 @tanstack/react-query-devtools@^5.90.2
 ```
 
 ### 5. SDK Not Initializing
@@ -438,7 +438,7 @@ ngrok http 3000 --subdomain=yourcompany-aircall
 **Using localtunnel:**
 
 ```bash
-npm install -g localtunnel
+bun add -g localtunnel
 lt --port 3000 --subdomain yourcompany-aircall
 ```
 

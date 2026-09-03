@@ -68,7 +68,7 @@ export const VoiceCustomerSidebar: React.FC<VoiceCustomerSidebarProps> = ({
     },
     onSuccess: () => {
       toast({ title: "Email updated successfully" })
-      queryClient.invalidateQueries({ queryKey: ["calls"] })
+      void queryClient.invalidateQueries({ queryKey: ["calls"] })
       setEmailToAdd("")
       setError(null)
     },

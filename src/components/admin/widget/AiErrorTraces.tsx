@@ -132,7 +132,7 @@ export const AiErrorTraces: React.FC<AiErrorTracesProps> = ({ organizationId }) 
     enabled: !!organizationId,
   })
 
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = (conversationId: string) => {
     if (expandedId === conversationId) {
       setExpandedId(null)
       return

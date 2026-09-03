@@ -263,10 +263,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(
             )}
             {/* Presence Avatars - show who's viewing this conversation */}
             <PresenceAvatarStack conversationId={conversation.id} size="sm" maxAvatars={2} />
-            <SLABadge
-              status={conversation.slaStatus as any}
-              slaBreachAt={conversation.sla_breach_at}
-            />
+            <SLABadge status={conversation.slaStatus} slaBreachAt={conversation.sla_breach_at} />
             <Badge className={cn("px-1.5 py-0 text-xs", statusColors[conversation.status])}>
               {computedValues.statusLabel}
             </Badge>

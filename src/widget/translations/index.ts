@@ -71,7 +71,7 @@ export function normalizeWidgetLanguage(value?: string | null): string | null {
 export function getWidgetTranslations(language: string): WidgetTranslations {
   // Merge over English so newly added keys never render as undefined in a
   // language whose file has not been updated yet.
-  return { ...en, ...(translations[language] || {}) } as WidgetTranslations
+  return { ...en, ...(translations[language] || {}) }
 }
 
 // Default English values (matches database defaults)

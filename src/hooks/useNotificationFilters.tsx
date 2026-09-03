@@ -143,7 +143,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
           data: n.data as Record<string, any> | null,
           priority: getPriority(n),
           category,
-        } as EnhancedNotification
+        }
       })
       .filter((n): n is EnhancedNotification => n !== null)
   }, [notifications, user])
@@ -217,10 +217,10 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
     },
   })
 
@@ -236,10 +236,10 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
     },
   })
 
@@ -250,18 +250,18 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
-      queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      void queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
+      void queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
     },
   })
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["notifications"] })
-    queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
-    queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
-    queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+    void queryClient.invalidateQueries({ queryKey: ["unread-notifications-count"] })
+    void queryClient.invalidateQueries({ queryKey: ["notifications-unread-total"] })
+    void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
   }
 
   // Bulk mark as read / unread

@@ -43,8 +43,8 @@ export function useRetentionConfig(organizationId: string | null) {
       return Number(data ?? 0)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-audit-retention", organizationId] })
-      qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-audit-retention", organizationId] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-audit-events"] })
     },
   })
 

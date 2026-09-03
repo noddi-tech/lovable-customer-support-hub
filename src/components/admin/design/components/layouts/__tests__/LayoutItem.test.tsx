@@ -15,24 +15,19 @@ describe("LayoutItem", () => {
   })
 
   describe("Flex Properties", () => {
-    it("applies flex classes correctly", () => {
-      const flexValues = ["none", "auto", "1", "initial"] as const
+    it.each([
+      { flex: "none" as const, expected: "flex-none" },
+      { flex: "auto" as const, expected: "flex-auto" },
+      { flex: "1" as const, expected: "flex-1" },
+      { flex: "initial" as const, expected: "flex-initial" },
+    ])("applies flex $flex class correctly", ({ flex, expected }) => {
+      render(
+        <LayoutItem flex={flex} data-testid={`item-${flex}`}>
+          <div>Content</div>
+        </LayoutItem>,
+      )
 
-      flexValues.forEach((flex) => {
-        const { unmount } = render(
-          <LayoutItem flex={flex} data-testid={`item-${flex}`}>
-            <div>Content</div>
-          </LayoutItem>,
-        )
-
-        const item = screen.getByTestId(`item-${flex}`)
-        if (flex === "none") {
-          expect(item).toHaveClass("flex-none")
-        } else {
-          expect(item).toHaveClass(`flex-${flex}`)
-        }
-        unmount()
-      })
+      expect(screen.getByTestId(`item-${flex}`)).toHaveClass(expected)
     })
 
     it("applies grow and shrink classes correctly", () => {
@@ -62,24 +57,25 @@ describe("LayoutItem", () => {
       })
     })
 
-    it("applies basis classes correctly", () => {
-      const basisValues = ["auto", "1/2", "1/3", "1/4", "full"]
+    it("does not apply flex-basis-auto for auto basis", () => {
+      render(
+        <LayoutItem basis="auto" data-testid="item-auto">
+          <div>Content</div>
+        </LayoutItem>,
+      )
 
-      basisValues.forEach((basis) => {
-        const { unmount } = render(
-          <LayoutItem basis={basis} data-testid={`item-${basis.replace("/", "-")}`}>
-            <div>Content</div>
-          </LayoutItem>,
-        )
+      expect(screen.getByTestId("item-auto")).not.toHaveClass("flex-basis-auto")
+    })
 
-        const item = screen.getByTestId(`item-${basis.replace("/", "-")}`)
-        if (basis === "auto") {
-          expect(item).not.toHaveClass("flex-basis-auto")
-        } else {
-          expect(item).toHaveClass(`flex-basis-${basis}`)
-        }
-        unmount()
-      })
+    it.each(["1/2", "1/3", "1/4", "full"] as const)("applies basis %s class correctly", (basis) => {
+      const testId = `item-${basis.replace("/", "-")}`
+      render(
+        <LayoutItem basis={basis} data-testid={testId}>
+          <div>Content</div>
+        </LayoutItem>,
+      )
+
+      expect(screen.getByTestId(testId)).toHaveClass(`flex-basis-${basis}`)
     })
   })
 
@@ -177,24 +173,29 @@ describe("LayoutItem", () => {
   })
 
   describe("Alignment", () => {
-    it("applies alignment classes correctly", () => {
-      const alignments = ["auto", "start", "center", "end", "stretch"] as const
+    it("does not apply self-auto for auto alignment", () => {
+      render(
+        <LayoutItem align="auto" data-testid="item-auto">
+          <div>Content</div>
+        </LayoutItem>,
+      )
 
-      alignments.forEach((align) => {
-        const { unmount } = render(
-          <LayoutItem align={align} data-testid={`item-${align}`}>
-            <div>Content</div>
-          </LayoutItem>,
-        )
+      expect(screen.getByTestId("item-auto")).not.toHaveClass("self-auto")
+    })
 
-        const item = screen.getByTestId(`item-${align}`)
-        if (align === "auto") {
-          expect(item).not.toHaveClass("self-auto")
-        } else {
-          expect(item).toHaveClass(`self-${align}`)
-        }
-        unmount()
-      })
+    it.each([
+      { align: "start" as const, expected: "self-start" },
+      { align: "center" as const, expected: "self-center" },
+      { align: "end" as const, expected: "self-end" },
+      { align: "stretch" as const, expected: "self-stretch" },
+    ])("applies alignment $align class correctly", ({ align, expected }) => {
+      render(
+        <LayoutItem align={align} data-testid={`item-${align}`}>
+          <div>Content</div>
+        </LayoutItem>,
+      )
+
+      expect(screen.getByTestId(`item-${align}`)).toHaveClass(expected)
     })
   })
 

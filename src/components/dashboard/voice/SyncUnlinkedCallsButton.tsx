@@ -75,9 +75,9 @@ export const SyncUnlinkedCallsButton = () => {
       }
 
       // Refresh calls and customers data
-      queryClient.invalidateQueries({ queryKey: ["calls"] })
-      queryClient.invalidateQueries({ queryKey: ["customers"] })
-      queryClient.invalidateQueries({ queryKey: ["noddi-customer-lookup"] })
+      void queryClient.invalidateQueries({ queryKey: ["calls"] })
+      void queryClient.invalidateQueries({ queryKey: ["customers"] })
+      void queryClient.invalidateQueries({ queryKey: ["noddi-customer-lookup"] })
     } catch (error: any) {
       console.error("[SyncUnlinkedCallsButton] ❌ Sync error:", error)
       toast.error("Failed to sync calls", {

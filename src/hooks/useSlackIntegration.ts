@@ -100,7 +100,7 @@ export const useSlackIntegration = () => {
           (data.critical_ops_mention_mode as SlackMentionMode) || "channel",
         critical_category_routing:
           (data.critical_category_routing as Record<string, "tech" | "ops">) || {},
-      } as SlackIntegration
+      }
     },
     enabled: !!currentOrganizationId,
   })
@@ -183,7 +183,7 @@ export const useSlackIntegration = () => {
       return data as { success: boolean; team_name: string; team_id: string }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
       toast.success(`Connected to ${data.team_name}!`)
     },
     onError: (error: Error) => {
@@ -217,8 +217,8 @@ export const useSlackIntegration = () => {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
-      queryClient.invalidateQueries({ queryKey: ["slack-channels"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-channels"] })
       toast.success("Slack disconnected successfully")
     },
     onError: (error: Error) => {
@@ -291,7 +291,7 @@ export const useSlackIntegration = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
       toast.success("Slack settings saved")
     },
     onError: (error: Error) => {
@@ -357,8 +357,8 @@ export const useSlackIntegration = () => {
       return data as { success: boolean; team_name: string; team_id: string }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
-      queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
       toast.success(`Secondary workspace connected: ${data.team_name}`)
     },
     onError: (error: Error) => {
@@ -391,8 +391,8 @@ export const useSlackIntegration = () => {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
-      queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-integration"] })
+      void queryClient.invalidateQueries({ queryKey: ["slack-secondary-channels"] })
       toast.success("Secondary workspace disconnected")
     },
     onError: (error: Error) => {

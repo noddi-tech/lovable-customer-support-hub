@@ -144,7 +144,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
+      void queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
       setShowCreateDialog(false)
       setNewFlow({
         intent_key: "",
@@ -173,7 +173,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
+      void queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
       toast.success("Flow updated")
     },
     onError: (err: any) => toast.error(err.message),
@@ -185,7 +185,7 @@ export const ActionFlowsManager: React.FC<ActionFlowsManagerProps> = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
+      void queryClient.invalidateQueries({ queryKey: ["action-flows", widgetId] })
       setExpandedFlowId(null)
       toast.success("Flow deleted")
     },

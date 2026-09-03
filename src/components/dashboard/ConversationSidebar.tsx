@@ -51,12 +51,14 @@ interface ConversationSidebarProps {
   showCustomer?: boolean
 }
 
+const EMPTY_TAGS: string[] = []
+
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   customer,
   status = "open",
   priority = "normal",
   assignedTo,
-  tags = [],
+  tags = EMPTY_TAGS,
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,

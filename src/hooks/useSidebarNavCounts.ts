@@ -71,7 +71,7 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
     const invalidate = () => {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
+        void queryClient.invalidateQueries({ queryKey: ["sidebar-nav-counts"] })
       }, 2000)
     }
 
@@ -86,14 +86,14 @@ export const useSidebarNavCounts = (): SidebarNavCounts => {
       .on("postgres_changes", { event: "*", schema: "public", table: "cases" }, () => {
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["case-queue-counts"] })
+          void queryClient.invalidateQueries({ queryKey: ["case-queue-counts"] })
         }, 2000)
       })
       .subscribe()
 
     return () => {
       if (timer) clearTimeout(timer)
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [user, loading, queryClient])
 

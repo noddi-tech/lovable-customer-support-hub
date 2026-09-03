@@ -47,7 +47,7 @@ export function SmsSection() {
         .eq("is_active", true)
         .order("name")
       if (error) throw error
-      return (data ?? []) as InboxRow[]
+      return data ?? []
     },
   })
 
@@ -69,8 +69,8 @@ export function SmsSection() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-inboxes-sms-admin"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-sms-inboxes"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-inboxes-sms-admin"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-sms-inboxes"] })
       toast.success("SMS-konfigurasjon lagret")
     },
     onError: (e: any) => toast.error(e?.message || "Kunne ikke lagre"),

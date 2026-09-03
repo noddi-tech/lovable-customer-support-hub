@@ -53,7 +53,7 @@ export const InlineSmsThread: React.FC<Props> = ({ conversationId, applicantId, 
       })
       setBody("")
       toast.success("SMS sendt")
-      refetch()
+      void refetch()
     } catch (e: any) {
       toast.error(e?.message || "Kunne ikke sende SMS")
     }

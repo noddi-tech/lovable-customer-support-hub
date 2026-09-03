@@ -122,7 +122,9 @@ export function useFinalizeMetaOAuth() {
       return invokeOrThrow<{ integration: MetaIntegration }>("meta-oauth-finalize", input)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration", currentOrganizationId] })
+      void qc.invalidateQueries({
+        queryKey: ["recruitment-meta-integration", currentOrganizationId],
+      })
     },
   })
 }
@@ -153,7 +155,9 @@ export function useSubscribeWebhookManual() {
       return invokeOrThrow<{ success: true }>("meta-integration-subscribe-webhook", input)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["recruitment-meta-integration", currentOrganizationId] })
+      void qc.invalidateQueries({
+        queryKey: ["recruitment-meta-integration", currentOrganizationId],
+      })
     },
   })
 }

@@ -70,7 +70,7 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
         .eq("organization_id", organizationId)
         .order("name")
       if (error) throw error
-      return data as KnowledgeCategory[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",
@@ -107,7 +107,7 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Category created successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
       setCreatingCategory(false)
       setNewCategory({ name: "", color: "#3B82F6", description: "" })
     },
@@ -134,7 +134,7 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Category updated successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
       setEditingCategory(null)
     },
     onError: (error) => {
@@ -153,7 +153,7 @@ export function CategoryManager({ organizationId }: CategoryManagerProps) {
     },
     onSuccess: () => {
       toast({ title: "Category deleted successfully" })
-      queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
+      void queryClient.invalidateQueries({ queryKey: ["knowledge-categories"] })
       setDeleteConfirm(null)
     },
     onError: (error) => {

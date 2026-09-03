@@ -102,7 +102,9 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
     },
     onSuccess: (_, { rating }) => {
       toast.success(`Message rated ${rating}`)
-      queryClient.invalidateQueries({ queryKey: ["ai-conversation-messages", selectedConvoId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["ai-conversation-messages", selectedConvoId],
+      })
     },
   })
 
@@ -124,7 +126,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
       }
       const { data, error } = await query
       if (error) throw error
-      return data as Conversation[]
+      return data
     },
     enabled: !!organizationId,
   })
@@ -139,7 +141,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
         .eq("conversation_id", selectedConvoId)
         .order("created_at", { ascending: true })
       if (error) throw error
-      return data as Message[]
+      return data
     },
     enabled: !!selectedConvoId,
   })

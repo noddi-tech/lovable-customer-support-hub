@@ -92,8 +92,8 @@ export function OrganizationHealthDashboard() {
   })
 
   const handleRefresh = () => {
-    refetchStats()
-    refetchActivity()
+    void refetchStats()
+    void refetchActivity()
     toast.success("Data refreshed")
   }
 

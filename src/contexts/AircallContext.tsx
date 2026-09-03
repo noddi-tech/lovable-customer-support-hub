@@ -153,7 +153,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [])
 
   // Exponential backoff reconnection logic with mutex
-  const attemptReconnect = useCallback(async () => {
+  const attemptReconnect = useCallback(() => {
     // MUTEX: Prevent multiple simultaneous reconnection attempts
     if (reconnectionInProgressRef.current) {
       console.log("[AircallProvider] Already reconnecting, skipping attempt")
@@ -195,46 +195,48 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       `[AircallProvider] Reconnection attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`,
     )
 
-    reconnectTimeout.current = setTimeout(async () => {
-      try {
-        // Get fresh configuration data
-        const aircallConfig = getIntegrationByProvider("aircall")
-        const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere
+    reconnectTimeout.current = setTimeout(() => {
+      void (async () => {
+        try {
+          // Get fresh configuration data
+          const aircallConfig = getIntegrationByProvider("aircall")
+          const everywhereConfig = aircallConfig?.configuration?.aircallEverywhere
 
-        if (!everywhereConfig?.apiId || !everywhereConfig?.apiToken) {
-          throw new Error("Missing API credentials")
+          if (!everywhereConfig?.apiId || !everywhereConfig?.apiToken) {
+            throw new Error("Missing API credentials")
+          }
+
+          await aircallPhone.initialize({
+            apiId: everywhereConfig.apiId,
+            apiToken: everywhereConfig.apiToken,
+            domainName: everywhereConfig.domainName || window.location.hostname,
+            onLogin: () => {
+              console.log("[AircallProvider] ✅ Reconnected successfully")
+              setIsConnected(true)
+              setError(null)
+              setIsReconnecting(false)
+              reconnectAttempts.current = 0
+              reconnectionInProgressRef.current = false // Release mutex
+
+              toast({
+                title: "Reconnected",
+                description: "Phone system connection restored",
+              })
+            },
+            onLogout: () => {
+              console.warn("[AircallProvider] Connection lost during reconnection")
+              setIsConnected(false)
+              reconnectionInProgressRef.current = false // Release mutex
+            },
+          })
+
+          setIsInitialized(true)
+        } catch (err: any) {
+          console.error("[AircallProvider] Reconnection error:", err)
+          reconnectionInProgressRef.current = false // Release mutex before retry
+          void attemptReconnect()
         }
-
-        await aircallPhone.initialize({
-          apiId: everywhereConfig.apiId,
-          apiToken: everywhereConfig.apiToken,
-          domainName: everywhereConfig.domainName || window.location.hostname,
-          onLogin: () => {
-            console.log("[AircallProvider] ✅ Reconnected successfully")
-            setIsConnected(true)
-            setError(null)
-            setIsReconnecting(false)
-            reconnectAttempts.current = 0
-            reconnectionInProgressRef.current = false // Release mutex
-
-            toast({
-              title: "Reconnected",
-              description: "Phone system connection restored",
-            })
-          },
-          onLogout: () => {
-            console.warn("[AircallProvider] Connection lost during reconnection")
-            setIsConnected(false)
-            reconnectionInProgressRef.current = false // Release mutex
-          },
-        })
-
-        setIsInitialized(true)
-      } catch (err: any) {
-        console.error("[AircallProvider] Reconnection error:", err)
-        reconnectionInProgressRef.current = false // Release mutex before retry
-        attemptReconnect()
-      }
+      })()
     }, delay)
   }, [getIntegrationByProvider, toast])
 
@@ -249,7 +251,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       description: "Attempting to reconnect...",
     })
 
-    attemptReconnect()
+    void attemptReconnect()
   }, [attemptReconnect, toast])
 
   // ============================================================================
@@ -919,18 +921,9 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         if (iframeInner) {
           console.log("Iframe src:", iframeInner.src)
           console.log("Iframe allow attr:", iframeInner.getAttribute("allow"))
-          console.log(
-            "Iframe display:",
-            window.getComputedStyle(iframeInner as HTMLElement).display,
-          )
-          console.log(
-            "Iframe visibility:",
-            window.getComputedStyle(iframeInner as HTMLElement).visibility,
-          )
-          console.log(
-            "Iframe opacity:",
-            window.getComputedStyle(iframeInner as HTMLElement).opacity,
-          )
+          console.log("Iframe display:", window.getComputedStyle(iframeInner).display)
+          console.log("Iframe visibility:", window.getComputedStyle(iframeInner).visibility)
+          console.log("Iframe opacity:", window.getComputedStyle(iframeInner).opacity)
         }
 
         console.log("Inner workspace HTML:", innerWorkspaceCheck?.innerHTML?.substring(0, 200))
@@ -1342,9 +1335,15 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
       }
     }
 
-    const unsubIncoming = aircallPhone.on("incoming_call", handleIncomingCall)
-    const unsubEnded = aircallPhone.on("call_ended", handleCallEnded)
-    const unsubOutgoing = aircallPhone.on("outgoing_call", handleOutgoingCall)
+    const unsubIncoming = aircallPhone.on("incoming_call", (call) => {
+      void handleIncomingCall(call)
+    })
+    const unsubEnded = aircallPhone.on("call_ended", (call) => {
+      void handleCallEnded(call)
+    })
+    const unsubOutgoing = aircallPhone.on("outgoing_call", (call) => {
+      void handleOutgoingCall(call)
+    })
 
     console.log("[AircallProvider] ✅ Event handlers registered successfully")
 
@@ -1395,7 +1394,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   /**
    * Call control functions
    */
-  const answerCall = useCallback(async () => {
+  const answerCall = useCallback(() => {
     console.log("[AircallProvider] Showing workspace for user to answer call")
     // SDK v2 doesn't support programmatic answer - show workspace instead
     showAircallWorkspace()
@@ -1405,7 +1404,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     })
   }, [showAircallWorkspace, toast])
 
-  const rejectCall = useCallback(async () => {
+  const rejectCall = useCallback(() => {
     console.log("[AircallProvider] Showing workspace for user to reject call")
     // SDK v2 doesn't support programmatic reject - show workspace instead
     showAircallWorkspace()
@@ -1458,7 +1457,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   }, [showAircallWorkspace, toast])
 
   // Phase 5: Enhanced manual login confirmation handler with workspace reload
-  const handleManualLoginConfirm = useCallback(async () => {
+  const handleManualLoginConfirm = useCallback(() => {
     console.log("[AircallProvider] 🎯 Login confirmation received from modal")
 
     // CRITICAL FIX: Modal already verified login, just trigger success flow

@@ -81,7 +81,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     (isTyping: boolean) => {
       if (isTyping !== lastTypingRef.current) {
         lastTypingRef.current = isTyping
-        updateTypingStatus(session.id, isTyping)
+        void updateTypingStatus(session.id, isTyping)
       }
 
       // Clear existing timeout
@@ -93,7 +93,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
       if (isTyping) {
         typingTimeoutRef.current = window.setTimeout(() => {
           lastTypingRef.current = false
-          updateTypingStatus(session.id, false)
+          void updateTypingStatus(session.id, false)
         }, 3000)
       }
     },
@@ -163,7 +163,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      void handleSend()
     }
   }
 

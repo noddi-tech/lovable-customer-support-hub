@@ -48,7 +48,7 @@ export const InboundRoutesList = () => {
         .select("id,address,inbox_id,is_active,created_at,alias_local_part,group_email")
         .order("created_at", { ascending: false })
       if (error) throw error
-      return data as unknown as InboundRoute[]
+      return data
     },
   })
 
@@ -82,7 +82,7 @@ export const InboundRoutesList = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     },
   })
 
@@ -92,7 +92,7 @@ export const InboundRoutesList = () => {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     },
   })
 

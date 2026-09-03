@@ -44,7 +44,7 @@ export function useSlaRiskByInbox(enabled = true) {
         p_horizon: new Date(Date.now() + SLA_AT_RISK_WINDOW_MS).toISOString(),
       })
       if (error) throw error
-      return (data ?? []) as SlaRiskConversation[]
+      return data ?? []
     },
   })
 

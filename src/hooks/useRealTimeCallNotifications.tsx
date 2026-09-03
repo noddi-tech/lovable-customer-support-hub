@@ -48,7 +48,7 @@ export const useRealTimeCallNotifications = () => {
   )
 
   const handleCallbackAction = useCallback(
-    async (callId: string) => {
+    (callId: string) => {
       console.log("Schedule callback for call:", callId)
       toast({
         title: "Callback Scheduled",
@@ -195,7 +195,7 @@ export const useRealTimeCallNotifications = () => {
   )
 
   const handleNewCallNotification = useCallback(
-    async (call: Call) => {
+    (call: Call) => {
       console.log("[CallNotifications] 📞 New call detected:", {
         id: call.id,
         direction: call.direction,
@@ -295,7 +295,7 @@ export const useRealTimeCallNotifications = () => {
   )
 
   const handleCallStatusChangeNotification = useCallback(
-    async (oldCall: Call, newCall: Call) => {
+    (oldCall: Call, newCall: Call) => {
       let title = ""
       let shouldNotify = false
 
@@ -411,23 +411,23 @@ export const useRealTimeCallNotifications = () => {
             schema: "public",
             table: "calls",
           },
-          async (payload) => {
+          (payload) => {
             console.log("Call status change:", payload)
 
             if (payload.eventType === "INSERT") {
               const call = payload.new as Call
-              await handleNewCallNotification(call)
+              handleNewCallNotification(call)
             } else if (payload.eventType === "UPDATE") {
               const oldCall = payload.old as Call
               const newCall = payload.new as Call
 
               if (oldCall.status !== newCall.status) {
-                await handleCallStatusChangeNotification(oldCall, newCall)
+                handleCallStatusChangeNotification(oldCall, newCall)
               }
             }
 
-            queryClient.invalidateQueries({ queryKey: ["calls"] })
-            queryClient.invalidateQueries({ queryKey: ["call-events"] })
+            void queryClient.invalidateQueries({ queryKey: ["calls"] })
+            void queryClient.invalidateQueries({ queryKey: ["call-events"] })
           },
         ),
       [aircallIntegration, createManagedSubscription, queryClient],

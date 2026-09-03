@@ -1,15 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import {
-  Bell,
-  Globe,
-  Inbox,
-  Instagram,
-  Mail,
-  MailCheck,
-  MessageSquare,
-  Phone,
-  Plus,
-} from "lucide-react"
+import { Bell, Globe, Inbox, Mail, MailCheck, MessageSquare, Phone, Plus } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -20,6 +10,7 @@ import {
 } from "@/components/admin/design/components/layouts"
 import { VoiceIntegrationsList } from "@/components/admin/VoiceIntegrationsList"
 import { ConnectedEmailAccountsContent } from "@/components/dashboard/ConnectedEmailAccounts"
+import { Instagram } from "@/components/icons/brand"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"

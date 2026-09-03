@@ -111,7 +111,7 @@ export function useBulkImportsList() {
 export function useInvalidateApplicantsAfterImport() {
   const qc = useQueryClient()
   return () => {
-    qc.invalidateQueries({ queryKey: ["applicants"] })
-    qc.invalidateQueries({ queryKey: ["recruitment-bulk-imports"] })
+    void qc.invalidateQueries({ queryKey: ["applicants"] })
+    void qc.invalidateQueries({ queryKey: ["recruitment-bulk-imports"] })
   }
 }

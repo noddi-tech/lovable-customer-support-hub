@@ -69,7 +69,7 @@ export function useUploadTicketAttachment(ticketId: string) {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
+      void queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
       toast.success("File uploaded successfully")
     },
     onError: (error) => {
@@ -91,7 +91,7 @@ export function useDeleteTicketAttachment(ticketId: string) {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
+      void queryClient.invalidateQueries({ queryKey: ["ticket-attachments", ticketId] })
       toast.success("Attachment deleted")
     },
     onError: (error) => {

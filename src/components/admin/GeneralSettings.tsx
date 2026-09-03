@@ -109,7 +109,7 @@ export const GeneralSettings = () => {
         console.error("Failed to log audit action:", error)
       }
 
-      queryClient.invalidateQueries({ queryKey: ["organization"] })
+      void queryClient.invalidateQueries({ queryKey: ["organization"] })
       toast({
         title: "Settings saved",
         description: "Organization branding has been updated successfully.",

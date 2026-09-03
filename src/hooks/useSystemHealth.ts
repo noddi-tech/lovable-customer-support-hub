@@ -136,7 +136,9 @@ export function useSystemHealth() {
 
   // Auto-run on mount
   useEffect(() => {
-    const timer = setTimeout(() => runHealthCheck(), 500)
+    const timer = setTimeout(() => {
+      void runHealthCheck()
+    }, 500)
     return () => clearTimeout(timer)
   }, [runHealthCheck])
 

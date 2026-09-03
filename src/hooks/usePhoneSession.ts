@@ -48,7 +48,7 @@ export function usePhoneSession() {
 
   const login = useCallback(() => {
     if (!isInitialized) {
-      initializePhone()
+      void initializePhone()
       return
     }
     openLoginModal()

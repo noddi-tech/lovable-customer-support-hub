@@ -60,10 +60,10 @@ export const VoiceDashboard = () => {
 
   const handleRefresh = () => {
     console.log("[VoiceDashboard] 🔄 Manual refresh triggered")
-    queryClient.invalidateQueries({ queryKey: ["calls"] })
-    queryClient.invalidateQueries({ queryKey: ["call-events"] })
-    queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
-    queryClient.invalidateQueries({ queryKey: ["voicemails"] })
+    void queryClient.invalidateQueries({ queryKey: ["calls"] })
+    void queryClient.invalidateQueries({ queryKey: ["call-events"] })
+    void queryClient.invalidateQueries({ queryKey: ["callback-requests"] })
+    void queryClient.invalidateQueries({ queryKey: ["voicemails"] })
   }
 
   return (

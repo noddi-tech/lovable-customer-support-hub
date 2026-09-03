@@ -21,7 +21,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react"
 
@@ -115,7 +114,7 @@ export function useParams<T extends Record<string, string | undefined> = Record<
     if (params._splat != null && out["*"] == null) {
       ;(out as { "*": string })["*"] = params._splat
     }
-    return out as T
+    return out
   }, [params])
 }
 
@@ -254,34 +253,37 @@ export { Outlet }
  * Test / Storybook wrapper that provides TanStack Router context
  * while rendering arbitrary children (React Router BrowserRouter shape).
  */
+const browserRouterChildrenRef: { current: ReactNode } = { current: null }
+
+function BrowserRouterTestLeaf() {
+  return <>{browserRouterChildrenRef.current}</>
+}
+
+const EMPTY_INITIAL_ENTRIES = ["/"]
+
 export function BrowserRouter({
   children,
-  initialEntries = ["/"],
+  initialEntries = EMPTY_INITIAL_ENTRIES,
 }: {
   children: ReactNode
   initialEntries?: string[]
 }) {
-  const childrenRef = useRef(children)
-  childrenRef.current = children
+  browserRouterChildrenRef.current = children
 
   const [router] = useState(() => {
-    function TestLeaf() {
-      return <>{childrenRef.current}</>
-    }
-
     const rootRoute = createRootRoute({
       component: () => <Outlet />,
     })
     const indexRoute = createRoute({
       getParentRoute: () => rootRoute,
       path: "/",
-      component: TestLeaf,
+      component: BrowserRouterTestLeaf,
     })
     // Match any deeper path so tests can mount at /settings, /voice, etc.
     const splatRoute = createRoute({
       getParentRoute: () => rootRoute,
       path: "/$",
-      component: TestLeaf,
+      component: BrowserRouterTestLeaf,
     })
 
     // TanStack Router types require strictNullChecks; this project has it off.

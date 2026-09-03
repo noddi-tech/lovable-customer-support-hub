@@ -120,7 +120,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
     },
     onSuccess: (data) => {
       setCreatedInboxId(data.id)
-      queryClient.invalidateQueries({ queryKey: ["inboxes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       toast.success("Inbox created successfully")
     },
     onError: (error) => {
@@ -141,7 +141,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
       if (error) throw error
 
       // Invalidate cache so InboxManagement shows updated data
-      queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
     } catch (error: any) {
       console.error("Failed to link route to inbox:", error)
       toast.error("Failed to link email route to inbox")

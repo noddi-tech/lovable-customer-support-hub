@@ -98,7 +98,7 @@ export function useKeywordOverrides() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["slack-keyword-overrides", currentOrganizationId],
       })
       toast.success("Nøkkelord oppdatert")
@@ -116,7 +116,7 @@ export function useKeywordOverrides() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["slack-keyword-overrides", currentOrganizationId],
       })
       toast.success("Terskel oppdatert")
@@ -130,7 +130,7 @@ export function useKeywordOverrides() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["triage-health", currentOrganizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["triage-health", currentOrganizationId] })
       toast.success("Demping fjernet")
     },
     onError: (err: Error) => toast.error(`Feil: ${err.message}`),

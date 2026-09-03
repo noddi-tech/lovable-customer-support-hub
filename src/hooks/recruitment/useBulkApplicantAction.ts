@@ -112,14 +112,14 @@ export function useBulkApplicantAction() {
         toast.success(`${result.succeeded} av ${total} søkere ${verb}`)
       }
 
-      qc.invalidateQueries({ queryKey: ["applicants"] })
-      qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
-      qc.invalidateQueries({ queryKey: ["recruitment-pipeline-board"] })
-      qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
+      void qc.invalidateQueries({ queryKey: ["applicants"] })
+      void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+      void qc.invalidateQueries({ queryKey: ["recruitment-pipeline-board"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-tags-batch"] })
       vars.applicant_ids.forEach((id) => {
-        qc.invalidateQueries({ queryKey: ["applicant", id] })
-        qc.invalidateQueries({ queryKey: ["applicant-tags", id] })
-        qc.invalidateQueries({ queryKey: ["applicant-events", id] })
+        void qc.invalidateQueries({ queryKey: ["applicant", id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-tags", id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-events", id] })
       })
     },
     onError: (err: any) => {

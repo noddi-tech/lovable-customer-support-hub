@@ -303,7 +303,7 @@ export const AiChat: React.FC<AiChatProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      void handleSend()
     }
   }
 
@@ -338,7 +338,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       }
 
       // Always send as hidden — the block's inline badge provides visual feedback
-      sendMessage(option, undefined, { hidden: true })
+      void sendMessage(option, undefined, { hidden: true })
     },
     [sendMessage, conversationId, messages, widgetKey],
   )
@@ -348,7 +348,7 @@ export const AiChat: React.FC<AiChatProps> = ({
       setVerifiedPhone(phone)
       setUsedBlocks((prev) => new Set(prev).add(blockKey))
       setTimeout(() => {
-        sendMessage("__VERIFIED__", phone, { hidden: true })
+        void sendMessage("__VERIFIED__", phone, { hidden: true })
       }, 500)
     },
     [sendMessage],

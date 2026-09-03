@@ -78,7 +78,7 @@ export function useUserTimezone() {
       }
     }
 
-    autoUpdateTimezone()
+    void autoUpdateTimezone()
   }, [user, profile, isLoading, error, browserTimezone, browserTimeFormat])
 
   // Memoized return values to prevent unnecessary re-renders

@@ -17,6 +17,20 @@ import {
 } from "@/components/ui/select"
 import { useDesignSystem } from "@/contexts/DesignSystemContext"
 
+const ComponentPreview = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Card className="bg-muted/20">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-sm font-medium">{title} Preview</CardTitle>
+      <CardDescription className="text-xs">
+        See how your changes affect the components in real-time
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <AdaptiveSection spacing="4">{children}</AdaptiveSection>
+    </CardContent>
+  </Card>
+)
+
 export const ComponentConfigurationPanel: React.FC = () => {
   const { designSystem, updateDesignSystem } = useDesignSystem()
 
@@ -39,21 +53,6 @@ export const ComponentConfigurationPanel: React.FC = () => {
 
   // Get available color keys for dropdowns
   const colorKeys = Object.keys(designSystem.colors) as Array<keyof typeof designSystem.colors>
-
-  // Component Preview Section
-  const ComponentPreview = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <Card className="bg-muted/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">{title} Preview</CardTitle>
-        <CardDescription className="text-xs">
-          See how your changes affect the components in real-time
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <AdaptiveSection spacing="4">{children}</AdaptiveSection>
-      </CardContent>
-    </Card>
-  )
 
   const componentTabs = [
     {

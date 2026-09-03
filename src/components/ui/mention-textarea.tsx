@@ -23,6 +23,7 @@ interface MentionState {
 
 const PANEL_WIDTH = 280
 const PANEL_GAP = 4 // px below caret line
+const EMPTY_MENTIONED_USER_IDS: string[] = []
 
 const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
   (
@@ -30,7 +31,7 @@ const MentionTextarea = React.forwardRef<HTMLTextAreaElement, MentionTextareaPro
       className,
       value,
       onChange,
-      mentionedUserIds: initialMentionedIds = [],
+      mentionedUserIds: initialMentionedIds = EMPTY_MENTIONED_USER_IDS,
       onMentionMenuOpenChange,
       ...props
     },

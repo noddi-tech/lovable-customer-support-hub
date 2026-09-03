@@ -266,7 +266,7 @@ export const ProgressiveMessagesList = forwardRef<
         if (nearTop && hasNextPage && !isFetchingNextPage) {
           const currentScrollHeight = scrollHeight
 
-          fetchNextPage().then(() => {
+          void fetchNextPage().then(() => {
             // Maintain scroll position after loading older messages
             setTimeout(() => {
               const newScrollHeight = scrollElement.scrollHeight
@@ -297,7 +297,7 @@ export const ProgressiveMessagesList = forwardRef<
         )
         const currentScrollHeight = scrollElement?.scrollHeight || 0
 
-        fetchNextPage().then(() => {
+        void fetchNextPage().then(() => {
           // Maintain scroll position after loading
           setTimeout(() => {
             if (scrollElement) {
@@ -343,7 +343,7 @@ export const ProgressiveMessagesList = forwardRef<
         confidence,
         estimatedNormalized,
       })
-      fetchNextPage()
+      void fetchNextPage()
     }
 
     const oldestLoadedAt = messages.length > 0 ? messages[messages.length - 1].createdAt : null

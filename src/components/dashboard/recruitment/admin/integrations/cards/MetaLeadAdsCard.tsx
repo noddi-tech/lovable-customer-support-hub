@@ -4,7 +4,6 @@ import { nb } from "date-fns/locale"
 import {
   ChevronDown,
   Download,
-  Facebook,
   KeyRound,
   Pencil,
   Plus,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useJobPositions } from "@/components/dashboard/recruitment/positions/usePositions"
+import { Facebook } from "@/components/icons/brand"
 import {
   AlertDialog,
   AlertDialogAction,

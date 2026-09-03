@@ -45,6 +45,44 @@ interface InboxListProps {
   className?: string
 }
 
+const NumberKey: React.FC<{ n: number }> = ({ n }) => (
+  <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground flex-shrink-0 mt-0.5">
+    {n}
+  </kbd>
+)
+
+const DefaultTag: React.FC = () => (
+  <Badge
+    variant="outline"
+    className="h-4 px-1.5 text-[9px] border-primary/40 text-primary flex-shrink-0"
+  >
+    Default
+  </Badge>
+)
+
+const OutstandingBadges: React.FC<{ open: number; pending: number }> = ({ open, pending }) => {
+  return (
+    <span className="flex items-center gap-1 flex-shrink-0">
+      <Badge
+        variant="secondary"
+        className={cn("h-5 px-1.5 text-[10px] font-medium", open === 0 && "text-muted-foreground")}
+        title={`${open} open`}
+      >
+        {open}
+      </Badge>
+      {pending > 0 && (
+        <Badge
+          variant="outline"
+          className="h-5 px-1.5 text-[10px] font-medium text-orange-600 border-orange-500/40"
+          title={`${pending} pending`}
+        >
+          {pending}
+        </Badge>
+      )}
+    </span>
+  )
+}
+
 const statusFilters: StatusFilterItem[] = [
   { id: "open", name: "Open", icon: <Inbox className="h-4 w-4" />, color: "text-blue-600" },
   { id: "pending", name: "Pending", icon: <Clock className="h-4 w-4" />, color: "text-orange-600" },
@@ -115,21 +153,6 @@ export const InboxList: React.FC<InboxListProps> = ({
     [inboxes, inboxEmails],
   )
 
-  const NumberKey: React.FC<{ n: number }> = ({ n }) => (
-    <kbd className="flex h-4 w-4 items-center justify-center rounded border border-border bg-muted text-[10px] font-medium text-muted-foreground flex-shrink-0 mt-0.5">
-      {n}
-    </kbd>
-  )
-
-  const DefaultTag: React.FC = () => (
-    <Badge
-      variant="outline"
-      className="h-4 px-1.5 text-[9px] border-primary/40 text-primary flex-shrink-0"
-    >
-      Default
-    </Badge>
-  )
-
   const allOutstanding = React.useMemo(
     () =>
       Object.values(outstanding).reduce(
@@ -138,32 +161,6 @@ export const InboxList: React.FC<InboxListProps> = ({
       ),
     [outstanding],
   )
-
-  const OutstandingBadges: React.FC<{ open: number; pending: number }> = ({ open, pending }) => {
-    return (
-      <span className="flex items-center gap-1 flex-shrink-0">
-        <Badge
-          variant="secondary"
-          className={cn(
-            "h-5 px-1.5 text-[10px] font-medium",
-            open === 0 && "text-muted-foreground",
-          )}
-          title={`${open} open`}
-        >
-          {open}
-        </Badge>
-        {pending > 0 && (
-          <Badge
-            variant="outline"
-            className="h-5 px-1.5 text-[10px] font-medium text-orange-600 border-orange-500/40"
-            title={`${pending} pending`}
-          >
-            {pending}
-          </Badge>
-        )}
-      </span>
-    )
-  }
 
   // Get the count for a specific filter
   const getFilterCount = (filter: StatusFilter): number => {

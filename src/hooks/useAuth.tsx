@@ -144,7 +144,7 @@ export const useAuth = () => {
           id: o.id,
           name: o.name,
           slug: o.slug,
-          navio_organization_id: null as number | null,
+          navio_organization_id: null,
         }))
       }
 
@@ -161,7 +161,7 @@ export const useAuth = () => {
           slug: o.slug,
           navio_organization_id: o.navio_organization_id ?? null,
         }
-      }) as LocalOrganization[]
+      })
     },
     enabled: !!user?.id,
   })
@@ -185,8 +185,8 @@ export const useAuth = () => {
           id: d.id,
           name: d.name,
           organization_id: d.organization_id,
-          slug: null as string | null,
-          navio_department_id: null as number | null,
+          slug: null,
+          navio_department_id: null,
         }))
       }
 
@@ -205,7 +205,7 @@ export const useAuth = () => {
           slug: d.slug ?? null,
           navio_department_id: d.navio_department_id ?? null,
         }
-      }) as LocalDepartment[]
+      })
     },
     enabled: !!user?.id,
   })
@@ -302,7 +302,7 @@ export const useAuth = () => {
         if (next) {
           setCurrentOrganization(next, false)
         } else {
-          setCurrentOrganization(null as unknown as string, false)
+          setCurrentOrganization(null, false)
         }
       } else if (
         (!currentOrganizationId || currentOrganizationId === "all") &&

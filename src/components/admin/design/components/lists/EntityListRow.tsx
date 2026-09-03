@@ -51,14 +51,17 @@ interface EntityListRowProps {
   "aria-describedby"?: string
 }
 
+const EMPTY_META: EntityMeta[] = []
+const EMPTY_BADGES: EntityBadge[] = []
+
 export const EntityListRow = forwardRef<HTMLElement, EntityListRowProps>(
   (
     {
       subject,
       preview,
-      meta = [],
-      metadata = [], // Add for compatibility
-      badges = [],
+      meta = EMPTY_META,
+      metadata = EMPTY_META, // Add for compatibility
+      badges = EMPTY_BADGES,
       timestamp, // Add for compatibility
       leading,
       avatar,

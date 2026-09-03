@@ -29,7 +29,7 @@ export function useApplicantSmsConversations(applicantId: string | undefined) {
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
       if (error) throw error
-      return (data ?? []) as SmsConversationRow[]
+      return data ?? []
     },
   })
 }
@@ -60,7 +60,7 @@ export function useApplicantSmsMessages(conversationId: string | undefined) {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
       if (error) throw error
-      return (data ?? []) as SmsMessageRow[]
+      return data ?? []
     },
   })
 }
@@ -92,7 +92,7 @@ export function useApplicantScheduledSms(applicantId: string | undefined) {
         .in("status", ["pending", "processing", "failed"])
         .order("scheduled_for", { ascending: true })
       if (error) throw error
-      return (data ?? []) as ScheduledSmsRow[]
+      return data ?? []
     },
   })
 }
@@ -147,11 +147,11 @@ export function useSendRecruitmentSms() {
     },
     onSuccess: (_d, vars) => {
       if (vars.applicant_id) {
-        qc.invalidateQueries({ queryKey: ["applicant-sms-conversations", vars.applicant_id] })
-        qc.invalidateQueries({ queryKey: ["applicant-scheduled-sms", vars.applicant_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-sms-conversations", vars.applicant_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-scheduled-sms", vars.applicant_id] })
       }
       if (vars.conversation_id) {
-        qc.invalidateQueries({ queryKey: ["applicant-sms-messages", vars.conversation_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-sms-messages", vars.conversation_id] })
       }
     },
   })
@@ -169,7 +169,7 @@ export function useCancelScheduledSms() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-scheduled-sms"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-scheduled-sms"] })
       toast.success("Planlagt SMS avbrutt")
     },
     onError: (e: any) => toast.error(e?.message || "Kunne ikke avbryte"),

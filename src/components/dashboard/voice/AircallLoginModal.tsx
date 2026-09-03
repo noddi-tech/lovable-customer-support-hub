@@ -1,7 +1,7 @@
 import {
   AlertCircle,
   CheckCircle,
-  Chrome,
+  Compass,
   Cookie,
   ExternalLink,
   HelpCircle,
@@ -35,13 +35,15 @@ interface AircallLoginModalProps {
   diagnosticIssues?: string[]
 }
 
+const EMPTY_DIAGNOSTIC_ISSUES: string[] = []
+
 const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
   isOpen,
   isConnected,
   onLoginConfirm,
   onSkip,
   initializationPhase = "idle",
-  diagnosticIssues = [],
+  diagnosticIssues = EMPTY_DIAGNOSTIC_ISSUES,
 }) => {
   const { t } = useTranslation()
   const { checkLoginStatus } = useAircallPhone()
@@ -55,7 +57,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
 
   // Detect browser on mount
   useEffect(() => {
-    detectBrowser().then(setBrowserInfo)
+    void detectBrowser().then(setBrowserInfo)
   }, [])
 
   // Debug: Log when modal state changes
@@ -139,7 +141,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
           title: "✅ Login Verified!",
           description: "You're now connected to Aircall",
         })
-        await onLoginConfirm()
+        onLoginConfirm()
       } else {
         setVerificationStatus("error")
         setIsChecking(false)
@@ -203,7 +205,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
           {/* Unsupported Browser Warning (immediate) */}
           {browserInfo && !browserInfo.isSupported && (
             <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
-              <Chrome className="h-4 w-4 text-amber-600" />
+              <Compass className="h-4 w-4 text-amber-600" />
               <AlertDescription className="ml-2 space-y-2">
                 <div>
                   <strong>
@@ -218,7 +220,7 @@ const AircallLoginModalComponent: React.FC<AircallLoginModalProps> = ({
                   variant="default"
                   className="w-full mt-2"
                 >
-                  <Chrome className="h-4 w-4 mr-2" />
+                  <Compass className="h-4 w-4 mr-2" />
                   {t("aircall.login.browser.downloadChrome")}
                 </Button>
               </AlertDescription>

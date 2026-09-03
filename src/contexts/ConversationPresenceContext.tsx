@@ -62,7 +62,7 @@ export const ConversationPresenceProvider: React.FC<{ children: React.ReactNode 
       }
     }
 
-    fetchOrgId()
+    void fetchOrgId()
   }, [user?.id])
 
   const { viewersMap, currentUserProfile, trackConversation, untrackConversation, isConnected } =

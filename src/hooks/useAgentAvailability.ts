@@ -95,8 +95,8 @@ export function useAgentAvailability(): UseAgentAvailabilityResult {
       console.error("[useAgentAvailability] Error updating status:", err)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["agent-availability", user?.id] })
-      queryClient.invalidateQueries({ queryKey: ["online-agent-count"] })
+      void queryClient.invalidateQueries({ queryKey: ["agent-availability", user?.id] })
+      void queryClient.invalidateQueries({ queryKey: ["online-agent-count"] })
     },
   })
 
@@ -109,10 +109,10 @@ export function useAgentAvailability(): UseAgentAvailabilityResult {
 
   // Set to offline when user leaves the page
   useEffect(() => {
-    const handleBeforeUnload = async () => {
+    const handleBeforeUnload = () => {
       if (localStatus === "online" || localStatus === "away") {
         // Use supabase directly on unload - sendBeacon doesn't work well with auth
-        await supabase
+        void supabase
           .from("profiles")
           .update({ chat_availability: "offline" })
           .eq("user_id", user?.id)

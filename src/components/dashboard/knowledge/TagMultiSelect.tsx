@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/integrations/supabase/client"
 import { cn } from "@/lib/utils"
-import type { KnowledgeTag } from "./TagManager"
 
 interface TagMultiSelectProps {
   organizationId: string
@@ -34,7 +33,7 @@ export function TagMultiSelect({
         .eq("organization_id", organizationId)
         .order("name")
       if (error) throw error
-      return data as KnowledgeTag[]
+      return data
     },
     staleTime: 0,
     refetchOnMount: "always",

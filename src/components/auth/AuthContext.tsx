@@ -273,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener FIRST
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) {
         logger.debug("Auth state change ignored - unmounted", { event }, "Auth")
         return
@@ -341,13 +341,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Validate session after sign-in; provision Navio profile + memberships.
       if (event === "SIGNED_IN" && session) {
         void runAccessBootstrap(session.user, { reconcile: true }).then(() => {
-          setTimeout(() => validateSession(), 1000)
+          setTimeout(() => {
+            void validateSession()
+          }, 1000)
         })
       }
     })
 
     // Check for OAuth callback FIRST, then get session
-    handleOAuthCallback().then(async (wasCallback) => {
+    void handleOAuthCallback().then(async (wasCallback) => {
       logger.debug("Initial auth check", { wasCallback, mounted }, "Auth")
 
       if (!wasCallback && mounted) {

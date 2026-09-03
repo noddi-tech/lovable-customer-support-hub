@@ -83,6 +83,7 @@ describe("EnhancedInteractionsLayout", () => {
     expect(screen.getByText("Test preview")).toBeInTheDocument()
 
     // Check that it's in a column layout (space-y-2 class indicates vertical stacking)
+    // eslint-disable-next-line testing-library/no-node-access -- layout class lives on ancestor wrapper
     const conversationContainer = screen.getByText("Test Conversation").closest(".space-y-2")
     expect(conversationContainer).toBeInTheDocument()
   })
@@ -116,14 +117,11 @@ describe("EnhancedInteractionsLayout", () => {
       wrapper: createWrapper(),
     })
 
-    // Voice interface should be rendered instead of conversation layout
-    // This assumes VoiceInterface has some identifiable content
+    // Voice tab swaps out the conversation list layout
+    expect(screen.queryByText("Test Conversation")).not.toBeInTheDocument()
   })
 
-  it("shows loading state correctly", () => {
-    // We would need to mock the loading state
-    // This test would verify skeleton components are shown
-  })
+  it.todo("shows loading state correctly")
 
   it("shows empty state when no conversations", () => {
     // Mock empty conversations

@@ -42,37 +42,34 @@ describe("SafeTabsWrapper", () => {
 
 describe("SafeToolbar", () => {
   it("renders with flex-wrap by default", () => {
-    const { container } = render(
-      <SafeToolbar>
+    render(
+      <SafeToolbar data-testid="safe-toolbar">
         <Button>Action 1</Button>
         <Button>Action 2</Button>
       </SafeToolbar>,
     )
 
-    const toolbar = container.firstChild as HTMLElement
-    expect(toolbar).toHaveClass("flex-wrap", "min-w-0")
+    expect(screen.getByTestId("safe-toolbar")).toHaveClass("flex-wrap", "min-w-0")
   })
 
   it("applies correct spacing and justify classes", () => {
-    const { container } = render(
-      <SafeToolbar spacing="loose" justify="between">
+    render(
+      <SafeToolbar data-testid="safe-toolbar" spacing="loose" justify="between">
         <Button>Left</Button>
         <Button>Right</Button>
       </SafeToolbar>,
     )
 
-    const toolbar = container.firstChild as HTMLElement
-    expect(toolbar).toHaveClass("gap-4", "justify-between")
+    expect(screen.getByTestId("safe-toolbar")).toHaveClass("gap-4", "justify-between")
   })
 
   it("can disable wrapping when needed", () => {
-    const { container } = render(
-      <SafeToolbar wrap={false}>
+    render(
+      <SafeToolbar data-testid="safe-toolbar" wrap={false}>
         <Button>Action</Button>
       </SafeToolbar>,
     )
 
-    const toolbar = container.firstChild as HTMLElement
-    expect(toolbar).not.toHaveClass("flex-wrap")
+    expect(screen.getByTestId("safe-toolbar")).not.toHaveClass("flex-wrap")
   })
 })

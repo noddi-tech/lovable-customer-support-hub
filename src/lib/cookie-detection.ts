@@ -48,7 +48,7 @@ function checkKnownBrowserPolicies(browserType: BrowserType): boolean | null {
  * Attempt to detect third-party cookie support via feature test
  * Tests on same domain (not truly third-party, but a proxy)
  */
-async function featureTestCookies(): Promise<boolean> {
+function featureTestCookies(): boolean {
   try {
     // Try to set a test cookie
     const testKey = "_aircall_cookie_test"
@@ -101,7 +101,7 @@ export async function detectThirdPartyCookies(): Promise<CookieDetectionResult> 
   }
 
   // Layer 2: Feature test (for browsers without known policy)
-  const featureTestResult = await featureTestCookies()
+  const featureTestResult = featureTestCookies()
 
   return {
     supported: featureTestResult,

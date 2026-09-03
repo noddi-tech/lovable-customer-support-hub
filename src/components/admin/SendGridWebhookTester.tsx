@@ -194,7 +194,7 @@ References: <original-message-id@example.com>`,
   }
 
   const copyWebhookUrl = () => {
-    navigator.clipboard.writeText(`${webhookUrl}?token=${authToken}`)
+    void navigator.clipboard.writeText(`${webhookUrl}?token=${authToken}`)
   }
 
   return (

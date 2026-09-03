@@ -90,7 +90,7 @@ export const InboxSlackRouting = ({
         .eq("is_active", true)
         .order("name")
       if (error) throw error
-      return (data || []) as InboxInfo[]
+      return data || []
     },
     enabled: !!currentOrganizationId,
   })
@@ -103,7 +103,7 @@ export const InboxSlackRouting = ({
         .select("*")
         .eq("slack_integration_id", integration.id)
       if (error) throw error
-      return (data || []) as RoutingEntry[]
+      return data || []
     },
     enabled: !!integration.id,
   })
@@ -137,7 +137,7 @@ export const InboxSlackRouting = ({
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbox-slack-routing"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbox-slack-routing"] })
       toast.success("Inbox routing saved")
     },
     onError: (error: Error) => {
@@ -155,7 +155,7 @@ export const InboxSlackRouting = ({
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbox-slack-routing"] })
+      void queryClient.invalidateQueries({ queryKey: ["inbox-slack-routing"] })
       toast.success("All inbox routing removed — will use defaults")
     },
     onError: (error: Error) => {

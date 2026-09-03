@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { ConversationPriority, ConversationStatus } from "@/contexts/ConversationListContext"
 import { createMockConversation } from "@/test/test-utils"
@@ -37,17 +37,17 @@ describe("ConversationListItem", () => {
   })
 
   it("renders conversation information correctly", () => {
-    const { getByText } = render(<ConversationListItem {...defaultProps} />)
+    render(<ConversationListItem {...defaultProps} />)
 
-    expect(getByText("Test Conversation")).toBeDefined()
-    expect(getByText("John Doe")).toBeDefined()
-    expect(getByText("john@example.com")).toBeDefined()
+    expect(screen.getByText("Test Conversation")).toBeDefined()
+    expect(screen.getByText("John Doe")).toBeDefined()
+    expect(screen.getByText("john@example.com")).toBeDefined()
   })
 
   it("displays status and priority badges", () => {
-    const { getByText } = render(<ConversationListItem {...defaultProps} />)
+    render(<ConversationListItem {...defaultProps} />)
 
-    expect(getByText("open")).toBeDefined()
-    expect(getByText("normal")).toBeDefined()
+    expect(screen.getByText("open")).toBeDefined()
+    expect(screen.getByText("normal")).toBeDefined()
   })
 })

@@ -42,7 +42,7 @@ export function EditOrganizationModal({
     })
   }, [organization])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     updateOrganization({
       id: organization.id,

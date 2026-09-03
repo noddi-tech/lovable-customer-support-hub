@@ -35,7 +35,7 @@ export function useApplicantConversations(applicantId: string | undefined) {
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
       if (error) throw error
-      return (data ?? []) as ApplicantConversationRow[]
+      return data ?? []
     },
   })
 }
@@ -67,7 +67,7 @@ export function useApplicantScheduledEmails(applicantId: string | undefined) {
         .in("status", ["pending", "processing", "failed"])
         .order("scheduled_for", { ascending: true })
       if (error) throw error
-      return (data ?? []) as ScheduledEmailRow[]
+      return data ?? []
     },
   })
 }
@@ -137,9 +137,9 @@ export function useSendRecruitmentEmail() {
     },
     onSuccess: (_data, vars) => {
       if (vars.applicant_id) {
-        qc.invalidateQueries({ queryKey: ["applicant-conversations", vars.applicant_id] })
-        qc.invalidateQueries({ queryKey: ["applicant-scheduled-emails", vars.applicant_id] })
-        qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-conversations", vars.applicant_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-scheduled-emails", vars.applicant_id] })
+        void qc.invalidateQueries({ queryKey: ["applicant-events", vars.applicant_id] })
       }
     },
   })
@@ -157,8 +157,8 @@ export function useAttachConversationToApplicant() {
       return data
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["applicant-conversations", vars.applicant_id] })
-      qc.invalidateQueries({ queryKey: ["conversations"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-conversations", vars.applicant_id] })
+      void qc.invalidateQueries({ queryKey: ["conversations"] })
       toast.success("Samtale knyttet til søker")
     },
     onError: (e: any) => toast.error(e?.message || "Kunne ikke knytte samtale"),
@@ -180,8 +180,8 @@ export function useDetachConversationFromApplicant() {
       return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-conversations"] })
-      qc.invalidateQueries({ queryKey: ["conversations"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-conversations"] })
+      void qc.invalidateQueries({ queryKey: ["conversations"] })
       toast.success("Samtale frakoblet")
     },
     onError: (e: any) => toast.error(e?.message || "Kunne ikke frakoble samtale"),
@@ -200,7 +200,7 @@ export function useCancelScheduledEmail() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applicant-scheduled-emails"] })
+      void qc.invalidateQueries({ queryKey: ["applicant-scheduled-emails"] })
       toast.success("Planlagt e-post avbrutt")
     },
     onError: (e: any) => toast.error(e?.message || "Kunne ikke avbryte"),

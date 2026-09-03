@@ -23,7 +23,7 @@ describe("ResponsiveTabs", () => {
   })
 
   it("applies scrollable styles", () => {
-    const { container } = render(
+    render(
       <ResponsiveTabs scrollable={true}>
         <ResponsiveTabsList>
           <ResponsiveTabsTrigger value="tab1">Tab 1</ResponsiveTabsTrigger>
@@ -31,7 +31,6 @@ describe("ResponsiveTabs", () => {
       </ResponsiveTabs>,
     )
 
-    const tabsList = container.querySelector('[role="tablist"]')
-    expect(tabsList).toHaveClass("overflow-x-auto")
+    expect(screen.getByRole("tablist")).toHaveClass("overflow-x-auto")
   })
 })

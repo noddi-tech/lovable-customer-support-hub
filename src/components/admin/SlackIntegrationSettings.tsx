@@ -10,9 +10,9 @@ import {
   Loader2,
   Lock,
   Send,
-  Slack,
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Slack } from "@/components/icons/brand"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -639,11 +639,7 @@ export const SlackIntegrationSettings = () => {
             {integration && (
               <CriticalAlertRouting
                 integration={integration}
-                onUpdate={(updates) =>
-                  updateConfiguration.mutate(
-                    updates as Parameters<typeof updateConfiguration.mutate>[0],
-                  )
-                }
+                onUpdate={(updates) => updateConfiguration.mutate(updates)}
                 isPending={updateConfiguration.isPending}
               />
             )}

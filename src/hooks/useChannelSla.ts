@@ -35,9 +35,9 @@ export function useSaveChannelSla(channel: string) {
   const queryClient = useQueryClient()
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["channel_sla_policies", channel] })
-    queryClient.invalidateQueries({ queryKey: ["inbox_support_metrics"] })
-    queryClient.invalidateQueries({ queryKey: ["sla_policies"] })
+    void queryClient.invalidateQueries({ queryKey: ["channel_sla_policies", channel] })
+    void queryClient.invalidateQueries({ queryKey: ["inbox_support_metrics"] })
+    void queryClient.invalidateQueries({ queryKey: ["sla_policies"] })
   }
 
   const save = useMutation({

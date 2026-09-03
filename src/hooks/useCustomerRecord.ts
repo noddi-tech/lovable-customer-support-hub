@@ -232,8 +232,8 @@ export function useCustomerNoteMutations(customerId?: string | null) {
   const queryClient = useQueryClient()
   const { data: userGroupId } = useNoddiUserGroupIdForCustomer(customerId)
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["customer-record", "notes", customerId] })
-    queryClient.invalidateQueries({ queryKey: ["noddi-notes", "list", userGroupId] })
+    void queryClient.invalidateQueries({ queryKey: ["customer-record", "notes", customerId] })
+    void queryClient.invalidateQueries({ queryKey: ["noddi-notes", "list", userGroupId] })
   }
 
   const addNote = useMutation({
@@ -326,7 +326,9 @@ export function useAddCustomerIdentity(customerId?: string | null) {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-record", "identities", customerId] })
+      void queryClient.invalidateQueries({
+        queryKey: ["customer-record", "identities", customerId],
+      })
       toast.success("Identity added")
     },
     onError: (error: any) => toast.error(error?.message ?? "Could not add identity"),

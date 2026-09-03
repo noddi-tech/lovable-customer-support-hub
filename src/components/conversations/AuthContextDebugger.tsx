@@ -19,6 +19,24 @@ interface AuthDebugInfo {
   lastChecked: string
 }
 
+const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
+  <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+    <div className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-4 w-4 text-primary" />
+      ) : (
+        <XCircle className="h-4 w-4 text-destructive" />
+      )}
+      <span className="text-sm">{label}</span>
+    </div>
+    {value && (
+      <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
+        {value}
+      </span>
+    )}
+  </div>
+)
+
 // Helper to get error explanation and fix guidance
 function getErrorGuidance(error: string): { explanation: string; fix: string[] } {
   const lowerError = error.toLowerCase()
@@ -193,14 +211,18 @@ export function AuthContextDebugger() {
       await new Promise((resolve) => setTimeout(resolve, 1000))
       const isValid = await validateSession()
       toast.success(`Session refresh ${isValid ? "successful" : "failed"}`)
-      setTimeout(() => runFullDiagnostics(), 500)
+      setTimeout(() => {
+        void runFullDiagnostics()
+      }, 500)
     } catch (error) {
       toast.error("Session refresh failed")
     }
   }
 
   useEffect(() => {
-    setTimeout(() => runFullDiagnostics(), 1000)
+    setTimeout(() => {
+      void runFullDiagnostics()
+    }, 1000)
   }, [runFullDiagnostics])
 
   if (!import.meta.env.DEV) {
@@ -222,24 +244,6 @@ export function AuthContextDebugger() {
     if (hasWarnings) return <Badge variant="secondary">Warnings</Badge>
     return <Badge variant="default">Healthy</Badge>
   }
-
-  const CheckItem = ({ ok, label, value }: { ok: boolean; label: string; value?: string }) => (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <div className="flex items-center gap-2">
-        {ok ? (
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-        ) : (
-          <XCircle className="h-4 w-4 text-destructive" />
-        )}
-        <span className="text-sm">{label}</span>
-      </div>
-      {value && (
-        <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-          {value}
-        </span>
-      )}
-    </div>
-  )
 
   return (
     <Card className="border-border/50">

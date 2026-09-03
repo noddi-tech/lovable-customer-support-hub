@@ -40,8 +40,8 @@ export const InlineReplyBox: React.FC<Props> = ({
       })
       toast.success("Svar sendt")
       setBody("")
-      qc.invalidateQueries({ queryKey: ["applicant-conversation-messages", conversationId] })
-      qc.invalidateQueries({ queryKey: ["applicant-conversations", applicantId] })
+      void qc.invalidateQueries({ queryKey: ["applicant-conversation-messages", conversationId] })
+      void qc.invalidateQueries({ queryKey: ["applicant-conversations", applicantId] })
     } catch (e: any) {
       toast.error(e?.message || "Sending feilet")
     }

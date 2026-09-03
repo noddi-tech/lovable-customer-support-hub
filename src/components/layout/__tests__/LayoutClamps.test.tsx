@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import Index from "@/pages/Index"
 import { BrowserRouter } from "@/router/compat"
 
@@ -48,6 +48,7 @@ describe("Layout Clamp Removal", () => {
     )
 
     // Check that no shell-level elements have centering classes
+    /* eslint-disable testing-library/no-container, testing-library/no-node-access -- shell clamp scan needs DOM tree walk */
     const shellElements = container.querySelectorAll(
       '[class*="max-w-"], [class*="mx-auto"], [class*="container"]',
     )
@@ -63,6 +64,7 @@ describe("Layout Clamp Removal", () => {
       }
       return parents.length <= 2 // Shell-level elements
     })
+    /* eslint-enable testing-library/no-container, testing-library/no-node-access */
 
     expect(shellLevelElements).toHaveLength(0)
   })
@@ -74,13 +76,13 @@ describe("Layout Clamp Removal", () => {
       </TestWrapper>,
     )
 
-    const interactionsContent = container.querySelector('[data-testid="interactions-content"]')
-    expect(interactionsContent).toBeInTheDocument()
+    expect(screen.getByTestId("interactions-content")).toBeInTheDocument()
 
     // Check that the main content wrapper doesn't have centering classes
+    /* eslint-disable testing-library/no-container, testing-library/no-node-access -- main landmark may lack accessible name in this shell */
     const mainContentArea = container.querySelector('main, [role="main"], .app-content')
-    if (mainContentArea) {
-      expect(mainContentArea.className).not.toMatch(/max-w-|mx-auto|container/)
-    }
+    /* eslint-enable testing-library/no-container, testing-library/no-node-access */
+    expect(mainContentArea).toBeTruthy()
+    expect(mainContentArea?.className).not.toMatch(/max-w-|mx-auto|container/)
   })
 })

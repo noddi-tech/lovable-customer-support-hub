@@ -22,6 +22,8 @@ interface OriginalEmailDialogProps {
   attachments?: EmailAttachment[]
 }
 
+const EMPTY_ATTACHMENTS: EmailAttachment[] = []
+
 const normalizeCid = (value: string) => value.replace(/[<>]/g, "").trim().toLowerCase()
 
 /**
@@ -38,7 +40,7 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
   content,
   isHTML,
   subject,
-  attachments = [],
+  attachments = EMPTY_ATTACHMENTS,
 }) => {
   const [open, setOpen] = useState(false)
   const [cidMap, setCidMap] = useState<Record<string, string>>({})
@@ -67,7 +69,7 @@ export const OriginalEmailDialog: React.FC<OriginalEmailDialogProps> = ({
     if (matching.length === 0) return
 
     setResolving(true)
-    Promise.all(
+    void Promise.all(
       matching.map(async (a) => {
         const url = await createDataUrl(a)
         return url ? { keys: [a.contentId, a.filename].filter(Boolean), url } : null

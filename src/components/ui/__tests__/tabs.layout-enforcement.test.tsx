@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import {
   ResponsiveTabs,
   ResponsiveTabsList,
@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "../tabs"
 describe("Tabs Layout Enforcement", () => {
   describe("Base TabsTrigger", () => {
     it("should enforce horizontal layout and strip vertical classes", () => {
-      const { container } = render(
+      render(
         <Tabs defaultValue="test">
           <TabsList>
             <TabsTrigger value="test" className="flex-col items-start w-10">
@@ -19,10 +19,10 @@ describe("Tabs Layout Enforcement", () => {
         </Tabs>,
       )
 
-      const trigger = container.querySelector('[role="tab"]')
+      const trigger = screen.getByRole("tab")
       expect(trigger).toBeTruthy()
 
-      const classList = trigger?.classList.value || ""
+      const classList = trigger.classList.value
 
       // Should have horizontal layout enforced
       expect(classList).toContain("flex-row")
@@ -36,7 +36,7 @@ describe("Tabs Layout Enforcement", () => {
     })
 
     it("should sanitize grid classes to inline-flex", () => {
-      const { container } = render(
+      render(
         <Tabs defaultValue="test">
           <TabsList>
             <TabsTrigger value="test" className="grid place-items-center">
@@ -46,8 +46,7 @@ describe("Tabs Layout Enforcement", () => {
         </Tabs>,
       )
 
-      const trigger = container.querySelector('[role="tab"]')
-      const classList = trigger?.classList.value || ""
+      const classList = screen.getByRole("tab").classList.value
 
       // Should convert grid to inline-flex and remove grid
       expect(classList).toContain("inline-flex")
@@ -57,7 +56,7 @@ describe("Tabs Layout Enforcement", () => {
 
   describe("ResponsiveTabsTrigger", () => {
     it("should enforce horizontal layout and sanitize vertical overrides", () => {
-      const { container } = render(
+      render(
         <ResponsiveTabs defaultValue="test">
           <ResponsiveTabsList>
             <ResponsiveTabsTrigger value="test" className="flex-col grid items-start">
@@ -68,10 +67,10 @@ describe("Tabs Layout Enforcement", () => {
         </ResponsiveTabs>,
       )
 
-      const trigger = container.querySelector('[role="tab"]')
+      const trigger = screen.getByRole("tab")
       expect(trigger).toBeTruthy()
 
-      const classList = trigger?.classList.value || ""
+      const classList = trigger.classList.value
 
       // Should have horizontal layout enforced
       expect(classList).toContain("inline-flex")

@@ -79,7 +79,7 @@ export function ConnectedEmailAccountsContent() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_email_accounts")
       if (error) throw error
-      return data as EmailAccount[]
+      return data
     },
   })
 
@@ -92,7 +92,7 @@ export function ConnectedEmailAccountsContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       setEditingAccount(null)
       setEditingInbox("unassigned")
       toast({ title: t("admin.inboxUpdated"), description: t("admin.emailAccountReassigned") })
@@ -116,7 +116,7 @@ export function ConnectedEmailAccountsContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({ title: "Auto-sync updated", description: "Preferences saved." })
     },
   })
@@ -130,8 +130,8 @@ export function ConnectedEmailAccountsContent() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
     },
   })
 
@@ -141,7 +141,7 @@ export function ConnectedEmailAccountsContent() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({
         title: t("admin.emailAccountRemoved"),
         description: t("admin.disconnectedSuccessfully"),
@@ -158,7 +158,7 @@ export function ConnectedEmailAccountsContent() {
       return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["email-accounts"] })
       toast({ title: "Sync Complete", description: `Gmail sync finished` })
     },
   })

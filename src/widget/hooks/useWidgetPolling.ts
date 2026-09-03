@@ -84,7 +84,7 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
   }, [sessionId])
 
   const refetch = useCallback(() => {
-    fetchMessages()
+    void fetchMessages()
   }, [fetchMessages])
 
   // Set up polling
@@ -99,7 +99,7 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
     }
 
     // Initial fetch
-    fetchMessages()
+    void fetchMessages()
 
     // Adaptive polling: fast while the visitor is actively chatting, slower when
     // the conversation goes quiet, paused entirely on a hidden tab.
@@ -114,7 +114,7 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
       if (delay === currentDelayRef.current && pollIntervalRef.current) return
       currentDelayRef.current = delay
       pollIntervalRef.current = window.setInterval(() => {
-        fetchMessages()
+        void fetchMessages()
         schedule()
       }, delay)
     }
@@ -123,7 +123,7 @@ export function useWidgetPolling(sessionId: string | null): UseWidgetPollingResu
 
     const onVisibility = () => {
       if (!document.hidden) {
-        fetchMessages()
+        void fetchMessages()
       }
       schedule()
     }

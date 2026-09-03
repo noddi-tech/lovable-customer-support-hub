@@ -76,10 +76,10 @@ export function useChatSessionTransfer(conversationId: string) {
       if (result.success) {
         toast.success("Chat transferred successfully")
         // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ["chat-session", conversationId] })
-        queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
-        queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-        queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+        void queryClient.invalidateQueries({ queryKey: ["chat-session", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["live-chat-sessions"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
       } else {
         toast.error(result.error || "Failed to transfer chat")
       }

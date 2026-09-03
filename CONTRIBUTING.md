@@ -17,7 +17,7 @@ Make sure you have:
 
 ## Prerequisites
 
-- **Node.js** and **npm** — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Bun** — [install Bun](https://bun.sh/docs/installation) (includes a compatible Node toolchain for Vite/TS)
 - **Make** (optional but recommended — all common tasks have `make` targets)
 - **Supabase CLI** — only needed if you run the local Supabase stack
   (`make supabase-start` / `make up`)
@@ -32,14 +32,14 @@ cd support-hub
 
 # 2. Install deps + create .env from .env.example if missing
 make setup
-# equivalent: npm ci --legacy-peer-deps && cp .env.example .env
+# equivalent: bun install --frozen-lockfile && cp .env.example .env
 
 # 3. Fill in Supabase values in .env (see .env.example)
 #    Ask another developer for project secrets.
 
 # 4. Start the Vite dev server
 make dev
-# equivalent: npm run dev
+# equivalent: bun run dev
 ```
 
 The app serves at **http://localhost:5173** by default.
@@ -87,7 +87,8 @@ workflows.
 | Autofix                          | `make fix`                                          |
 | Quality gate (fix + verify)      | `make quality-gate`                                 |
 | Verify only (no writes)          | `make quality-gate-check`                           |
-| Lint                             | `make lint`                                         |
+| All linters                      | `make lint`                                         |
+| Lint core (Biome + ESLint)       | `make lint-core`                                    |
 | Format check                     | `make format-check`                                 |
 | Typecheck                        | `make typecheck`                                    |
 | Unit tests                       | `make test`                                         |
@@ -105,22 +106,22 @@ Before every commit and every push, run:
 
 ```bash
 make quality-gate
-# equivalent: npm run quality:gate
+# equivalent: bun run quality:gate
 # equivalent: sh scripts/quality-gate.sh --fix-and-check
 ```
 
 That gate:
 
-1. **Autofix** — Biome write + ESLint `--fix` + Prettier Markdown (`npm run fix`)
-2. **Verify** — `format:check` + `lint` + `ui:guards`
+1. **Autofix** — Biome write + ESLint `--fix` + Prettier Markdown (`bun run fix`)
+2. **Verify** — `format:check` + `lint:core` + `ui:guards`
 
 Husky:
 
-- **pre-commit** — `lint-staged` → `quality-gate --fix-and-check` → `npm run lint:strict`
+- **pre-commit** — `lint-staged` → `quality-gate --fix-and-check` → `bun run lint`
   (Biome, ESLint, tabs/pane, Knip, dependency-cruiser, secrets, jscpd, Semgrep, audit)
 - **pre-push** — `scripts/quality-gate.sh --fix-and-check`
 
-See [`docs/dev/linting.md`](./docs/dev/linting.md) (`make lint-strict`).
+See [`docs/dev/linting.md`](./docs/dev/linting.md) (`make lint`).
 
 Coding agents must run the gate themselves even when hooks might be skipped
 (Lovable remote commits, `--no-verify`, sandboxes without Husky). See
@@ -160,7 +161,7 @@ Only for urgent production fixes. Agents must not bypass unless explicitly told 
 
 ### Fixing guardrail failures
 
-#### Tabs linting (`npm run lint:tabs` / `make lint-tabs`)
+#### Tabs linting (`bun run lint:tabs` / `make lint-tabs`)
 
 Flags:
 
@@ -176,7 +177,7 @@ Flags:
 - Remove `whitespace-nowrap` from triggers
 - Keep tabs outside `ScrollArea` components
 
-#### Long labels test (`npm run test:tabs` / `make test-ui`)
+#### Long labels test (`bun run test:tabs` / `make test-ui`)
 
 Ensures tabs wrap properly with long text.
 
@@ -199,13 +200,13 @@ When modifying tabs/buttons, test:
 
 ```bash
 # UI overlap probes (outlines offending elements in red)
-VITE_UI_PROBE=1 npm run dev
+VITE_UI_PROBE=1 bun run dev
 
 # Log verbosity
-VITE_LOG_LEVEL=DEBUG npm run dev   # all logs
-VITE_LOG_LEVEL=INFO npm run dev    # default in development
-VITE_LOG_LEVEL=WARN npm run dev    # quieter (good before commit)
-VITE_LOG_LEVEL=SILENT npm run dev  # no logs
+VITE_LOG_LEVEL=DEBUG bun run dev   # all logs
+VITE_LOG_LEVEL=INFO bun run dev    # default in development
+VITE_LOG_LEVEL=WARN bun run dev    # quieter (good before commit)
+VITE_LOG_LEVEL=SILENT bun run dev  # no logs
 ```
 
 Deeper guides:

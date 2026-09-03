@@ -512,7 +512,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [profile?.organization_id, loading])
 

@@ -112,7 +112,7 @@ export const Widget: React.FC<WidgetProps> = ({ options, onMount }) => {
       setIsLoading(false)
     }
 
-    loadConfig()
+    void loadConfig()
   }, [options])
 
   // Don't render anything while loading or on error

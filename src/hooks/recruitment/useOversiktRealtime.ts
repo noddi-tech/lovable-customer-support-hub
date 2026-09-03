@@ -28,12 +28,12 @@ export function useOversiktRealtime(): { connected: boolean } {
       const since = now - lastInvalidate.current
       if (since >= 2000) {
         lastInvalidate.current = now
-        qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+        void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
       } else if (pendingTimer.current === null) {
         pendingTimer.current = window.setTimeout(() => {
           pendingTimer.current = null
           lastInvalidate.current = Date.now()
-          qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
+          void qc.invalidateQueries({ queryKey: ["oversikt-metrics"] })
         }, 2000 - since)
       }
     }
@@ -71,7 +71,7 @@ export function useOversiktRealtime(): { connected: boolean } {
     return () => {
       if (pendingTimer.current) clearTimeout(pendingTimer.current)
       pendingTimer.current = null
-      supabase.removeChannel(channel)
+      void supabase.removeChannel(channel)
     }
   }, [currentOrganizationId, qc])
 

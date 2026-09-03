@@ -40,8 +40,10 @@ export function useUnreadWatcher(enabled: boolean) {
       setUnreadCount(unread)
     }
 
-    check()
-    timerRef.current = window.setInterval(check, 15000)
+    void check()
+    timerRef.current = window.setInterval(() => {
+      void check()
+    }, 15000)
 
     return () => {
       cancelled = true

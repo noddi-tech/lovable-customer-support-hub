@@ -94,7 +94,7 @@ export function useConversationMessages(
 
   return useInfiniteQuery({
     queryKey: ["conversation-messages", conversationId],
-    initialPageParam: null as null | string, // null = first page, else ISO cursor
+    initialPageParam: null, // null = first page, else ISO cursor
     queryFn: async ({ pageParam }) => {
       if (!conversationId) {
         return {
@@ -104,7 +104,7 @@ export function useConversationMessages(
           normalizedCount: 0,
           totalNormalizedEstimated: 0,
           confidence: "high" as const,
-          oldestCursor: null as null | string,
+          oldestCursor: null,
         }
       }
 

@@ -77,13 +77,15 @@ export function SessionTrackingProvider({ children }: SessionTrackingProviderPro
 
           // Start heartbeat
           heartbeatRef.current = setInterval(
-            async () => {
-              if (sessionIdRef.current) {
-                await supabase
-                  .from("user_sessions")
-                  .update({ last_active_at: new Date().toISOString() })
-                  .eq("id", sessionIdRef.current)
-              }
+            () => {
+              void (async () => {
+                if (sessionIdRef.current) {
+                  await supabase
+                    .from("user_sessions")
+                    .update({ last_active_at: new Date().toISOString() })
+                    .eq("id", sessionIdRef.current)
+                }
+              })()
             },
             5 * 60 * 1000,
           ) // Every 5 minutes
@@ -113,7 +115,7 @@ export function SessionTrackingProvider({ children }: SessionTrackingProviderPro
     }
 
     if (user?.id) {
-      createSession()
+      void createSession()
     }
 
     // Handle page unload
@@ -121,7 +123,7 @@ export function SessionTrackingProvider({ children }: SessionTrackingProviderPro
       if (sessionIdRef.current) {
         // Synchronous attempt via sendBeacon won't work for PATCH
         // But we can at least try
-        endSession("page_close")
+        void endSession("page_close")
       }
     }
 
@@ -136,7 +138,7 @@ export function SessionTrackingProvider({ children }: SessionTrackingProviderPro
       }
 
       if (sessionIdRef.current) {
-        endSession("unmount")
+        void endSession("unmount")
       }
     }
   }, [user?.id, user?.email, profile?.organization_id])

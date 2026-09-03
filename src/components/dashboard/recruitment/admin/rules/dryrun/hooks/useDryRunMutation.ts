@@ -30,7 +30,7 @@ export function useDryRunMutation() {
       })
 
       if (error) throw error
-      return (data ?? []) as DryRunResult[]
+      return data ?? []
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({

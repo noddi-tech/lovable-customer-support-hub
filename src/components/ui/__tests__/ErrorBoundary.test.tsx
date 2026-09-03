@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ErrorBoundary } from "../../error/ErrorBoundary"
 
@@ -22,23 +22,23 @@ describe("ErrorBoundary", () => {
   })
 
   it("renders children when there is no error", () => {
-    const { getByText } = render(
+    render(
       <ErrorBoundary>
         <ThrowError shouldThrow={false} />
       </ErrorBoundary>,
     )
 
-    expect(getByText("No error")).toBeDefined()
+    expect(screen.getByText("No error")).toBeDefined()
   })
 
   it("renders error UI when there is an error", () => {
-    const { getByText } = render(
+    render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>,
     )
 
-    expect(getByText("Something went wrong")).toBeDefined()
-    expect(getByText("Try Again")).toBeDefined()
+    expect(screen.getByText("Something went wrong")).toBeDefined()
+    expect(screen.getByText("Try Again")).toBeDefined()
   })
 })

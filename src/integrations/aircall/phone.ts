@@ -758,10 +758,11 @@ class AircallPhoneManager {
    * IMPORTANT: v2 SDK does NOT support programmatic answer
    * Caller should show the workspace and let user click the native button
    */
-  async answerCall(): Promise<void> {
+  answerCall(): Promise<void> {
     console.log("[AircallWorkspace] ℹ️  SDK v2 does not support programmatic answer")
     console.log("[AircallWorkspace] ℹ️  Please show workspace and let user click Answer button")
     // Don't throw - just log. The UI should show the workspace instead.
+    return Promise.resolve()
   }
 
   /**
@@ -769,10 +770,11 @@ class AircallPhoneManager {
    * IMPORTANT: v2 SDK does NOT support programmatic reject
    * Caller should show the workspace and let user click the native button
    */
-  async rejectCall(): Promise<void> {
+  rejectCall(): Promise<void> {
     console.log("[AircallWorkspace] ℹ️  SDK v2 does not support programmatic reject")
     console.log("[AircallWorkspace] ℹ️  Please show workspace and let user click Reject button")
     // Don't throw - just log. The UI should show the workspace instead.
+    return Promise.resolve()
   }
 
   /**
@@ -780,10 +782,11 @@ class AircallPhoneManager {
    * IMPORTANT: v2 SDK does NOT support programmatic hangup
    * Caller should show the workspace and let user click the native button
    */
-  async hangUp(): Promise<void> {
+  hangUp(): Promise<void> {
     console.log("[AircallWorkspace] ℹ️  SDK v2 does not support programmatic hangup")
     console.log("[AircallWorkspace] ℹ️  Please show workspace and let user click End Call button")
     // Don't throw - just log. The UI should show the workspace instead.
+    return Promise.resolve()
   }
 
   /**

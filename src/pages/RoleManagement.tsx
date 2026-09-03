@@ -81,7 +81,7 @@ export default function RoleManagement() {
         }),
       )
 
-      return usersWithRoles as UserWithRoles[]
+      return usersWithRoles
     },
   })
 

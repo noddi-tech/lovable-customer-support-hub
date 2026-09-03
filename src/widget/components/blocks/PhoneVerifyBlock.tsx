@@ -120,7 +120,9 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
     setIsVerifying(false)
   }
 
-  handleVerifyPinRef.current = handleVerifyPin
+  handleVerifyPinRef.current = (pinOverride?: string) => {
+    void handleVerifyPin(pinOverride)
+  }
 
   const handleResendCode = async () => {
     setError(null)
@@ -166,7 +168,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
               value={phoneInput}
               onChange={(e) => setPhoneInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSendCode()
+                if (e.key === "Enter") void handleSendCode()
               }}
             />
           </div>
@@ -241,7 +243,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
                       )
                     if (prev) prev.focus()
                   }
-                  if (e.key === "Enter" && pinInput.length >= 4) handleVerifyPin()
+                  if (e.key === "Enter" && pinInput.length >= 4) void handleVerifyPin()
                 }}
                 onPaste={(e) => {
                   e.preventDefault()
@@ -288,7 +290,7 @@ const PhoneVerifyBlock: React.FC<BlockComponentProps> = ({
                       )
                     if (prev) prev.focus()
                   }
-                  if (e.key === "Enter" && pinInput.length >= 4) handleVerifyPin()
+                  if (e.key === "Enter" && pinInput.length >= 4) void handleVerifyPin()
                 }}
                 onPaste={(e) => {
                   e.preventDefault()

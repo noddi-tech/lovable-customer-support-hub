@@ -60,7 +60,7 @@ export const PaletteAvailabilityActions: React.FC<PaletteAvailabilityActionsProp
             value={`availability-chat-${option.value}-${option.label}`}
             disabled={isUpdating}
             onSelect={() => {
-              setStatus(option.value)
+              void setStatus(option.value)
               toast.success(option.title, { description: option.description })
               onDone()
             }}

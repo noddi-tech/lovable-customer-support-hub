@@ -257,7 +257,7 @@ export default function SuperAdminEmailTemplates() {
         .eq("is_active", true)
 
       if (error) throw error
-      return data as SystemEmailTemplate[]
+      return data
     },
   })
 
@@ -316,7 +316,7 @@ export default function SuperAdminEmailTemplates() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["system-email-templates"] })
+      void queryClient.invalidateQueries({ queryKey: ["system-email-templates"] })
       toast({
         title: "Template saved",
         description: "System email template has been saved successfully.",
@@ -369,7 +369,7 @@ export default function SuperAdminEmailTemplates() {
   }
 
   // Reset template to default
-  const handleResetTemplate = async (templateType: string) => {
+  const handleResetTemplate = (templateType: string) => {
     setTemplateToReset(null)
 
     // Find the default template from database

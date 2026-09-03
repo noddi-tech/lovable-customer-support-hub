@@ -32,6 +32,13 @@ interface Props {
   organizationId: string
 }
 
+const SentimentIcon = ({ trend }: { trend: string | null }) => {
+  if (trend === "improving") return <TrendingUp className="w-4 h-4 text-green-500" />
+  if (trend === "declining") return <TrendingDown className="w-4 h-4 text-red-500" />
+  if (trend === "stable") return <Minus className="w-4 h-4 text-muted-foreground" />
+  return <Minus className="w-4 h-4 text-muted-foreground" />
+}
+
 const MEMORY_TYPE_COLORS: Record<string, string> = {
   vehicle: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   fact: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
@@ -117,12 +124,12 @@ export function CustomerMemoryDashboard({ organizationId }: Props) {
     },
     onSuccess: () => {
       toast({ title: "Memory deactivated" })
-      queryClient.invalidateQueries({ queryKey: ["customer-memories"] })
-      queryClient.invalidateQueries({ queryKey: ["customer-memories-all", organizationId] })
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({ queryKey: ["customer-memories"] })
+      void queryClient.invalidateQueries({ queryKey: ["customer-memories-all", organizationId] })
+      void queryClient.invalidateQueries({
         queryKey: ["customer-memories-expanded", organizationId, expandedRow],
       })
-      queryClient.invalidateQueries({ queryKey: ["customer-memories-recent", organizationId] })
+      void queryClient.invalidateQueries({ queryKey: ["customer-memories-recent", organizationId] })
     },
   })
 
@@ -143,13 +150,6 @@ export function CustomerMemoryDashboard({ organizationId }: Props) {
     acc[m.customer_identifier] = (acc[m.customer_identifier] || 0) + 1
     return acc
   }, {})
-
-  const SentimentIcon = ({ trend }: { trend: string | null }) => {
-    if (trend === "improving") return <TrendingUp className="w-4 h-4 text-green-500" />
-    if (trend === "declining") return <TrendingDown className="w-4 h-4 text-red-500" />
-    if (trend === "stable") return <Minus className="w-4 h-4 text-muted-foreground" />
-    return <Minus className="w-4 h-4 text-muted-foreground" />
-  }
 
   return (
     <div className="space-y-6">

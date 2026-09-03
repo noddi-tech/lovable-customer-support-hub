@@ -110,7 +110,7 @@ export function TimezoneSettings() {
       }
     }
 
-    loadUserTimezone()
+    void loadUserTimezone()
   }, [user])
 
   const handleTimezoneChange = async (timezone: string) => {

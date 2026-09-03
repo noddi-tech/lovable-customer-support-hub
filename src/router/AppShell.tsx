@@ -26,8 +26,8 @@ export function AppShell() {
       navigate(event.detail.path, { replace: true })
     }
 
-    window.addEventListener("auth-navigate", handleAuthNavigate as EventListener)
-    return () => window.removeEventListener("auth-navigate", handleAuthNavigate as EventListener)
+    window.addEventListener("auth-navigate", handleAuthNavigate)
+    return () => window.removeEventListener("auth-navigate", handleAuthNavigate)
   }, [navigate])
 
   useEffect(() => {

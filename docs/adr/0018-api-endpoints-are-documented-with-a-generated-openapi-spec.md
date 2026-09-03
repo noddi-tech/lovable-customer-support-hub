@@ -13,7 +13,7 @@ weeks.
 ## Decision
 
 Generate an OpenAPI 3.1 document from the function sources (`scripts/generate-openapi.ts`,
-`npm run docs:api`) and render it in the app at `/api-docs` with Scalar, behind the same
+`bun run docs:api`) and render it in the app at `/api-docs` with Scalar, behind the same
 authentication as `/docs`.
 
 Descriptions come from each function's leading comment block, auth from `verify_jwt` in

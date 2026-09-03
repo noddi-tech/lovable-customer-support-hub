@@ -10,10 +10,9 @@ import AdminDesignComponents from "@/pages/AdminDesignComponents"
 describe("Overlap Prevention", () => {
   describe("AdminDesignComponents", () => {
     it("should not use whitespace-nowrap on tabs", () => {
-      const { container } = render(<AdminDesignComponents />)
+      render(<AdminDesignComponents />)
 
-      const tabs = container.querySelectorAll('[role="tab"]')
-      tabs.forEach((tab) => {
+      screen.getAllByRole("tab").forEach((tab) => {
         const styles = window.getComputedStyle(tab)
         expect(styles.whiteSpace).not.toBe("nowrap")
         expect(tab.className).toMatch(/truncate|min-w-0/)
@@ -21,10 +20,9 @@ describe("Overlap Prevention", () => {
     })
 
     it("should have flex-wrap on tabs container", () => {
-      const { container } = render(<AdminDesignComponents />)
+      render(<AdminDesignComponents />)
 
-      const tabsList = container.querySelector('[role="tablist"]')
-      expect(tabsList?.className).toMatch(/flex-wrap/)
+      expect(screen.getByRole("tablist").className).toMatch(/flex-wrap/)
     })
   })
 
@@ -37,10 +35,9 @@ describe("Overlap Prevention", () => {
     }
 
     it("should use minmax grid columns for flexible layouts", () => {
-      const { container } = render(<CampaignBuilderShell {...mockProps} />)
+      render(<CampaignBuilderShell {...mockProps} />)
 
-      const gridContainer = container.querySelector('[data-testid="campaigns-grid"]')
-      expect(gridContainer?.className).toMatch(/minmax/)
+      expect(screen.getByTestId("campaigns-grid").className).toMatch(/minmax/)
     })
 
     it("should have flex-wrap on mobile toolbars", () => {
@@ -53,19 +50,25 @@ describe("Overlap Prevention", () => {
 
       const { container } = render(<CampaignBuilderShell {...mockProps} />)
 
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access -- flex-wrap toolbar is a class-only layout marker
       const toolbar = container.querySelector(".flex.flex-wrap")
       expect(toolbar).toBeInTheDocument()
     })
 
     it("should prevent button overflow with flex-shrink-0", () => {
-      const { container } = render(<CampaignBuilderShell {...mockProps} />)
+      render(<CampaignBuilderShell {...mockProps} />)
 
-      const buttons = container.querySelectorAll("button")
-      buttons.forEach((button) => {
-        if (button.textContent?.includes("Blocks") || button.textContent?.includes("Inspector")) {
-          expect(button.className).toMatch(/flex-shrink-0/)
-        }
-      })
+      const paneToggleButtons = screen
+        .getAllByRole("button")
+        .filter(
+          (button) =>
+            button.textContent?.includes("Blocks") || button.textContent?.includes("Inspector"),
+        )
+
+      expect(paneToggleButtons.length).toBeGreaterThan(0)
+      for (const button of paneToggleButtons) {
+        expect(button.className).toMatch(/flex-shrink-0/)
+      }
     })
   })
 
@@ -90,7 +93,7 @@ describe("Overlap Prevention", () => {
     })
 
     it("should support wrapping when needed", () => {
-      const { container } = render(
+      render(
         <ResponsiveTabs defaultValue="tab1">
           <ResponsiveTabsList className="flex-wrap">
             <ResponsiveTabsTrigger value="tab1">Tab 1</ResponsiveTabsTrigger>
@@ -101,8 +104,7 @@ describe("Overlap Prevention", () => {
         </ResponsiveTabs>,
       )
 
-      const tabsList = container.querySelector('[role="tablist"]')
-      expect(tabsList?.className).toMatch(/flex-wrap/)
+      expect(screen.getByRole("tablist").className).toMatch(/flex-wrap/)
     })
   })
 

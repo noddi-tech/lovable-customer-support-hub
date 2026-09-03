@@ -80,7 +80,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({
       const { data, error } = await supabase.rpc("get_conversations", { p_status_filter: "all" })
       if (error) {
         console.error("Error fetching conversation counts:", error)
-        return {} as Record<string, number>
+        return {}
       }
 
       const conversations = (data || []) as any[]
@@ -101,7 +101,7 @@ export const InboxSidebar: React.FC<InboxSidebarProps> = ({
         facebook: filtered.filter((conv: any) => conv.channel === "facebook").length,
         instagram: filtered.filter((conv: any) => conv.channel === "instagram").length,
         whatsapp: filtered.filter((conv: any) => conv.channel === "whatsapp").length,
-      } as Record<string, number>
+      }
     },
     refetchInterval: 10000, // Refetch every 10 seconds
   })

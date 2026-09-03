@@ -46,7 +46,7 @@ export function useUpsertFormFieldMappings() {
     },
     onSuccess: (_d, vars) => {
       const fmId = vars[0]?.form_mapping_id
-      if (fmId) qc.invalidateQueries({ queryKey: KEY(fmId) })
+      if (fmId) void qc.invalidateQueries({ queryKey: KEY(fmId) })
     },
   })
 }

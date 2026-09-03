@@ -161,7 +161,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                       className="w-full justify-start h-7 text-xs"
                       disabled={chatUpdating}
                       onClick={() => {
-                        setChatStatus(statusKey)
+                        void setChatStatus(statusKey)
                         toast.success(`Chat status: ${config.label}`)
                       }}
                     >
@@ -294,7 +294,7 @@ export const AgentAvailabilityPanel: React.FC<AgentAvailabilityPanelProps> = ({
                     key={statusKey}
                     onSelect={(e) => {
                       e.preventDefault()
-                      setChatStatus(statusKey)
+                      void setChatStatus(statusKey)
                       toast.success(statusMessages[statusKey].title, {
                         description: statusMessages[statusKey].description,
                       })

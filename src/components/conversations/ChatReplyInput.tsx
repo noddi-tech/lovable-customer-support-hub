@@ -311,7 +311,7 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
 
       // Process mentions if this was an internal note with mentions
       if (isInternalNote && mentionedUserIds.length > 0) {
-        processMentions(message, mentionedUserIds, {
+        void processMentions(message, mentionedUserIds, {
           type: "internal_note",
           conversation_id: conversationId,
         })
@@ -320,13 +320,13 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
       setIsInternalNote(false)
       setMentionedUserIds([])
       setAttachments([])
-      queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
-      queryClient.invalidateQueries({ queryKey: ["conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["all-counts"] })
-      queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
-      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["conversation-meta", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-messages", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["thread-messages"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["all-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["inboxCounts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation-meta", conversationId] })
       onSent?.()
     },
     onError: (error) => {
@@ -367,9 +367,9 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
     },
     onSuccess: () => {
       toast.success("Chat ended")
-      queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
-      queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
-      queryClient.invalidateQueries({ queryKey: ["chat-counts"] })
+      void queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+      void queryClient.invalidateQueries({ queryKey: ["chat-counts"] })
       navigate("/interactions/chat/ended")
     },
     onError: (error) => {

@@ -206,7 +206,7 @@ Config API: ${supabaseUrl}/functions/v1/widget-config?key=${widgetKey}`
               size="sm"
               variant="outline"
               onClick={() => {
-                navigator.clipboard.writeText(widgetKey)
+                void navigator.clipboard.writeText(widgetKey)
                 toast.success("Widget key copied")
               }}
             >

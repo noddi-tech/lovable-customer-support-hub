@@ -147,27 +147,31 @@ describe("AdaptiveSection", () => {
       expect(section).not.toHaveClass("bg-accent")
     })
 
-    it("applies background variants correctly", () => {
-      const backgrounds = ["none", "muted", "card", "accent"] as const
+    it("applies no background for none", () => {
+      render(
+        <AdaptiveSection background="none" data-testid="section-none">
+          <div>Content</div>
+        </AdaptiveSection>,
+      )
 
-      backgrounds.forEach((background) => {
-        const { unmount } = render(
-          <AdaptiveSection background={background} data-testid={`section-${background}`}>
-            <div>Content</div>
-          </AdaptiveSection>,
-        )
+      const section = screen.getByTestId("section-none")
+      expect(section).not.toHaveClass("bg-muted")
+      expect(section).not.toHaveClass("bg-card")
+      expect(section).not.toHaveClass("bg-accent")
+    })
 
-        const section = screen.getByTestId(`section-${background}`)
-        if (background === "none") {
-          expect(section).not.toHaveClass("bg-muted")
-          expect(section).not.toHaveClass("bg-card")
-          expect(section).not.toHaveClass("bg-accent")
-        } else {
-          expect(section).toHaveClass(`bg-${background}`)
-        }
+    it.each([
+      { background: "muted" as const, expected: "bg-muted" },
+      { background: "card" as const, expected: "bg-card" },
+      { background: "accent" as const, expected: "bg-accent" },
+    ])("applies background $background correctly", ({ background, expected }) => {
+      render(
+        <AdaptiveSection background={background} data-testid={`section-${background}`}>
+          <div>Content</div>
+        </AdaptiveSection>,
+      )
 
-        unmount()
-      })
+      expect(screen.getByTestId(`section-${background}`)).toHaveClass(expected)
     })
   })
 
@@ -217,27 +221,31 @@ describe("AdaptiveSection", () => {
       expect(section).not.toHaveClass("rounded-lg")
     })
 
-    it("applies shadow variants correctly", () => {
-      const shadows = ["none", "sm", "md", "lg"] as const
+    it("applies no shadow for none", () => {
+      render(
+        <AdaptiveSection shadow="none" data-testid="section-none">
+          <div>Content</div>
+        </AdaptiveSection>,
+      )
 
-      shadows.forEach((shadow) => {
-        const { unmount } = render(
-          <AdaptiveSection shadow={shadow} data-testid={`section-${shadow}`}>
-            <div>Content</div>
-          </AdaptiveSection>,
-        )
+      const section = screen.getByTestId("section-none")
+      expect(section).not.toHaveClass("shadow-sm")
+      expect(section).not.toHaveClass("shadow-md")
+      expect(section).not.toHaveClass("shadow-lg")
+    })
 
-        const section = screen.getByTestId(`section-${shadow}`)
-        if (shadow === "none") {
-          expect(section).not.toHaveClass("shadow-sm")
-          expect(section).not.toHaveClass("shadow-md")
-          expect(section).not.toHaveClass("shadow-lg")
-        } else {
-          expect(section).toHaveClass(`shadow-${shadow}`)
-        }
+    it.each([
+      { shadow: "sm" as const, expected: "shadow-sm" },
+      { shadow: "md" as const, expected: "shadow-md" },
+      { shadow: "lg" as const, expected: "shadow-lg" },
+    ])("applies shadow $shadow correctly", ({ shadow, expected }) => {
+      render(
+        <AdaptiveSection shadow={shadow} data-testid={`section-${shadow}`}>
+          <div>Content</div>
+        </AdaptiveSection>,
+      )
 
-        unmount()
-      })
+      expect(screen.getByTestId(`section-${shadow}`)).toHaveClass(expected)
     })
   })
 

@@ -281,7 +281,7 @@ export function LearningDashboard({ organizationId }: Props) {
       })
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["learning-review-queue"] })
+      void qc.invalidateQueries({ queryKey: ["learning-review-queue"] })
       toast({ title: "Review queue updated" })
     },
   })

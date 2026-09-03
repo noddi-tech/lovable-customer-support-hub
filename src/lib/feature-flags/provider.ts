@@ -34,7 +34,7 @@ export class SupabaseFeatureProvider implements Provider {
     const result: FlagResolution<T> = evaluateFlagWithContext<T>(
       this.flags.get(flagKey),
       defaultValue,
-      context as Record<string, unknown>,
+      context,
     )
     return {
       value: result.value,
