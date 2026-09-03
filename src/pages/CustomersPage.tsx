@@ -1,6 +1,5 @@
 import { Mail, MessageSquare, Phone, Search, StickyNote, UserRound } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { AddCustomerNoteDialog } from "@/components/customers/AddCustomerNoteDialog"
 import { CustomerDetailsSidebar } from "@/components/customers/CustomerDetailsSidebar"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
@@ -37,6 +36,7 @@ import { useEntityTags } from "@/hooks/useEntityTags"
 import { useListSelection } from "@/hooks/useListSelection"
 import { getBrandColor } from "@/lib/conversationBrand"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 const STATUS_OPTIONS = [
   { value: "open", label: "Open" },

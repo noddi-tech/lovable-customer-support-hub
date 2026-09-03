@@ -1,6 +1,5 @@
 import { Briefcase, ExternalLink, Plus, Unlink } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { CasePriorityBadge, CaseSlaBadge, CaseStatusBadge } from "@/components/cases/CaseBadges"
 import { CreateCaseDialog } from "@/components/cases/CreateCaseDialog"
 import { Button } from "@/components/ui/button"
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useCases, useConversationCase, useLinkConversationToCase } from "@/hooks/useCases"
+import { useNavigate } from "@/router/compat"
 
 interface ConversationCaseSectionProps {
   conversationId: string

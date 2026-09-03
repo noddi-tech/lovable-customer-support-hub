@@ -1,5 +1,4 @@
 import { ExternalLink, Mail, Phone, UserRound, X } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { CustomerTimeline } from "@/components/cases/CustomerTimeline"
 import { NoddiCustomerDetails } from "@/components/dashboard/voice/NoddiCustomerDetails"
 import { EntityTagPicker } from "@/components/tags/TagPicker"
@@ -10,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useCustomer, useCustomerConversations } from "@/hooks/useCustomerRecord"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 interface CustomerDetailsSidebarProps {
   customerId: string

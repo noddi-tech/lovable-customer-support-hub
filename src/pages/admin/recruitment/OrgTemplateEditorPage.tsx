@@ -1,7 +1,7 @@
 import { ArrowLeft } from "lucide-react"
-import { Link, useParams } from "react-router-dom"
 import { TemplateEditor } from "@/components/dashboard/recruitment/admin/fields/TemplateEditor"
 import { Heading } from "@/components/ui/heading"
+import { Link, useParams } from "@/router/compat"
 
 export default function OrgTemplateEditorPage() {
   const { id } = useParams<{ id: string }>()

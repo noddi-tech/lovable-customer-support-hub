@@ -1,7 +1,5 @@
 import { ArrowLeft, ChevronDown } from "lucide-react"
 import type React from "react"
-import { Link, useParams, useSearchParams } from "react-router-dom"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -12,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Link, useParams, useSearchParams } from "@/router/compat"
 import PositionForm from "./positions/PositionForm"
 import PositionScoringConfig from "./positions/PositionScoringConfig"
 import PositionStageFieldRequirements from "./positions/PositionStageFieldRequirements"

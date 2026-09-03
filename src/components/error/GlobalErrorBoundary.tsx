@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react"
 import type React from "react"
 import { Component, type ReactNode } from "react"
 import { logger } from "@/utils/logger"
@@ -79,6 +80,10 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       this.setState({ hasError: false, error: undefined })
       return
     }
+
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack } },
+    })
 
     // Log critical errors
     logger.error(

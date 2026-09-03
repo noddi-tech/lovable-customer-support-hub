@@ -1,12 +1,12 @@
 import { format } from "date-fns"
 import { ArrowLeft, CalendarIcon } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { CallAnalyticsDashboard } from "@/components/dashboard/voice/CallAnalyticsDashboard"
 import { LiveDataIndicator } from "@/components/dashboard/voice/LiveDataIndicator"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useNavigate } from "@/router/compat"
 
 export default function VoiceAnalyticsPage() {
   const navigate = useNavigate()

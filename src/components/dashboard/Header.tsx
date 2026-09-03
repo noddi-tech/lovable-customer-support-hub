@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/components/auth/AuthContext"
 import { DeleteAllButton } from "@/components/dashboard/DeleteAllButton"
 import { SyncButton } from "@/components/dashboard/SyncButton"
@@ -41,6 +40,7 @@ import { useAircallPhone } from "@/hooks/useAircallPhone"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { supabase } from "@/integrations/supabase/client"
 import { sortInboxesByName } from "@/lib/sortInboxes"
+import { useLocation, useNavigate } from "@/router/compat"
 
 interface HeaderProps {
   organizationName?: string

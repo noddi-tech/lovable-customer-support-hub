@@ -1,6 +1,5 @@
 import { Mail, Plus, Search } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useSearchParams } from "@/router/compat"
 import type { Stage } from "../pipeline/types"
 import { useDefaultPipeline } from "../pipeline/usePipelineAdmin"
 import { EmailTemplateEditor } from "./EmailTemplateEditor"

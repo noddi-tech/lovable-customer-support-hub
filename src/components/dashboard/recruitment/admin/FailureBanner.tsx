@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { useNavigate, useSearchParams } from "@/router/compat"
 import { useFailureCount } from "./hooks/useFailureCount"
 
 export function FailureBanner() {

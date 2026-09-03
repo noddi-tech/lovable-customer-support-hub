@@ -1,7 +1,6 @@
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import type React from "react"
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { supabase } from "@/integrations/supabase/client"
+import { useParams } from "@/router/compat"
 
 type Step = "identity" | "form" | "submitting" | "success" | "error"
 

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { type RenderOptions, render as rtlRender } from "@testing-library/react"
 import { ThemeProvider } from "next-themes"
 import type { ReactElement } from "react"
-import { BrowserRouter } from "react-router-dom"
+import { BrowserRouter } from "@/router/compat"
 
 // Create a custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {

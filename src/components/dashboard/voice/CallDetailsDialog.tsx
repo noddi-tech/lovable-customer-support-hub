@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { format, formatDistanceToNow } from "date-fns"
 import { Calendar, Clock, MessageSquare, Phone, RefreshCw, Trash2, User } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { EntityTagPicker } from "@/components/tags/TagPicker"
 import {
   AlertDialog,
@@ -25,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "@/router/compat"
 import { formatPhoneNumber } from "@/utils/phoneNumberUtils"
 import { CallBrandPicker } from "./CallBrandPicker"
 import { CallNotesSection } from "./CallNotesSection"

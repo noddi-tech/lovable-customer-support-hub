@@ -1,8 +1,8 @@
 import { Briefcase } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { CaseSlaBadge, CaseStatusBadge } from "@/components/cases/CaseBadges"
 import { useConversationCase } from "@/hooks/useCases"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 interface HeaderCaseChipProps {
   conversationId?: string | null

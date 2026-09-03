@@ -1,10 +1,10 @@
 import { CheckCircle2, ChevronDown, ChevronRight } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useNavigate } from "@/router/compat"
 import type { ImportResult } from "./useImport"
 
 interface Props {

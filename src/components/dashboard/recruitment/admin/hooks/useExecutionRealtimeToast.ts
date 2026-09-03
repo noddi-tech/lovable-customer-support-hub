@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export function useExecutionRealtimeToast() {

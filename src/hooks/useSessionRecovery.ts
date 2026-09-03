@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthContext"
+import { useNavigate } from "@/router/compat"
 
 interface SessionRecoveryState {
   isRecovering: boolean

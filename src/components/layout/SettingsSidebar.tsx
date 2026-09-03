@@ -1,7 +1,6 @@
 import { Bell, Home, Shield, Tag as TagIcon, User } from "lucide-react"
 import type React from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
   Sidebar,
@@ -17,6 +16,7 @@ import {
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
 import { cn } from "@/lib/utils"
+import { useLocation, useNavigate } from "@/router/compat"
 
 export const SettingsSidebar: React.FC = () => {
   const location = useLocation()

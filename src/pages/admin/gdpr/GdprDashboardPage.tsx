@@ -1,12 +1,12 @@
 import { format } from "date-fns"
 import { AlertCircle, Download, ExternalLink, Loader2, ShieldCheck, ShieldOff } from "lucide-react"
 import type React from "react"
-import { Link } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { type GdprRequestRow, useOrgGdprRequests } from "@/hooks/recruitment/useGdprRequests"
 import { useAuth } from "@/hooks/useAuth"
+import { Link } from "@/router/compat"
 
 function fmt(ts: string | null | undefined) {
   if (!ts) return "—"

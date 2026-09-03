@@ -2,7 +2,6 @@ import { ArrowLeft, LogOut, Menu, Search, Settings } from "lucide-react"
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
 import { ConnectionStatusIndicator } from "@/components/layout/ConnectionStatusIndicator"
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown"
 import { SearchCommandPalette } from "@/components/search/SearchCommandPalette"
@@ -18,6 +17,7 @@ import {
 import { useIsMobile } from "@/hooks/use-responsive"
 import { useAuth } from "@/hooks/useAuth"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNavigate } from "@/router/compat"
 
 interface AppHeaderProps {
   onMenuClick?: () => void

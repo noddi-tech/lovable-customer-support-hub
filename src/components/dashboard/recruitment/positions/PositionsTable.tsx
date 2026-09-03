@@ -2,7 +2,6 @@ import { formatDistanceToNow } from "date-fns"
 import { nb } from "date-fns/locale"
 import { Briefcase } from "lucide-react"
 import type React from "react"
-import { useNavigate } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -12,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useNavigate } from "@/router/compat"
 import PositionStatusBadge from "./PositionStatusBadge"
 import { useJobPositions } from "./usePositions"
 

@@ -11,7 +11,6 @@ import {
 import type React from "react"
 import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
 import { PaletteAvailabilityActions } from "@/components/search/PaletteAvailabilityActions"
 import {
   CommandDialog,
@@ -27,6 +26,7 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { useGlobalSearch } from "@/hooks/useGlobalSearch"
 import { filterNavPages, getNavPages, type NavPage, type NavScope } from "@/lib/navigation-registry"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 import { stripHtml } from "@/utils/stripHtml"
 
 interface SearchCommandPaletteProps {

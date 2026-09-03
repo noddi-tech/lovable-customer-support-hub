@@ -1,8 +1,8 @@
 import { AlertTriangle } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { OversiktMetrics } from "@/hooks/recruitment/useOversiktMetrics"
+import { useNavigate } from "@/router/compat"
 
 interface Props {
   items: OversiktMetrics["needs_attention"]["stage_stalled"]

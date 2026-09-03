@@ -16,7 +16,6 @@ import {
 } from "lucide-react"
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
   ProgressiveMessagesList,
@@ -33,6 +32,7 @@ import { useIsMobile } from "@/hooks/use-responsive"
 import { useConversationShortcuts } from "@/hooks/useConversationShortcuts"
 import { useNoddihKundeData } from "@/hooks/useNoddihKundeData"
 import { cn } from "@/lib/utils"
+import { useNavigate, useSearchParams } from "@/router/compat"
 import { canGoBackInApp, getConversationBackPath } from "@/utils/conversationNavigation"
 import { getCustomerDisplayWithNoddi, getCustomerInitial } from "@/utils/customerDisplayName"
 import { CustomerSidePanel } from "./CustomerSidePanel"

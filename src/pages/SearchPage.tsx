@@ -2,7 +2,6 @@ import debounce from "lodash.debounce"
 import { Filter, Loader2, Mail, MessageSquare, Search, Users, X } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import { SearchFilters } from "@/components/search/SearchFilters"
 import { SearchResults } from "@/components/search/SearchResults"
@@ -15,6 +14,7 @@ import {
   useGlobalSearch,
   useGlobalSearchCounts,
 } from "@/hooks/useGlobalSearch"
+import { useNavigate, useSearchParams } from "@/router/compat"
 
 const SearchPage = () => {
   const { t } = useTranslation()

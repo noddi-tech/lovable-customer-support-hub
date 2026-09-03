@@ -1,12 +1,12 @@
 import { Bell, Check, Clock } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCompleteFollowup } from "@/hooks/recruitment/useFollowups"
 import type { FollowupItem } from "@/hooks/recruitment/useOversiktMetrics"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNavigate } from "@/router/compat"
 import SnoozeFollowupDialog from "../applicants/SnoozeFollowupDialog"
 
 interface Props {

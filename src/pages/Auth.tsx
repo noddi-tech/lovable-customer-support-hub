@@ -2,7 +2,6 @@ import { signInWithNavio } from "@navio/nidp"
 import { AlertCircle, Lock } from "lucide-react"
 import type React from "react"
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/components/auth/AuthContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -22,6 +21,7 @@ import {
   isDevPreview,
   rememberDevLogin,
 } from "@/lib/dev-preview-auth"
+import { useNavigate } from "@/router/compat"
 import { logger } from "@/utils/logger"
 
 // Error keys that may arrive as `?error=` when a sign-in bounces back to /auth.

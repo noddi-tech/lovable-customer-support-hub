@@ -1,6 +1,5 @@
 import { BookOpen, ChevronRight, FileText, PanelLeft, Plug, Search } from "lucide-react"
 import { useMemo, useState } from "react"
-import { Link, Navigate, useParams } from "react-router-dom"
 import { MarkdownView } from "@/components/docs/MarkdownView"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +16,7 @@ import {
   searchDocs,
 } from "@/lib/docs-registry"
 import { cn } from "@/lib/utils"
+import { Link, Navigate, useParams } from "@/router/compat"
 
 function DocsNav({ activeSlug, onNavigate }: { activeSlug: string; onNavigate?: () => void }) {
   const [query, setQuery] = useState("")

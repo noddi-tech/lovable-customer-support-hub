@@ -4,8 +4,8 @@
 // meta-deletion-status edge function, which returns status fields for one
 // exact confirmation code only.
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
+import { useParams } from "@/router/compat"
 
 interface DeletionRequest {
   confirmation_code: string

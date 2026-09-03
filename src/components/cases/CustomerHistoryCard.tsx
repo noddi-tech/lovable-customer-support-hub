@@ -1,10 +1,10 @@
 import { History, Mail, MessageSquare } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useCustomerConversations } from "@/hooks/useCustomerRecord"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNavigate } from "@/router/compat"
 
 interface CustomerHistoryCardProps {
   customerId?: string | null

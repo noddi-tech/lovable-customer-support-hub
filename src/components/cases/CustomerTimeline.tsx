@@ -8,7 +8,6 @@ import {
   StickyNote,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { TimelineItemPreviewDialog } from "@/components/cases/TimelineItemPreviewDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +19,7 @@ import {
 } from "@/hooks/useCustomerTimeline"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 const CHANNEL_ICONS: Record<TimelineChannel, React.ComponentType<{ className?: string }>> = {
   email: Mail,

@@ -1,7 +1,6 @@
 import { Archive, BarChart3, Inbox, MessageCircle, Phone, Plus, Settings } from "lucide-react"
 import type React from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
   Sidebar,
@@ -14,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
+import { useLocation, useNavigate } from "@/router/compat"
 
 export const InteractionsSidebar: React.FC = () => {
   const location = useLocation()

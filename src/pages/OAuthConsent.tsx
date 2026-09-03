@@ -1,9 +1,9 @@
 import { AlertCircle, Loader2, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/integrations/supabase/client"
+import { useSearchParams } from "@/router/compat"
 
 /**
  * Supabase OAuth 2.1 consent screen, routed at /.lovable/oauth/consent.

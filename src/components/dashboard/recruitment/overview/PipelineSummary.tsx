@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { OversiktMetrics } from "@/hooks/recruitment/useOversiktMetrics"
+import { useNavigate } from "@/router/compat"
 
 interface Props {
   data: OversiktMetrics["pipeline_summary"]

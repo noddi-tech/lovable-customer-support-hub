@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render } from "@testing-library/react"
-import { BrowserRouter } from "react-router-dom"
 import Index from "@/pages/Index"
+import { BrowserRouter } from "@/router/compat"
 
 // Mock all the necessary hooks and components
 vi.mock("@/hooks/useAuth", () => ({

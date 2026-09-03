@@ -1,6 +1,5 @@
 import { Loader2, Plus, Zap } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -15,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useSearchParams } from "@/router/compat"
 import { DryRunPanel } from "./dryrun/DryRunPanel"
 import { ExecutionLogPanel } from "./executions/ExecutionLogPanel"
 import { useRuleMutations } from "./hooks/useRuleMutations"

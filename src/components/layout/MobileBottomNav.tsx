@@ -1,9 +1,9 @@
 import { Briefcase, Home, Menu, MessageCircle, MessageSquare } from "lucide-react"
 import type React from "react"
-import { NavLink, useLocation } from "react-router-dom"
 import { useSidebar } from "@/components/ui/sidebar"
 import { useSidebarNavCounts } from "@/hooks/useSidebarNavCounts"
 import { cn } from "@/lib/utils"
+import { NavLink, useLocation } from "@/router/compat"
 
 type Tab = {
   id: string

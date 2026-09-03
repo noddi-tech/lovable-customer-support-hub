@@ -14,13 +14,13 @@ import {
   Settings,
   Users,
 } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRealtimeConnection } from "@/contexts/RealtimeProvider"
 import { EDGE_FUNCTIONS } from "@/data/edge-functions.generated"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface NavigationCard {

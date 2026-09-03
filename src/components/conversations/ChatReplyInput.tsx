@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { AiSuggestionsSheet } from "@/components/dashboard/conversation-view/AiSuggestionsSheet"
 import { FeedbackPrompt } from "@/components/dashboard/conversation-view/FeedbackPrompt"
@@ -55,6 +54,7 @@ import {
   translateText,
 } from "@/lib/translateText"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 import { noteDebug } from "@/utils/noteInteractionDebug"
 
 const LANGUAGES = [

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams, useSearchParams } from "@/router/compat"
 import type { ConversationId, InboxId, StatusFilter } from "@/types/interactions"
 
 export interface NavigationState {

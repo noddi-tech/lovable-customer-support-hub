@@ -2,14 +2,20 @@ import { act, renderHook } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useInteractionsNavigation } from "./useInteractionsNavigation"
 
-// Mock react-router-dom
+// Mock router compat (formerly react-router-dom)
 const mockNavigate = vi.fn()
 const mockSetSearchParams = vi.fn()
 const mockSearchParams = new URLSearchParams()
 const mockParams: Record<string, string | undefined> = {}
-const mockLocation = { pathname: "/interactions/text/open", hash: "", search: "" }
+const mockLocation = {
+  pathname: "/interactions/text/open",
+  hash: "",
+  search: "",
+  state: null,
+  key: "test",
+}
 
-vi.mock("react-router-dom", () => ({
+vi.mock("@/router/compat", () => ({
   useSearchParams: () => [mockSearchParams, mockSetSearchParams],
   useLocation: () => mockLocation,
   useNavigate: () => mockNavigate,

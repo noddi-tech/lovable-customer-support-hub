@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 import { formatDistanceToNow } from "date-fns"
 import { nb } from "date-fns/locale"
 import { ArrowRight, Upload } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export function CSVImportCard() {

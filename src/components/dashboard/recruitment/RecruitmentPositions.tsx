@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { useNavigate } from "@/router/compat"
 import CreatePositionDialog from "./positions/CreatePositionDialog"
 import PositionsTable from "./positions/PositionsTable"
 

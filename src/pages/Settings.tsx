@@ -1,6 +1,5 @@
 import React from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation, useNavigate } from "react-router-dom"
 import { AdminPortal } from "@/components/admin/AdminPortal"
 import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import { DepartmentManagement } from "@/components/admin/DepartmentManagement"
@@ -14,6 +13,7 @@ import { UserNotificationSettings } from "@/components/settings/UserNotification
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useLocation, useNavigate } from "@/router/compat"
 
 export default function Settings() {
   const { loading } = useAuth()

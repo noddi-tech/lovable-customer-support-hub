@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef } from "react"
-import { useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
-
 import type { Json } from "@/integrations/supabase/types"
+import { useLocation } from "@/router/compat"
 
 interface QueuedEvent {
   user_id: string

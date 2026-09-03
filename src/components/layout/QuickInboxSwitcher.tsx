@@ -3,7 +3,6 @@
  * Each inbox is numbered; pressing the number key switches to it instantly.
  */
 import React from "react"
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import {
   CommandDialog,
@@ -17,6 +16,7 @@ import { useDefaultInbox } from "@/hooks/useDefaultInbox"
 import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
 import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts"
 import { useAccessibleInboxes } from "@/hooks/useInteractionsData"
+import { useLocation, useNavigate, useSearchParams } from "@/router/compat"
 import { groupInboxesByDomain } from "@/utils/inboxGrouping"
 
 interface QuickInboxSwitcherProps {

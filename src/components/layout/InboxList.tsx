@@ -12,7 +12,6 @@
 
 import { Archive, CheckCircle, ChevronDown, Clock, Inbox, Mail, Star, Trash2 } from "lucide-react"
 import React from "react"
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { LiveChatQueue } from "@/components/conversations/LiveChatQueue"
 import { BrandFilterSelect } from "@/components/dashboard/conversation-list/BrandFilterSelect"
 import { TagFilterSelect } from "@/components/tags/TagFilterSelect"
@@ -27,6 +26,7 @@ import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
 import { useInboxOutstandingCounts } from "@/hooks/useInboxOutstandingCounts"
 import { useAccessibleInboxes, useInboxCounts } from "@/hooks/useInteractionsData"
 import { cn } from "@/lib/utils"
+import { useLocation, useNavigate, useSearchParams } from "@/router/compat"
 import type { InboxId, StatusFilter } from "@/types/interactions"
 import { groupInboxesByDomain } from "@/utils/inboxGrouping"
 

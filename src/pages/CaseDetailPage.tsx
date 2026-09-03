@@ -9,7 +9,6 @@ import {
   Wrench,
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import {
   CASE_PRIORITY_DOT,
@@ -51,6 +50,7 @@ import {
 } from "@/hooks/useCases"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate, useParams } from "@/router/compat"
 
 function useOrgAgents() {
   const { profile } = useAuth()

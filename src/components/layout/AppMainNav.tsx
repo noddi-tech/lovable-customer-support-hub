@@ -1,7 +1,6 @@
 import { Bell, ChevronLeft, ChevronRight, Crown, Home, LogOut, User } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,6 +32,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useSidebarNavCounts } from "@/hooks/useSidebarNavCounts"
 import { cn } from "@/lib/utils"
 import { getGroupedNavItems, logNavMatch } from "@/navigation/nav-config"
+import { NavLink, useLocation, useNavigate } from "@/router/compat"
 import { AgentAvailabilityPanel } from "./AgentAvailabilityPanel"
 
 /**

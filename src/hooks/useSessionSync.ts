@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthContext"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 
 interface SessionSyncState {
   isSyncing: boolean

@@ -1,6 +1,5 @@
 import { Building2, Calendar, Crown, Info, Plus, RefreshCw, Search, Users } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import { CreateOrganizationModal } from "@/components/organization/CreateOrganizationModal"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOrganizations } from "@/hooks/useOrganizations"
 import { useServiceOrganizations } from "@/hooks/useServiceOrganizations"
+import { useNavigate } from "@/router/compat"
 
 export default function OrganizationManagement() {
   const navigate = useNavigate()

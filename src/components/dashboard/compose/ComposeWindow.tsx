@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import React, { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -51,6 +50,7 @@ import {
   translateText,
 } from "@/lib/translateText"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 import { AiSuggestionDialog } from "../conversation-view/AiSuggestionDialog"
 import { TemplateSelector } from "../conversation-view/TemplateSelector"
 

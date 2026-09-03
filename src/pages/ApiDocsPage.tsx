@@ -2,12 +2,12 @@ import { ApiReferenceReact } from "@scalar/api-reference-react"
 import { useMemo } from "react"
 import "@scalar/api-reference-react/style.css"
 import { BookOpen, Plug } from "lucide-react"
-import { Link } from "react-router-dom"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import spec from "@/data/openapi.generated.json"
+import { Link } from "@/router/compat"
 
 /**
  * Renders the generated OpenAPI document for every edge function this service

@@ -1,3 +1,6 @@
+// Sentry must load before other app modules so early errors are captured.
+import "./instrument"
+
 // =============================================================================
 // URL SANITIZATION - MUST RUN BEFORE REACT INITIALIZES
 // Fixes malformed URLs like /%3Finbox=... which should be /?inbox=...

@@ -10,7 +10,6 @@ import {
   UserRound,
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
 import { CasePriorityBadge, CaseStatusBadge } from "@/components/cases/CaseBadges"
 import { CreateCaseDialog } from "@/components/cases/CreateCaseDialog"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
@@ -33,6 +32,7 @@ import {
   useCustomerSummary,
 } from "@/hooks/useCustomerRecord"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
+import { useNavigate, useParams } from "@/router/compat"
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()

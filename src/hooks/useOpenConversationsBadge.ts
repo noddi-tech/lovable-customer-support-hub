@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation } from "@/router/compat"
 import { useDefaultInbox } from "./useDefaultInbox"
 import { useFaviconBadge } from "./useFaviconBadge"
 import { useInboxOutstandingCounts } from "./useInboxOutstandingCounts"

@@ -20,7 +20,6 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useLocation, useNavigate } from "react-router-dom"
 import { PaneColumn, PaneScroll } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Heading } from "@/components/ui/heading"
@@ -40,6 +39,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth"
 import { cn } from "@/lib/utils"
+import { Link, useLocation, useNavigate } from "@/router/compat"
 
 interface AdminPortalLayoutProps {
   children: React.ReactNode

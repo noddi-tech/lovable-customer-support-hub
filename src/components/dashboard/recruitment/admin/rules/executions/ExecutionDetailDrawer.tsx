@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
 import { AlertTriangle, Check, ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { supabase } from "@/integrations/supabase/client"
 import { cn } from "@/lib/utils"
+import { Link } from "@/router/compat"
 import type { AutomationExecution } from "./types"
 import {
   formatAbsoluteNbNo,

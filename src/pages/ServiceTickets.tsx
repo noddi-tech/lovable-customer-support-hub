@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Plus, RefreshCw } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
 import { CreateNoddiTicketDialog } from "@/components/noddi-tickets/CreateNoddiTicketDialog"
 import { NoddiTicketDetailsSheet } from "@/components/noddi-tickets/NoddiTicketDetailsSheet"
 import {
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useNoddiServiceDepartments, useNoddiTickets } from "@/hooks/useNoddiTickets"
+import { useSearchParams } from "@/router/compat"
 import type { NoddiTicketListParams, NoddiTicketStatus } from "@/types/noddiTicket"
 
 const PAGE_SIZE = 25

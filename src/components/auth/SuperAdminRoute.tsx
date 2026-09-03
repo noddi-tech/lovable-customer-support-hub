@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react"
-import { Navigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { isPreviewBypassEnabled } from "@/lib/dev-preview-auth"
+import { Navigate } from "@/router/compat"
 
 interface SuperAdminRouteProps {
   children: React.ReactNode

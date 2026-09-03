@@ -1,6 +1,5 @@
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { Link } from "react-router-dom"
 import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import {
   AlertDialog,
@@ -33,6 +32,7 @@ import {
   useFieldMappingTemplates,
 } from "@/hooks/recruitment/useFieldMappingTemplates"
 import { useToast } from "@/hooks/use-toast"
+import { Link } from "@/router/compat"
 
 export default function SystemTemplatesPage() {
   const { data, isLoading } = useFieldMappingTemplates("system")

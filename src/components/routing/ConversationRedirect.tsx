@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Loader2 } from "lucide-react"
-import { Navigate, useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
+import { Navigate, useParams } from "@/router/compat"
 
 export const ConversationRedirect = () => {
   const { conversationId, messageId } = useParams()

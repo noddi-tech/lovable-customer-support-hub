@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Mail, MessageSquare, Plus, RefreshCw, Settings, Trash2, Users } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -40,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useServiceDepartments } from "@/hooks/useServiceDepartments"
 import { supabase } from "@/integrations/supabase/client"
 import { sortInboxesByName } from "@/lib/sortInboxes"
+import { useNavigate } from "@/router/compat"
 
 // Design system color palette for inboxes (HSL converted to hex for display)
 const INBOX_COLOR_PALETTE = [

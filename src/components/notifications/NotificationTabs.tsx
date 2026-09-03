@@ -1,10 +1,10 @@
 import { AtSign, Bell, Phone, UserCheck } from "lucide-react"
 import type React from "react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { NotificationCategory } from "@/hooks/useNotificationFilters"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 interface NotificationTabsProps {
   selectedCategory: NotificationCategory

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { ArrowRight, Brain, TrendingUp } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 
 interface KnowledgeQuickStatsProps {
   organizationId: string

@@ -1,7 +1,6 @@
 import { Loader2 } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -21,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useNavigate } from "@/router/compat"
 import { useJobPositions } from "../positions/usePositions"
 import { useCreateApplicant } from "./useApplicants"
 

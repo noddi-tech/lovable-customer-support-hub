@@ -1,5 +1,4 @@
 import React from "react"
-import { useLocation, useSearchParams } from "react-router-dom"
 import { ResponsiveContainer } from "@/components/admin/design/components/layouts/ResponsiveContainer"
 import { ChatLayout } from "@/components/dashboard/chat"
 import { EnhancedInteractionsLayout } from "@/components/dashboard/EnhancedInteractionsLayout"
@@ -13,6 +12,7 @@ import { OperationsSidebar } from "@/components/layout/OperationsSidebar"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import VoiceAnalyticsPage from "@/pages/VoiceAnalyticsPage"
 import VoiceSettingsPage from "@/pages/VoiceSettingsPage"
+import { useLocation, useSearchParams } from "@/router/compat"
 
 const Index = () => {
   const location = useLocation()

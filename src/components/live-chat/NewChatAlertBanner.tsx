@@ -1,8 +1,8 @@
 import { MessageSquareDot, X } from "lucide-react"
 import type React from "react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useNewChatAlerts } from "@/hooks/useNewChatAlerts"
+import { useNavigate } from "@/router/compat"
 
 /**
  * Loud, always-visible banner shown to online agents when a customer starts a

@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { TableHeaderCell } from "@/components/dashboard/conversation-list/TableHeaderCell"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
@@ -45,6 +44,7 @@ import {
   useNotificationFilters,
 } from "@/hooks/useNotificationFilters"
 import { cn } from "@/lib/utils"
+import { useNavigate, useParams } from "@/router/compat"
 
 const VALID_TABS: NotificationCategory[] = ["unread", "mentions", "assigned", "calls"]
 

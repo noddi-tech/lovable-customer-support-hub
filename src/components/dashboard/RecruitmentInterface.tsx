@@ -1,6 +1,6 @@
 import type React from "react"
-import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
+import { Link, useLocation } from "@/router/compat"
 import ApplicantProfile from "./recruitment/applicants/ApplicantProfile"
 import PositionDetail from "./recruitment/PositionDetail"
 import RecruitmentApplicants from "./recruitment/RecruitmentApplicants"

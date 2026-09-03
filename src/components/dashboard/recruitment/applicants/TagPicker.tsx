@@ -1,6 +1,5 @@
 import { Check, ChevronDown, Tag as TagIcon, X } from "lucide-react"
 import { forwardRef, useState } from "react"
-import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -13,6 +12,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { type RecruitmentTag, useTags } from "@/hooks/recruitment/useTags"
 import { cn } from "@/lib/utils"
+import { Link } from "@/router/compat"
 
 interface Props {
   value: string[]

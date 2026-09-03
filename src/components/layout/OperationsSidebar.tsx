@@ -1,6 +1,5 @@
 import { ArrowLeft, BarChart3, Send, Users } from "lucide-react"
 import type React from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
   Sidebar,
@@ -12,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Link, useLocation, useNavigate } from "@/router/compat"
 
 export const OperationsSidebar: React.FC = () => {
   const location = useLocation()

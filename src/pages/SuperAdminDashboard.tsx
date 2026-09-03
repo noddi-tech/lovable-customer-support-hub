@@ -12,7 +12,6 @@ import {
   Users,
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import { EmailHealthDashboard } from "@/components/admin/EmailHealthDashboard"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -30,6 +29,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export default function SuperAdminDashboard() {

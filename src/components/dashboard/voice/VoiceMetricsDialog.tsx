@@ -1,13 +1,13 @@
 import { subDays } from "date-fns"
 import { ArrowRight, Phone } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { attainmentTone, MetricTile } from "@/components/dashboard/MetricTile"
 import { MetricsDialogShell } from "@/components/dashboard/shared/MetricsDialogShell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useCallAnalytics } from "@/hooks/useCallAnalytics"
+import { useNavigate } from "@/router/compat"
 
 interface VoiceMetricsDialogProps {
   open: boolean

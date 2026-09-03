@@ -3,7 +3,6 @@ import { CheckCheck, ExternalLink, Eye, EyeOff, MessageSquare, Trash2 } from "lu
 import type React from "react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 
 interface Notification {
   id: string

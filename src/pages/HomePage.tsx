@@ -1,6 +1,5 @@
 import { Clock, Inbox, Mail, MailOpen, Settings2, UserCheck } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { InboxCard } from "@/components/dashboard/home/InboxCard"
 import { InboxMetricsDialog } from "@/components/dashboard/InboxMetricsDialog"
 import { SupportOverviewSection } from "@/components/dashboard/SupportOverviewSection"
@@ -16,6 +15,7 @@ import { useInboxDefaults } from "@/hooks/useInboxDefaults"
 import { useInboxEmailAddresses } from "@/hooks/useInboxEmailAddresses"
 import { useOptimizedCounts } from "@/hooks/useOptimizedCounts"
 import { useSlaRiskByInbox } from "@/hooks/useSlaRisk"
+import { useNavigate } from "@/router/compat"
 import { groupInboxesByDomain } from "@/utils/inboxGrouping"
 
 export default function HomePage() {

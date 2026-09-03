@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams, useSearchParams } from "@/router/compat"
 
 interface UseTabRoutingOptions {
   basePath: string // e.g., '/notifications'

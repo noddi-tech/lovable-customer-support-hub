@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
-import { BrowserRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { BrowserRouter } from "@/router/compat"
 import { EnhancedInteractionsLayout } from "../EnhancedInteractionsLayout"
 
 // Mock the hooks and components

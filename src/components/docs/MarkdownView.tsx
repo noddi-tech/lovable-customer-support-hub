@@ -1,8 +1,8 @@
 import ReactMarkdown from "react-markdown"
-import { Link } from "react-router-dom"
 import rehypeSlug from "rehype-slug"
 import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
+import { Link } from "@/router/compat"
 
 interface MarkdownViewProps {
   content: string

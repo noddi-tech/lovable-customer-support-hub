@@ -1,6 +1,5 @@
 import { AlertTriangle, CheckCircle2, Loader2, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { useApplicantPipeline } from "@/components/dashboard/recruitment/applicants/useApplicants"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +32,7 @@ import {
   useInvalidateApplicantsAfterImport,
 } from "@/hooks/recruitment/useBulkImport"
 import { useToast } from "@/hooks/use-toast"
+import { Link } from "@/router/compat"
 import { useFormPositionMappings } from "../hooks/useFormPositionMappings"
 import type { ApprovalMode } from "../types"
 import { StepIndicator } from "./wizard/StepIndicator"

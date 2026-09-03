@@ -1,8 +1,8 @@
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
 import { PreviewBypassBanner } from "@/components/dev/PreviewBypassBanner"
 import { useAuth } from "@/hooks/useAuth"
 import { isPreviewBypassEnabled } from "@/lib/dev-preview-auth"
+import { useNavigate } from "@/router/compat"
 import { logger } from "@/utils/logger"
 
 interface ProtectedRouteProps {

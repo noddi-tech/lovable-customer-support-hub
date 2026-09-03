@@ -9,7 +9,6 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { Link } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,6 +19,7 @@ import {
 } from "@/hooks/recruitment/useRecruitmentSms"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { cn } from "@/lib/utils"
+import { Link } from "@/router/compat"
 import { ComposeRecruitmentSmsDialog } from "./ComposeRecruitmentSmsDialog"
 import { InlineSmsThread } from "./InlineSmsThread"
 

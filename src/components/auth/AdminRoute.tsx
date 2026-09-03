@@ -1,6 +1,6 @@
-import { Navigate } from "react-router-dom"
 import { usePermissions } from "@/hooks/usePermissions"
 import { isPreviewBypassEnabled } from "@/lib/dev-preview-auth"
+import { Navigate } from "@/router/compat"
 
 interface AdminRouteProps {
   children: React.ReactNode

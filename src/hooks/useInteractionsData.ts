@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useAuth } from "@/components/auth/AuthContext"
 import {
@@ -16,6 +15,7 @@ import {
   postReply,
 } from "@/data/interactions"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 import type {
   ConversationId,
   ConversationThread,

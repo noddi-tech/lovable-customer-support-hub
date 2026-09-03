@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Plus } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { UnifiedAppLayout } from "@/components/layout/UnifiedAppLayout"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/useAuth"
 import { CASE_STATUS_LABELS, type CaseStatus, getCaseSlaState, useCases } from "@/hooks/useCases"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 
 const sel = (s: string): string => s
 

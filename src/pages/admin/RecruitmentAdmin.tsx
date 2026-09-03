@@ -9,7 +9,6 @@ import {
   Workflow,
   Zap,
 } from "lucide-react"
-import { useSearchParams } from "react-router-dom"
 import { AuditTab } from "@/components/dashboard/recruitment/admin/audit/AuditTab"
 import { FailureBanner } from "@/components/dashboard/recruitment/admin/FailureBanner"
 import { FieldsTab } from "@/components/dashboard/recruitment/admin/fields/FieldsTab"
@@ -25,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Heading } from "@/components/ui/heading"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useSearchParams } from "@/router/compat"
 
 const VALID_TABS = [
   "pipeline",

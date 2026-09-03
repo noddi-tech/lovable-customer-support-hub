@@ -1,6 +1,5 @@
 import { Copy, FileText, Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +35,7 @@ import {
   useForkTemplate,
 } from "@/hooks/recruitment/useFieldMappingTemplates"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "@/router/compat"
 import { CustomFieldDialog } from "./CustomFieldDialog"
 
 export function FieldsTab() {

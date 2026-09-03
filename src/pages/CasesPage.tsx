@@ -13,7 +13,6 @@ import {
   UserX,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import {
   CASE_PRIORITY_DOT,
@@ -44,7 +43,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-
 import {
   CASE_PRIORITY_LABELS,
   type CasePriority,
@@ -57,6 +55,7 @@ import {
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useEntityTags } from "@/hooks/useEntityTags"
 import { useListSelection } from "@/hooks/useListSelection"
+import { useNavigate } from "@/router/compat"
 
 const VIEWS: Array<{ value: CaseQueueView; label: string; icon: LucideIcon }> = [
   { value: "mine", label: "My cases", icon: UserRound },

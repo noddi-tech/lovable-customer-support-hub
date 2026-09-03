@@ -1,6 +1,5 @@
 import type React from "react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -9,6 +8,7 @@ import {
   useOversiktMetrics,
 } from "@/hooks/recruitment/useOversiktMetrics"
 import { useOversiktRealtime } from "@/hooks/recruitment/useOversiktRealtime"
+import { useNavigate } from "@/router/compat"
 import CreateApplicantDialog from "./applicants/CreateApplicantDialog"
 import EmptyOnboarding from "./overview/EmptyOnboarding"
 import MetricsRow from "./overview/MetricsRow"

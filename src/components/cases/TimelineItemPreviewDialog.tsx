@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
 import { ExternalLink, Lock } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +15,7 @@ import type { TimelineItem } from "@/hooks/useCustomerTimeline"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { supabase } from "@/integrations/supabase/client"
 import { cn } from "@/lib/utils"
+import { useNavigate } from "@/router/compat"
 
 interface PreviewMessage {
   id: string

@@ -9,7 +9,6 @@ import {
   Pencil,
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +22,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/integrations/supabase/client"
 import { sortInboxesByName } from "@/lib/sortInboxes"
+import { useNavigate } from "@/router/compat"
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep"
 import { EmailForwardingSetupStep } from "./wizard/EmailForwardingSetupStep"
 import { GoogleGroupSetupStep } from "./wizard/GoogleGroupSetupStep"

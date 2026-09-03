@@ -29,17 +29,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }))
 
-// Mock react-router-dom
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom")
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
-    useLocation: () => ({ pathname: "/" }),
-  }
-})
-
 // Mock react-i18next
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -71,6 +60,9 @@ vi.mock("sonner", () => ({
 
 // Global test setup
 beforeAll(() => {
+  // jsdom does not implement scrollTo; TanStack Router scroll restoration calls it.
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
+
   // Mock window.matchMedia for responsive hooks
   Object.defineProperty(window, "matchMedia", {
     writable: true,

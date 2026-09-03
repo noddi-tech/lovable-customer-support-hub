@@ -1,6 +1,5 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useLocation } from "react-router-dom"
 import {
   LayoutItem,
   ResponsiveGrid,
@@ -11,6 +10,7 @@ import {
 } from "@/components/admin/design/components/layouts"
 import { EmailTemplateSettings } from "@/components/settings/EmailTemplateSettings"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Link, useLocation } from "@/router/compat"
 import { AdminDashboard } from "./AdminDashboard"
 import { AiChatbotSettings as AiChatbotSettingsContent } from "./AiChatbotSettings"
 import { ComponentConfigurationPanel } from "./ComponentConfigurationPanel"

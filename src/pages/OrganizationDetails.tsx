@@ -11,7 +11,6 @@ import {
   Users,
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
 import { AdminPortalLayout } from "@/components/admin/AdminPortalLayout"
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog"
 import { AddMemberDialog } from "@/components/organization/AddMemberDialog"
@@ -25,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type Organization, useOrganizations } from "@/hooks/useOrganizations"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate, useParams } from "@/router/compat"
 
 export default function OrganizationDetails() {
   const { id } = useParams<{ id: string }>()

@@ -16,7 +16,6 @@ import {
 } from "lucide-react"
 import type React from "react"
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -38,6 +37,7 @@ import {
 import { useAuth } from "@/hooks/useAuth"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useTeamMembers } from "@/hooks/useTeamMembers"
+import { useNavigate, useParams } from "@/router/compat"
 import StageMoveConfirmDialog from "../pipeline/StageMoveConfirmDialog"
 import { useStageMoveAutomation } from "../pipeline/useStageMoveAutomation"
 import ApplicantEmailTab from "./ApplicantEmailTab"

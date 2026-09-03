@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, ExternalLink, Mail, MessageSquare, Plug2, Tag, UserCheck } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { InboxSlaSettings } from "@/components/admin/InboxSlaSettings"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +22,7 @@ import { useNoddiBrands } from "@/hooks/useNoddiBrands"
 import { useServiceDepartments } from "@/hooks/useServiceDepartments"
 import { useTeamMembers } from "@/hooks/useTeamMembers"
 import { supabase } from "@/integrations/supabase/client"
+import { useNavigate } from "@/router/compat"
 
 export const INBOX_COLOR_PALETTE = [
   { value: "#6656D9", label: "Primary Purple" },

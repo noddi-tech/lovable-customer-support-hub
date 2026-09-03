@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query"
 import { formatDistanceToNow } from "date-fns"
 import { Clock, MessageCircle, User, X } from "lucide-react"
 import type React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
 import { useLiveChatSessions } from "@/hooks/useLiveChatSessions"
 import { cn } from "@/lib/utils"
+import { useNavigate, useSearchParams } from "@/router/compat"
 
 interface LiveChatQueueProps {
   className?: string

@@ -4,11 +4,14 @@
  * Thin wrapper around the shared @navio/observability SDK so the rest of the app
  * only imports from `@/integrations/observability`.
  *
+ * Error monitoring / tracing / session replay live in `src/instrument.ts` (Sentry).
+ *
  * Env (all browser-safe, non-secret):
  *   VITE_APP_OPENPANEL_CLIENT_ID  per-app OpenPanel project key
  *   VITE_APP_OPENPANEL_API_URL    first-party ingestion host, e.g. https://analytics.noddi.co/api
  *   VITE_APP_FARO_URL             Alloy Faro receiver endpoint (optional)
  *   VITE_APP_FARO_API_KEY         Faro x-api-key (optional)
+ *   VITE_SENTRY_DSN               Sentry browser DSN (optional; empty disables Sentry)
  */
 
 import { ReactIntegration } from "@grafana/faro-react"

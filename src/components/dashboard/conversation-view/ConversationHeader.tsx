@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
 import { HeaderCaseChip } from "@/components/cases/HeaderCaseChip"
 import { ArchiveConfirmDialog } from "@/components/dashboard/conversation-list/ArchiveConfirmDialog"
 import { EntityTagPicker } from "@/components/tags/TagPicker"
@@ -31,6 +30,7 @@ import {
 import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useConversationView } from "@/contexts/ConversationViewContext"
 import { CONVERSATION_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
+import { useNavigate } from "@/router/compat"
 import { canGoBackInApp, getConversationBackPath } from "@/utils/conversationNavigation"
 import { ConversationBrandPicker } from "./ConversationBrandPicker"
 export const ConversationHeader = () => {
