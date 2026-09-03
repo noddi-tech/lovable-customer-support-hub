@@ -72,7 +72,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Stale code-split chunk after a redeploy → recover with one reload.
     if (isChunkLoadError(error)) {
-      logger.warn("Stale chunk error caught by boundary", { error: error.message }, "GlobalErrorBoundary")
+      logger.warn(
+        "Stale chunk error caught by boundary",
+        { error: error.message },
+        "GlobalErrorBoundary",
+      )
       reloadOnceForChunkError("GlobalErrorBoundary")
       return
     }
@@ -91,7 +95,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       )
       return
     }
-
 
     Sentry.captureException(error, {
       contexts: { react: { componentStack: errorInfo.componentStack } },
@@ -123,7 +126,6 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         logger.debug("Suppressed promise rejection", { error }, "GlobalErrorBoundary")
       }
     }
-
 
     // Handle global window errors
     const handleWindowError = (event: ErrorEvent) => {
@@ -184,6 +186,5 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         </div>
       </div>
     )
-
   }
 }
