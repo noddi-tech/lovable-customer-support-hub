@@ -1,5 +1,6 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
 import { RouterProvider } from "@tanstack/react-router"
+import { ThemeProvider } from "next-themes"
 import React from "react"
 import { AuthProvider } from "@/components/auth/AuthContext"
 import { ComposeDock } from "@/components/dashboard/compose/ComposeDock"
@@ -98,33 +99,41 @@ const App = () => (
           },
         }}
       >
-        <AuthProvider>
-          <FeatureFlagsProvider>
-            <RealtimeProvider>
-              <ConversationPresenceProvider>
-                <ErrorBoundary fallback={<AppErrorFallback />}>
-                  <AircallProvider>
-                    <DesignSystemProvider>
-                      <TooltipProvider>
-                        <I18nWrapper>
-                          <ComposeProvider>
-                            <EnvBanner />
-                            <RouterProvider router={router} />
-                            <AircallWorkspaceManager />
-                            <ComposeDock />
-                          </ComposeProvider>
-                        </I18nWrapper>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+          storageKey="support-hub-theme"
+        >
+          <AuthProvider>
+            <FeatureFlagsProvider>
+              <RealtimeProvider>
+                <ConversationPresenceProvider>
+                  <ErrorBoundary fallback={<AppErrorFallback />}>
+                    <AircallProvider>
+                      <DesignSystemProvider>
+                        <TooltipProvider>
+                          <I18nWrapper>
+                            <ComposeProvider>
+                              <EnvBanner />
+                              <RouterProvider router={router} />
+                              <AircallWorkspaceManager />
+                              <ComposeDock />
+                            </ComposeProvider>
+                          </I18nWrapper>
 
-                        <Toaster />
-                        <Sonner />
-                      </TooltipProvider>
-                    </DesignSystemProvider>
-                  </AircallProvider>
-                </ErrorBoundary>
-              </ConversationPresenceProvider>
-            </RealtimeProvider>
-          </FeatureFlagsProvider>
-        </AuthProvider>
+                          <Toaster />
+                          <Sonner />
+                        </TooltipProvider>
+                      </DesignSystemProvider>
+                    </AircallProvider>
+                  </ErrorBoundary>
+                </ConversationPresenceProvider>
+              </RealtimeProvider>
+            </FeatureFlagsProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </PersistQueryClientProvider>
     </ErrorBoundary>
   </GlobalErrorBoundary>

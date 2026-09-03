@@ -457,7 +457,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   return (
     <div className="flex h-full overflow-hidden">
       {/* Main conversation area */}
-      <div className="flex flex-col min-h-0 flex-1 min-w-0 overflow-hidden bg-white">
+      <div className="flex flex-col min-h-0 flex-1 min-w-0 overflow-hidden bg-background">
         {/* Compact Conversation Header */}
         <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-sm">
           <div className="flex items-center gap-3">
@@ -607,7 +607,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
         </div>
 
         {/* Messages Area with Progressive Loading */}
-        <div className="flex-1 min-h-0 w-full flex flex-col bg-white">
+        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
           <ProgressiveMessagesList
             ref={messagesListRef}
             conversationId={conversationId}

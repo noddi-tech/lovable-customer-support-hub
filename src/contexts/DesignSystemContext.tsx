@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { useTheme } from "next-themes"
 import type React from "react"
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
@@ -292,6 +293,7 @@ interface DesignSystemProviderProps {
 export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ children }) => {
   const [designSystem, setDesignSystem] = useState<DesignSystem>(defaultDesignSystem)
   const { profile, loading } = useAuth()
+  const { resolvedTheme } = useTheme()
 
   // Fetch organization-specific design system from database
   const { data: organizationData, isLoading } = useQuery({
@@ -379,17 +381,29 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
       return foregroundHSL
     }
 
-    // Apply colors with proper CSS variable mapping and contrast checking
+    // Apply colors with proper CSS variable mapping and contrast checking.
+    // In dark mode we REMOVE the inline color overrides instead of setting them,
+    // so the `.dark` color tokens from index.css take effect. Inline styles on
+    // the root would otherwise win over the `.dark` stylesheet rules.
+    // Non-color tokens (typography, spacing, radius, shadows) apply in both modes.
+    const isDark = resolvedTheme === "dark"
     Object.entries(designSystem.colors).forEach(([key, value]) => {
       const cssVar = `--${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`
+      const foregroundKey = `${key}Foreground`
+      const foregroundCssVar = `--${foregroundKey.replace(/([A-Z])/g, "-$1").toLowerCase()}`
+      const hasForegroundToken = !key.includes("Foreground") && !key.includes("foreground")
+
+      if (isDark) {
+        root.style.removeProperty(cssVar)
+        if (hasForegroundToken) root.style.removeProperty(foregroundCssVar)
+        return
+      }
+
       // Set the HSL value directly without modification
       root.style.setProperty(cssVar, value)
 
       // Auto-generate proper foreground colors for backgrounds
-      if (!key.includes("Foreground") && !key.includes("foreground")) {
-        const foregroundKey = `${key}Foreground`
-        const foregroundCssVar = `--${foregroundKey.replace(/([A-Z])/g, "-$1").toLowerCase()}`
-
+      if (hasForegroundToken) {
         // Check if we have a corresponding foreground color defined
         if (designSystem.colors[foregroundKey as keyof typeof designSystem.colors]) {
           const foregroundValue =
@@ -447,7 +461,11 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
 
     // Apply heading styles
     const headingColorValue = designSystem.colors[designSystem.components.headings.colorToken]
-    root.style.setProperty("--heading-color", headingColorValue)
+    if (isDark) {
+      root.style.removeProperty("--heading-color")
+    } else {
+      root.style.setProperty("--heading-color", headingColorValue)
+    }
     root.style.setProperty("--heading-h1-size", designSystem.components.headings.h1Size)
     root.style.setProperty("--heading-h2-size", designSystem.components.headings.h2Size)
     root.style.setProperty("--heading-h3-size", designSystem.components.headings.h3Size)
@@ -456,7 +474,7 @@ export const DesignSystemProvider: React.FC<DesignSystemProviderProps> = ({ chil
       designSystem.typography.fontWeight[designSystem.components.headings.fontWeight],
     )
     root.style.setProperty("--heading-style", designSystem.components.headings.style)
-  }, [designSystem])
+  }, [designSystem, resolvedTheme])
 
   // Apply design system whenever it changes
   useEffect(() => {

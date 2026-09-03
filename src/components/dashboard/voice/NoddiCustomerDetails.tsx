@@ -944,7 +944,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                   <p className="font-medium text-blue-900">Debug: No booking data found</p>
                   <details className="cursor-pointer">
                     <summary className="text-blue-700">View raw API response</summary>
-                    <pre className="mt-2 text-[10px] overflow-auto max-h-40 bg-white p-2 rounded">
+                    <pre className="mt-2 text-[10px] overflow-auto max-h-40 bg-card p-2 rounded">
                       {JSON.stringify(
                         {
                           source: noddiData?.source,
@@ -980,7 +980,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                   {data.unpaid_bookings.slice(0, 5).map((ub: any, idx: number) => (
                     <div
                       key={ub.id || idx}
-                      className="p-1.5 rounded border border-amber-200 bg-white text-xs space-y-0.5"
+                      className="p-1.5 rounded border border-amber-200 bg-card text-xs space-y-0.5"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium">#{ub.id || idx + 1}</span>
@@ -1073,7 +1073,7 @@ const NoddiCustomerDetailsComponent: React.FC<NoddiCustomerDetailsProps> = ({
                   {/* Order lines and totals */}
                   {mostRecentBooking.order?.order_lines &&
                     mostRecentBooking.order.order_lines.length > 0 && (
-                      <div className="mt-2 rounded-lg border border-green-300 bg-white p-2">
+                      <div className="mt-2 rounded-lg border border-green-300 bg-card p-2">
                         <div className="font-medium mb-1 text-xs">Order Summary</div>
 
                         <div className="space-y-0.5 mb-1">

@@ -1,6 +1,7 @@
 import { Bell, ChevronLeft, ChevronRight, Crown, Home, LogOut, User } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { SidebarThemeSwitcher } from "@/components/theme/SidebarThemeSwitcher"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -301,6 +302,9 @@ export const AppMainNav = () => {
       <SidebarFooter className="mt-auto border-t border-sidebar-border py-2 space-y-1">
         {/* Chat / phone availability */}
         <AgentAvailabilityPanel collapsed={isCollapsed} />
+
+        {/* Theme switcher */}
+        <SidebarThemeSwitcher collapsed={isCollapsed} />
 
         {/* Timezone row */}
         {!isCollapsed && (

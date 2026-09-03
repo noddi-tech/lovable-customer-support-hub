@@ -167,7 +167,7 @@ export const ConversationListItem = memo<ConversationListItemProps>(
         role="button"
         tabIndex={0}
         className={cn(
-          "bg-white border border-border rounded-lg px-3 py-2",
+          "bg-card border border-border rounded-lg px-3 py-2",
           isVirtualized ? "mb-0" : "mb-1",
           "shadow-sm hover:shadow-sm transition-all duration-200 cursor-pointer",
           showBulkCheckbox && "hover:border-primary/50",

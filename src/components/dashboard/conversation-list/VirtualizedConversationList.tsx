@@ -35,7 +35,7 @@ const ConversationItem = memo(
       // Compressed loading skeleton matching single-row layout
       return (
         <div style={style} className="px-3 py-1">
-          <div className="bg-white border border-border rounded-lg px-3 py-2 animate-pulse">
+          <div className="bg-card border border-border rounded-lg px-3 py-2 animate-pulse">
             <div className="flex items-center gap-2.5">
               <div className="h-7 w-7 bg-muted rounded-full shrink-0"></div>
               <div className="flex-1 flex items-center gap-2">
