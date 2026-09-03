@@ -54,7 +54,7 @@ export function getDepartmentColumns({
       accessorKey: "description",
       header: "Description",
       cell: ({ row }) => {
-        const desc = row.getValue("description")
+        const desc = row.getValue<string>("description")
         return <span className="text-muted-foreground">{desc || "—"}</span>
       },
     },

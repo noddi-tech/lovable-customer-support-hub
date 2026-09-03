@@ -21,18 +21,27 @@ interface AiMessageRow {
   role: string
   content: string
   created_at: string
-  agent_id: string | null
 }
 
 interface AiConversationRow {
   id: string
   status: string
-  visitor_name: string | null
   visitor_email: string | null
   visitor_phone: string | null
-  assigned_agent_id: string | null
+  resolved_by: string | null
   summary: string | null
   updated_at: string
+  metadata: unknown
+}
+
+/** assigned_agent_id has no dedicated column on widget_ai_conversations; we
+ * track it inside the metadata JSON blob instead. */
+const getAssignedAgentId = (metadata: unknown): string | null => {
+  if (metadata && typeof metadata === "object" && "assigned_agent_id" in metadata) {
+    const value = (metadata as Record<string, unknown>).assigned_agent_id
+    return typeof value === "string" ? value : null
+  }
+  return null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -59,7 +68,7 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
       const { data } = await supabase
         .from("widget_ai_conversations")
         .select(
-          "id, status, visitor_name, visitor_email, visitor_phone, assigned_agent_id, summary, updated_at",
+          "id, status, visitor_email, visitor_phone, resolved_by, summary, updated_at, metadata",
         )
         .eq("id", conversationId)
         .maybeSingle()
@@ -73,7 +82,7 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
     queryFn: async (): Promise<AiMessageRow[]> => {
       const { data } = await supabase
         .from("widget_ai_messages")
-        .select("id, role, content, created_at, agent_id")
+        .select("id, role, content, created_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
       return data || []
@@ -88,20 +97,27 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
     void queryClient.invalidateQueries({ queryKey: ["chat-counts"] })
   }
 
-  // Atomic claim: only succeeds if no other agent has taken it.
+  // Claim: assigned agent is tracked in metadata (no dedicated column exists).
   const claim = async (): Promise<boolean> => {
     if (!profile?.id) return false
-    if (conversation?.assigned_agent_id === profile.id) return true
+    const currentAssignee = getAssignedAgentId(conversation?.metadata)
+    if (currentAssignee === profile.id) return true
+    const existingMetadata =
+      conversation?.metadata && typeof conversation.metadata === "object"
+        ? (conversation.metadata as Record<string, unknown>)
+        : {}
     const { data, error } = await supabase
       .from("widget_ai_conversations")
       .update({
         status: "assigned",
-        assigned_agent_id: profile.id,
-        assigned_at: new Date().toISOString(),
+        metadata: {
+          ...existingMetadata,
+          assigned_agent_id: profile.id,
+          assigned_at: new Date().toISOString(),
+        },
         updated_at: new Date().toISOString(),
       })
       .eq("id", conversationId)
-      .is("assigned_agent_id", null)
       .select("id")
     if (error) {
       toast.error("Could not take over this chat")
@@ -124,7 +140,7 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
     mutationFn: async (content: string) => {
       if (!profile?.id) throw new Error("Not signed in")
       // Take over on first reply if not already assigned to me.
-      if (conversation?.assigned_agent_id !== profile.id) {
+      if (getAssignedAgentId(conversation?.metadata) !== profile.id) {
         const ok = await claim()
         if (!ok) throw new Error("claim-failed")
       }
@@ -132,7 +148,6 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
         conversation_id: conversationId,
         role: "agent",
         content,
-        agent_id: profile.id,
       })
       if (error) throw error
       await supabase
@@ -169,7 +184,8 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
     onError: () => toast.error("Failed to resolve"),
   })
 
-  const visitorName = conversation?.visitor_name || conversation?.visitor_email || "Visitor"
+  const assignedAgentId = getAssignedAgentId(conversation?.metadata)
+  const visitorName = conversation?.visitor_email || "Visitor"
   const status = conversation?.status ?? "active"
   const isResolved = status === "resolved" || status === "ended"
 
@@ -207,7 +223,7 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {!isResolved && conversation?.assigned_agent_id !== profile?.id && (
+          {!isResolved && assignedAgentId !== profile?.id && (
             <Button
               size="sm"
               variant={status === "escalated" ? "default" : "outline"}

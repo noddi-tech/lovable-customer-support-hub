@@ -2,8 +2,8 @@ import { Clock, Inbox } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { AutoSizer } from "react-virtualized-auto-sizer"
-import { List, type RowComponentProps } from "react-window"
-import { InfiniteLoader } from "react-window-infinite-loader"
+import { List, type ListProps, type RowComponentProps } from "react-window"
+import { useInfiniteLoader } from "react-window-infinite-loader"
 import { Checkbox } from "@/components/ui/checkbox"
 import { type Conversation, useConversationList } from "@/contexts/ConversationListContext"
 import { useIsMobile } from "@/hooks/use-responsive"
@@ -110,6 +110,12 @@ const VirtualizedConversationTable = memo(
       },
       [hasNextPage, isFetchingNextPage, fetchNextPage],
     )
+
+    const onRowsRendered = useInfiniteLoader({
+      isRowLoaded,
+      rowCount,
+      loadMoreRows,
+    })
 
     const handleSort = (key: string) => {
       dispatch({ type: "SET_SORT", payload: key })
@@ -341,23 +347,15 @@ const VirtualizedConversationTable = memo(
 
                 const safeHeight = Math.max(height, 300)
                 return (
-                  <InfiniteLoader
-                    isRowLoaded={isRowLoaded}
+                  <List
+                    style={{ height: safeHeight, width }}
                     rowCount={rowCount}
-                    loadMoreRows={loadMoreRows}
-                  >
-                    {({ onRowsRendered }) => (
-                      <List
-                        style={{ height: safeHeight, width }}
-                        rowCount={rowCount}
-                        rowHeight={isMobile ? MOBILE_ITEM_HEIGHT : ITEM_HEIGHT}
-                        rowComponent={VirtualizedRow}
-                        rowProps={rowProps}
-                        onRowsRendered={onRowsRendered}
-                        overscanCount={OVERSCAN_COUNT}
-                      />
-                    )}
-                  </InfiniteLoader>
+                    rowHeight={isMobile ? MOBILE_ITEM_HEIGHT : ITEM_HEIGHT}
+                    rowComponent={VirtualizedRow as ListProps<VirtualizedRowData>["rowComponent"]}
+                    rowProps={rowProps}
+                    onRowsRendered={onRowsRendered}
+                    overscanCount={OVERSCAN_COUNT}
+                  />
                 )
               }}
             />

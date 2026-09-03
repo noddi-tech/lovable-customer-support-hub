@@ -2,8 +2,8 @@ import { Clock, Inbox } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { AutoSizer } from "react-virtualized-auto-sizer"
-import { List, type RowComponentProps } from "react-window"
-import { InfiniteLoader } from "react-window-infinite-loader"
+import { List, type ListProps, type RowComponentProps } from "react-window"
+import { useInfiniteLoader } from "react-window-infinite-loader"
 import { type Conversation, useConversationList } from "@/contexts/ConversationListContext"
 import { ConversationListItem } from "./ConversationListItem"
 
@@ -96,6 +96,12 @@ const VirtualizedConversationList = memo(
       [hasNextPage, isFetchingNextPage, fetchNextPage],
     )
 
+    const onRowsRendered = useInfiniteLoader({
+      isRowLoaded,
+      rowCount,
+      loadMoreRows,
+    })
+
     const rowProps = useMemo<ConversationRowData>(
       () => ({
         conversations,
@@ -148,24 +154,16 @@ const VirtualizedConversationList = memo(
               }
 
               return (
-                <InfiniteLoader
-                  isRowLoaded={isRowLoaded}
+                <List
+                  style={{ height, width }}
                   rowCount={rowCount}
-                  loadMoreRows={loadMoreRows}
-                >
-                  {({ onRowsRendered }) => (
-                    <List
-                      style={{ height, width }}
-                      rowCount={rowCount}
-                      rowHeight={ITEM_HEIGHT}
-                      rowComponent={ConversationItem}
-                      rowProps={rowProps}
-                      onRowsRendered={onRowsRendered}
-                      overscanCount={OVERSCAN_COUNT}
-                      className="conversation-list-virtual"
-                    />
-                  )}
-                </InfiniteLoader>
+                  rowHeight={ITEM_HEIGHT}
+                  rowComponent={ConversationItem as ListProps<ConversationRowData>["rowComponent"]}
+                  rowProps={rowProps}
+                  onRowsRendered={onRowsRendered}
+                  overscanCount={OVERSCAN_COUNT}
+                  className="conversation-list-virtual"
+                />
               )
             }}
           />

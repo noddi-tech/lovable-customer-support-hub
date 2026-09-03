@@ -45,7 +45,8 @@ export const LayoutDebugger: React.FC<LayoutDebuggerProps> = ({
       <div className="border-t border-white/20 pt-1 mt-1 text-red-300">
         <div>Grid Template:</div>
         <div className="break-all">
-          {document.querySelector(".app-main")?.style?.gridTemplateColumns || "CSS default"}
+          {document.querySelector<HTMLElement>(".app-main")?.style?.gridTemplateColumns ||
+            "CSS default"}
         </div>
       </div>
     </div>

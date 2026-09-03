@@ -111,7 +111,7 @@ export const CustomFieldValueInput: React.FC<Props> = ({
                 const iso = d.toISOString().slice(0, 10)
                 onChange(iso, iso)
               }}
-              initialFocus
+              autoFocus
               className={cn("p-3 pointer-events-auto")}
             />
           </PopoverContent>

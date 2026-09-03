@@ -3,6 +3,7 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import type { TablesUpdate } from "@/integrations/supabase/types"
 import { logger } from "@/utils/logger"
 
 export interface Tag {
@@ -73,7 +74,7 @@ export function useTags() {
 
   const updateTag = useMutation({
     mutationFn: async ({ id, name, color }: { id: string; name?: string; color?: string }) => {
-      const payload: Record<string, string> = {}
+      const payload: TablesUpdate<"tags"> = {}
       if (name !== undefined) payload.name = name.trim()
       if (color !== undefined) payload.color = color
       const { error } = await supabase.from("tags").update(payload).eq("id", id)

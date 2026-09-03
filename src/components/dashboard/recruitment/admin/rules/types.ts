@@ -56,9 +56,9 @@ export const ruleFormSchema = z
     description: z.string().max(300, "Maks 300 tegn").nullable().optional(),
     is_active: z.boolean(),
     trigger_type: z.enum(["stage_entered", "application_created"]),
-    trigger_config: z.record(z.unknown()).default({}),
+    trigger_config: z.record(z.string(), z.unknown()),
     action_type: z.enum(["send_email", "assign_to", "webhook", "send_candidate_form"]),
-    action_config: z.record(z.unknown()).default({}),
+    action_config: z.record(z.string(), z.unknown()),
   })
   .superRefine((data, ctx) => {
     if (data.trigger_type === "stage_entered" && !data.trigger_config.stage_id) {

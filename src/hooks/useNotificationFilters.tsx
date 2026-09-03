@@ -145,7 +145,7 @@ export const useNotificationFilters = (selectedCategory: NotificationCategory = 
           category,
         }
       })
-      .filter((n): n is EnhancedNotification => n !== null)
+      .filter((n) => n !== null)
   }, [notifications, user])
 
   // Filter notifications by category

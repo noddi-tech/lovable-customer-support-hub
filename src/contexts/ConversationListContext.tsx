@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useConversationFilterParams } from "@/hooks/useConversationFilterParams"
 import { useEntityTags } from "@/hooks/useEntityTags"
 import { supabase } from "@/integrations/supabase/client"
+import type { TablesUpdate } from "@/integrations/supabase/types"
 import { getConversationBrand } from "@/lib/conversationBrand"
 import { groupConversationsByThread } from "@/lib/conversationThreading"
 import { logger } from "@/utils/logger"
@@ -641,7 +642,7 @@ export const ConversationListProvider = ({
     try {
       for (const chunk of idChunks) {
         // Archiving always closes the conversation as well.
-        const updatePayload: Record<string, any> = {
+        const updatePayload: TablesUpdate<"conversations"> = {
           is_archived: true,
           status: "closed",
           is_read: true,

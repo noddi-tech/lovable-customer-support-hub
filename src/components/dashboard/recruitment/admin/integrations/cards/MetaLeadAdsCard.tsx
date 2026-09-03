@@ -85,7 +85,7 @@ function TokenStatusBadge({ integration }: { integration: MetaIntegration }) {
     return integration.status_message ?? "Ingen utløpsinformasjon tilgjengelig."
   })()
 
-  let badge: JSX.Element
+  let badge: React.JSX.Element
   switch (integration.status) {
     case "configured":
       badge = (

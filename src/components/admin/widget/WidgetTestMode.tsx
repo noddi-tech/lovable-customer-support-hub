@@ -179,12 +179,8 @@ export const WidgetTestMode: React.FC<WidgetTestModeProps> = ({ config }) => {
                     widgetKey={config.widget_key}
                     primaryColor={config.primary_color}
                     language={config.language || "no"}
-                    agentsOnline={false}
                     enableChat={false}
                     enableContactForm={false}
-                    onTalkToHuman={() =>
-                      addLogEntry("Escalation: Talk to human", undefined, "tool")
-                    }
                     onEmailConversation={(transcript) =>
                       addLogEntry(
                         "Escalation: Email conversation",

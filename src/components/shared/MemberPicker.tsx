@@ -34,7 +34,7 @@ export function useMemberSearch(search: string, options?: { withRecent?: boolean
 
     const recent = getRecentAssigneeIds()
       .map((id) => matches.find((m) => m.id === id))
-      .filter((m): m is TeamMember => Boolean(m))
+      .filter((m): m is (typeof matches)[number] => Boolean(m))
     const recentIds = new Set(recent.map((m) => m.id))
     return { members: matches, recent, rest: matches.filter((m) => !recentIds.has(m.id)) }
   }, [members, search, withRecent])

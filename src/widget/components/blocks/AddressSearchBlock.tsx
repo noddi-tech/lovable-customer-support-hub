@@ -38,7 +38,7 @@ const AddressSearchBlock: React.FC<BlockComponentProps> = ({
   const [resolving, setResolving] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [result, setResult] = useState<ResolvedAddress | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const storedAddresses: StoredAddress[] = data.stored || []

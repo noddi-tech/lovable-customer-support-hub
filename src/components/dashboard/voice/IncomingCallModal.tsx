@@ -97,8 +97,8 @@ export const IncomingCallModal = ({
     // Force pointer-events on all dialog-related elements
     const forcePointerEvents = () => {
       // Find dialog overlay and content
-      const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]")
-      const dialogContent = document.querySelector("[data-radix-dialog-content]")
+      const dialogOverlay = document.querySelector<HTMLElement>("[data-radix-dialog-overlay]")
+      const dialogContent = document.querySelector<HTMLElement>("[data-radix-dialog-content]")
 
       if (dialogOverlay) {
         dialogOverlay.style.pointerEvents = "auto"

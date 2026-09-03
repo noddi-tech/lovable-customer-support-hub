@@ -609,11 +609,7 @@ const ManageRow: React.FC<{ block: BlockDefinition }> = ({ block }) => {
               <p className="text-xs font-medium text-muted-foreground mb-2">API Endpoints</p>
               <div className="space-y-2">
                 {block.apiConfig.endpoints.map((ep, i) => (
-                  <EndpointDetail
-                    key={`${ep.method}-${ep.name}-${ep.url ?? ""}`}
-                    endpoint={ep}
-                    index={i}
-                  />
+                  <EndpointDetail key={`${ep.method}-${ep.name}`} endpoint={ep} index={i} />
                 ))}
               </div>
             </div>

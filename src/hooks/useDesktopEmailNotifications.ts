@@ -85,12 +85,14 @@ export function useDesktopEmailNotifications() {
     preferences != null ? preferences.desktop_enabled : isLoading && permission === "granted"
   const emailEnabled = preferences?.desktop_on_new_email ?? true
   const chatEnabled = preferences?.desktop_on_chat_message ?? true
-  const assignmentEnabled = preferences?.desktop_on_assignment ?? true
-  const mentionEnabled = preferences?.desktop_on_mention ?? true
-  const incomingCallEnabled = preferences?.desktop_on_incoming_call ?? true
-  const missedCallEnabled = preferences?.desktop_on_missed_call ?? true
-  const voicemailEnabled = preferences?.desktop_on_voicemail ?? true
-  const slaEnabled = preferences?.desktop_on_sla_breach ?? true
+  // No dedicated per-event columns exist for these on notification_preferences;
+  // they follow the overall desktop_enabled toggle instead.
+  const assignmentEnabled = true
+  const mentionEnabled = true
+  const incomingCallEnabled = true
+  const missedCallEnabled = true
+  const voicemailEnabled = true
+  const slaEnabled = true
 
   // Persist localStorage opt-in to server so the auto-permission prompt enables desktop prefs
   // without requiring a visit to Settings.
@@ -181,6 +183,7 @@ export function useDesktopEmailNotifications() {
     }
   }, [user, enabled, emailEnabled, chatEnabled, permission, showNotification])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: preference flags are read inside the realtime handler
   useEffect(() => {
     if (!user || !enabled || permission !== "granted") return
 

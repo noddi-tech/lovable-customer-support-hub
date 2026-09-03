@@ -270,7 +270,7 @@ export const InteractionsLayout: React.FC<InteractionsLayoutProps> = ({
               defaultSize={getPanelSize("conversationList")}
               minSize={getPanelSize("conversationList") < 100 ? 20 : 100}
               maxSize={getPanelSize("conversationList") < 100 ? 60 : 100}
-              onResize={(size) => updatePanelSize("conversationList", size)}
+              onResize={(size) => updatePanelSize("conversationList", size.asPercentage)}
               className="flex flex-col bg-background border-r border-border/30 min-h-0"
             >
               <ConversationList

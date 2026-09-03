@@ -37,7 +37,7 @@ export const userColumns: ColumnDef<UserRow>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const name = row.getValue("full_name")
+      const name = row.getValue<string>("full_name")
       const role = row.original.primary_role
       return (
         <div className="flex items-center gap-2">

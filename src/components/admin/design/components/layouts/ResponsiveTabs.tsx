@@ -2,6 +2,8 @@ import React, { forwardRef, useCallback, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
+const SCROLLABLE_LIST_CLASS = "overflow-x-auto scrollbar-thin"
+
 type ResponsiveValue<T> = T | { sm?: T; md?: T; lg?: T; xl?: T }
 
 // Legacy props for backward compatibility
@@ -300,13 +302,13 @@ const StandardResponsiveTabs: React.FC<StandardResponsiveTabsProps> = (props) =>
         if (React.isValidElement(child) && child.type === ResponsiveTabsList) {
           return React.cloneElement(child as React.ReactElement<ResponsiveTabsListProps>, {
             className: cn(
-              "flex flex-wrap w-full", // Override inline-flex, add flex-wrap
-              scrollable && "overflow-x-auto scrollbar-thin",
+              "flex flex-wrap w-full min-w-0", // Override inline-flex, add flex-wrap
               orientationClass,
               spacingClass,
               justifyClass,
               variantClasses.list,
-              child.props.className,
+              scrollable && SCROLLABLE_LIST_CLASS,
+              (child.props as ResponsiveTabsListProps).className,
             ),
             equalWidth,
             size,
@@ -347,7 +349,7 @@ export const ResponsiveTabsList = forwardRef<HTMLDivElement, ResponsiveTabsListP
               className: cn(
                 equalWidth && "flex-1 min-w-0", // min-w-0 prevents text overflow
                 triggerClassName,
-                child.props.className,
+                (child.props as ResponsiveTabsTriggerProps).className,
               ),
             })
           }

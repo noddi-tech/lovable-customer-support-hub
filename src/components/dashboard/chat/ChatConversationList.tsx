@@ -144,9 +144,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
       // chat shows here; escalated ones are flagged so a human can take over.
       let aiQuery = supabase
         .from("widget_ai_conversations")
-        .select(
-          "id, status, summary, updated_at, visitor_name, visitor_email, escalated_at, metadata",
-        )
+        .select("id, status, summary, updated_at, visitor_email, escalated_at, metadata")
         .eq("organization_id", organizationId)
         .order("updated_at", { ascending: false })
         .limit(100)
@@ -171,7 +169,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
           sla_breach_at: null,
           customer: {
             id: c.id,
-            full_name: c.visitor_name || null,
+            full_name: c.visitor_email || null,
             email: c.visitor_email || null,
           },
           session: null,

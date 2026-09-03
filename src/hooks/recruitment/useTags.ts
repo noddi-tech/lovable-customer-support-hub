@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import type { TablesUpdate } from "@/integrations/supabase/types"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface RecruitmentTag {
@@ -98,7 +99,7 @@ export function useUpdateTag() {
       color?: string
       description?: string | null
     }) => {
-      const patch: Record<string, unknown> = {}
+      const patch: TablesUpdate<"recruitment_tags"> = {}
       if (input.name !== undefined) patch.name = input.name.trim()
       if (input.color !== undefined) patch.color = input.color
       if (input.description !== undefined) patch.description = input.description?.trim() || null

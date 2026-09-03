@@ -782,7 +782,11 @@ const EmailRenderComponent: React.FC<EmailRenderProps> = ({
                 const isImage = attachment.mimeType?.startsWith("image/")
                 return (
                   <AttachmentPreviewCard
-                    key={attachment.url}
+                    key={
+                      attachment.storageKey ??
+                      attachment.attachmentId ??
+                      `${attachment.filename}-${index}`
+                    }
                     attachment={attachment}
                     messageId={messageId}
                     onImageClick={

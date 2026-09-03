@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react"
 import type React from "react"
+import type { PieLabelRenderProps } from "recharts"
 import {
   Area,
   AreaChart,
@@ -184,7 +185,10 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widgetId }) =>
                     cx="50%"
                     cy="50%"
                     outerRadius={70}
-                    label={({ status, count }) => `${status}: ${count}`}
+                    label={(props: PieLabelRenderProps) => {
+                      const { status, count } = props.payload as { status: string; count: number }
+                      return `${status}: ${count}`
+                    }}
                   >
                     {analytics.chatsByStatus.map((entry, index) => (
                       <Cell key={entry.status} fill={CHART_COLORS[index % CHART_COLORS.length]} />

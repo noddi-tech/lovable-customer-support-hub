@@ -251,10 +251,7 @@ export const TicketDetail: Story = {
           <CardContent>
             <div className="space-y-4">
               {ticket?.timeline.map((event, index) => (
-                <div
-                  key={`${event.action}-${event.timestamp ?? event.time ?? ""}`}
-                  className="flex items-start gap-3"
-                >
+                <div key={`${event.action}-${event.time}`} className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">

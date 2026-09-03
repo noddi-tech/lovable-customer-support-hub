@@ -119,12 +119,7 @@ export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFi
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={dateFrom}
-              onSelect={handleDateFromChange}
-              initialFocus
-            />
+            <Calendar mode="single" selected={dateFrom} onSelect={handleDateFromChange} autoFocus />
           </PopoverContent>
         </Popover>
       </div>
@@ -145,7 +140,7 @@ export function AdvancedFilters({ filters, onFiltersChange, agents }: AdvancedFi
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
-            <Calendar mode="single" selected={dateTo} onSelect={handleDateToChange} initialFocus />
+            <Calendar mode="single" selected={dateTo} onSelect={handleDateToChange} autoFocus />
           </PopoverContent>
         </Popover>
       </div>
