@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
+import type { TablesUpdate } from "@/integrations/supabase/types"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface SlackIntegrationConfig {
@@ -252,7 +253,7 @@ export const useSlackIntegration = () => {
         throw new Error("No integration found")
       }
 
-      const updateData: Record<string, unknown> = {}
+      const updateData: TablesUpdate<"slack_integrations"> = {}
       const passthrough = [
         "default_channel_id",
         "default_channel_name",
@@ -273,7 +274,7 @@ export const useSlackIntegration = () => {
       ] as const
       for (const key of passthrough) {
         if ((updates as Record<string, unknown>)[key] !== undefined) {
-          updateData[key] = (updates as Record<string, unknown>)[key]
+          ;(updateData as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key]
         }
       }
       if (updates.configuration) {

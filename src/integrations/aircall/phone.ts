@@ -879,7 +879,9 @@ class AircallPhoneManager {
       const startTime = Date.now()
 
       const checkReady = () => {
-        const iframe = document.querySelector("#aircall-workspace-container iframe")
+        const iframe = document.querySelector<HTMLIFrameElement>(
+          "#aircall-workspace-container iframe",
+        )
 
         if (iframe?.contentWindow) {
           console.log("[AircallWorkspace] ✅ Workspace iframe ready")

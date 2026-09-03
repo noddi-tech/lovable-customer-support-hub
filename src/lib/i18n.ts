@@ -58,9 +58,6 @@ const initializeI18n = async () => {
         keySeparator: ".",
         nsSeparator: ":",
 
-        // Immediate initialization without waiting
-        initImmediate: false,
-
         // Handle missing translations gracefully - enable in development for debugging
         saveMissing: import.meta.env.DEV,
         missingKeyHandler: (lng, ns, key) => {

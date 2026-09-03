@@ -23,11 +23,11 @@ export const useSimpleRealtimeSubscriptions = (
   const queryClient = useQueryClient()
   const channelRef = useRef<any>(null)
   const retryCountRef = useRef(0)
-  const retryTimeoutRef = useRef<NodeJS.Timeout>()
-  const autoRetryIntervalRef = useRef<NodeJS.Timeout>()
+  const retryTimeoutRef = useRef<NodeJS.Timeout>(undefined)
+  const autoRetryIntervalRef = useRef<NodeJS.Timeout>(undefined)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting")
   const hasLoggedErrorRef = useRef(false)
-  const setupSubscriptionRef = useRef<() => void>()
+  const setupSubscriptionRef = useRef<() => void>(undefined)
 
   // Store configs in ref to prevent effect recreation on reference changes
   const configsRef = useRef(configs)

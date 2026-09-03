@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react"
 import type React from "react"
+import type { ComponentType, SVGProps } from "react"
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { SidebarCounter } from "./sidebar-counter"
 
 interface SidebarItemProps {
-  icon: LucideIcon
+  icon: LucideIcon | ComponentType<{ className?: string; size?: number } & SVGProps<SVGSVGElement>>
   label: string
   count?: number
   active?: boolean

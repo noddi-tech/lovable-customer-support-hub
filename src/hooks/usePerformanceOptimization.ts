@@ -29,8 +29,8 @@ export const usePerformanceOptimization = (
 ) => {
   const finalConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config])
   const renderCountRef = useRef(0)
-  const renderStartTime = useRef<number>()
-  const previousDeps = useRef<any[]>()
+  const renderStartTime = useRef<number>(undefined)
+  const previousDeps = useRef<any[]>(undefined)
   const metricsRef = useRef<PerformanceMetrics>({
     renderTime: 0,
     reRenderCount: 0,

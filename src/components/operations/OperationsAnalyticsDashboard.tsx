@@ -287,7 +287,7 @@ export default function OperationsAnalyticsDashboard() {
                     <div key={key} className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="capitalize text-foreground">{key}</span>
-                        <span className="font-medium text-foreground">{value}%</span>
+                        <span className="font-medium text-foreground">{Number(value)}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div

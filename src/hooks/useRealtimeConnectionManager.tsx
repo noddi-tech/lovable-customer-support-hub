@@ -60,14 +60,14 @@ export const useRealtimeConnectionManager = () => {
     }
   }, [])
 
-  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const reconnectAllSubscriptionsRef = useRef<(() => void) | null>(null)
   const reconnectionConfigRef = useRef<ReconnectionConfig>(DEFAULT_CONFIG)
   const hasShownDisconnectToast = useRef(false)
   const pendingSubscriptions = useRef<Array<() => any>>([])
 
   // Add debouncing and rate limiting refs
-  const statusDebounceTimeoutRef = useRef<NodeJS.Timeout>()
+  const statusDebounceTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const currentConnectionStateRef = useRef(false)
   const lastToastTimeRef = useRef<{ disconnect: number; reconnect: number }>({
     disconnect: 0,

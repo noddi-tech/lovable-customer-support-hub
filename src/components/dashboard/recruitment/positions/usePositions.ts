@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
+import type { TablesUpdate } from "@/integrations/supabase/types"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface JobPositionRow {
@@ -207,7 +208,7 @@ export function useUpdateJobPositionStatus() {
       status: string
       currentPublishedAt: string | null
     }) => {
-      const patch: Record<string, any> = { status }
+      const patch: TablesUpdate<"job_positions"> = { status }
       if (status === "open" && !currentPublishedAt) {
         patch.published_at = new Date().toISOString()
       }

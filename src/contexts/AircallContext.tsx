@@ -124,7 +124,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   const reconnectAttempts = useRef(0)
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
   const reconnectionInProgressRef = useRef(false) // Mutex to prevent simultaneous reconnections
-  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout>(undefined)
   const MAX_RECONNECT_ATTEMPTS = 5
   const BASE_RECONNECT_DELAY = 2000
   const GRACE_PERIOD_MS = 30000
@@ -346,7 +346,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         const RETRY_DELAY_MS = 100
 
         const tryShow = () => {
-          const container = document.querySelector("#aircall-workspace-container")
+          const container = document.querySelector<HTMLElement>("#aircall-workspace-container")
 
           if (!container) {
             attempts++
@@ -413,7 +413,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     isHidingWorkspaceRef.current = true
 
     try {
-      const container = document.querySelector("#aircall-workspace-container")
+      const container = document.querySelector<HTMLElement>("#aircall-workspace-container")
 
       if (!container) {
         console.warn("[AircallProvider] Cannot hide workspace - container not found")
@@ -748,7 +748,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         console.log("[AircallProvider] ✅ Proceeding with SDK initialization...")
 
         // Container is guaranteed to exist in HTML - direct check
-        let outerContainer = document.querySelector("#aircall-workspace-container")
+        let outerContainer = document.querySelector<HTMLElement>("#aircall-workspace-container")
 
         if (!outerContainer) {
           // Fallback: Create outer container imperatively if somehow missing
@@ -759,7 +759,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
         }
 
         // CRITICAL FIX: Create inner workspace div if it doesn't exist
-        let innerWorkspace = outerContainer.querySelector("#aircall-workspace")
+        let innerWorkspace = outerContainer.querySelector<HTMLElement>("#aircall-workspace")
         if (!innerWorkspace) {
           console.log("[AircallProvider] Creating inner #aircall-workspace div")
           innerWorkspace = document.createElement("div")
@@ -1394,7 +1394,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
   /**
    * Call control functions
    */
-  const answerCall = useCallback(() => {
+  const answerCall = useCallback(async () => {
     console.log("[AircallProvider] Showing workspace for user to answer call")
     // SDK v2 doesn't support programmatic answer - show workspace instead
     showAircallWorkspace()
@@ -1404,7 +1404,7 @@ export const AircallProvider = ({ children }: AircallProviderProps) => {
     })
   }, [showAircallWorkspace, toast])
 
-  const rejectCall = useCallback(() => {
+  const rejectCall = useCallback(async () => {
     console.log("[AircallProvider] Showing workspace for user to reject call")
     // SDK v2 doesn't support programmatic reject - show workspace instead
     showAircallWorkspace()

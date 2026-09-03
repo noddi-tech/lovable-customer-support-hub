@@ -18,17 +18,17 @@ export function useFocusManagement() {
   }
 
   const focusFirstFocusableElement = (container: HTMLElement) => {
-    const focusableElements = container.querySelectorAll(
+    const focusableElements = container.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     )
 
     if (focusableElements.length > 0) {
-      ;(focusableElements[0] as HTMLElement).focus()
+      ;(focusableElements[0]).focus()
     }
   }
 
   const trapFocus = (container: HTMLElement) => {
-    const focusableElements = container.querySelectorAll(
+    const focusableElements = container.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     )
 

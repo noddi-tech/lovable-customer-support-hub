@@ -306,7 +306,7 @@ const StandardResponsiveTabs: React.FC<StandardResponsiveTabsProps> = (props) =>
               spacingClass,
               justifyClass,
               variantClasses.list,
-              child.props.className,
+              (child.props as ResponsiveTabsListProps).className,
             ),
             equalWidth,
             size,
@@ -347,7 +347,7 @@ export const ResponsiveTabsList = forwardRef<HTMLDivElement, ResponsiveTabsListP
               className: cn(
                 equalWidth && "flex-1 min-w-0", // min-w-0 prevents text overflow
                 triggerClassName,
-                child.props.className,
+                (child.props as ResponsiveTabsTriggerProps).className,
               ),
             })
           }

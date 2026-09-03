@@ -193,10 +193,7 @@ export default function AuditLogAnalytics() {
                     dataKey="value"
                   >
                     {actionTypeData.map((entry, index) => (
-                      <Cell
-                        key={entry.name ?? entry.action ?? JSON.stringify(entry)}
-                        fill={COLORS[index % COLORS.length]}
-                      />
+                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />

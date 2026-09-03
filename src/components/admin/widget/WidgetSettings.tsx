@@ -146,9 +146,11 @@ export const WidgetSettings: React.FC = () => {
   // Update widget config mutation with optimistic updates
   const updateWidgetMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WidgetConfig> }) => {
+      // `inboxes` is a joined relation, not a real column - strip it before writing.
+      const { inboxes: _inboxes, ...dbUpdates } = updates
       const { data, error } = await supabase
         .from("widget_configs")
-        .update(updates)
+        .update(dbUpdates)
         .eq("id", id)
         .select()
         .single()

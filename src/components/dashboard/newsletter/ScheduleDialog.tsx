@@ -204,7 +204,7 @@ export const ScheduleDialog: React.FC<ScheduleDialogProps> = ({ open, onOpenChan
                     selected={date}
                     onSelect={setDate}
                     disabled={(date) => date < new Date()}
-                    initialFocus
+                    autoFocus
                   />
                 </PopoverContent>
               </Popover>

@@ -104,7 +104,8 @@ export function EmailTemplateSettings() {
       setTemplate({
         ...defaultTemplate,
         ...existingTemplate,
-        include_signature_on_replies: existingTemplate.include_signature_on_replies ?? false,
+        // Not a real DB column; this is a UI-only preference that isn't persisted.
+        include_signature_on_replies: false,
       })
     } else {
       setTemplate({
@@ -140,8 +141,12 @@ export function EmailTemplateSettings() {
           ? selectedInboxId
           : null
 
+      // include_signature_on_replies is a UI-only preference; it has no
+      // corresponding column, so it must not be sent to Supabase.
+      const { include_signature_on_replies: _unused, ...templateDataForDb } = templateData
+
       const templatePayload = {
-        ...templateData,
+        ...templateDataForDb,
         organization_id: userProfile.organization_id,
         created_by_id: profile.user.id,
         is_default: inboxId === null,

@@ -36,17 +36,17 @@ export const AircallDebugPanel: React.FC = () => {
   }, [])
 
   // Get real-time workspace container info
-  const container = document.querySelector("#aircall-workspace-container")
+  const container = document.querySelector<HTMLElement>("#aircall-workspace-container")
   const computedStyle = container ? window.getComputedStyle(container) : null
 
   // PHASE 3: Monitor dialog pointer-events
-  const dialogOverlay = document.querySelector("[data-radix-dialog-overlay]")
-  const dialogContent = document.querySelector("[data-radix-dialog-content]")
+  const dialogOverlay = document.querySelector<HTMLElement>("[data-radix-dialog-overlay]")
+  const dialogContent = document.querySelector<HTMLElement>("[data-radix-dialog-content]")
   const dialogOverlayStyle = dialogOverlay ? window.getComputedStyle(dialogOverlay) : null
   const dialogContentStyle = dialogContent ? window.getComputedStyle(dialogContent) : null
 
   // PHASE 5: Enhanced diagnostics
-  const aircallIframe = document.querySelector('iframe[id*="aircall"]')
+  const aircallIframe = document.querySelector<HTMLIFrameElement>('iframe[id*="aircall"]')
   const iframeAllow = aircallIframe?.getAttribute("allow") || ""
   const hasHidPermission = iframeAllow.includes("hid")
 

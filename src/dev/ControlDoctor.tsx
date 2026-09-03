@@ -32,7 +32,7 @@ export function ControlDoctor() {
       ]
 
       selectors.forEach((selector) => {
-        const elements = document.querySelectorAll(selector)
+        const elements = document.querySelectorAll<HTMLElement>(selector)
 
         elements.forEach((element) => {
           const parent = element.parentElement

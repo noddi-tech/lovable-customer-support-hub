@@ -47,7 +47,7 @@ export function TimezoneAwareDateTimePicker({
               selected={date}
               onSelect={onDateChange}
               disabled={(date) => date < new Date()}
-              initialFocus
+              autoFocus
               className="pointer-events-auto"
             />
           </PopoverContent>

@@ -76,7 +76,7 @@ export const allUserColumns: ColumnDef<AllUserRow>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-      const name = row.getValue("full_name")
+      const name = row.getValue<string>("full_name")
       const roles = row.original.system_roles ?? []
       return (
         <div className="flex items-center gap-2 flex-wrap">

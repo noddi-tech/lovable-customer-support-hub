@@ -36,12 +36,6 @@ export interface NotificationPreferences {
   desktop_enabled: boolean
   desktop_on_new_email: boolean
   desktop_on_chat_message: boolean
-  desktop_on_assignment: boolean
-  desktop_on_mention: boolean
-  desktop_on_incoming_call: boolean
-  desktop_on_missed_call: boolean
-  desktop_on_voicemail: boolean
-  desktop_on_sla_breach: boolean
   // Digest settings (DB columns retained; unused in personal settings UI)
   daily_digest_enabled: boolean
   weekly_digest_enabled: boolean
@@ -101,12 +95,6 @@ export function useNotificationPreferences() {
             desktop_enabled: true,
             desktop_on_new_email: true,
             desktop_on_chat_message: true,
-            desktop_on_assignment: true,
-            desktop_on_mention: true,
-            desktop_on_incoming_call: true,
-            desktop_on_missed_call: true,
-            desktop_on_voicemail: true,
-            desktop_on_sla_breach: true,
             // Digest defaults
             daily_digest_enabled: false,
             weekly_digest_enabled: true,

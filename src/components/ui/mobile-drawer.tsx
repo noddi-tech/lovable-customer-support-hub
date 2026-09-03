@@ -38,7 +38,7 @@ const MobileDrawer = React.forwardRef<HTMLDivElement, MobileDrawerProps>(
     const drawerRef = React.useRef<HTMLDivElement>(null)
     React.useEffect(() => {
       if (isOpen && drawerRef.current) {
-        const firstFocusable = drawerRef.current.querySelector(
+        const firstFocusable = drawerRef.current.querySelector<HTMLElement>(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         )
         firstFocusable?.focus()

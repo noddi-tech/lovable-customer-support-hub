@@ -811,7 +811,7 @@ function extractFromPlain(text: string): {
   if (cut === -1 && angleIdx > -1) cut = angleIdx
 
   if (cut > -1) {
-    const kind = headerIdx > -1 ? "header" : "plain"
+    const kind: QuotedBlock["kind"] = headerIdx > -1 ? "header" : "plain"
     const raw = lines.slice(cut).join("\n")
     const quotedBlock = { kind: kind, raw }
     quoted.push(quotedBlock)
