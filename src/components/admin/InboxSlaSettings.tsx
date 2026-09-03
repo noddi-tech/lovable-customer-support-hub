@@ -7,11 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   SLA_PRIORITIES,
+  type SlaPolicyRow,
   type SlaPriority,
   useInboxSlaPolicies,
   useSaveInboxSla,
 } from "@/hooks/useInboxSla"
 import { formatMinutes } from "@/hooks/useInboxSupportMetrics"
+
+// Stable reference: a fresh `[]` default each render would loop the memo/effect below.
+const EMPTY_POLICIES: SlaPolicyRow[] = []
 
 const PRIORITY_LABELS: Record<SlaPriority, string> = {
   urgent: "Urgent",
@@ -26,7 +30,7 @@ interface RowState {
 }
 
 export function InboxSlaSettings({ inboxId }: { inboxId: string }) {
-  const { data: policies = [], isLoading } = useInboxSlaPolicies(inboxId)
+  const { data: policies = EMPTY_POLICIES, isLoading } = useInboxSlaPolicies(inboxId)
   const { save, reset } = useSaveInboxSla(inboxId)
   const [rows, setRows] = useState<Record<SlaPriority, RowState>>(
     {} as Record<SlaPriority, RowState>,
