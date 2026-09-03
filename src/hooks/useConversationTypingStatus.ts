@@ -62,9 +62,14 @@ export function useConversationTypingStatus(conversationId: string | null): Set<
     }
     void fetchTyping()
 
-    // Realtime subscription (cross-tab / cross-user)
+    // Realtime subscription (cross-tab / cross-user).
+    // Unique topic suffix per effect run: removeChannel() is async, so on a
+    // synchronous remount (React StrictMode) a stable topic name would return
+    // the stale, already-subscribed channel and .on() would throw
+    // "cannot add postgres_changes callbacks after subscribe()".
+    const topic = `typing:${conversationId}:${crypto.randomUUID()}`
     const channel = supabase
-      .channel(`typing:${conversationId}`)
+      .channel(topic)
       .on(
         "postgres_changes",
         {
