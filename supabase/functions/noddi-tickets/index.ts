@@ -1,8 +1,14 @@
 // Proxy for the Noddi backend ticket API.
 // The Support Hub NEVER stores tickets locally — every read/write goes to Noddi.
 
-import { requireUser } from "../_shared/auth.ts"
+import { extractToken, serviceClient } from "../_shared/auth.ts"
 import { corsHeaders } from "../_shared/cors.ts"
+import {
+  canAccessNavioDepartment,
+  clampNavioDepartmentIds,
+  resolveUserScope,
+  type ScopeResult,
+} from "../_shared/navio-scope.ts"
 import { captureNavioSourceVersion, navioSourceHeaders } from "../_shared/navio-source.ts"
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "")
@@ -114,7 +120,7 @@ function asEnumList(value: unknown, allowed: string[]): string[] {
   return value.map((v) => String(v).toUpperCase()).filter((v) => allowed.includes(v))
 }
 
-function buildListQuery(payload: Record<string, unknown>): string {
+function buildListQuery(payload: Record<string, unknown>, allowedDeptIds: number[] | null): string {
   const qs = new URLSearchParams()
   const pageIndex = Number(payload.page_index ?? 1)
   const pageSize = Number(payload.page_size ?? 25)
@@ -131,7 +137,10 @@ function buildListQuery(payload: Record<string, unknown>): string {
   for (const p of asEnumList(payload.priorities, TICKET_PRIORITIES)) qs.append("priorities", p)
   for (const c of asEnumList(payload.categories, TICKET_CATEGORIES)) qs.append("categories", c)
   for (const id of asIntList(payload.assignee_ids)) qs.append("assignee_ids", String(id))
-  for (const id of asIntList(payload.service_department_ids))
+  // Org scoping: non-superusers can only ever list tickets from their own
+  // service departments, regardless of what the client asked for.
+  const requestedDepts = asIntList(payload.service_department_ids)
+  for (const id of allowedDeptIds ?? requestedDepts)
     qs.append("service_department_ids", String(id))
   for (const id of asIntList(payload.user_group_ids)) qs.append("user_group_ids", String(id))
   for (const id of asIntList(payload.booking_ids)) qs.append("booking_ids", String(id))
@@ -147,6 +156,41 @@ function ticketId(payload: Record<string, unknown>): number | null {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
+/** Fetches a ticket straight from Noddi (no Response wrapper) for access checks. */
+async function fetchTicket(id: number): Promise<Record<string, unknown> | null> {
+  const res = await fetch(`${API_BASE}/v1/tickets/${id}/`, { headers: noddiHeaders() })
+  if (!res.ok) return null
+  return (await res.json().catch(() => null)) as Record<string, unknown> | null
+}
+
+function ticketDepartmentId(ticket: Record<string, unknown> | null): number | null {
+  if (!ticket) return null
+  const direct = Number(ticket.service_department_id)
+  if (Number.isInteger(direct) && direct > 0) return direct
+  const nested = ticket.service_department as Record<string, unknown> | null | undefined
+  const nestedId = Number(nested?.id)
+  return Number.isInteger(nestedId) && nestedId > 0 ? nestedId : null
+}
+
+/**
+ * Every ticket-scoped action must prove the ticket lives in one of the caller's
+ * own service departments — otherwise ticket ids from other tenants would be
+ * reachable simply by guessing a number.
+ */
+async function assertTicketInScope(
+  id: number,
+  scope: ScopeResult,
+): Promise<Response | null> {
+  if (scope.isSuperuser) return null
+  const ticket = await fetchTicket(id)
+  if (!ticket) return json({ error: "Ticket not found" }, 404)
+  const deptId = ticketDepartmentId(ticket)
+  if (!canAccessNavioDepartment(deptId, scope)) {
+    return json({ error: "Forbidden: ticket is outside your organization" }, 403)
+  }
+  return null
+}
+
 Deno.serve(async (req) => {
   captureNavioSourceVersion(req)
   if (req.method === "OPTIONS") {
@@ -154,8 +198,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const auth = await requireUser(req)
-    if ("response" in auth) return auth.response
+    const token = extractToken(req)
+    if (!token) return json({ error: "Unauthorized" }, 401)
+
+    const admin = serviceClient()
+    const { data: userData, error: userError } = await admin.auth.getUser(token)
+    if (userError || !userData?.user) return json({ error: "Unauthorized" }, 401)
+
+    const { data: roles } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+    const localSuperAdmin = (roles ?? []).some((r: { role: string }) => r.role === "super_admin")
+    const scope = resolveUserScope(userData.user, localSuperAdmin)
 
     if (!NODDI_TOKEN) {
       console.error("[noddi-tickets] NODDI_API_TOKEN not configured")
@@ -165,9 +220,34 @@ Deno.serve(async (req) => {
     const payload = (await req.json().catch(() => ({}))) as Record<string, unknown>
     const action = String(payload.action || "")
 
+    // Actions that address a single ticket by id must pass the org check first.
+    const scopedActions = new Set([
+      "get",
+      "events",
+      "patch",
+      "comment",
+      "assign",
+      "resolve",
+      "snooze",
+      "reopen",
+      "archive",
+      "restore",
+    ])
+    if (scopedActions.has(action)) {
+      const id = ticketId(payload)
+      if (!id) return json({ error: "ticket_id required" }, 400)
+      const denied = await assertTicketInScope(id, scope)
+      if (denied) return denied
+    }
+
     switch (action) {
-      case "list":
-        return await callNoddi(`/v1/tickets/?${buildListQuery(payload)}`)
+      case "list": {
+        const clamped = clampNavioDepartmentIds(asIntList(payload.service_department_ids), scope)
+        if (clamped.error) return json({ error: clamped.error }, clamped.status ?? 403)
+        return await callNoddi(
+          `/v1/tickets/?${buildListQuery(payload, scope.isSuperuser ? null : clamped.ids)}`,
+        )
+      }
 
       case "get": {
         const id = ticketId(payload)
@@ -192,6 +272,9 @@ Deno.serve(async (req) => {
         if (!title) return json({ error: "title is required" }, 400)
         if (!Number.isInteger(departmentId) || departmentId <= 0) {
           return json({ error: "service_department_id is required" }, 400)
+        }
+        if (!canAccessNavioDepartment(departmentId, scope)) {
+          return json({ error: "Forbidden: department is outside your organization" }, 403)
         }
         const category = String(payload.category || "CUSTOMER_ISSUE").toUpperCase()
         const priority = String(payload.priority || "NORMAL").toUpperCase()

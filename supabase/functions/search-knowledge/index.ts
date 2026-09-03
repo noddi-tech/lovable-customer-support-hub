@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.53.0"
+import { requireOrgMember } from "../_shared/auth.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,12 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       })
     }
+
+    // The requested organization must be one the caller actually belongs to —
+    // never trust the client-supplied organizationId on its own.
+    const guard = await requireOrgMember(req, String(organizationId))
+    if ("response" in guard) return guard.response
+
 
     // Create embedding for the customer message
     const embeddingResp = await fetch("https://api.openai.com/v1/embeddings", {
