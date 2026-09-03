@@ -2,6 +2,7 @@ import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite"
 import { sentryVitePlugin } from "@sentry/vite-plugin"
 import react from "@vitejs/plugin-react-swc"
 import { execSync } from "child_process"
+import { existsSync, readFileSync } from "fs"
 import { componentTagger } from "lovable-tagger"
 import path from "path"
 import { defineConfig, loadEnv } from "vite"
@@ -22,11 +23,33 @@ function resolveGitCommit(): string {
   }
 }
 
+/** Parse KEY=VALUE lines from `.env.sentry-build-plugin` (not covered by Vite loadEnv). */
+function loadSentryBuildPluginEnv(): Record<string, string> {
+  const filePath = path.resolve(process.cwd(), ".env.sentry-build-plugin")
+  if (!existsSync(filePath)) return {}
+  const out: Record<string, string> = {}
+  for (const line of readFileSync(filePath, "utf8").split("\n")) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith("#")) continue
+    const eq = trimmed.indexOf("=")
+    if (eq <= 0) continue
+    const key = trimmed.slice(0, eq).trim()
+    let value = trimmed.slice(eq + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    out[key] = value
+  }
+  return out
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load all env keys (including non-VITE_) so SENTRY_* works from `.env` / CI.
-  // `.env.sentry-build-plugin` is also read automatically by the Sentry plugin.
-  const env = loadEnv(mode, process.cwd(), "")
+  const env = { ...loadSentryBuildPluginEnv(), ...loadEnv(mode, process.cwd(), "") }
   const sentryAuthToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
   const sentryOrg = env.SENTRY_ORG || process.env.SENTRY_ORG || "noddi"
   const sentryProject = env.SENTRY_PROJECT || process.env.SENTRY_PROJECT || "support-hub"
