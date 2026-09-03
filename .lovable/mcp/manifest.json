@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "sdk_version": "0.26.2",
+  "sdk_version": "1.0.0",
   "path": "/functions/v1/mcp",
   "auth": {
     "type": "oauth",
@@ -26,29 +26,28 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "query": {
-              "type": "string",
-              "description": "Text to match against the conversation subject. Omit to list recent conversations."
+              "description": "Text to match against the conversation subject. Omit to list recent conversations.",
+              "type": "string"
             },
             "status": {
-              "type": "string",
-              "description": "Filter by status, e.g. 'open', 'pending', 'closed'."
+              "description": "Filter by status, e.g. 'open', 'pending', 'closed'.",
+              "type": "string"
             },
             "channel": {
-              "type": "string",
-              "description": "Filter by channel, e.g. 'email', 'widget'."
+              "description": "Filter by channel, e.g. 'email', 'widget'.",
+              "type": "string"
             },
             "limit": {
+              "description": "Max results (default 20).",
               "type": "integer",
               "minimum": 1,
-              "maximum": 50,
-              "description": "Max results (default 20)."
+              "maximum": 50
             }
-          },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          }
         },
         "outputSchema": null
       },
@@ -62,25 +61,25 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "conversation_id": {
               "type": "string",
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "description": "The conversation id."
             },
             "message_limit": {
+              "description": "Max messages to return, newest-biased (default 30).",
               "type": "integer",
               "minimum": 1,
-              "maximum": 100,
-              "description": "Max messages to return, newest-biased (default 30)."
+              "maximum": 100
             }
           },
           "required": [
             "conversation_id"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          ]
         },
         "outputSchema": null
       },
@@ -94,25 +93,24 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "status": {
-              "type": "string",
-              "description": "Filter by status, e.g. 'open'. Omit for all statuses."
+              "description": "Filter by status, e.g. 'open'. Omit for all statuses.",
+              "type": "string"
             },
             "include_archived": {
-              "type": "boolean",
-              "description": "Include archived conversations (default false)."
+              "description": "Include archived conversations (default false).",
+              "type": "boolean"
             },
             "limit": {
+              "description": "Max results (default 20).",
               "type": "integer",
               "minimum": 1,
-              "maximum": 50,
-              "description": "Max results (default 20)."
+              "maximum": 50
             }
-          },
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          }
         },
         "outputSchema": null
       },
@@ -126,11 +124,13 @@
           "openWorldHint": false
         },
         "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "conversation_id": {
               "type": "string",
               "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "description": "The conversation to attach the note to."
             },
             "note": {
@@ -142,9 +142,7 @@
           "required": [
             "conversation_id",
             "note"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
+          ]
         },
         "outputSchema": null
       }
