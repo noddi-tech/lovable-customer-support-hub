@@ -61,9 +61,9 @@ export const WidgetReleaseBanner: React.FC = () => {
         throw new Error(result.error || `Deploy failed (HTTP ${response.status})`)
       }
       if (result.publishedAt) {
-        const build = {
+        const build: LiveBuild = {
           publishedAt: result.publishedAt,
-          commit: result.commit,
+          commit: result.commit ?? appCommit,
           size: result.size,
         }
         setLiveBuildCache(build)
@@ -74,8 +74,10 @@ export const WidgetReleaseBanner: React.FC = () => {
       toast.success("Widget released to production!", {
         description: "Host sites pick it up on their next load (CDN cache up to ~1 hour).",
       })
-    } catch {
-      toast.error("Failed to release widget", { description: "Check edge function logs." })
+    } catch (e) {
+      toast.error("Failed to release widget", {
+        description: e instanceof Error ? e.message : "Check edge function logs.",
+      })
     } finally {
       setDeploying(false)
     }
