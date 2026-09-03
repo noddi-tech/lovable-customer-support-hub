@@ -137,7 +137,10 @@ function buildListQuery(payload: Record<string, unknown>, allowedDeptIds: number
   for (const p of asEnumList(payload.priorities, TICKET_PRIORITIES)) qs.append("priorities", p)
   for (const c of asEnumList(payload.categories, TICKET_CATEGORIES)) qs.append("categories", c)
   for (const id of asIntList(payload.assignee_ids)) qs.append("assignee_ids", String(id))
-  for (const id of asIntList(payload.service_department_ids))
+  // Org scoping: non-superusers can only ever list tickets from their own
+  // service departments, regardless of what the client asked for.
+  const requestedDepts = asIntList(payload.service_department_ids)
+  for (const id of allowedDeptIds ?? requestedDepts)
     qs.append("service_department_ids", String(id))
   for (const id of asIntList(payload.user_group_ids)) qs.append("user_group_ids", String(id))
   for (const id of asIntList(payload.booking_ids)) qs.append("booking_ids", String(id))
