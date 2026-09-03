@@ -11,14 +11,33 @@
  */
 import * as Sentry from "@sentry/react"
 
-const dsn = import.meta.env.VITE_SENTRY_DSN
+/** Public browser DSN (safe to ship); overridable per environment. */
+const DEFAULT_SENTRY_DSN =
+  "https://dc957f9ac5734901df820e05d57431ca@o4506178120646656.ingest.us.sentry.io/4512020718944256"
+
+const dsn = import.meta.env.VITE_SENTRY_DSN || DEFAULT_SENTRY_DSN
 const isProd = import.meta.env.PROD
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? ""
+
+/**
+ * Sentry environment:
+ * - "production"  → the published app on its real hosts (support.noddi.co, etc.)
+ * - "preview"     → Lovable preview / staging builds (also PROD bundles)
+ * - "development" → local dev
+ */
+function resolveEnvironment(): string {
+  if (!isProd) return "development"
+  const host = typeof window === "undefined" ? "" : window.location.hostname
+  if (host.includes("id-preview") || host.endsWith(".lovableproject.com")) return "preview"
+  return "production"
+}
+
+const environment = resolveEnvironment()
 
 Sentry.init({
   dsn,
   enabled: Boolean(dsn),
-  environment: import.meta.env.MODE,
+  environment,
   release:
     typeof __APP_COMMIT__ !== "undefined" && __APP_COMMIT__ !== "unknown"
       ? `support-hub@${__APP_COMMIT__}`
