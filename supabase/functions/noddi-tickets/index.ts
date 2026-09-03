@@ -1,8 +1,14 @@
 // Proxy for the Noddi backend ticket API.
 // The Support Hub NEVER stores tickets locally — every read/write goes to Noddi.
 
-import { requireUser } from "../_shared/auth.ts"
+import { extractToken, serviceClient } from "../_shared/auth.ts"
 import { corsHeaders } from "../_shared/cors.ts"
+import {
+  canAccessNavioDepartment,
+  clampNavioDepartmentIds,
+  resolveUserScope,
+  type ScopeResult,
+} from "../_shared/navio-scope.ts"
 import { captureNavioSourceVersion, navioSourceHeaders } from "../_shared/navio-source.ts"
 
 const API_BASE = (Deno.env.get("NODDI_API_BASE") || "https://api.noddi.co").replace(/\/+$/, "")
