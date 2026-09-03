@@ -120,7 +120,7 @@ function asEnumList(value: unknown, allowed: string[]): string[] {
   return value.map((v) => String(v).toUpperCase()).filter((v) => allowed.includes(v))
 }
 
-function buildListQuery(payload: Record<string, unknown>): string {
+function buildListQuery(payload: Record<string, unknown>, allowedDeptIds: number[] | null): string {
   const qs = new URLSearchParams()
   const pageIndex = Number(payload.page_index ?? 1)
   const pageSize = Number(payload.page_size ?? 25)
