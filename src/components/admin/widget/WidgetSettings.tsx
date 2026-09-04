@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { SUPPORTED_WIDGET_LANGUAGES } from "@/widget/translations"
 import { WidgetAnalytics } from "./WidgetAnalytics"
 import { WidgetDeployPanel } from "./WidgetDeployPanel"
@@ -139,7 +140,7 @@ export const WidgetSettings: React.FC = () => {
       toast.success("Widget created successfully")
     },
     onError: (error: any) => {
-      toast.error(`Failed to create widget: ${error.message}`)
+      toastError("Failed to create widget", error)
     },
   })
 
@@ -180,7 +181,7 @@ export const WidgetSettings: React.FC = () => {
       if (context?.previousConfigs) {
         queryClient.setQueryData(["widget-configs", organizationId], context.previousConfigs)
       }
-      toast.error(`Failed to update widget: ${error.message}`)
+      toastError("Failed to update widget", error)
     },
     onSuccess: () => {
       toast.success("Widget updated")

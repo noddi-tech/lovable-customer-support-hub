@@ -21,6 +21,7 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { sortInboxesByName } from "@/lib/sortInboxes"
 import { useNavigate } from "@/router/compat"
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep"
@@ -124,7 +125,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
       toast.success("Inbox created successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to create inbox: ${error.message}`)
+      toastError("Failed to create inbox", error)
     },
   })
 

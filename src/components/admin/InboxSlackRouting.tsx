@@ -26,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import type { SlackChannel, SlackIntegration } from "@/hooks/useSlackIntegration"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface InboxSlackRoutingProps {
@@ -141,7 +142,7 @@ export const InboxSlackRouting = ({
       toast.success("Inbox routing saved")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to save routing: ${error.message}`)
+      toastError("Failed to save routing", error)
     },
   })
 
@@ -159,7 +160,7 @@ export const InboxSlackRouting = ({
       toast.success("All inbox routing removed — will use defaults")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to remove routing: ${error.message}`)
+      toastError("Failed to remove routing", error)
     },
   })
 

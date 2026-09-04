@@ -38,6 +38,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useServiceDepartments } from "@/hooks/useServiceDepartments"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { sortInboxesByName } from "@/lib/sortInboxes"
 import { useNavigate } from "@/router/compat"
 
@@ -198,7 +199,7 @@ export function InboxManagementContent() {
       toast.success("Inbox created successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to create inbox: ${error.message}`)
+      toastError("Failed to create inbox", error)
     },
   })
 
@@ -214,7 +215,7 @@ export function InboxManagementContent() {
       toast.success("All conversations deleted successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to delete conversations: ${error.message}`)
+      toastError("Failed to delete conversations", error)
     },
   })
 

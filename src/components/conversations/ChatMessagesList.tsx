@@ -43,6 +43,7 @@ import { useChatCsat } from "@/hooks/useChatCsat"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useNoteMutations } from "@/hooks/useNoteMutations"
 import { supabase } from "@/integrations/supabase/client"
+import { copyText, describeError, formatErrorReport, toastError } from "@/lib/errorToast"
 import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
@@ -152,22 +153,50 @@ export const ChatMessagesList = ({
     [conversationId, queryClient],
   )
 
+  const [sendErrors, setSendErrors] = useState<Record<string, string>>({})
+
   const handleResendEmail = useCallback(
     async (messageId: string) => {
       const toastId = toast.loading("Sending email…")
       try {
         const { error } = await invokeSendReplyEmail({ messageId })
         if (error) throw error
-        toast.success("Email sent successfully", { id: toastId })
+        toast.dismiss(toastId)
+        setSendErrors((prev) => {
+          if (!prev[messageId]) return prev
+          const next = { ...prev }
+          delete next[messageId]
+          return next
+        })
+        toast.success("Email sent successfully")
         void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
       } catch (error) {
-        toast.error(
-          `Failed to send email: ${(error as { message?: string })?.message || "unknown error"}`,
-          { id: toastId },
-        )
+        toast.dismiss(toastId)
+        // Keep the detailed reason attached to the badge so it stays readable
+        // after the toast disappears, and copyable in one click.
+        setSendErrors((prev) => ({ ...prev, [messageId]: describeError(error) }))
+        toastError("Failed to send email", error, { messageId, conversationId })
       }
     },
     [conversationId, queryClient],
+  )
+
+  const handleCopyEmailError = useCallback(
+    async (messageId: string) => {
+      const report = formatErrorReport(
+        "Email not sent",
+        sendErrors[messageId] ??
+          "No error detail captured yet — press Resend to get the server error.",
+        {
+          messageId,
+          conversationId,
+        },
+      )
+      const ok = await copyText(report)
+      if (ok) toast.success("Error details copied")
+      else toast.message("Copy failed", { description: report })
+    },
+    [conversationId, sendErrors],
   )
 
   // Render attachments
@@ -502,8 +531,13 @@ export const ChatMessagesList = ({
                       (message.emailStatus === "failed" || message.emailStatus === "retry") && (
                         <div className="flex items-center gap-1.5 mt-1 px-1">
                           <AlertCircle className="h-3 w-3 text-destructive" />
-                          <span className="text-xs text-destructive font-medium">
-                            Email not sent
+                          <span
+                            className="text-xs text-destructive font-medium truncate max-w-[24rem]"
+                            title={sendErrors[message.id] ?? "Email not sent"}
+                          >
+                            {sendErrors[message.id]
+                              ? `Email not sent: ${sendErrors[message.id]}`
+                              : "Email not sent"}
                           </span>
                           <Button
                             variant="outline"
@@ -513,6 +547,16 @@ export const ChatMessagesList = ({
                           >
                             <RefreshCw className="h-2.5 w-2.5" />
                             Resend
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 text-[10px] px-2 py-0 gap-1 text-destructive hover:bg-destructive/10"
+                            onClick={() => void handleCopyEmailError(message.id)}
+                            title="Copy the full error report to the clipboard"
+                          >
+                            <Copy className="h-2.5 w-2.5" />
+                            Copy details
                           </Button>
                         </div>
                       )}

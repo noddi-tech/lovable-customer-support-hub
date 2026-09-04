@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { getCustomerCacheKey } from "@/utils/customerCacheKey"
 import { syncCustomerFromNoddi } from "@/utils/customerSync"
 
@@ -428,7 +429,7 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
     },
     onError: (error) => {
       console.error("Failed to refresh Noddi data:", error)
-      toast.error(`Failed to refresh Noddi data: ${error.message}`)
+      toastError("Failed to refresh Noddi data", error)
     },
   })
 

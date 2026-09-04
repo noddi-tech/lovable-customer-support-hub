@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDomainConfiguration } from "@/hooks/useDomainConfiguration"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { DnsRecordsDisplay } from "./DnsRecordsDisplay"
 
 interface GoogleGroupSetupStepProps {
@@ -103,7 +104,7 @@ export function GoogleGroupSetupStep({
           },
         )
         if (setupError) {
-          toast.error(`Failed to configure domain in SendGrid: ${setupError.message}`)
+          toastError("Failed to configure domain in SendGrid", setupError)
           setIsCreatingRoute(false)
           return
         }

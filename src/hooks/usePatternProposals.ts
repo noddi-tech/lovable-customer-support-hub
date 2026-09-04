@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { useOrganizationStore } from "@/stores/organizationStore"
 import { useKeywordOverrides } from "./useKeywordOverrides"
 
@@ -81,7 +82,7 @@ export function usePatternProposals() {
       void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success("Forslag godtatt og tatt i bruk")
     },
-    onError: (err: Error) => toast.error(`Feil: ${err.message}`),
+    onError: (err: Error) => toastError("Feil", err),
   })
 
   const rejectProposal = useMutation({
@@ -96,7 +97,7 @@ export function usePatternProposals() {
       void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success("Forslag avvist")
     },
-    onError: (err: Error) => toast.error(`Feil: ${err.message}`),
+    onError: (err: Error) => toastError("Feil", err),
   })
 
   const runMining = useMutation({
@@ -112,7 +113,7 @@ export function usePatternProposals() {
       void queryClient.invalidateQueries({ queryKey: ["triage-proposals", currentOrganizationId] })
       toast.success(created > 0 ? `${created} nye forslag generert` : "Ingen nye forslag funnet")
     },
-    onError: (err: Error) => toast.error(`Feil ved analyse: ${err.message}`),
+    onError: (err: Error) => toastError("Feil ved analyse", err),
   })
 
   return {

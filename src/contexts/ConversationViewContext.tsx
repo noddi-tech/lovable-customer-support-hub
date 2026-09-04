@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import type { EmailPriority } from "@/lib/emailPriority"
+import { toastError } from "@/lib/errorToast"
 import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import { clearReplyDraft, loadReplyDraft, saveReplyDraft } from "@/lib/replyDraftStorage"
 import { sortInboxesByName } from "@/lib/sortInboxes"
@@ -697,7 +698,7 @@ export const ConversationViewProvider = ({
     },
     onError: (error) => {
       logger.error("Failed to assign conversation", error, "ConversationViewProvider")
-      toast.error(`Failed to assign: ${error.message}`)
+      toastError("Failed to assign", error)
     },
   })
 
@@ -725,7 +726,7 @@ export const ConversationViewProvider = ({
     },
     onError: (error) => {
       logger.error("Failed to move conversation", error, "ConversationViewProvider")
-      toast.error(`Failed to move: ${error.message}`)
+      toastError("Failed to move", error)
     },
   })
 
@@ -784,7 +785,7 @@ export const ConversationViewProvider = ({
     },
     onError: (error) => {
       logger.error("Failed to update status", error, "ConversationViewProvider")
-      toast.error(`Failed to update status: ${error.message}`)
+      toastError("Failed to update status", error)
     },
   })
 
@@ -825,7 +826,7 @@ export const ConversationViewProvider = ({
     },
     onError: (error) => {
       logger.error("Failed to snooze conversation", error, "ConversationViewProvider")
-      toast.error(`Failed to snooze: ${error.message}`)
+      toastError("Failed to snooze", error)
     },
   })
 
@@ -908,7 +909,7 @@ export const ConversationViewProvider = ({
     },
     onError: (error) => {
       logger.error("Gmail sync failed", error, "ConversationViewProvider")
-      toast.error(`Gmail sync failed: ${error.message}`)
+      toastError("Gmail sync failed", error)
     },
   })
 
@@ -1004,7 +1005,7 @@ export const ConversationViewProvider = ({
       dispatch({ type: "SET_AI_STATE", payload: { open: true, loading: false, suggestions } })
     } catch (error: any) {
       logger.error("Failed to get AI suggestions", error, "ConversationViewProvider")
-      toast.error(`Failed to get AI suggestions: ${error.message}`)
+      toastError("Failed to get AI suggestions", error)
       dispatch({ type: "SET_AI_STATE", payload: { open: false, loading: false, suggestions: [] } })
     }
   }
@@ -1053,7 +1054,7 @@ export const ConversationViewProvider = ({
       return data.refinedText
     } catch (error: any) {
       logger.error("Failed to refine suggestion", error, "ConversationViewProvider")
-      toast.error(`Failed to refine suggestion: ${error.message}`)
+      toastError("Failed to refine suggestion", error)
       return null
     } finally {
       dispatch({ type: "SET_REFINING_SUGGESTION", payload: false })
@@ -1156,7 +1157,7 @@ export const ConversationViewProvider = ({
       toast.success("Draft sent as reply")
     } catch (error: any) {
       logger.error("Failed to send draft", error, "ConversationViewProvider")
-      toast.error(`Failed to send draft: ${error.message}`)
+      toastError("Failed to send draft", error)
     }
   }
 

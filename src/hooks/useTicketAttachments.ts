@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 
 export function useTicketAttachments(ticketId: string) {
   return useQuery({
@@ -73,7 +74,7 @@ export function useUploadTicketAttachment(ticketId: string) {
       toast.success("File uploaded successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to upload file: ${error.message}`)
+      toastError("Failed to upload file", error)
     },
   })
 }
@@ -95,7 +96,7 @@ export function useDeleteTicketAttachment(ticketId: string) {
       toast.success("Attachment deleted")
     },
     onError: (error) => {
-      toast.error(`Failed to delete attachment: ${error.message}`)
+      toastError("Failed to delete attachment", error)
     },
   })
 }

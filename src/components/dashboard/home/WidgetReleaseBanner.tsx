@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
+import { toastError } from "@/lib/errorToast"
 import { cn } from "@/lib/utils"
 import {
   fetchLiveBuild as fetchLiveBuildCached,
@@ -85,9 +86,7 @@ export const WidgetReleaseBanner: React.FC = () => {
         description: "Host sites pick it up on their next load (CDN cache up to ~1 hour).",
       })
     } catch (e) {
-      toast.error("Failed to release widget", {
-        description: e instanceof Error ? e.message : "Check edge function logs.",
-      })
+      toastError("Failed to release widget", e, { commit: appCommit })
     } finally {
       setDeploying(false)
     }
