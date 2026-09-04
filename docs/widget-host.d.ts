@@ -63,6 +63,12 @@ export interface WidgetInitOptions {
    * config also enables it, omitted keeps the admin config alone.
    */
   enableKnowledgeSearch?: boolean
+  /**
+   * Host gate for the AI assistant home button.
+   * `false` always hides it, `true` shows it only when the admin widget
+   * config also enables it, omitted keeps the admin config alone.
+   */
+  enableAiChat?: boolean
   /** Brand name or slug from the Noddi brand catalog. Max 40. */
   brand?: string
   /** Preferred: one nested context object. */
@@ -84,6 +90,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   supportedLocales?: string[]
   /** Show/hide the help-centre home button mid-session. See init. */
   enableKnowledgeSearch?: boolean
+  /** Show/hide the AI assistant home button mid-session. See init. */
+  enableAiChat?: boolean
   /** Preferred nested form; merged over any flat fields above. */
   context?: WidgetHostContext
   /** `null` clears the visitor (same as `clearIdentity`). */

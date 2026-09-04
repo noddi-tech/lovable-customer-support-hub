@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  Bot,
   CheckCheck,
   Copy,
   Edit3,
@@ -21,9 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { EmailRender } from "@/components/ui/email-render"
 import { MentionRenderer } from "@/components/ui/mention-renderer"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useNoteMutations } from "@/hooks/useNoteMutations"
 import { supabase } from "@/integrations/supabase/client"
+import { MARKER_INFO, parseAgentContent } from "@/lib/aiMarkers"
 import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
@@ -90,7 +93,13 @@ export const MobileChatBubble = ({
     )
   }
 
-  const content = resolveContent(message)
+  const rawContent = resolveContent(message)
+  // Strip AI control markers ([TAG]{...}[/TAG]) out of the visible text and
+  // surface them separately as chips. Internal notes never carry markers.
+  const { text: strippedContent, markers } = isInternal
+    ? { text: rawContent, markers: [] }
+    : parseAgentContent(rawContent)
+  const content = strippedContent
   const isPlainText = !/<[a-z][\s\S]*>/i.test(content)
   const attachments: EmailAttachment[] = (message.originalMessage?.attachments || []).map(
     (a: any) => ({
@@ -133,117 +142,157 @@ export const MobileChatBubble = ({
       )}
 
       {/* Bubble */}
-      <div
-        className={cn(
-          "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
-          isInternal
-            ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
-            : isAgent
-              ? "bg-primary text-primary-foreground rounded-br-md"
-              : "bg-muted text-foreground rounded-bl-md",
-        )}
-      >
-        {isInternal && canEditThisNote && !isEditing && (
-          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full bg-background border shadow-sm"
+      {(content.trim().length > 0 || isInternal) && (
+        <div
+          className={cn(
+            "px-3 py-2 rounded-2xl text-[13px] leading-snug break-words max-w-full relative group",
+            isInternal
+              ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
+              : isAgent
+                ? "bg-primary text-primary-foreground rounded-br-md"
+                : "bg-muted text-foreground rounded-bl-md",
+          )}
+        >
+          {isInternal && canEditThisNote && !isEditing && (
+            <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 active:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full bg-background border shadow-sm"
+                  >
+                    <MoreHorizontal className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      void navigator.clipboard.writeText(content)
+                      toast.success("Copied")
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      noteDebug(
+                        "note_editor_open_requested",
+                        {
+                          source: "MobileChatBubble",
+                          messageId: message.id,
+                        },
+                        "MobileChatBubble",
+                      )
+                      // Let the dropdown close naturally; setTimeout defers
+                      // the state update until after Radix's close animation
+                      // starts unwinding, avoiding overlay stacking.
+                      setTimeout(() => setIsEditing(true), 0)
+                    }}
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Edit note
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      noteDebug(
+                        "delete_dialog_open_requested",
+                        {
+                          source: "MobileChatBubble",
+                          messageId: message.id,
+                        },
+                        "MobileChatBubble",
+                      )
+                      // Hand off to parent — its hoisted dialog survives this bubble unmounting
+                      setTimeout(() => onRequestDeleteNote?.(message.id), 0)
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete note
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+          {isInternal && isEditing ? (
+            <InlineNoteEditor
+              messageId={message.id}
+              initialContent={message.originalMessage?.content || content}
+              conversationId={conversationId}
+              context={{
+                type: "internal_note",
+                conversation_id: conversationId,
+                message_id: message.id,
+              }}
+              onCancel={() => setIsEditing(false)}
+              compact
+            />
+          ) : isInternal ? (
+            <>
+              <MentionRenderer content={content} className="text-[13px]" />
+              {message.originalMessage?.updated_at &&
+                message.originalMessage?.created_at &&
+                new Date(message.originalMessage.updated_at).getTime() -
+                  new Date(message.originalMessage.created_at).getTime() >
+                  2000 && (
+                  <span className="ml-1 text-[9px] text-muted-foreground italic">(edited)</span>
+                )}
+            </>
+          ) : (
+            <EmailRender
+              content={content}
+              contentType={
+                message.originalMessage?.content_type || (isPlainText ? "text/plain" : "text/html")
+              }
+              attachments={attachments}
+              messageId={message.id}
+              className="mobile-chat-email-render"
+              showLoadImagesControl={false}
+            />
+          )}
+        </div>
+      )}
+
+      {/* AI control markers — hidden from the visitor, shown to the agent */}
+      {markers.length > 0 && (
+        <TooltipProvider delayDuration={150}>
+          <div
+            className={cn("mt-1 flex flex-wrap gap-1", isAgent ? "justify-end" : "justify-start")}
+          >
+            {markers.map((marker, i) => {
+              const info = MARKER_INFO[marker.tag]
+              return (
+                <Tooltip
+                  // biome-ignore lint/suspicious/noArrayIndexKey: markers are static per message, order never changes
+                  key={`${message.id}-${marker.tag}-${i}`}
                 >
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault()
-                    void navigator.clipboard.writeText(content)
-                    toast.success("Copied")
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    noteDebug(
-                      "note_editor_open_requested",
-                      {
-                        source: "MobileChatBubble",
-                        messageId: message.id,
-                      },
-                      "MobileChatBubble",
-                    )
-                    // Let the dropdown close naturally; setTimeout defers
-                    // the state update until after Radix's close animation
-                    // starts unwinding, avoiding overlay stacking.
-                    setTimeout(() => setIsEditing(true), 0)
-                  }}
-                >
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit note
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => {
-                    noteDebug(
-                      "delete_dialog_open_requested",
-                      {
-                        source: "MobileChatBubble",
-                        messageId: message.id,
-                      },
-                      "MobileChatBubble",
-                    )
-                    // Hand off to parent — its hoisted dialog survives this bubble unmounting
-                    setTimeout(() => onRequestDeleteNote?.(message.id), 0)
-                  }}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete note
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex cursor-help items-center gap-1 rounded-md border border-dashed border-amber-400/60 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
+                      <Bot className="h-3 w-3" />
+                      {info?.label ?? marker.tag}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium">{info?.label ?? marker.tag}</p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {info?.description ??
+                        "Control marker used by the AI to render an interactive block in the visitor's widget. Not shown as text to the visitor."}
+                    </p>
+                    {marker.payload && (
+                      <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted px-1.5 py-1 text-[10px] text-foreground">
+                        {marker.payload}
+                      </pre>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
           </div>
-        )}
-        {isInternal && isEditing ? (
-          <InlineNoteEditor
-            messageId={message.id}
-            initialContent={message.originalMessage?.content || content}
-            conversationId={conversationId}
-            context={{
-              type: "internal_note",
-              conversation_id: conversationId,
-              message_id: message.id,
-            }}
-            onCancel={() => setIsEditing(false)}
-            compact
-          />
-        ) : isInternal ? (
-          <>
-            <MentionRenderer content={content} className="text-[13px]" />
-            {message.originalMessage?.updated_at &&
-              message.originalMessage?.created_at &&
-              new Date(message.originalMessage.updated_at).getTime() -
-                new Date(message.originalMessage.created_at).getTime() >
-                2000 && (
-                <span className="ml-1 text-[9px] text-muted-foreground italic">(edited)</span>
-              )}
-          </>
-        ) : (
-          <EmailRender
-            content={content}
-            contentType={
-              message.originalMessage?.content_type || (isPlainText ? "text/plain" : "text/html")
-            }
-            attachments={attachments}
-            messageId={message.id}
-            className="mobile-chat-email-render"
-            showLoadImagesControl={false}
-          />
-        )}
-      </div>
+        </TooltipProvider>
+      )}
 
       {/* Timestamp + status */}
       <div className="flex items-center gap-1 mt-0.5 px-1">

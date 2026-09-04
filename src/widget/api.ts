@@ -67,6 +67,27 @@ export function isKnowledgeSearchEnabled(adminEnabled: boolean): boolean {
   return !!adminEnabled
 }
 
+// Host-controlled gate for the visitor-facing AI chat assistant
+// (init/update `enableAiChat`). undefined = host has no opinion.
+let hostEnableAiChat: boolean | undefined
+
+export function setHostEnableAiChat(value: boolean | undefined) {
+  hostEnableAiChat = typeof value === "boolean" ? value : undefined
+}
+
+export function getHostEnableAiChat(): boolean | undefined {
+  return hostEnableAiChat
+}
+
+/**
+ * Effective AI-chat visibility: host `false` always wins, host `true`
+ * still requires the admin flag, host omitted keeps the admin flag alone.
+ */
+export function isAiChatEnabled(adminEnabled: boolean): boolean {
+  if (hostEnableAiChat === false) return false
+  return !!adminEnabled
+}
+
 // Optional extra context of the host site (locale, environment, source app,
 // logged-in user, booking/order in flight, SPA pathname, release).
 // Passed through to the backend and shown to agents on the conversation.

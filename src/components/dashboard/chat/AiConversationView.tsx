@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import { MARKER_INFO, parseAgentContent } from "@/lib/aiMarkers"
 import { cn } from "@/lib/utils"
 
 interface AiConversationViewProps {
@@ -271,6 +273,7 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
               .map((m) => {
                 const isVisitor = m.role === "user"
                 const isAgent = m.role === "agent"
+                const { text, markers } = parseAgentContent(m.content)
                 return (
                   <div
                     key={m.id}
@@ -283,17 +286,58 @@ export const AiConversationView: React.FC<AiConversationViewProps> = ({ conversa
                       {isVisitor ? visitorName : isAgent ? "Agent" : "AI Assistant"} ·{" "}
                       {formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}
                     </span>
-                    <div
-                      className={cn(
-                        "rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                        isVisitor && "bg-primary text-primary-foreground",
-                        isAgent &&
-                          "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-100",
-                        !isVisitor && !isAgent && "bg-muted",
-                      )}
-                    >
-                      {m.content}
-                    </div>
+                    {text && (
+                      <div
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words",
+                          isVisitor && "bg-primary text-primary-foreground",
+                          isAgent &&
+                            "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-100",
+                          !isVisitor && !isAgent && "bg-muted",
+                        )}
+                      >
+                        {text}
+                      </div>
+                    )}
+                    {markers.length > 0 && (
+                      <TooltipProvider delayDuration={150}>
+                        <div
+                          className={cn(
+                            "mt-1 flex flex-wrap gap-1",
+                            isVisitor ? "justify-end" : "justify-start",
+                          )}
+                        >
+                          {markers.map((marker, i) => {
+                            const info = MARKER_INFO[marker.tag]
+                            return (
+                              <Tooltip
+                                // biome-ignore lint/suspicious/noArrayIndexKey: markers are static per message, order never changes
+                                key={`${m.id}-${marker.tag}-${i}`}
+                              >
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex cursor-help items-center gap-1 rounded-md border border-dashed border-amber-400/60 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
+                                    <Bot className="h-3 w-3" />
+                                    {info?.label ?? marker.tag}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="font-medium">{info?.label ?? marker.tag}</p>
+                                  <p className="mt-0.5 text-muted-foreground">
+                                    {info?.description ??
+                                      "Control marker used by the AI to render an interactive block in the visitor's widget. Not shown as text to the visitor."}
+                                  </p>
+                                  {marker.payload && (
+                                    <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted px-1.5 py-1 text-[10px] text-foreground">
+                                      {marker.payload}
+                                    </pre>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          })}
+                        </div>
+                      </TooltipProvider>
+                    )}
                   </div>
                 )
               })}

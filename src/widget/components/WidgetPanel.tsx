@@ -5,6 +5,7 @@ import {
   getChatSession,
   getSupportedLocales,
   getWidgetContext,
+  isAiChatEnabled,
   isIdentified,
   isKnowledgeSearchEnabled,
   readStoredChatSession,
@@ -105,6 +106,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
 
   // Help centre: admin flag AND the host gate (enableKnowledgeSearch).
   const knowledgeSearchEnabled = isKnowledgeSearchEnabled(config.enableKnowledgeSearch)
+  // AI assistant: admin flag AND the host gate (enableAiChat).
+  const aiChatEnabled = isAiChatEnabled(config.enableAiChat)
   useEffect(() => {
     if (!knowledgeSearchEnabled && view === "search") setView("home")
   }, [knowledgeSearchEnabled, view])
@@ -338,6 +341,35 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
             {chatError && <div className="noddi-widget-error">{chatError}</div>}
 
             <div className="noddi-widget-actions">
+              {/* AI assistant: available 24/7, independent of agent presence */}
+              {aiChatEnabled && (
+                <button
+                  type="button"
+                  className="noddi-widget-action noddi-widget-action-primary"
+                  onClick={() => setView("ai")}
+                  style={{ borderColor: config.primaryColor }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 8V4H8"></path>
+                    <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                    <path d="M2 14h2"></path>
+                    <path d="M20 14h2"></path>
+                    <path d="M15 13v2"></path>
+                    <path d="M9 13v2"></path>
+                  </svg>
+                  <span>{t.startAiChat}</span>
+                </button>
+              )}
+
               {/* Show live chat only when agents are online */}
               {config.enableChat && config.agentsOnline && (
                 <button

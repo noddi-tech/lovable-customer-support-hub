@@ -98,6 +98,40 @@ export const AiEscalationInfoPopover: React.FC = () => {
             <span className="font-medium">Waiting</span> tab lists chats asking for a human (widget
             queue + AI escalations).
           </p>
+
+          <div className="rounded-md border p-2.5 space-y-2">
+            <p className="font-medium">What the customer sees in the widget</p>
+            <p className="text-xs text-muted-foreground">
+              Which options appear depends on the widget's configuration (set per widget in admin,
+              and the host app can further gate them).
+            </p>
+            <ul className="space-y-1.5 text-xs">
+              <li className="flex gap-2">
+                <Bot className="h-3.5 w-3.5 text-violet-500 shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">AI assistant.</span> When enabled,
+                  the customer can chat with the AI 24/7 — even when no agents are online. It
+                  answers and can complete booking actions.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <UserRound className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Live chat with a human.</span> Only
+                  shown when live chat is enabled and at least one agent is online. Otherwise the
+                  customer sees an offline notice.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">No AI / contact form.</span> With AI
+                  and live chat off (or offline), the customer leaves a message via the contact form
+                  and gets a reply by email.
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

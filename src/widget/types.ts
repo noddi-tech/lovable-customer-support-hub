@@ -15,6 +15,8 @@ export interface WidgetConfig {
   enableChat: boolean
   enableContactForm: boolean
   enableKnowledgeSearch: boolean
+  /** Admin flag: expose the visitor-facing AI chat assistant on the home screen. */
+  enableAiChat: boolean
   companyName: string | null
   logoUrl: string | null
   inboxName: string | null
@@ -47,6 +49,8 @@ export interface WidgetUpdateOptions extends WidgetHostContext {
   supportedLocales?: string[]
   /** Host gate for the help-centre home action. false always hides it. */
   enableKnowledgeSearch?: boolean
+  /** Host gate for the AI chat assistant. false always hides it; true still requires the admin flag. */
+  enableAiChat?: boolean
   context?: WidgetHostContext
   identity?: WidgetIdentityOptions | null
   /** Brand colours (primary/secondary/accent) applied live. */
@@ -60,6 +64,8 @@ export interface WidgetInitOptions {
   supportedLocales?: string[]
   /** Host gate for the help-centre home action. false always hides it. */
   enableKnowledgeSearch?: boolean
+  /** Host gate for the AI chat assistant. false always hides it; true still requires the admin flag. */
+  enableAiChat?: boolean
   /** BCP-47 language of the visitor's session, e.g. 'nb-NO'. */
   locale?: string
   /** Deployment the widget runs in. */

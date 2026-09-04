@@ -3,6 +3,7 @@ import {
   clearIdentity,
   contextFromInitOptions,
   setBrand,
+  setHostEnableAiChat,
   setHostEnableKnowledgeSearch,
   setIdentity,
   setSupportedLocales,
@@ -73,6 +74,7 @@ function initializeWidget(options: WidgetInitOptions) {
   // Host may narrow the language picker: supportedLocales: ['nb-NO', 'en-US'].
   setSupportedLocales(sanitizeSupportedLocales((options as any).supportedLocales))
   setHostEnableKnowledgeSearch((options as any).enableKnowledgeSearch)
+  setHostEnableAiChat((options as any).enableAiChat)
   isReadyFlag = false
 
   // Inject CSS styles
@@ -197,6 +199,11 @@ function updateWidget(options?: any) {
   }
   if (options.enableKnowledgeSearch !== undefined) {
     setHostEnableKnowledgeSearch(options.enableKnowledgeSearch)
+    // Home actions must reflect the new gate without a re-init.
+    localeChanged = true
+  }
+  if (options.enableAiChat !== undefined) {
+    setHostEnableAiChat(options.enableAiChat)
     // Home actions must reflect the new gate without a re-init.
     localeChanged = true
   }
