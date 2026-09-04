@@ -43,11 +43,21 @@ export const WidgetReleaseBanner: React.FC = () => {
   const handleDeploy = async () => {
     setDeploying(true)
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/deploy-widget?action=deploy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commit: appCommit }),
-      })
+      // A cold edge-function start (or a transient network blip) surfaces as a
+      // bare "Failed to fetch" with no response, so retry the transport once.
+      const post = () =>
+        fetch(`${SUPABASE_URL}/functions/v1/deploy-widget?action=deploy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commit: appCommit }),
+        })
+      let response: Response
+      try {
+        response = await post()
+      } catch {
+        await new Promise((r) => setTimeout(r, 800))
+        response = await post()
+      }
       // Surface the edge function's own message instead of a generic failure —
       // "check the logs" is useless when the function replies with the reason.
       const raw = await response.text()
