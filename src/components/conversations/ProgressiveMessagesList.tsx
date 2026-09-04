@@ -218,6 +218,7 @@ export const ProgressiveMessagesList = forwardRef<
     // re-expanding when only the messages array reference changes.
     const messagesRef = useRef(messages)
     messagesRef.current = messages
+    // biome-ignore lint/correctness/useExhaustiveDependencies: messageKeys is the stable identity of messages
     useEffect(() => {
       const currentMessages = messagesRef.current
       if (currentMessages.length > 0) {
@@ -233,7 +234,7 @@ export const ProgressiveMessagesList = forwardRef<
         setExpandedMessageIds(new Set())
         setAllExpanded(false)
       }
-    }, [])
+    }, [messageKeys])
 
     // Auto-scroll to bottom when messages change (for new messages)
     useEffect(() => {
