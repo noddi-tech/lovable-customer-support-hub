@@ -152,15 +152,23 @@ export const ChatMessagesList = ({
     [conversationId, queryClient],
   )
 
-  const handleResendEmail = useCallback(async (messageId: string) => {
-    try {
-      const { error } = await invokeSendReplyEmail({ messageId })
-      if (error) throw error
-      toast.success("Email sent successfully")
-    } catch (error) {
-      toast.error("Failed to send email")
-    }
-  }, [])
+  const handleResendEmail = useCallback(
+    async (messageId: string) => {
+      const toastId = toast.loading("Sending email…")
+      try {
+        const { error } = await invokeSendReplyEmail({ messageId })
+        if (error) throw error
+        toast.success("Email sent successfully", { id: toastId })
+        void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      } catch (error) {
+        toast.error(
+          `Failed to send email: ${(error as { message?: string })?.message || "unknown error"}`,
+          { id: toastId },
+        )
+      }
+    },
+    [conversationId, queryClient],
+  )
 
   // Render attachments
   const renderAttachments = (attachments: any[] | null | undefined) => {
@@ -286,7 +294,10 @@ export const ChatMessagesList = ({
 
                   {/* Message content */}
                   <div
-                    className={cn("flex flex-col relative", isAgent ? "items-end" : "items-start")}
+                    className={cn(
+                      "flex flex-col relative min-w-0 flex-1",
+                      isAgent ? "items-end" : "items-start",
+                    )}
                   >
                     {/* Sender name / internal note label */}
                     {isInternal ? (
@@ -398,7 +409,7 @@ export const ChatMessagesList = ({
                       {/* Message bubble */}
                       <div
                         className={cn(
-                          "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words [overflow-wrap:anywhere] chat-bubble-content overflow-hidden max-w-[85%] sm:max-w-md md:max-w-xl lg:max-w-2xl [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
+                          "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words [overflow-wrap:anywhere] chat-bubble-content overflow-hidden w-fit max-w-full min-w-0 [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
                           isInternal
                             ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
                             : isAgent
