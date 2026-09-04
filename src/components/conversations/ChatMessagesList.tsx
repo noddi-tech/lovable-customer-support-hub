@@ -152,15 +152,23 @@ export const ChatMessagesList = ({
     [conversationId, queryClient],
   )
 
-  const handleResendEmail = useCallback(async (messageId: string) => {
-    try {
-      const { error } = await invokeSendReplyEmail({ messageId })
-      if (error) throw error
-      toast.success("Email sent successfully")
-    } catch (error) {
-      toast.error("Failed to send email")
-    }
-  }, [])
+  const handleResendEmail = useCallback(
+    async (messageId: string) => {
+      const toastId = toast.loading("Sending email…")
+      try {
+        const { error } = await invokeSendReplyEmail({ messageId })
+        if (error) throw error
+        toast.success("Email sent successfully", { id: toastId })
+        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+      } catch (error) {
+        toast.error(
+          `Failed to send email: ${(error as { message?: string })?.message || "unknown error"}`,
+          { id: toastId },
+        )
+      }
+    },
+    [conversationId, queryClient],
+  )
 
   // Render attachments
   const renderAttachments = (attachments: any[] | null | undefined) => {
