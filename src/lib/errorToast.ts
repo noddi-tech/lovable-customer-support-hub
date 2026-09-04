@@ -36,7 +36,7 @@ export function describeError(error: unknown): string {
     str(rec.error) ?? str(asRecord(rec.error)?.message),
     str(rec.details),
     str(rec.hint),
-  ].filter(Boolean) as string[]
+  ].filter(Boolean)
 
   const unique = [...new Set(parts)]
   if (unique.length) return unique.join(" — ")
