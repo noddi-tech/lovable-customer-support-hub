@@ -17,7 +17,6 @@ const DEFAULT_SENTRY_DSN =
 
 const dsn = import.meta.env.VITE_SENTRY_DSN || DEFAULT_SENTRY_DSN
 const isProd = import.meta.env.PROD
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? ""
 
 /**
  * Sentry environment:
@@ -59,11 +58,10 @@ Sentry.init({
 
   // Tracing — full in local/dev; lower volume in production
   tracesSampleRate: isProd ? 0.2 : 1.0,
-  tracePropagationTargets: [
-    "localhost",
-    /^https:\/\/.*\.supabase\.co\/functions/,
-    ...(supabaseUrl ? [supabaseUrl] : []),
-  ],
+  // Keep distributed tracing same-origin. Propagating Sentry's `sentry-trace`
+  // and `baggage` headers to Supabase forces a CORS preflight; functions that
+  // do not explicitly allow both headers then receive OPTIONS but never POST.
+  tracePropagationTargets: ["localhost", /^\//],
 
   // Session Replay — sample continuously in prod; always capture around errors
   replaysSessionSampleRate: isProd ? 0.1 : 1.0,
