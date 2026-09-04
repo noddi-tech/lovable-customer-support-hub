@@ -40,6 +40,7 @@ import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useNoteMutations } from "@/hooks/useNoteMutations"
 import { supabase } from "@/integrations/supabase/client"
 import { EMAIL_PRIORITY_LABELS, getMessagePriority } from "@/lib/emailPriority"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
 import type { EmailAttachment } from "@/utils/emailFormatting"
@@ -48,7 +49,6 @@ import { getSmartPreview } from "@/utils/messagePreview"
 import { noteDebug } from "@/utils/noteInteractionDebug"
 import { InlineNoteEditor } from "./InlineNoteEditor"
 import { MessageDebugProbe } from "./MessageDebugProbe"
-import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 /** Explains the AI draft feature on hover over the "AI Draft" badge. */
 function AiDraftHint({ children }: { children: React.ReactNode }) {

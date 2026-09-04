@@ -75,7 +75,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const [tagFilter, setTagFilter] = useState<string[]>([])
   const { getTags: getChatTags } = useEntityTags("conversation")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const { setStatus } = useConversationStatusActions()
+  const { setStatusMany } = useConversationStatusActions()
   const queryClient = useQueryClient()
 
   const { data: conversations = [], isLoading } = useQuery({
@@ -261,11 +261,10 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
 
   const applyBulkStatus = useCallback(
     async (status: "open" | "pending" | "closed") => {
-      const ids = [...selectedIds]
-      await Promise.all(ids.map((id) => setStatus(id, status)))
+      await setStatusMany([...selectedIds], status)
       setSelectedIds(new Set())
     },
-    [selectedIds, setStatus],
+    [selectedIds, setStatusMany],
   )
 
   const applyBulkAssign = useCallback(
@@ -417,6 +416,7 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
                 isBulkSelected={selectedIds.has(conv.id)}
                 selectionMode={selectionMode}
                 onBulkSelect={handleBulkSelect}
+                bulkSelectedIds={selectionMode ? [...selectedIds] : undefined}
               />
             ))}
           </div>

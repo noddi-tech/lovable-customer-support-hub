@@ -43,13 +43,12 @@ import { useChatCsat } from "@/hooks/useChatCsat"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useNoteMutations } from "@/hooks/useNoteMutations"
 import { supabase } from "@/integrations/supabase/client"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
 import { getLanguageFlag, getLanguageLabel, normalizeLocale } from "@/utils/languageLabels"
-
 import { noteDebug } from "@/utils/noteInteractionDebug"
 import { InlineNoteEditor } from "./InlineNoteEditor"
-import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[]

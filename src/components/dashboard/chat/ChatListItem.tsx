@@ -54,6 +54,8 @@ interface ChatListItemProps {
   selectionMode?: boolean
   /** Cmd/Ctrl-click toggles one chat, Shift-click selects the range. */
   onBulkSelect?: (id: string, selected: boolean, shiftKey?: boolean) => void
+  /** All currently ticked chat ids, so right-click actions can apply to the selection. */
+  bulkSelectedIds?: string[]
 }
 
 export const ChatListItem: React.FC<ChatListItemProps> = ({
@@ -63,6 +65,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
   isBulkSelected = false,
   selectionMode = false,
   onBulkSelect,
+  bulkSelectedIds,
 }) => {
   const customerName = conv.session?.visitor_name || conv.customer?.full_name || "Visitor"
   const customerEmail = conv.session?.visitor_email || conv.customer?.email
@@ -111,6 +114,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({
       conversationId={conv.id}
       status={conv.status}
       brandLabel={brand?.label ?? null}
+      bulkSelectedIds={bulkSelectedIds}
     >
       <button
         type="button"

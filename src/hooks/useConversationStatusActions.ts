@@ -41,5 +41,35 @@ export function useConversationStatusActions() {
     [queryClient],
   )
 
-  return { setStatus }
+  /**
+   * Applies a status to many conversations in a single request and shows
+   * exactly one toast with the affected count.
+   */
+  const setStatusMany = useCallback(
+    async (conversationIds: string[], status: QuickConversationStatus) => {
+      const ids = [...new Set(conversationIds)].filter(Boolean)
+      if (ids.length === 0) return false
+
+      try {
+        const { error } = await supabase.from("conversations").update({ status }).in("id", ids)
+
+        if (error) throw error
+
+        toast.success(
+          `${STATUS_LABEL[status]} ${ids.length} conversation${ids.length === 1 ? "" : "s"}`,
+        )
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
+        void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })
+        return true
+      } catch (error) {
+        logger.error("Failed to change conversation status", error, "useConversationStatusActions")
+        toast.error("Failed to change status")
+        return false
+      }
+    },
+    [queryClient],
+  )
+
+  return { setStatus, setStatusMany }
 }

@@ -28,6 +28,11 @@ interface ConversationStatusContextMenuProps {
   assignedToId?: string | null
   /** Current brand label (from conversation metadata), used to show a checkmark. */
   brandLabel?: string | null
+  /**
+   * When the right-clicked row is part of a multi-selection, the status
+   * actions apply to every selected conversation instead of just this one.
+   */
+  bulkSelectedIds?: string[]
   children: React.ReactNode
 }
 
@@ -40,9 +45,17 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
   status,
   assignedToId,
   brandLabel,
+  bulkSelectedIds,
   children,
 }) => {
-  const { setStatus } = useConversationStatusActions()
+  const { setStatus, setStatusMany } = useConversationStatusActions()
+  const bulkIds =
+    bulkSelectedIds && bulkSelectedIds.length > 1 && bulkSelectedIds.includes(conversationId)
+      ? bulkSelectedIds
+      : null
+  const applyStatus = (status: "open" | "pending" | "closed") =>
+    bulkIds ? setStatusMany(bulkIds, status) : setStatus(conversationId, status)
+  const suffix = bulkIds ? ` (${bulkIds.length})` : ""
   const { assign } = useConversationAssignActions()
   const { setBrand } = useConversationBrandActions()
   const [search, setSearch] = useState("")
@@ -124,25 +137,25 @@ export const ConversationStatusContextMenu: React.FC<ConversationStatusContextMe
         <ContextMenuSeparator />
         <ContextMenuLabel className="text-xs text-muted-foreground">Change status</ContextMenuLabel>
         <ContextMenuItem
-          disabled={status === "pending"}
-          onSelect={() => setStatus(conversationId, "pending")}
+          disabled={!bulkIds && status === "pending"}
+          onSelect={() => applyStatus("pending")}
         >
           <Clock className="w-4 h-4 mr-2" />
-          Set to pending
+          Set to pending{suffix}
         </ContextMenuItem>
         <ContextMenuItem
-          disabled={status === "closed"}
-          onSelect={() => setStatus(conversationId, "closed")}
+          disabled={!bulkIds && status === "closed"}
+          onSelect={() => applyStatus("closed")}
         >
           <XCircle className="w-4 h-4 mr-2" />
-          Close conversation
+          {bulkIds ? `Close ${bulkIds.length} conversations` : "Close conversation"}
         </ContextMenuItem>
         <ContextMenuItem
-          disabled={status === "open"}
-          onSelect={() => setStatus(conversationId, "open")}
+          disabled={!bulkIds && status === "open"}
+          onSelect={() => applyStatus("open")}
         >
           <MessageCircle className="w-4 h-4 mr-2" />
-          Reopen
+          Reopen{suffix}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
