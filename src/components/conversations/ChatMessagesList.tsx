@@ -159,7 +159,7 @@ export const ChatMessagesList = ({
         const { error } = await invokeSendReplyEmail({ messageId })
         if (error) throw error
         toast.success("Email sent successfully", { id: toastId })
-        queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
+        void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] })
       } catch (error) {
         toast.error(
           `Failed to send email: ${(error as { message?: string })?.message || "unknown error"}`,
