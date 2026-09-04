@@ -13,12 +13,15 @@ import { cn } from "@/lib/utils"
 type ResizablePanelGroupProps = GroupProps & {
   /** @deprecated Use `orientation` instead */
   direction?: GroupProps["orientation"]
+  /** @deprecated Removed in react-resizable-panels v4 — accepted and ignored */
+  autoSaveId?: string
 }
 
 const ResizablePanelGroup = ({
   className,
   direction,
   orientation,
+  autoSaveId: _autoSaveId,
   ...props
 }: ResizablePanelGroupProps) => (
   <Group
