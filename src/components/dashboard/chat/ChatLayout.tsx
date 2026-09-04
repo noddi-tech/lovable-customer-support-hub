@@ -230,7 +230,7 @@ export const ChatLayout: React.FC = () => {
       {/* Main content */}
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* Left panel: Filters, Queue, and List */}
-        <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+        <ResizablePanel defaultSize={35} minSize={20} maxSize={70}>
           <div className="flex flex-col h-full border-r">
             {/* Chat Filters */}
             <ChatFilters
