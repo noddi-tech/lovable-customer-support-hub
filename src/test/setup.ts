@@ -146,6 +146,7 @@ beforeAll(() => {
     root = null
     rootMargin = ""
     thresholds = []
+    scrollMargin = ""
   }
   global.IntersectionObserver = IntersectionObserverMock
 })
