@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   BarChart3,
-  Bot,
   Code,
   Eye,
   Globe,
@@ -54,7 +53,6 @@ interface WidgetConfig {
   enable_chat: boolean
   enable_contact_form: boolean
   enable_knowledge_search: boolean
-  enable_ai_chat: boolean
   logo_url: string | null
   company_name: string | null
   is_active: boolean
@@ -531,24 +529,6 @@ export const WidgetSettings: React.FC = () => {
                           checked={selectedWidget.enable_knowledge_search}
                           onCheckedChange={(checked) =>
                             handleUpdateWidget({ enable_knowledge_search: checked })
-                          }
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                        <div className="space-y-0.5">
-                          <Label className="flex items-center gap-2">
-                            <Bot className="h-4 w-4" />
-                            AI Assistant
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Let visitors chat with the AI assistant 24/7
-                          </p>
-                        </div>
-                        <Switch
-                          checked={selectedWidget.enable_ai_chat}
-                          onCheckedChange={(checked) =>
-                            handleUpdateWidget({ enable_ai_chat: checked })
                           }
                         />
                       </div>
