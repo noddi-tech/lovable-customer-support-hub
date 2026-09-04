@@ -421,8 +421,8 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
           <ResizablePanelGroup
             direction="horizontal"
             className="flex-1 min-w-0"
-            autoSaveId="livechat-detail-panels"
           >
+
             <ResizablePanel defaultSize={68} minSize={40} className="min-w-0">
               {chatColumn}
             </ResizablePanel>
