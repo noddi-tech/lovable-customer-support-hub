@@ -1,5 +1,6 @@
 import type React from "react"
 import { useEffect, useState } from "react"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useIsMobile } from "@/hooks/use-responsive"
@@ -92,16 +93,29 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
   // Add bottom padding to account for fixed phone bar
   // Add right padding when workspace is visible to prevent overlap
   return (
-    <div className="h-full grid grid-cols-[280px_minmax(0,1fr)_360px] gap-0 overflow-hidden pb-20">
+    <ResizablePanelGroup
+      direction="horizontal"
+      autoSaveId="voice-layout"
+      className="h-full gap-0 overflow-hidden pb-20"
+    >
       {/* Left pane - Filters */}
-      <div className="border-r border-border bg-muted/30 overflow-hidden">
+      <ResizablePanel
+        defaultSize={22}
+        minSize={15}
+        maxSize={35}
+        className="border-r border-border bg-muted/30 overflow-hidden"
+      >
         <ScrollArea className="h-full">
           <div className="p-4">{leftPane}</div>
         </ScrollArea>
-      </div>
+      </ResizablePanel>
+
+      <ResizableHandle withHandle />
 
       {/* Center pane - List */}
-      <div
+      <ResizablePanel
+        defaultSize={50}
+        minSize={30}
         className={`border-r border-border bg-background overflow-hidden transition-[padding] duration-300 ease-in-out ${
           workspaceVisible ? "pr-[400px]" : ""
         }`}
@@ -109,14 +123,21 @@ export const VoiceLayout: React.FC<VoiceLayoutProps> = ({
         <ScrollArea className="h-full">
           <div className="p-4">{centerPane}</div>
         </ScrollArea>
-      </div>
+      </ResizablePanel>
+
+      <ResizableHandle withHandle />
 
       {/* Right pane - Customer Sidebar (Always visible) */}
-      <div className="bg-muted/20 overflow-hidden">
+      <ResizablePanel
+        defaultSize={28}
+        minSize={18}
+        maxSize={45}
+        className="bg-muted/20 overflow-hidden"
+      >
         <ScrollArea className="h-full">
           <div className="p-4">{rightPane}</div>
         </ScrollArea>
-      </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   )
 }

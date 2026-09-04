@@ -474,183 +474,198 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
   }
 
   // ============ EMAIL UI (Original layout) ============
-  return (
-    <div className="flex h-full overflow-hidden">
-      {/* Main conversation area */}
-      <div className="flex flex-col min-h-0 flex-1 min-w-0 overflow-hidden bg-background">
-        {/* Compact Conversation Header */}
-        <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-sm">
-          <div className="flex items-center gap-3">
-            {/* Left: Back + Customer Info + Subject */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {isMobile && <SidebarTrigger className="shrink-0" />}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBack}
-                className="flex items-center gap-1 shrink-0 h-8 px-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {!isMobile && <span className="text-xs">Back</span>}
-              </Button>
+  const mainArea = (
+    <div className="flex flex-col min-h-0 h-full min-w-0 overflow-hidden bg-background">
+      {/* Compact Conversation Header */}
+      <div className="flex-shrink-0 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm shadow-sm">
+        <div className="flex items-center gap-3">
+          {/* Left: Back + Customer Info + Subject */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {isMobile && <SidebarTrigger className="shrink-0" />}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="flex items-center gap-1 shrink-0 h-8 px-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {!isMobile && <span className="text-xs">Back</span>}
+            </Button>
 
-              <Avatar className="h-8 w-8 ring-1 ring-border shrink-0">
-                <AvatarFallback className="text-xs font-semibold">
-                  {getCustomerInitial(
-                    conversation.customer?.full_name,
-                    conversation.customer?.email,
-                  )}
-                </AvatarFallback>
-              </Avatar>
+            <Avatar className="h-8 w-8 ring-1 ring-border shrink-0">
+              <AvatarFallback className="text-xs font-semibold">
+                {getCustomerInitial(conversation.customer?.full_name, conversation.customer?.email)}
+              </AvatarFallback>
+            </Avatar>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold truncate">
-                    {conversation.customer?.full_name || customerDisplay.displayName}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold truncate">
+                  {conversation.customer?.full_name || customerDisplay.displayName}
+                </span>
+                {conversation.customer?.email && (
+                  <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                    · {conversation.customer.email}
                   </span>
-                  {conversation.customer?.email && (
-                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
-                      · {conversation.customer.email}
-                    </span>
-                  )}
-                  {conversation.is_archived && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs shrink-0 bg-muted text-muted-foreground"
-                    >
-                      <Archive className="h-3 w-3 mr-0.5" />
-                      Archived
-                    </Badge>
-                  )}
-                </div>
-                {conversation.subject && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    Subject: {conversation.subject}
-                  </p>
+                )}
+                {conversation.is_archived && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs shrink-0 bg-muted text-muted-foreground"
+                  >
+                    <Archive className="h-3 w-3 mr-0.5" />
+                    Archived
+                  </Badge>
                 )}
               </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {!isMobile && (
-                <>
-                  <PresenceAvatarStack
-                    conversationId={conversationId}
-                    size="sm"
-                    maxAvatars={3}
-                    className="mr-1"
-                    showSelfFallback
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      void queryClient.invalidateQueries({
-                        queryKey: ["conversation-messages", conversationId],
-                      })
-                      void queryClient.invalidateQueries({
-                        queryKey: ["conversation-meta", conversationId],
-                      })
-                      toast.success("Conversation refreshed")
-                    }}
-                    className="gap-1 h-7"
-                    title="Refresh (Ctrl+R)"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    <span className="text-xs">Refresh</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleAll}
-                    className="gap-1 h-7"
-                    title={allExpanded ? "Collapse all messages" : "Expand all messages"}
-                  >
-                    {allExpanded ? (
-                      <>
-                        <ChevronsUp className="h-3.5 w-3.5" />
-                        <span className="text-xs">Collapse</span>
-                      </>
-                    ) : (
-                      <>
-                        <ChevronsDown className="h-3.5 w-3.5" />
-                        <span className="text-xs">Expand</span>
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOpsTicketOpen(true)}
-                className="gap-1 h-7"
-                title="Create an operations ticket in Navio for this conversation"
-              >
-                <Wrench className="h-3.5 w-3.5" />
-                {!isMobile && <span className="text-xs">Ops ticket</span>}
-              </Button>
-              {/* Mobile: Status dropdown inline */}
-              {isMobile && (
-                <Select
-                  value={conversation?.status || "open"}
-                  onValueChange={(status) => updateStatus({ status })}
-                >
-                  <SelectTrigger className="h-7 w-[90px] text-xs shrink-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">
-                      <div className="flex items-center gap-1.5">
-                        <CircleDot className="h-3 w-3" />
-                        Open
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="pending">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" />
-                        Pending
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="closed">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Closed
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              {conversation.subject && (
+                <p className="text-xs text-muted-foreground truncate">
+                  Subject: {conversation.subject}
+                </p>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Messages Area with Progressive Loading */}
-        <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
-          <ProgressiveMessagesList
-            ref={messagesListRef}
-            conversationId={conversationId}
-            conversationIds={conversationIds}
-            conversation={conversation}
-          />
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isMobile && (
+              <>
+                <PresenceAvatarStack
+                  conversationId={conversationId}
+                  size="sm"
+                  maxAvatars={3}
+                  className="mr-1"
+                  showSelfFallback
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void queryClient.invalidateQueries({
+                      queryKey: ["conversation-messages", conversationId],
+                    })
+                    void queryClient.invalidateQueries({
+                      queryKey: ["conversation-meta", conversationId],
+                    })
+                    toast.success("Conversation refreshed")
+                  }}
+                  className="gap-1 h-7"
+                  title="Refresh (Ctrl+R)"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span className="text-xs">Refresh</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleAll}
+                  className="gap-1 h-7"
+                  title={allExpanded ? "Collapse all messages" : "Expand all messages"}
+                >
+                  {allExpanded ? (
+                    <>
+                      <ChevronsUp className="h-3.5 w-3.5" />
+                      <span className="text-xs">Collapse</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronsDown className="h-3.5 w-3.5" />
+                      <span className="text-xs">Expand</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOpsTicketOpen(true)}
+              className="gap-1 h-7"
+              title="Create an operations ticket in Navio for this conversation"
+            >
+              <Wrench className="h-3.5 w-3.5" />
+              {!isMobile && <span className="text-xs">Ops ticket</span>}
+            </Button>
+            {/* Mobile: Status dropdown inline */}
+            {isMobile && (
+              <Select
+                value={conversation?.status || "open"}
+                onValueChange={(status) => updateStatus({ status })}
+              >
+                <SelectTrigger className="h-7 w-[90px] text-xs shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">
+                    <div className="flex items-center gap-1.5">
+                      <CircleDot className="h-3 w-3" />
+                      Open
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="pending">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" />
+                      Pending
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="closed">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Closed
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Side panel - Responsive with collapse feature */}
-      {showSidePanel && !isMobile && (
-        <div
-          className={cn(
-            "flex-shrink-0 border-l border-border transition-all duration-300 ease-in-out",
-            sidePanelCollapsed ? "w-12" : "w-80 lg:w-[340px] xl:w-[380px] 2xl:w-[420px]",
-          )}
+      {/* Messages Area with Progressive Loading */}
+      <div className="flex-1 min-h-0 w-full flex flex-col bg-background">
+        <ProgressiveMessagesList
+          ref={messagesListRef}
+          conversationId={conversationId}
+          conversationIds={conversationIds}
+          conversation={conversation}
+        />
+      </div>
+    </div>
+  )
+
+  const sidePanel = (
+    <CustomerSidePanel
+      conversation={conversation}
+      isCollapsed={sidePanelCollapsed}
+      onToggleCollapse={() => setSidePanelCollapsed(!sidePanelCollapsed)}
+    />
+  )
+
+  const showResizableSidePanel = showSidePanel && !isMobile && !sidePanelCollapsed
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      {showResizableSidePanel ? (
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1 min-w-0"
+          autoSaveId="email-detail-panels"
         >
-          <CustomerSidePanel
-            conversation={conversation}
-            isCollapsed={sidePanelCollapsed}
-            onToggleCollapse={() => setSidePanelCollapsed(!sidePanelCollapsed)}
-          />
-        </div>
+          <ResizablePanel defaultSize={72} minSize={40} className="min-w-0">
+            {mainArea}
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={28} minSize={18} maxSize={55} className="min-w-0">
+            {sidePanel}
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <>
+          <div className="flex flex-1 min-w-0">{mainArea}</div>
+          {showSidePanel && !isMobile && sidePanelCollapsed && (
+            <div className="flex-shrink-0 border-l border-border w-12">{sidePanel}</div>
+          )}
+        </>
       )}
 
       {/* Dialogs */}

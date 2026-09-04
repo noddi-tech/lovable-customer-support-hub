@@ -323,7 +323,7 @@ export const AiConversationHistory: React.FC<AiConversationHistoryProps> = ({ or
                         <span className="ml-auto">{format(new Date(msg.created_at), "HH:mm")}</span>
                       </div>
                       <div
-                        className={`rounded-lg p-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                        className={`rounded-lg p-3 text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                       >
                         {msg.content}
                       </div>

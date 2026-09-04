@@ -803,7 +803,9 @@ const MessageCardComponent = ({
                       key={block.raw}
                       className="pl-4 border-l-2 border-muted-foreground/30 text-sm text-muted-foreground"
                     >
-                      <pre className="whitespace-pre-wrap">{block.raw}</pre>
+                      <pre className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                        {block.raw}
+                      </pre>
                     </div>
                   ))}
                 </div>

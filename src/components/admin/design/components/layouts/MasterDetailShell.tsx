@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react"
 import type React from "react"
 import { type ReactNode, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sheet,
@@ -132,43 +133,51 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
     <div className={cn("h-full min-h-0 w-full", className)}>
       {isDetail ? (
         // Detail mode: Message thread + Reply sidebar (or just message thread if no detailRight)
-        <div
-          data-testid="detail-grid"
-          className={cn(
-            "grid h-full min-h-0 w-full max-w-none gap-6 md:gap-8",
-            detailRight
-              ? "grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]"
-              : "grid-cols-1",
-          )}
-        >
-          {/* Detail left: Message thread */}
-          <div className={cn("min-h-0 min-w-0 bg-card", detailRight && "border-r border-border")}>
-            <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
-              <div className="py-3 sm:py-4 px-0">{detailLeft}</div>
-            </ScrollArea>
-          </div>
+        detailRight ? (
+          <ResizablePanelGroup
+            direction="horizontal"
+            autoSaveId="masterdetail-detail"
+            id="detail-grid"
+            className="h-full min-h-0 w-full max-w-none"
+          >
+            {/* Detail left: Message thread */}
+            <ResizablePanel
+              defaultSize={70}
+              minSize={40}
+              className="min-w-0 bg-card border-r border-border"
+            >
+              <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
+                <div className="py-3 sm:py-4 px-0">{detailLeft}</div>
+              </ScrollArea>
+            </ResizablePanel>
 
-          {/* Detail right: Reply & Actions sidebar (optional) */}
-          {detailRight && (
-            <div className="min-h-0 min-w-0 bg-card">
+            <ResizableHandle withHandle />
+
+            {/* Detail right: Reply & Actions sidebar */}
+            <ResizablePanel defaultSize={30} minSize={20} maxSize={55} className="min-w-0 bg-card">
               <ScrollArea className="h-full overflow-y-auto" aria-label={detailRightLabel}>
                 <div className="py-3 sm:py-4 px-0">{detailRight}</div>
               </ScrollArea>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div data-testid="detail-grid" className="h-full min-h-0 w-full max-w-none">
+            <div className="min-h-0 min-w-0 bg-card h-full">
+              <ScrollArea className="h-full overflow-y-auto" aria-label={detailLeftLabel}>
+                <div className="py-3 sm:py-4 px-0">{detailLeft}</div>
+              </ScrollArea>
             </div>
-          )}
-        </div>
-      ) : (
-        // List mode: Inbox list + Conversation list
+          </div>
+        )
+      ) : leftCollapsed || !left ? (
+        // List mode, collapsed rail or no left pane: fixed grid (rail is not resizable)
         <div
           data-testid="list-grid"
           className={cn(
             "grid h-full min-h-0 w-full max-w-none gap-0",
-            leftCollapsed
-              ? "grid-cols-[44px_minmax(0,1fr)]"
-              : "grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)]",
+            leftCollapsed ? "grid-cols-[44px_minmax(0,1fr)]" : "grid-cols-1",
           )}
         >
-          {/* Left: Inbox list */}
           {left && (
             <div className="min-h-0 min-w-0 border-r border-border bg-card">
               <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
@@ -176,8 +185,6 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
               </ScrollArea>
             </div>
           )}
-
-          {/* Center: Conversation list */}
           <section
             className="min-h-0 min-w-0 bg-card overflow-hidden h-full"
             aria-label={centerPaneLabel}
@@ -185,6 +192,38 @@ export const MasterDetailShell: React.FC<MasterDetailShellProps> = ({
             <div className="h-full py-3 sm:py-4 px-0">{center}</div>
           </section>
         </div>
+      ) : (
+        // List mode: Inbox list + Conversation list (resizable)
+        <ResizablePanelGroup
+          direction="horizontal"
+          autoSaveId="masterdetail-list"
+          id="list-grid"
+          className="h-full min-h-0 w-full max-w-none"
+        >
+          {/* Left: Inbox list */}
+          <ResizablePanel
+            defaultSize={24}
+            minSize={15}
+            maxSize={40}
+            className="min-w-0 border-r border-border bg-card"
+          >
+            <ScrollArea className="h-full overflow-y-auto" aria-label={leftPaneLabel}>
+              <div className="py-4 px-0">{left}</div>
+            </ScrollArea>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* Center: Conversation list */}
+          <ResizablePanel defaultSize={76} minSize={40} className="min-w-0 bg-card overflow-hidden">
+            <section
+              className="min-h-0 min-w-0 bg-card overflow-hidden h-full"
+              aria-label={centerPaneLabel}
+            >
+              <div className="h-full py-3 sm:py-4 px-0">{center}</div>
+            </section>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       )}
 
       {children}

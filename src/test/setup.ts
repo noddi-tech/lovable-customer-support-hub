@@ -126,19 +126,28 @@ beforeAll(() => {
     })),
   })
 
-  // Mock ResizeObserver
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }))
+  // Mock ResizeObserver — must be a real constructor (react-resizable-panels
+  // calls `new ResizeObserver`), and must survive vi.clearAllMocks() in afterEach.
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  global.ResizeObserver = ResizeObserverMock
 
   // Mock IntersectionObserver
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }))
+  class IntersectionObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+    root = null
+    rootMargin = ""
+    thresholds = []
+  }
+  global.IntersectionObserver = IntersectionObserverMock
 })
 
 afterEach(() => {

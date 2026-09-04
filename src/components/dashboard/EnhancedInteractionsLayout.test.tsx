@@ -85,8 +85,8 @@ describe("EnhancedInteractionsLayout", () => {
     // Router (TanStack) resolves asynchronously, so await the list grid.
     const grid = await screen.findByTestId("list-grid")
     expect(grid).toBeInTheDocument()
-    // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
-    expect(grid.childElementCount).toBe(2)
+    // eslint-disable-next-line testing-library/no-node-access -- two resizable panes + a drag handle between them
+    expect(grid.childElementCount).toBe(3)
   })
 
   it("renders the inbox rail and conversation list", async () => {

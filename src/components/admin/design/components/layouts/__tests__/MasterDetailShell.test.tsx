@@ -64,15 +64,15 @@ describe("MasterDetailShell", () => {
       expect(screen.queryByTestId("center-pane")).not.toBeInTheDocument()
     })
 
-    it("detail-grid has exactly 2 children", () => {
+    it("detail-grid has two panes plus a resize handle", () => {
       mockUseIsMobile.mockReturnValue(false)
 
       render(<MasterDetailShell {...detailProps} />)
 
       const detailGrid = screen.getByTestId("detail-grid")
       expect(detailGrid).toBeInTheDocument()
-      // eslint-disable-next-line testing-library/no-node-access -- assert exactly two pane children
-      expect(detailGrid.children).toHaveLength(2)
+      // eslint-disable-next-line testing-library/no-node-access -- two resizable panes + a drag handle between them
+      expect(detailGrid.children).toHaveLength(3)
     })
 
     it("does not render detail-grid in list mode", () => {
