@@ -55,7 +55,9 @@ export function useConversationStatusActions() {
 
         if (error) throw error
 
-        toast.success(`${STATUS_LABEL[status]} ${ids.length} conversation${ids.length === 1 ? "" : "s"}`)
+        toast.success(
+          `${STATUS_LABEL[status]} ${ids.length} conversation${ids.length === 1 ? "" : "s"}`,
+        )
         void queryClient.invalidateQueries({ queryKey: ["conversations"] })
         void queryClient.invalidateQueries({ queryKey: ["chat-conversations"] })
         void queryClient.invalidateQueries({ queryKey: ["conversation-counts"] })

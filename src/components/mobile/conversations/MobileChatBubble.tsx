@@ -24,11 +24,11 @@ import { MentionRenderer } from "@/components/ui/mention-renderer"
 import { useDateFormatting } from "@/hooks/useDateFormatting"
 import { useNoteMutations } from "@/hooks/useNoteMutations"
 import { supabase } from "@/integrations/supabase/client"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
 import type { EmailAttachment } from "@/utils/emailFormatting"
 import { noteDebug } from "@/utils/noteInteractionDebug"
-import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 interface MobileChatBubbleProps {
   message: NormalizedMessage
