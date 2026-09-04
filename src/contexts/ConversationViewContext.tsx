@@ -336,6 +336,8 @@ export const ConversationViewProvider = ({
 
   // Auto-mark as read when conversation is opened and unread
   const autoMarkAsReadRef = useRef<((convId: string) => void) | null>(null)
+  const sendInFlightRef = useRef(false)
+  const draftsInFlightRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (conversation && conversation.is_read === false && conversationId) {
@@ -921,6 +923,14 @@ export const ConversationViewProvider = ({
     replyAll?: boolean,
     priority?: EmailPriority,
   ): Promise<string | undefined> => {
+    // Guard against double-submits (rapid clicks / Cmd+Enter spam):
+    // React state (sendLoading) updates asynchronously, so the disabled prop
+    // alone cannot block a second click fired in the same tick.
+    if (sendInFlightRef.current) {
+      logger.warn("Duplicate send blocked (already in flight)", null, "ConversationViewProvider")
+      throw new Error("SEND_ALREADY_IN_FLIGHT")
+    }
+    sendInFlightRef.current = true
     dispatch({ type: "SET_SEND_LOADING", payload: true })
     try {
       const message = await sendReplyMutation.mutateAsync({
@@ -933,6 +943,7 @@ export const ConversationViewProvider = ({
       })
       return message?.id
     } finally {
+      sendInFlightRef.current = false
       dispatch({ type: "SET_SEND_LOADING", payload: false })
     }
   }
@@ -1119,6 +1130,13 @@ export const ConversationViewProvider = ({
       return
     }
 
+    // Block repeated clicks on the same AI draft while the send is in flight
+    if (draftsInFlightRef.current.has(messageId) || sendInFlightRef.current) {
+      logger.warn("Duplicate draft send blocked", null, "ConversationViewProvider")
+      return
+    }
+    draftsInFlightRef.current.add(messageId)
+
     try {
       // Use the existing sendReply flow — identical to agent manually sending
       await sendReply(draftMsg.content, false, "pending")
@@ -1158,6 +1176,8 @@ export const ConversationViewProvider = ({
     } catch (error: any) {
       logger.error("Failed to send draft", error, "ConversationViewProvider")
       toastError("Failed to send draft", error)
+    } finally {
+      draftsInFlightRef.current.delete(messageId)
     }
   }
 

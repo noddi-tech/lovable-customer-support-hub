@@ -229,6 +229,8 @@ const MessageCardComponent = ({
     propIsPinned ?? message.originalMessage?.is_pinned ?? false,
   )
   const [isEditingThisNote, setIsEditingThisNote] = useState(false)
+  const [isSendingDraft, setIsSendingDraft] = useState(false)
+
   const { canEditNote } = useNoteMutations()
 
   // Track renders
@@ -840,11 +842,19 @@ const MessageCardComponent = ({
               <Button
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-                onClick={() => onSendDraft?.(message.id)}
+                disabled={isSendingDraft}
+                onClick={() => {
+                  if (isSendingDraft) return
+                  setIsSendingDraft(true)
+                  void Promise.resolve(onSendDraft?.(message.id)).finally(() => {
+                    setIsSendingDraft(false)
+                  })
+                }}
               >
                 <Send className="h-3.5 w-3.5" />
-                Send
+                {isSendingDraft ? "Sending..." : "Send"}
               </Button>
+
               <Button
                 variant="outline"
                 size="sm"

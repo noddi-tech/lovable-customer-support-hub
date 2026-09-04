@@ -213,6 +213,8 @@ export const ReplyArea = () => {
         }
       })
       .catch((error) => {
+        // Duplicate click while a send is already in flight — nothing to report.
+        if (error?.message === "SEND_ALREADY_IN_FLIGHT") return
         // Error toast is handled by mutation's onError in context.
         // Intentionally do NOT clear composer / attachments / showReplyArea —
         // agent stays on the open conversation with their draft + chips intact.
