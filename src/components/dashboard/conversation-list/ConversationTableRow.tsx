@@ -14,7 +14,7 @@ import {
 import { memo, useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { TagBadgeList } from "@/components/tags/TagBadge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -79,6 +79,45 @@ const InboxBadge = ({
     <span className="truncate font-medium">{name}</span>
   </span>
 )
+
+/**
+ * Shows who a conversation is assigned to. Rendered in every list variant
+ * (mobile card, virtualized row, table row) so assignment is visible without
+ * opening the thread.
+ */
+const AssigneeChip = ({
+  name,
+  avatarUrl,
+  compact,
+}: {
+  name: string
+  avatarUrl?: string | null
+  compact?: boolean
+}) => {
+  const initial = name.trim()[0]?.toUpperCase() || "?"
+  const shortName = name.trim().split(/\s+/)[0]
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 text-primary max-w-full",
+            compact ? "pl-0.5 pr-1.5 py-0 text-[9px]" : "pl-0.5 pr-2 py-0 text-[10px]",
+          )}
+        >
+          <Avatar className={cn("shrink-0", compact ? "h-3 w-3" : "h-4 w-4")}>
+            {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
+            <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-medium">
+              {initial}
+            </AvatarFallback>
+          </Avatar>
+          <span className="truncate font-medium">{shortName}</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Assigned to {name}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 // --- Visual config maps ---
 
@@ -240,6 +279,8 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
         inboxName: inbox?.name || (conversation.inbox_id ? "Unknown inbox" : "No inbox"),
         inboxColor: (inbox as any)?.color || "#6B7280",
         inboxEmail: conversation.inbox_id ? inboxEmails?.[conversation.inbox_id] : undefined,
+        assigneeName: (conversation as any).assigned_to?.full_name as string | undefined,
+        assigneeAvatarUrl: (conversation as any).assigned_to?.avatar_url as string | undefined,
       }
     }, [conversation, t, formatConversationTime, formatDateTime, inboxes, inboxEmails])
 
@@ -426,6 +467,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
                   />
                 )}
                 {StatusBadge}
+                {computedValues.assigneeName && (
+                  <AssigneeChip
+                    compact
+                    name={computedValues.assigneeName}
+                    avatarUrl={computedValues.assigneeAvatarUrl}
+                  />
+                )}
 
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <computedValues.ChannelIcon className="h-3 w-3" />
@@ -639,6 +687,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
             {/* Status */}
             <div className="p-2 w-32 shrink-0 flex items-center gap-1">
               {StatusBadge}
+              {computedValues.assigneeName && (
+                <AssigneeChip
+                  name={computedValues.assigneeName}
+                  avatarUrl={computedValues.assigneeAvatarUrl}
+                />
+              )}
+
               {conversation.is_archived && (
                 <Badge className="px-1.5 py-0 text-[10px] bg-muted text-muted-foreground">
                   <Archive className="h-3 w-3 mr-0.5" />
@@ -852,6 +907,13 @@ export const ConversationTableRow = memo<ConversationTableRowProps>(
           <TableCell className="p-2 w-32">
             <div className="flex items-center gap-1">
               {StatusBadge}
+              {computedValues.assigneeName && (
+                <AssigneeChip
+                  name={computedValues.assigneeName}
+                  avatarUrl={computedValues.assigneeAvatarUrl}
+                />
+              )}
+
               {conversation.is_archived && (
                 <Badge className="px-1.5 py-0 text-[10px] shrink-0 bg-muted text-muted-foreground">
                   <Archive className="h-3 w-3 mr-0.5" />
