@@ -16,6 +16,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { AiSuggestionsSheet } from "@/components/dashboard/conversation-view/AiSuggestionsSheet"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
+
 import { FeedbackPrompt } from "@/components/dashboard/conversation-view/FeedbackPrompt"
 import { Button } from "@/components/ui/button"
 import { DescribedSelectItem } from "@/components/ui/described-select-item"
@@ -241,9 +243,10 @@ export const ChatReplyInput = ({ conversationId, onSent }: ChatReplyInputProps) 
         }
 
         if (!isLive && insertedMsg?.id) {
-          const { error: emailError } = await supabase.functions.invoke("send-reply-email", {
-            body: { messageId: insertedMsg.id },
+          const { error: emailError } = await invokeSendReplyEmail({
+            messageId: insertedMsg.id,
           })
+
           if (emailError) {
             console.error("[ChatReplyInput] Email send failed:", emailError)
             await supabase
