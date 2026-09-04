@@ -28,6 +28,7 @@ import type { NormalizedMessage } from "@/lib/normalizeMessage"
 import { cn } from "@/lib/utils"
 import type { EmailAttachment } from "@/utils/emailFormatting"
 import { noteDebug } from "@/utils/noteInteractionDebug"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 interface MobileChatBubbleProps {
   message: NormalizedMessage
@@ -104,9 +105,7 @@ export const MobileChatBubble = ({
 
   const handleResendEmail = async () => {
     try {
-      const { error } = await supabase.functions.invoke("send-reply-email", {
-        body: { messageId: message.id },
-      })
+      const { error } = await invokeSendReplyEmail({ messageId: message.id })
       if (error) throw error
       toast.success("Email sent successfully")
     } catch {

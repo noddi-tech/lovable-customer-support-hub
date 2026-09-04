@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client"
 import { sanitizeStorageFilename } from "@/utils/storageKey"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 export interface CreateConversationInput {
   customerEmail: string
@@ -161,9 +162,7 @@ export async function createConversationAndSend(
     if (messageError) throw messageError
 
     if (canSendEmail && newMessage) {
-      const { error: sendError } = await supabase.functions.invoke("send-reply-email", {
-        body: { messageId: newMessage.id },
-      })
+      const { error: sendError } = await invokeSendReplyEmail({ messageId: newMessage.id })
 
       if (sendError) {
         emailErrorMessage = sendError.message || "Failed to send email"
