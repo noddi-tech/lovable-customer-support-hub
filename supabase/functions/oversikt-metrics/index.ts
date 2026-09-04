@@ -57,17 +57,23 @@ Deno.serve(async (req) => {
   const userId = body?.user_id as string | undefined
   if (!orgId) return json({ error: "organization_id required" }, 400)
 
-  // Resolve current user's profile
-  const { data: profile } = await userClient
+  // Resolve current user's profile. Use the service-role client (JWT is already
+  // verified above via getClaims) so a restrictive RLS policy on `profiles`
+  // can't turn a legitimate, authenticated user into a spurious 403.
+  const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+  const { data: profile, error: profileError } = await sb
     .from("profiles")
     .select("id, organization_id")
     .eq("user_id", claims.claims.sub)
     .eq("organization_id", orgId)
     .maybeSingle()
+  if (profileError) {
+    console.error("oversikt-metrics: profile lookup failed", profileError)
+    return json({ error: "Profile lookup failed", detail: profileError.message }, 500)
+  }
   if (!profile) return json({ error: "Forbidden" }, 403)
 
   const myProfileId = profile.id as string
-  const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
 
   // Time window cutoff
   const now = new Date()

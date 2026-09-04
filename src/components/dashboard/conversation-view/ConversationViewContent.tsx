@@ -418,11 +418,7 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
     return (
       <div className="flex h-full bg-card overflow-hidden">
         {showDetailPanel ? (
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="flex-1 min-w-0"
-          >
-
+          <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0">
             <ResizablePanel defaultSize={68} minSize={40} className="min-w-0">
               {chatColumn}
             </ResizablePanel>

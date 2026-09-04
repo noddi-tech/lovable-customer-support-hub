@@ -3,9 +3,8 @@ import { createContext, type ReactNode, useContext, useEffect, useReducer, useRe
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
-import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
-
 import type { EmailPriority } from "@/lib/emailPriority"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import { clearReplyDraft, loadReplyDraft, saveReplyDraft } from "@/lib/replyDraftStorage"
 import { sortInboxesByName } from "@/lib/sortInboxes"
 import { logger } from "@/utils/logger"
@@ -576,7 +575,6 @@ export const ConversationViewProvider = ({
           messageId: message.id,
           replyAll: replyAll ?? true,
         })
-
 
         if (emailError) {
           logger.warn("Email sending failed", emailError, "ConversationViewProvider")

@@ -79,7 +79,18 @@ export function useOversiktMetrics(filters: OversiktFilters) {
           ...filters,
         },
       })
-      if (error) throw error
+      if (error) {
+        // functions.invoke stashes the function's JSON body on error.context —
+        // surface it so a failed load is diagnosable instead of a blank card.
+        let detail = ""
+        try {
+          detail = await (error as { context?: Response }).context?.clone().text?.()
+        } catch {
+          // ignore — context not always a Response
+        }
+        console.error("oversikt-metrics invoke failed", error, detail)
+        throw error
+      }
       return data as OversiktMetrics
     },
   })

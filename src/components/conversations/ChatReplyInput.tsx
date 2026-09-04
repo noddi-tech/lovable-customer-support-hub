@@ -16,8 +16,6 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { AiSuggestionsSheet } from "@/components/dashboard/conversation-view/AiSuggestionsSheet"
-import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
-
 import { FeedbackPrompt } from "@/components/dashboard/conversation-view/FeedbackPrompt"
 import { Button } from "@/components/ui/button"
 import { DescribedSelectItem } from "@/components/ui/described-select-item"
@@ -48,6 +46,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useChatSessionTransfer } from "@/hooks/useChatSessionTransfer"
 import { useMentionNotifications } from "@/hooks/useMentionNotifications"
 import { supabase } from "@/integrations/supabase/client"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 import { REPLY_SEND_STATUS_DESCRIPTIONS } from "@/lib/option-descriptions"
 import {
   DEFAULT_SOURCE_LANGUAGE,
