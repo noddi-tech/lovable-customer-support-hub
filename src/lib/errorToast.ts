@@ -106,11 +106,7 @@ export async function copyText(text: string): Promise<boolean> {
  * Error toast with the real server message plus a one-click "Copy details".
  * Use everywhere instead of `toast.error(title, { description: "…" })`.
  */
-export function toastError(
-  title: string,
-  error: unknown,
-  context?: Record<string, unknown>,
-): void {
+export function toastError(title: string, error: unknown, context?: Record<string, unknown>): void {
   const description = describeError(error)
   const report = formatErrorReport(title, error, context)
   toast.error(title, {

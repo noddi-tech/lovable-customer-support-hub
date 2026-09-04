@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import { supabase } from "@/integrations/supabase/client"
 import type { TablesUpdate } from "@/integrations/supabase/types"
+import { toastError } from "@/lib/errorToast"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 export interface SlackIntegrationConfig {

@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Mail, MessageSquare, Plus, RefreshCw, Settings, Trash2, Users } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +38,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useServiceDepartments } from "@/hooks/useServiceDepartments"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { sortInboxesByName } from "@/lib/sortInboxes"
 import { useNavigate } from "@/router/compat"
 

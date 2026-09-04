@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import type { SlackChannel, SlackIntegration } from "@/hooks/useSlackIntegration"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
 interface InboxSlackRoutingProps {

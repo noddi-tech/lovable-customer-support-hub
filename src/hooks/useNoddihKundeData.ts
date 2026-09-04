@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { getCustomerCacheKey } from "@/utils/customerCacheKey"
 import { syncCustomerFromNoddi } from "@/utils/customerSync"
 

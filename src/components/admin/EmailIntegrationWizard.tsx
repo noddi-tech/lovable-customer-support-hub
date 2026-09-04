@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -22,6 +21,7 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 import { sortInboxesByName } from "@/lib/sortInboxes"
 import { useNavigate } from "@/router/compat"
 import { EmailConnectionStep } from "./wizard/EmailConnectionStep"

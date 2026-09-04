@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { toastError } from "@/lib/errorToast"
 import { SLA_PRIORITIES, type SlaPriority } from "@/hooks/useInboxSla"
 import { supabase } from "@/integrations/supabase/client"
+import { toastError } from "@/lib/errorToast"
 
 export interface ChannelSlaPolicyRow {
   id: string

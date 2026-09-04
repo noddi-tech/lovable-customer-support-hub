@@ -183,10 +183,15 @@ export const ChatMessagesList = ({
 
   const handleCopyEmailError = useCallback(
     async (messageId: string) => {
-      const report = formatErrorReport("Email not sent", sendErrors[messageId] ?? "No error detail captured yet — press Resend to get the server error.", {
-        messageId,
-        conversationId,
-      })
+      const report = formatErrorReport(
+        "Email not sent",
+        sendErrors[messageId] ??
+          "No error detail captured yet — press Resend to get the server error.",
+        {
+          messageId,
+          conversationId,
+        },
+      )
       const ok = await copyText(report)
       if (ok) toast.success("Error details copied")
       else toast.message("Copy failed", { description: report })
