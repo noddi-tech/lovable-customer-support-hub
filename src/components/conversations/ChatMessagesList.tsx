@@ -286,7 +286,10 @@ export const ChatMessagesList = ({
 
                   {/* Message content */}
                   <div
-                    className={cn("flex flex-col relative", isAgent ? "items-end" : "items-start")}
+                    className={cn(
+                      "flex flex-col relative min-w-0 flex-1",
+                      isAgent ? "items-end" : "items-start",
+                    )}
                   >
                     {/* Sender name / internal note label */}
                     {isInternal ? (
