@@ -61,7 +61,7 @@ export const SidebarThemeSwitcher: React.FC<SidebarThemeSwitcherProps> = ({
 
   return (
     <div className="px-3 py-1">
-      <div className="flex items-center gap-1 rounded-md border border-sidebar-border p-0.5">
+      <div className="flex w-full items-center gap-0.5 overflow-hidden rounded-md border border-sidebar-border p-0.5">
         {OPTIONS.map((opt) => {
           const Icon = opt.icon
           const selected = active === opt.value
@@ -73,14 +73,14 @@ export const SidebarThemeSwitcher: React.FC<SidebarThemeSwitcherProps> = ({
               aria-label={t(opt.labelKey, opt.label)}
               onClick={() => setTheme(opt.value)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-[11px] font-medium transition-colors",
+                "flex min-w-0 flex-1 items-center justify-center gap-1 rounded px-1 py-1 text-[11px] font-medium leading-none whitespace-nowrap transition-colors",
                 selected
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{t(opt.labelKey, opt.label)}</span>
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t(opt.labelKey, opt.label)}</span>
             </button>
           )
         })}
