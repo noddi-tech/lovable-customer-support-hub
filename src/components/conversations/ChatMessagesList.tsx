@@ -263,7 +263,7 @@ export const ChatMessagesList = ({
                 {languageBanner}
                 <div
                   className={cn(
-                    "flex gap-3 max-w-[85%] group",
+                    "flex gap-3 max-w-[92%] group",
                     isAgent ? "self-end flex-row-reverse" : "self-start",
                   )}
                 >
@@ -400,7 +400,7 @@ export const ChatMessagesList = ({
                       {/* Message bubble */}
                       <div
                         className={cn(
-                          "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words chat-bubble-content overflow-hidden max-w-[280px] md:max-w-md [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
+                          "px-4 py-3 rounded-2xl text-sm leading-relaxed break-words [overflow-wrap:anywhere] chat-bubble-content overflow-hidden max-w-[85%] sm:max-w-md md:max-w-xl lg:max-w-2xl [&_img]:max-w-full [&_img]:h-auto [&_table]:max-w-full",
                           isInternal
                             ? "bg-yellow-50 text-foreground border border-yellow-200 rounded-br-md"
                             : isAgent

@@ -26,6 +26,7 @@ import { ChatCustomerPanel } from "@/components/dashboard/chat/ChatCustomerPanel
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useConversationPresenceSafe } from "@/contexts/ConversationPresenceContext"
 import { useConversationView } from "@/contexts/ConversationViewContext"
@@ -226,193 +227,212 @@ export const ConversationViewContent: React.FC<ConversationViewContentProps> = (
 
   // ============ LIVE CHAT UI (WhatsApp-style) ============
   if (isLiveChat) {
-    return (
-      <div className="flex h-full bg-card overflow-hidden">
-        {/* Chat container */}
-        <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
-          {/* Visitor left banner */}
-          {onlineStatus?.hasLeft && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm text-amber-700 dark:text-amber-400">
-                Visitor has left the chat — replies will be sent via email
-              </span>
-              <span className="text-xs text-amber-600 dark:text-amber-500 ml-auto">
-                {onlineStatus.status === "abandoned" ? "Timed out" : "Ended by visitor"}
-              </span>
-            </div>
-          )}
+    const showDetailPanel = showNoddiPanel && !isMobile
+    const chatColumn = (
+      <div className="flex flex-col h-full min-h-0 min-w-0 overflow-hidden">
+        {/* Visitor left banner */}
+        {onlineStatus?.hasLeft && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800">
+            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm text-amber-700 dark:text-amber-400">
+              Visitor has left the chat — replies will be sent via email
+            </span>
+            <span className="text-xs text-amber-600 dark:text-amber-500 ml-auto">
+              {onlineStatus.status === "abandoned" ? "Timed out" : "Ended by visitor"}
+            </span>
+          </div>
+        )}
 
-          {/* Compact Chat Header */}
-          <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-card shadow-sm">
-            {isMobile && <SidebarTrigger className="shrink-0" />}
-            <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+        {/* Compact Chat Header */}
+        <div className="flex-shrink-0 px-4 py-3 border-b flex items-center gap-3 bg-card shadow-sm">
+          {isMobile && <SidebarTrigger className="shrink-0" />}
+          <Button variant="ghost" size="icon" onClick={handleBack} className="shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
 
-            {/* Small avatar */}
-            <Avatar className="h-9 w-9 ring-1 ring-border shrink-0">
-              <AvatarFallback className="text-sm">
-                {getCustomerInitial(customerDisplay.displayName, customerDisplay.email)}
-              </AvatarFallback>
-            </Avatar>
+          {/* Small avatar */}
+          <Avatar className="h-9 w-9 ring-1 ring-border shrink-0">
+            <AvatarFallback className="text-sm">
+              {getCustomerInitial(customerDisplay.displayName, customerDisplay.email)}
+            </AvatarFallback>
+          </Avatar>
 
-            {/* Customer info + online status */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm truncate">{customerDisplay.displayName}</span>
-                {/* Online status dot */}
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full shrink-0",
-                    onlineStatus?.hasLeft
-                      ? "bg-amber-500"
-                      : onlineStatus?.isOnline
-                        ? "bg-green-500 animate-pulse"
-                        : "bg-gray-400",
-                  )}
-                />
-                {!isMobile && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs shrink-0",
-                      onlineStatus?.hasLeft
-                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                        : onlineStatus?.isOnline
-                          ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                          : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
-                    )}
-                  >
-                    {onlineStatus?.hasLeft ? "Left" : onlineStatus?.isOnline ? "Online" : "Offline"}
-                  </Badge>
+          {/* Customer info + online status */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm truncate">{customerDisplay.displayName}</span>
+              {/* Online status dot */}
+              <div
+                className={cn(
+                  "w-2 h-2 rounded-full shrink-0",
+                  onlineStatus?.hasLeft
+                    ? "bg-amber-500"
+                    : onlineStatus?.isOnline
+                      ? "bg-green-500 animate-pulse"
+                      : "bg-gray-400",
                 )}
-                {!isMobile && onlineStatus?.locale && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs shrink-0"
-                    title={`Widget language: ${getLanguageLabel(onlineStatus.locale)}`}
-                  >
-                    {getLanguageFlag(onlineStatus.locale)} {getLanguageLabel(onlineStatus.locale)}
-                  </Badge>
-                )}
-                {!isMobile && conversation.is_archived && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs shrink-0 bg-muted text-muted-foreground"
-                  >
-                    <Archive className="h-3 w-3 mr-0.5" />
-                    Archived
-                  </Badge>
-                )}
-              </div>
+              />
               {!isMobile && (
-                <div className="flex items-center gap-2">
-                  {customerDisplay.showEmail && customerDisplay.email && (
-                    <span className="text-xs text-muted-foreground truncate">
-                      {customerDisplay.email}
-                    </span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-xs shrink-0",
+                    onlineStatus?.hasLeft
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                      : onlineStatus?.isOnline
+                        ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                        : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
                   )}
-                  {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
-                    <span className="text-xs text-muted-foreground">
-                      · Last seen{" "}
-                      {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
-                    </span>
-                  )}
-                </div>
+                >
+                  {onlineStatus?.hasLeft ? "Left" : onlineStatus?.isOnline ? "Online" : "Offline"}
+                </Badge>
+              )}
+              {!isMobile && onlineStatus?.locale && (
+                <Badge
+                  variant="outline"
+                  className="text-xs shrink-0"
+                  title={`Widget language: ${getLanguageLabel(onlineStatus.locale)}`}
+                >
+                  {getLanguageFlag(onlineStatus.locale)} {getLanguageLabel(onlineStatus.locale)}
+                </Badge>
+              )}
+              {!isMobile && conversation.is_archived && (
+                <Badge
+                  variant="outline"
+                  className="text-xs shrink-0 bg-muted text-muted-foreground"
+                >
+                  <Archive className="h-3 w-3 mr-0.5" />
+                  Archived
+                </Badge>
               )}
             </div>
-
-            {/* Brand (auto-set by the widget, manually overridable here) */}
-            <ConversationBrandPicker
-              conversationId={conversation.id}
-              metadata={conversation.metadata}
-              channel={conversation.channel}
-            />
-
-            {/* Custom tags */}
-            <EntityTagPicker entityType="conversation" entityId={conversation.id} />
-
-            {/* Status dropdown */}
-
-            <Select
-              value={conversation?.status || "open"}
-              onValueChange={(status) => updateStatus({ status })}
-            >
-              <SelectTrigger
-                className={cn("h-7 text-xs shrink-0", isMobile ? "w-[90px]" : "w-[110px]")}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">
-                  <div className="flex items-center gap-2">
-                    <CircleDot className="h-3 w-3" />
-                    Open
-                  </div>
-                </SelectItem>
-                <SelectItem value="pending">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    Pending
-                  </div>
-                </SelectItem>
-                <SelectItem value="closed">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Closed
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Noddi info button - hide on mobile */}
             {!isMobile && (
-              <Button
-                variant={showNoddiPanel ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setShowNoddiPanel(!showNoddiPanel)}
-                title="View Noddi customer info"
-                className="shrink-0 relative"
-              >
-                <Info className="h-4 w-4" />
-                {noddiData?.data?.found && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+              <div className="flex items-center gap-2">
+                {customerDisplay.showEmail && customerDisplay.email && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {customerDisplay.email}
+                  </span>
                 )}
-              </Button>
-            )}
-
-            {/* Team presence - hide on mobile */}
-            {!isMobile && (
-              <PresenceAvatarStack
-                conversationId={conversationId}
-                size="sm"
-                maxAvatars={2}
-                showSelfFallback
-              />
+                {!onlineStatus?.isOnline && onlineStatus?.lastSeenAt && (
+                  <span className="text-xs text-muted-foreground">
+                    · Last seen{" "}
+                    {formatDistanceToNow(new Date(onlineStatus.lastSeenAt), { addSuffix: true })}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Chat Messages Area - full height, compact mode skips duplicate header */}
-          <ProgressiveMessagesList
-            ref={messagesListRef}
-            conversationId={conversationId}
-            conversationIds={conversationIds}
-            conversation={conversation}
-            compactChatMode={true}
+          {/* Brand (auto-set by the widget, manually overridable here) */}
+          <ConversationBrandPicker
+            conversationId={conversation.id}
+            metadata={conversation.metadata}
+            channel={conversation.channel}
           />
+
+          {/* Custom tags */}
+          <EntityTagPicker entityType="conversation" entityId={conversation.id} />
+
+          {/* Status dropdown */}
+
+          <Select
+            value={conversation?.status || "open"}
+            onValueChange={(status) => updateStatus({ status })}
+          >
+            <SelectTrigger
+              className={cn("h-7 text-xs shrink-0", isMobile ? "w-[90px]" : "w-[110px]")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">
+                <div className="flex items-center gap-2">
+                  <CircleDot className="h-3 w-3" />
+                  Open
+                </div>
+              </SelectItem>
+              <SelectItem value="pending">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3" />
+                  Pending
+                </div>
+              </SelectItem>
+              <SelectItem value="closed">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Closed
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Noddi info button - hide on mobile */}
+          {!isMobile && (
+            <Button
+              variant={showNoddiPanel ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setShowNoddiPanel(!showNoddiPanel)}
+              title="View Noddi customer info"
+              className="shrink-0 relative"
+            >
+              <Info className="h-4 w-4" />
+              {noddiData?.data?.found && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+            </Button>
+          )}
+
+          {/* Team presence - hide on mobile */}
+          {!isMobile && (
+            <PresenceAvatarStack
+              conversationId={conversationId}
+              size="sm"
+              maxAvatars={2}
+              showSelfFallback
+            />
+          )}
         </div>
 
-        {/* Collapsible Customer Details Panel - same as email view */}
-        {showNoddiPanel && !isMobile && (
-          <div className="flex flex-col overflow-y-auto border-l">
-            <WidgetContextCard metadata={conversation.metadata} className="m-3 mb-0" />
-            <ChatCustomerPanel
-              customer={conversation.customer}
-              conversationId={conversationId}
-              onClose={() => setShowNoddiPanel(false)}
-            />
-          </div>
+        {/* Chat Messages Area - full height, compact mode skips duplicate header */}
+        <ProgressiveMessagesList
+          ref={messagesListRef}
+          conversationId={conversationId}
+          conversationIds={conversationIds}
+          conversation={conversation}
+          compactChatMode={true}
+        />
+      </div>
+    )
+
+    const detailPanel = (
+      <div className="flex flex-col h-full overflow-y-auto border-l">
+        <WidgetContextCard metadata={conversation.metadata} className="m-3 mb-0" />
+        <ChatCustomerPanel
+          customer={conversation.customer}
+          conversationId={conversationId}
+          onClose={() => setShowNoddiPanel(false)}
+        />
+      </div>
+    )
+
+    return (
+      <div className="flex h-full bg-card overflow-hidden">
+        {showDetailPanel ? (
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="flex-1 min-w-0"
+            autoSaveId="livechat-detail-panels"
+          >
+            <ResizablePanel defaultSize={68} minSize={40} className="min-w-0">
+              {chatColumn}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={32} minSize={20} maxSize={50} className="min-w-0">
+              {detailPanel}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="flex flex-1 min-w-0">{chatColumn}</div>
         )}
 
         {/* Always-visible rail on the right edge to open/close the customer details panel */}

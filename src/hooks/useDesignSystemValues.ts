@@ -92,4 +92,3 @@ export const useCardStyles = () => {
     boxShadow: designSystem.shadows[components.cards.shadow as keyof typeof designSystem.shadows],
   }
 }
-
