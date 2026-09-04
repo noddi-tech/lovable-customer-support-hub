@@ -28,7 +28,22 @@ const ResizablePanelGroup = ({
   />
 )
 
-const ResizablePanel = (props: PanelProps) => <Panel {...props} />
+/**
+ * react-resizable-panels v4 interprets bare numbers as PIXELS, while the app
+ * (written against v2) passes percentages. Convert numbers to percentage
+ * strings so `defaultSize={35}` still means 35%.
+ */
+const asPercent = (value: number | string | undefined) =>
+  typeof value === "number" ? String(value) : value
+
+const ResizablePanel = ({ defaultSize, minSize, maxSize, ...props }: PanelProps) => (
+  <Panel
+    defaultSize={asPercent(defaultSize)}
+    minSize={asPercent(minSize)}
+    maxSize={asPercent(maxSize)}
+    {...props}
+  />
+)
 
 const ResizableHandle = ({
   withHandle,
