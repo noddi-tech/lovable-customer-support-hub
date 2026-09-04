@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import { getCustomerCacheKey } from "@/utils/customerCacheKey"
@@ -428,7 +429,7 @@ export const useNoddihKundeData = (customer: Customer | null, callId?: string) =
     },
     onError: (error) => {
       console.error("Failed to refresh Noddi data:", error)
-      toast.error(`Failed to refresh Noddi data: ${error.message}`)
+      toastError("Failed to refresh Noddi data", error)
     },
   })
 

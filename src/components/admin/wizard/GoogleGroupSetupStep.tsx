@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -103,7 +104,7 @@ export function GoogleGroupSetupStep({
           },
         )
         if (setupError) {
-          toast.error(`Failed to configure domain in SendGrid: ${setupError.message}`)
+          toastError("Failed to configure domain in SendGrid", setupError)
           setIsCreatingRoute(false)
           return
         }

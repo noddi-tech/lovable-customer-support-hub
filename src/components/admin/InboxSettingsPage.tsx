@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, ExternalLink, Mail, MessageSquare, Plug2, Tag, UserCheck } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { InboxSlaSettings } from "@/components/admin/InboxSlaSettings"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -138,7 +139,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
       void queryClient.invalidateQueries({ queryKey: ["inboxes"] })
       toast.success("Inbox updated successfully")
     },
-    onError: (error: any) => toast.error(`Failed to update inbox: ${error.message}`),
+    onError: (error: any) => toastError("Failed to update inbox", error),
   })
 
   const updateGroupEmail = useMutation({
@@ -154,7 +155,7 @@ export function InboxSettingsPage({ inboxId }: { inboxId: string }) {
       void queryClient.invalidateQueries({ queryKey: ["inbound_routes"] })
       toast.success("Sending address updated")
     },
-    onError: (error: any) => toast.error(`Failed to update sending address: ${error.message}`),
+    onError: (error: any) => toastError("Failed to update sending address", error),
   })
 
   if (isLoading || (!form && inbox)) {

@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -141,7 +142,7 @@ export const InboxSlackRouting = ({
       toast.success("Inbox routing saved")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to save routing: ${error.message}`)
+      toastError("Failed to save routing", error)
     },
   })
 
@@ -159,7 +160,7 @@ export const InboxSlackRouting = ({
       toast.success("All inbox routing removed — will use defaults")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to remove routing: ${error.message}`)
+      toastError("Failed to remove routing", error)
     },
   })
 

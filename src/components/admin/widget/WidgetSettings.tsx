@@ -14,6 +14,7 @@ import {
 import type React from "react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Heading } from "@/components/ui/heading"
@@ -139,7 +140,7 @@ export const WidgetSettings: React.FC = () => {
       toast.success("Widget created successfully")
     },
     onError: (error: any) => {
-      toast.error(`Failed to create widget: ${error.message}`)
+      toastError("Failed to create widget", error)
     },
   })
 
@@ -180,7 +181,7 @@ export const WidgetSettings: React.FC = () => {
       if (context?.previousConfigs) {
         queryClient.setQueryData(["widget-configs", organizationId], context.previousConfigs)
       }
-      toast.error(`Failed to update widget: ${error.message}`)
+      toastError("Failed to update widget", error)
     },
     onSuccess: () => {
       toast.success("Widget updated")

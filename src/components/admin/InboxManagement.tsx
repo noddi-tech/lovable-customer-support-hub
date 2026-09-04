@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Mail, MessageSquare, Plus, RefreshCw, Settings, Trash2, Users } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -198,7 +199,7 @@ export function InboxManagementContent() {
       toast.success("Inbox created successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to create inbox: ${error.message}`)
+      toastError("Failed to create inbox", error)
     },
   })
 
@@ -214,7 +215,7 @@ export function InboxManagementContent() {
       toast.success("All conversations deleted successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to delete conversations: ${error.message}`)
+      toastError("Failed to delete conversations", error)
     },
   })
 

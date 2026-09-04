@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { supabase } from "@/integrations/supabase/client"
 import type { TablesUpdate } from "@/integrations/supabase/types"
 import { useOrganizationStore } from "@/stores/organizationStore"
@@ -188,7 +189,7 @@ export const useSlackIntegration = () => {
       toast.success(`Connected to ${data.team_name}!`)
     },
     onError: (error: Error) => {
-      toast.error(`Failed to connect: ${error.message}`)
+      toastError("Failed to connect", error)
     },
   })
 
@@ -223,7 +224,7 @@ export const useSlackIntegration = () => {
       toast.success("Slack disconnected successfully")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to disconnect: ${error.message}`)
+      toastError("Failed to disconnect", error)
     },
   })
 
@@ -296,7 +297,7 @@ export const useSlackIntegration = () => {
       toast.success("Slack settings saved")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to save: ${error.message}`)
+      toastError("Failed to save", error)
     },
   })
 
@@ -329,7 +330,7 @@ export const useSlackIntegration = () => {
       toast.success("Test notification sent to Slack!")
     },
     onError: (error: Error) => {
-      toast.error(`Test failed: ${error.message}`)
+      toastError("Test failed", error)
     },
   })
 
@@ -363,7 +364,7 @@ export const useSlackIntegration = () => {
       toast.success(`Secondary workspace connected: ${data.team_name}`)
     },
     onError: (error: Error) => {
-      toast.error(`Failed to connect secondary workspace: ${error.message}`)
+      toastError("Failed to connect secondary workspace", error)
     },
   })
 
@@ -397,7 +398,7 @@ export const useSlackIntegration = () => {
       toast.success("Secondary workspace disconnected")
     },
     onError: (error: Error) => {
-      toast.error(`Failed to disconnect: ${error.message}`)
+      toastError("Failed to disconnect", error)
     },
   })
 

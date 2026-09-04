@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { SLA_PRIORITIES, type SlaPriority } from "@/hooks/useInboxSla"
 import { supabase } from "@/integrations/supabase/client"
 
@@ -60,7 +61,7 @@ export function useSaveChannelSla(channel: string) {
       invalidate()
       toast.success("Live chat SLA saved")
     },
-    onError: (e: any) => toast.error(`Could not save SLA: ${e.message}`),
+    onError: (e: any) => toastError("Could not save SLA", e),
   })
 
   const reset = useMutation({
@@ -76,7 +77,7 @@ export function useSaveChannelSla(channel: string) {
       invalidate()
       toast.success("Reverted to the general target")
     },
-    onError: (e: any) => toast.error(`Could not reset SLA: ${e.message}`),
+    onError: (e: any) => toastError("Could not reset SLA", e),
   })
 
   return { save, reset }

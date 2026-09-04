@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,7 +62,7 @@ export const ConversationCleanup = () => {
       toast.success("Conversation deleted successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to delete conversation: ${error.message}`)
+      toastError("Failed to delete conversation", error)
     },
   })
 

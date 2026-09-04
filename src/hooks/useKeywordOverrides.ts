@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { supabase } from "@/integrations/supabase/client"
 import { useOrganizationStore } from "@/stores/organizationStore"
 
@@ -103,7 +104,7 @@ export function useKeywordOverrides() {
       })
       toast.success("Nøkkelord oppdatert")
     },
-    onError: (err: Error) => toast.error(`Feil: ${err.message}`),
+    onError: (err: Error) => toastError("Feil", err),
   })
 
   const updateThresholds = useMutation({
@@ -121,7 +122,7 @@ export function useKeywordOverrides() {
       })
       toast.success("Terskel oppdatert")
     },
-    onError: (err: Error) => toast.error(`Feil: ${err.message}`),
+    onError: (err: Error) => toastError("Feil", err),
   })
 
   const unmuteKeyword = useMutation({
@@ -133,7 +134,7 @@ export function useKeywordOverrides() {
       void queryClient.invalidateQueries({ queryKey: ["triage-health", currentOrganizationId] })
       toast.success("Demping fjernet")
     },
-    onError: (err: Error) => toast.error(`Feil: ${err.message}`),
+    onError: (err: Error) => toastError("Feil", err),
   })
 
   return {

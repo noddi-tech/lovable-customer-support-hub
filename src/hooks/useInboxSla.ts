@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { supabase } from "@/integrations/supabase/client"
 
 export const SLA_PRIORITIES = ["urgent", "high", "normal", "low"] as const
@@ -61,7 +62,7 @@ export function useSaveInboxSla(inboxId: string | undefined) {
       invalidate()
       toast.success("SLA target saved")
     },
-    onError: (e: any) => toast.error(`Could not save SLA: ${e.message}`),
+    onError: (e: any) => toastError("Could not save SLA", e),
   })
 
   const reset = useMutation({
@@ -77,7 +78,7 @@ export function useSaveInboxSla(inboxId: string | undefined) {
       invalidate()
       toast.success("Reverted to organization default")
     },
-    onError: (e: any) => toast.error(`Could not reset SLA: ${e.message}`),
+    onError: (e: any) => toastError("Could not reset SLA", e),
   })
 
   return { save, reset }

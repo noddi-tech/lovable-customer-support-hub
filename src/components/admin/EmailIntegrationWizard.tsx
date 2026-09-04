@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { toastError } from "@/lib/errorToast"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -124,7 +125,7 @@ export function EmailIntegrationWizard({ open, onOpenChange }: EmailIntegrationW
       toast.success("Inbox created successfully")
     },
     onError: (error) => {
-      toast.error(`Failed to create inbox: ${error.message}`)
+      toastError("Failed to create inbox", error)
     },
   })
 
