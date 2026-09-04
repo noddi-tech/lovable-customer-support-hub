@@ -48,6 +48,7 @@ import { getSmartPreview } from "@/utils/messagePreview"
 import { noteDebug } from "@/utils/noteInteractionDebug"
 import { InlineNoteEditor } from "./InlineNoteEditor"
 import { MessageDebugProbe } from "./MessageDebugProbe"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 /** Explains the AI draft feature on hover over the "AI Draft" badge. */
 function AiDraftHint({ children }: { children: React.ReactNode }) {
@@ -368,9 +369,7 @@ const MessageCardComponent = ({
 
   const handleResendEmail = async () => {
     try {
-      const { error } = await supabase.functions.invoke("send-reply-email", {
-        body: { messageId: message.id },
-      })
+      const { error } = await invokeSendReplyEmail({ messageId: message.id })
       if (error) throw error
       toast({ title: "Email sent successfully" })
     } catch (error) {

@@ -22,11 +22,13 @@ export async function invokeSendReplyEmail(body: {
 
   const attempt = async () => supabase.functions.invoke("send-reply-email", { body })
 
-  const first = await attempt()
-  if (!first.error) return { error: null }
-  if (!isTransport(first.error)) return { error: first.error as { message: string } }
-
-  await new Promise((r) => setTimeout(r, 800))
-  const second = await attempt()
-  return { error: (second.error as { message: string } | null) ?? null }
+  let lastError: { message: string } | null = null
+  for (let i = 0; i < 3; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 800 * i))
+    const { error } = await attempt()
+    if (!error) return { error: null }
+    lastError = error as { message: string }
+    if (!isTransport(error)) break
+  }
+  return { error: lastError }
 }

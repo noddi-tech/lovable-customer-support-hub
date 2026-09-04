@@ -49,6 +49,7 @@ import { getLanguageFlag, getLanguageLabel, normalizeLocale } from "@/utils/lang
 
 import { noteDebug } from "@/utils/noteInteractionDebug"
 import { InlineNoteEditor } from "./InlineNoteEditor"
+import { invokeSendReplyEmail } from "@/lib/invokeSendReplyEmail"
 
 interface ChatMessagesListProps {
   messages: NormalizedMessage[]
@@ -154,9 +155,7 @@ export const ChatMessagesList = ({
 
   const handleResendEmail = useCallback(async (messageId: string) => {
     try {
-      const { error } = await supabase.functions.invoke("send-reply-email", {
-        body: { messageId },
-      })
+      const { error } = await invokeSendReplyEmail({ messageId })
       if (error) throw error
       toast.success("Email sent successfully")
     } catch (error) {
