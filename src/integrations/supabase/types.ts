@@ -6908,6 +6908,33 @@ export type Database = {
           },
         ]
       }
+      slack_conversation_threads: {
+        Row: {
+          channel_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          message_ts: string
+          organization_id: string | null
+        }
+        Insert: {
+          channel_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_ts: string
+          organization_id?: string | null
+        }
+        Update: {
+          channel_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_ts?: string
+          organization_id?: string | null
+        }
+        Relationships: []
+      }
       slack_integrations: {
         Row: {
           access_token: string | null
@@ -7023,6 +7050,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      slack_notification_dedupe: {
+        Row: {
+          conversation_id: string
+          dedupe_key: string
+          id: string
+          last_sent_at: string
+        }
+        Insert: {
+          conversation_id: string
+          dedupe_key: string
+          id?: string
+          last_sent_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          dedupe_key?: string
+          id?: string
+          last_sent_at?: string
+        }
+        Relationships: []
       }
       system_email_templates: {
         Row: {
@@ -8160,6 +8208,14 @@ export type Database = {
         Returns: boolean
       }
       claim_queue_row: { Args: { p_queue_id: string }; Returns: Json }
+      claim_slack_notification: {
+        Args: {
+          p_conversation_id: string
+          p_dedupe_key: string
+          p_window?: string
+        }
+        Returns: boolean
+      }
       cleanup_expired_audit_events: { Args: never; Returns: number }
       cleanup_old_email_ingestion_logs: { Args: never; Returns: undefined }
       count_old_audit_logs:
